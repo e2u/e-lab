@@ -1606,8 +1606,8 @@ function GlyphBody({
         const gap = 0.4 * GRID;
         const barH = 0.5 * GRID;
         const poleY = [1.5, 3.5, 5.5].map((v) => v * GRID);
-        const xF = 2.5 * GRID;
-        const xRev = 6.2 * GRID;
+        const xF = 3.5 * GRID;
+        const xRev = 8.5 * GRID;
         const pair = (xMid: number, y: number, on: boolean) => {
             const xL = xMid - gap / 2;
             const xRbar = xMid + gap / 2;
@@ -1683,20 +1683,27 @@ function GlyphBody({
                     strokeDasharray="3 3"
                 />
                 {([
-                    {lab: "F", cx: 2.35 * GRID, on: fwd, xEdge: 0, labs: ["A1F", "A2F"] as const, y1: 7.3, y2: 8.5, anchor: "start" as const, lx: 8},
-                    {lab: "R", cx: 6.65 * GRID, on: rev, xEdge: w * GRID, labs: ["A1R", "A2R"] as const, y1: 7.3, y2: 8.5, anchor: "end" as const, lx: w * GRID - 8},
+                    {lab: "F", cx: 3.5 * GRID, on: fwd, side: -1, labs: ["A1F", "A2F"] as const, y1: 7.3, y2: 8.5, anchor: "start" as const, lx: 8},
+                    {lab: "R", cx: 8.5 * GRID, on: rev, side: 1, labs: ["A1R", "A2R"] as const, y1: 7.3, y2: 8.5, anchor: "end" as const, lx: w * GRID - 8},
                 ]).map((c) => {
                     const y1 = c.y1 * GRID;
                     const y2 = c.y2 * GRID;
                     const cy = (y1 + y2) / 2;
+                    const cr = 14;
+                    const xEdge = c.side < 0 ? 0 : w * GRID;
+                    const join = (yy: number) => {
+                        const dy = yy - cy;
+                        const dx = Math.sqrt(Math.max(0, cr * cr - dy * dy));
+                        return c.cx + c.side * dx;
+                    };
                     return (
                         <g key={c.lab}>
-                            <line x1={c.xEdge} y1={y1} x2={c.cx} y2={cy} stroke={ink} strokeWidth="2"/>
-                            <line x1={c.xEdge} y1={y2} x2={c.cx} y2={cy} stroke={ink} strokeWidth="2"/>
+                            <line x1={xEdge} y1={y1} x2={join(y1)} y2={y1} stroke={ink} strokeWidth="2"/>
+                            <line x1={xEdge} y1={y2} x2={join(y2)} y2={y2} stroke={ink} strokeWidth="2"/>
                             <circle
                                 cx={c.cx}
                                 cy={cy}
-                                r="14"
+                                r={cr}
                                 fill={c.on ? "#f0d27a" : "#efe6d0"}
                                 stroke={ink}
                                 strokeWidth="2"
@@ -1714,22 +1721,26 @@ function GlyphBody({
                     );
                 })}
                 {([
-                    {id: "13", x: 1.5},
-                    {id: "14", x: 3.2},
-                    {id: "21", x: 5.8},
-                    {id: "22", x: 7.5},
+                    {id: "13", x: 2, lab: "13"},
+                    {id: "14", x: 3, lab: "14"},
+                    {id: "21", x: 4, lab: "21"},
+                    {id: "22", x: 5, lab: "22"},
+                    {id: "13R", x: 7, lab: "13"},
+                    {id: "14R", x: 8, lab: "14"},
+                    {id: "21R", x: 9, lab: "21"},
+                    {id: "22R", x: 10, lab: "22"},
                 ]).map((p) => (
                     <g key={p.id}>
                         <line
                             x1={p.x * GRID}
-                            y1={-0.5 * GRID}
+                            y1={9.1 * GRID}
                             x2={p.x * GRID}
-                            y2={1}
+                            y2={11 * GRID}
                             stroke={ink}
                             strokeWidth="2"
                         />
-                        <Txt x={p.x * GRID + 8} y={-0.5 * GRID + 4} className="term-lab">
-                            {p.id}
+                        <Txt x={p.x * GRID + 7} y={9.5 * GRID} className="term-lab">
+                            {p.lab}
                         </Txt>
                     </g>
                 ))}

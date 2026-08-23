@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit } from "./circuitBuilder";
 import { GRID } from "./types";
-import { HOP_R, STUB, findWireCrossovers, hopArcD, nearestOnPolyline, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute } from "./geometry";
+import { allWireRoutes, HOP_R, STUB, WIRE_LANE, findWireCrossovers, hopArcD, nearestOnPolyline, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute } from "./geometry";
 
 describe("wire routing stubs", () => {
   it("leaves a coil terminal in a straight stub before turning", () => {
@@ -158,6 +158,32 @@ describe("wire crossovers", () => {
     addWire(c, mid.symbol, "1", right.symbol, "1");
     addWire(c, mid.symbol, "1", down.symbol, "1");
     expect(findWireCrossovers(c)).toHaveLength(0);
+  });
+
+  it("separates overlapping parallel runs of unconnected wires", () => {
+    const c = emptyCircuit();
+    const a = addJunction(c, 0, 6);
+    const b = addJunction(c, 12, 6);
+    const e = addJunction(c, 2, 6);
+    const f = addJunction(c, 10, 6);
+    addWire(c, a.symbol, "1", b.symbol, "1");
+    addWire(c, e.symbol, "1", f.symbol, "1");
+    const routes = allWireRoutes(c);
+    const p1 = routes.get(c.wires[0].id)!;
+    const p2 = routes.get(c.wires[1].id)!;
+    const midY = (pts: { x: number; y: number }[]) => {
+      let best = pts[0].y;
+      let len = -1;
+      for (let i = 0; i < pts.length - 1; i += 1) {
+        const L = Math.abs(pts[i + 1].x - pts[i].x);
+        if (L > len) {
+          len = L;
+          best = pts[i].y;
+        }
+      }
+      return best;
+    };
+    expect(Math.abs(midY(p1) - midY(p2))).toBeGreaterThanOrEqual(WIRE_LANE - 1);
   });
 
   it("places a wire label beside the longest run", () => {

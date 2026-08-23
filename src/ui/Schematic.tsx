@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent } from "react";
 import { catalogItem, suggestNetLabelTag, variantDef } from "../catalog";
-import { findWireCrossovers, glyphTransform, hitWireSegment, hopArcD, isJunction, nearestOnPolyline, polylinePathD, snapOnSegment, terminalWorld, textUnflipTransform, wireLabelPos, wireRoute } from "../geometry";
+import { allWireRoutes, findWireCrossovers, glyphTransform, hitWireSegment, hopArcD, isJunction, nearestOnPolyline, polylinePathD, snapOnSegment, terminalWorld, textUnflipTransform, wireLabelPos, wireRoute } from "../geometry";
 import { normalizeRect, symbolsInRect, unionBounds } from "../groups";
 import { SymbolGlyph } from "../Glyphs";
 import { PHASE_COLOR } from "../sim/engine";
@@ -59,7 +59,8 @@ export function Schematic() {
     const d = s && circuit.devices.find((x) => x.id === s.deviceId);
     if (d?.kind === "net-label") selectedNetTag = d.tag.trim();
   }
-  const crossovers = findWireCrossovers(circuit);
+  const routes = allWireRoutes(circuit);
+  const crossovers = findWireCrossovers(circuit, routes);
 
   const cancelPlace = () => {
     useLab.getState().setPlacing(null);
@@ -143,7 +144,7 @@ export function Schematic() {
     if (mode === "edit" && !placing) {
       let next: "ew-resize" | "ns-resize" | "grab" | null = null;
       for (const w of circuit.wires) {
-        const pts = wireRoute(circuit, w.a, w.b, w.jog);
+        const pts = routes.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
         const hit = hitWireSegment(pts, world);
         if (hit) {
           next = hit.axis === "x" ? "ew-resize" : "ns-resize";
@@ -227,7 +228,7 @@ export function Schematic() {
           const a = terminalWorld(circuit, w.a);
           const b = terminalWorld(circuit, w.b);
           if (!a || !b) return null;
-          const pts = wireRoute(circuit, w.a, w.b, w.jog);
+          const pts = routes.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
           const hops = crossovers.filter((c) => c.hopWireId === w.id);
           const live = snapshot.wires[w.id];
           const d = polylinePathD(pts, hops);
@@ -524,7 +525,7 @@ export function Schematic() {
           let b = { x: cursor.x * GRID, y: cursor.y * GRID };
           let snapped = false;
           for (const w of circuit.wires) {
-            const wpts = wireRoute(circuit, w.a, w.b, w.jog);
+            const wpts = routes.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
             const near = nearestOnPolyline(wpts, b);
             if (near && near.d <= 14) {
               b = snapOnSegment(wpts[near.index], wpts[near.index + 1], { x: near.x, y: near.y });

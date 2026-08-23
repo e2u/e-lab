@@ -3,7 +3,7 @@ import { catalogItem, suggestNetLabelTag } from "./catalog";
 import { addDevice, addSymbol, emptyCircuit, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { expandIds, groupSymbols, pruneGroups, selectionHasGroup, ungroupSymbols } from "./groups";
 import { EXAMPLES, selfHoldMotor } from "./examples";
-import { nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { allWireRoutes, nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   downloadJson,
@@ -384,7 +384,7 @@ export const useLab = create<LabState>((set, get) => ({
     const circuit = get().circuit;
     const w = circuit.wires.find((item) => item.id === wireId);
     if (!w) return;
-    const pts = wireRoute(circuit, w.a, w.b, w.jog);
+    const pts = allWireRoutes(circuit).get(wireId) ?? wireRoute(circuit, w.a, w.b, w.jog);
     const near = nearestOnPolyline(pts, world);
     if (!near || near.d > 14) return;
     const snapped = snapOnSegment(pts[near.index], pts[near.index + 1], { x: near.x, y: near.y });

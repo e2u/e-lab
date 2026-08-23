@@ -389,6 +389,8 @@ function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
       if (e2 && !rt.energized) add3(out, true);
       if (rt.energized) out.push(["13", "14"]);
       else out.push(["21", "22"]);
+      if (e2) out.push(["13R", "14R"]);
+      else out.push(["21R", "22R"]);
       break;
     default:
       break;

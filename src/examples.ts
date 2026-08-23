@@ -65,7 +65,7 @@ export function fwdRevJog(): Circuit {
   const g = addDevice(c, "mains-3ph", "G1", "body", 1, 1);
   const qf = addDevice(c, "breaker-3p", "QF1", "body", 8, 2);
   const kmr = addDevice(c, "starter-rev-combo", "KMR1", "body", 16, 1);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 28, 2);
+  const m = addDevice(c, "motor-3ph", "M1", "body", 32, 2);
   const stop = addDevice(c, "pb-nc", "SB1", "body", 8, 14);
   const fwd = addDevice(c, "pb-no", "SB2", "body", 14, 14);
   const rev = addDevice(c, "pb-no", "SB3", "body", 20, 14);

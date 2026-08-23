@@ -187,6 +187,161 @@ export function wireRoute(
   return pts;
 }
 
+export const WIRE_LANE = 8;
+
+type Pt = { x: number; y: number };
+
+function overlapSpan(a0: number, a1: number, b0: number, b1: number): number {
+  const lo = Math.max(Math.min(a0, a1), Math.min(b0, b1));
+  const hi = Math.min(Math.max(a0, a1), Math.max(b0, b1));
+  return hi - lo;
+}
+
+interface Occ {
+  id: string;
+  i: number;
+  axis: "x" | "y";
+  fixed: number;
+  lo: number;
+  hi: number;
+}
+
+function skipDeviceStub(circuit: Circuit, w: { a: PortRef; b: PortRef }, pts: Pt[], i: number): boolean {
+  if (pts.length < 3) return false;
+  if (i !== 0 && i !== pts.length - 2) return false;
+  const ref = i === 0 ? w.a : w.b;
+  const kind = portKind(circuit, ref);
+  if (kind === "junction" || kind === "net-label") return false;
+  const len = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+  return len <= STUB + 2;
+}
+
+function collectOcc(circuit: Circuit, id: string, w: { a: PortRef; b: PortRef }, pts: Pt[]): Occ[] {
+  const out: Occ[] = [];
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    if (skipDeviceStub(circuit, w, pts, i)) continue;
+    const axis = segmentAxis(pts[i], pts[i + 1]);
+    if (!axis) continue;
+    const a = pts[i];
+    const b = pts[i + 1];
+    if (Math.hypot(b.x - a.x, b.y - a.y) < GRID * 0.4) continue;
+    if (axis === "y") out.push({ id, i, axis, fixed: a.y, lo: Math.min(a.x, b.x), hi: Math.max(a.x, b.x) });
+    else out.push({ id, i, axis, fixed: a.x, lo: Math.min(a.y, b.y), hi: Math.max(a.y, b.y) });
+  }
+  return out;
+}
+
+function overlapComponents(group: Occ[]): Occ[][] {
+  const n = group.length;
+  const adj: number[][] = Array.from({ length: n }, () => []);
+  for (let i = 0; i < n; i += 1) {
+    for (let j = i + 1; j < n; j += 1) {
+      if (overlapSpan(group[i].lo, group[i].hi, group[j].lo, group[j].hi) >= GRID * 0.45) {
+        adj[i].push(j);
+        adj[j].push(i);
+      }
+    }
+  }
+  const seen = new Set<number>();
+  const comps: Occ[][] = [];
+  for (let i = 0; i < n; i += 1) {
+    if (seen.has(i)) continue;
+    const stack = [i];
+    const comp: Occ[] = [];
+    seen.add(i);
+    while (stack.length) {
+      const u = stack.pop()!;
+      comp.push(group[u]);
+      for (const v of adj[u]) {
+        if (seen.has(v)) continue;
+        seen.add(v);
+        stack.push(v);
+      }
+    }
+    comps.push(comp);
+  }
+  return comps;
+}
+
+function colorLanes(comp: Occ[]): Map<string, number> {
+  const sorted = [...comp].sort((a, b) => a.lo - b.lo || a.id.localeCompare(b.id));
+  const laneEnds: number[] = [];
+  const lanes = new Map<string, number>();
+  for (const o of sorted) {
+    let lane = laneEnds.findIndex((end) => o.lo >= end - 0.5);
+    if (lane < 0) {
+      lane = laneEnds.length;
+      laneEnds.push(o.hi);
+    } else {
+      laneEnds[lane] = Math.max(laneEnds[lane], o.hi);
+    }
+    lanes.set(`${o.id}:${o.i}`, lane);
+  }
+  return lanes;
+}
+
+/** Routes every wire, then nudges overlapping parallel runs apart. Terminals stay put. */
+export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
+  const base = new Map<string, Pt[]>();
+  const byId = new Map<string, { a: PortRef; b: PortRef }>();
+  for (const w of circuit.wires) {
+    base.set(w.id, wireRoute(circuit, w.a, w.b, w.jog));
+    byId.set(w.id, w);
+  }
+  const occs: Occ[] = [];
+  for (const [id, pts] of base) {
+    const w = byId.get(id)!;
+    occs.push(...collectOcc(circuit, id, w, pts));
+  }
+  const clusters = new Map<string, Occ[]>();
+  for (const o of occs) {
+    const key = `${o.axis}:${Math.round(o.fixed)}`;
+    const list = clusters.get(key) ?? [];
+    list.push(o);
+    clusters.set(key, list);
+  }
+  const shift = new Map<string, number>();
+  for (const group of clusters.values()) {
+    if (group.length < 2) continue;
+    for (const comp of overlapComponents(group)) {
+      if (comp.length < 2) continue;
+      const lanes = colorLanes(comp);
+      const n = 1 + Math.max(0, ...lanes.values());
+      if (n < 2) continue;
+      for (const o of comp) {
+        const lane = lanes.get(`${o.id}:${o.i}`) ?? 0;
+        const d = (lane - (n - 1) / 2) * WIRE_LANE;
+        if (Math.abs(d) > 0.5) shift.set(`${o.id}:${o.i}`, d);
+      }
+    }
+  }
+  const out = new Map<string, Pt[]>();
+  for (const [id, pts] of base) {
+    if (!pts.length) {
+      out.set(id, pts);
+      continue;
+    }
+    const rebuilt: Pt[] = [{ x: pts[0].x, y: pts[0].y }];
+    for (let i = 0; i < pts.length - 1; i += 1) {
+      const A = pts[i];
+      const B = pts[i + 1];
+      const d = shift.get(`${id}:${i}`) ?? 0;
+      if (Math.abs(d) < 0.5) {
+        rebuilt.push({ x: B.x, y: B.y });
+        continue;
+      }
+      const axis = segmentAxis(A, B);
+      const ox = axis === "x" ? d : 0;
+      const oy = axis === "y" ? d : 0;
+      rebuilt.push({ x: A.x + ox, y: A.y + oy });
+      rebuilt.push({ x: B.x + ox, y: B.y + oy });
+      rebuilt.push({ x: B.x, y: B.y });
+    }
+    out.set(id, rebuilt);
+  }
+  return out;
+}
+
 export function portsEqual(a: PortRef, b: PortRef): boolean {
   return a.symbolId === b.symbolId && a.term === b.term;
 }
@@ -397,11 +552,12 @@ function sharesJunction(a: { a: PortRef; b: PortRef }, b: { a: PortRef; b: PortR
 }
 
 /** Find unconnected wire crossings. Vertical wire hops over horizontal. */
-export function findWireCrossovers(circuit: Circuit): WireCrossover[] {
+export function findWireCrossovers(circuit: Circuit, routes?: Map<string, Pt[]>): WireCrossover[] {
   const crossovers: WireCrossover[] = [];
   const ports = collectPortWorlds(circuit);
+  const resolved = routes ?? allWireRoutes(circuit);
   const wireSegments = circuit.wires.map((w) => {
-    const pts = wireRoute(circuit, w.a, w.b, w.jog);
+    const pts = resolved.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
     const segments: { a: { x: number; y: number }; b: { x: number; y: number } }[] = [];
     for (let i = 0; i < pts.length - 1; i++) {
       segments.push({ a: pts[i], b: pts[i + 1] });

@@ -10,6 +10,20 @@ import { Schematic } from "./ui/Schematic";
 import { DiscardModal } from "./ui/DiscardModal";
 
 
+// Import all example JSON data directly for both dev and prod (works in GitHub Pages)
+const loadExamplesFromImports = async (): Promise<Example[]> => {
+  try {
+    const listData: any = await import("./examples/list.json");
+    if (listData && listData.examples && Array.isArray(listData.examples)) {
+      return listData.examples;
+    }
+  } catch (e) {
+    console.log("Failed to load examples from imports, using default examples");
+  }
+  // Fallback to default examples
+  return EXAMPLES;
+};
+
 export function App() {
   const mode = useLab((s) => s.mode);
   const running = useLab((s) => s.running);
@@ -129,25 +143,9 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Load examples from JSON files with cache-buster
+  // Load examples on mount - works in both dev and GitHub Pages
   useEffect(() => {
-    const loadExamples = async () => {
-      try {
-        const response = await fetch(`/src/examples/list.json?v=${Date.now()}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.examples && Array.isArray(data.examples)) {
-            setExamples(data.examples);
-            return;
-          }
-        }
-      } catch (e) {
-        console.log("Failed to load examples from JSON, using default examples");
-      }
-      // Fallback to default examples
-      setExamples(EXAMPLES);
-    };
-    loadExamples();
+    loadExamplesFromImports().then(setExamples);
   }, []);
 
   useEffect(() => {

@@ -234,7 +234,7 @@ export function App() {
         <span>{mode === "edit" ? "EDIT" : running ? "RUN" : "PAUSE"}</span>
         <span>{Math.round(timeMs)} ms</span>
         <span>{placing ? `${t("runtime.placing")}: ${ placing}` : t("runtime.wiring")}</span>
-        <span>L1 紅 · L2 黃 · L3 藍 · N 黑 · DC 橙</span>
+        <span>Brown · Orange · Yellow · White · Green (Ground)</span>
         <span>NEMA/JIC</span>
         {faults[0] ? <span className="fault">{faults[0].message}</span> : <span>{t("runtime.circuitNormal")}</span>}
         {circuit.wires.some((w) => w.broken) || circuit.devices.some((d) => d.params.welded) ? (

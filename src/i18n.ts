@@ -119,16 +119,25 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "msg.deletedSave": "Deleted save",
     "msg.exported": "Exported JSON",
     "msg.imported": "Imported diagram",
-    "msg.shareCopied": "Share link copied",
-    "msg.shareUrl": "Written to URL bar, please copy manually",
-    "msg.copied": "Copied {count} items",
-    "msg.draftSaved": "Draft saved",
-    "msg.faultWireBroken": "Broken wire fault (select wire to restore)",
-    "msg.faultWelded": "{tag} contact welded",
-    "msg.shortCircuit": "Short circuit: {a} and {b} connected at same point",
-    "msg.motorCoilsEnergized": "{tag} forward/reverse coils energized simultaneously, mechanical interlock prevents main contacts from closing",
     "msg.fileFormatError": "File format incorrect",
     "msg.unnamedDiagram": "Untitled Diagram",
+
+    // Notice messages for actions
+    "notice.loadSave": "Loaded '{name}'",
+    "notice.deleteSave": "Delete saved",
+    "notice.exportJson": "JSON exported",
+    "notice.importFile": "File imported",
+    "notice.saveToLibrary": "Saved to library",
+    
+    // Other notices
+    "notice.clearedFaults": "Cleared all faults",
+    "notice.duplicateCopied": "Copied {count} items",
+    "notice.groupCreated": "Group created ({count})",
+    "notice.ungrouped": "Ungrouped",
+    "notice.draftSaved": "Draft saved",
+    
+    // Save to library messages
+    "notice.saveToLibSuccess": "Saved '{name}' to library",
 
     // Component labels (catalog)
     "comp.threePhaseMains": "Three-Phase Mains",
@@ -458,16 +467,23 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "msg.deletedSave": "已刪除存檔",
     "msg.exported": "已匯出 JSON",
     "msg.imported": "已匯入圖紙",
-    "msg.shareCopied": "分享連結已複製",
-    "msg.shareUrl": "已寫入網址列，請手動複製",
-    "msg.copied": "已複製 {count} 個元件",
-    "msg.draftSaved": "草稿已儲存",
-    "msg.faultWireBroken": "斷線故障（選取該導線可復原）",
-    "msg.faultWelded": "{tag} 觸點熔死",
-    "msg.shortCircuit": "短路：{a} 與 {b} 接到同一點",
-    "msg.motorCoilsEnergized": "{tag} 正反轉線圈同時得電，機械互鎖阻止主觸點閉合",
-    "msg.fileFormatError": "檔案格式不正確",
-    "msg.unnamedDiagram": "未命名圖紙",
+    
+    // Notice messages for actions
+    "notice.loadSave": "已載入 '{name}'",
+    "notice.deleteSave": "已刪除存檔",
+    "notice.exportJson": "JSON 已匯出",
+    "notice.importFile": "檔案已匯入",
+    "notice.saveToLibrary": "已保存至庫中",
+    
+    // Other notices
+    "notice.clearedFaults": "已清除全部故障",
+    "notice.duplicateCopied": "已複製 {count} 個元件",
+    "notice.groupCreated": "已編成一組（{count}）",
+    "notice.ungrouped": "已打散",
+    "notice.draftSaved": "草稿已儲存",
+    
+    // Save to library messages
+    "notice.saveToLibSuccess": "已存檔「{name}」到庫中",
 
     // Component labels (catalog)
     "comp.threePhaseMains": "三相電源",

@@ -20,7 +20,7 @@ import {
 } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
 import { GRID, type Circuit, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
-import { getLang as getLanguage, setLang as setLanguage, t } from "./i18n";
+import { getLang as getLanguage, setLang as setLanguage, t, tOr } from "./i18n";
 
 // Check if circuit has unsaved changes by comparing with a reference (e.g., blank template)
 function hasUnsavedChanges(circuit: Circuit): boolean {
@@ -261,7 +261,7 @@ export const useLab = create<LabState>((set, get) => ({
       circuit: next,
       selectedIds: g.memberIds,
       selected: { type: "symbol", id: g.memberIds[0] },
-      notice: `已編成一組（${g.memberIds.length}）`,
+      notice: t("notice.groupCreated", { count: g.memberIds.length }),
     });
   },
   ungroupSelected: () => {
@@ -270,7 +270,7 @@ export const useLab = create<LabState>((set, get) => ({
     get().pushHistory();
     const next = clone(circuit);
     ungroupSymbols(next, selectedIds);
-    set({ circuit: next, notice: "已打散" });
+    set({ circuit: next, notice: t("notice.ungrouped") });
   },
   selectAll: () => {
     const ids = get().circuit.symbols.map((s) => s.id);
@@ -708,12 +708,12 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     for (const w of next.wires) w.broken = false;
     for (const d of next.devices) d.params.welded = false;
-    set({ circuit: next, notice: "已清除全部故障" });
+    set({ circuit: next, notice: t("notice.clearedFaults") });
   },
 
   saveToLibrary: (name) => {
     const s = get();
-    const title = (name ?? s.docName).trim() || "未命名圖紙";
+    const title = (name ?? s.docName).trim() || tOr("msg.unnamedDiagram", "Untitled Diagram");
     const save: SavedLab = {
       id: uid("lab"),
       name: title,
@@ -721,34 +721,34 @@ export const useLab = create<LabState>((set, get) => ({
       doc: makeDoc(s.circuit, title, s.process),
     };
     putSave(save);
-    set({ docName: title, savesTick: s.savesTick + 1, notice: `已存檔「${title}」` });
+    set({ docName: title, savesTick: s.savesTick + 1, notice: t("notice.saveToLibSuccess", { name: title }) });
   },
   loadSave: (id) => {
     const found = listSaves().find((s) => s.id === id);
     if (!found) return;
     get().pushHistory();
     get().loadCircuit(found.doc.circuit, found.name, found.doc.process);
-    set({ notice: `已開啟「${found.name}」` });
+    set({ notice: t("notice.loadSave", { name: found.name }) });
   },
   deleteSave: (id) => {
     removeSave(id);
-    set({ savesTick: get().savesTick + 1, notice: "已刪除存檔" });
+    set({ savesTick: get().savesTick + 1, notice: t("notice.deleteSave") });
   },
   exportFile: () => {
     const s = get();
     const name = s.docName.trim() || "elab-circuit";
     downloadJson(makeDoc(s.circuit, name, s.process), `${name}.json`);
-    set({ notice: "已匯出 JSON" });
+    set({ notice: t("notice.exportJson") });
   },
   importDoc: (raw) => {
     const doc = parseDoc(raw);
     if (!doc) {
-      set({ notice: "檔案格式不正確" });
+      set({ notice: t("msg.fileFormatError") });
       return;
     }
     get().pushHistory();
-    get().loadCircuit(doc.circuit, doc.name ?? "匯入圖紙", doc.process);
-    set({ notice: "已匯入圖紙" });
+    get().loadCircuit(doc.circuit, doc.name ?? tOr("msg.unnamedDiagram", "Untitled Diagram"), doc.process);
+    set({ notice: t("notice.importFile") });
   },
   copyShareLink: async () => {
     const s = get();
@@ -888,7 +888,7 @@ export const useLab = create<LabState>((set, get) => ({
     const groups = (circuit.groups ?? [])
       .filter((g) => g.memberIds.length >= 2 && g.memberIds.every((id) => idSet.has(id)))
       .map((g) => clone(g));
-    set({ clipboard: { devices, symbols, wires, groups }, notice: `已複製 ${symbols.length} 個元件` });
+    set({ clipboard: { devices, symbols, wires, groups }, notice: t("notice.duplicateCopied", { count: symbols.length }) });
   },
 
   pasteClipboard: () => {

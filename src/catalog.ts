@@ -87,14 +87,14 @@ const twoTermVert: VariantDef = {
 
 const pole3: VariantDef = {
   w: 5,
-  h: 6,
+  h: 8,
   terminals: [
-    t("L1", 0, 1),
-    t("L2", 0, 3),
-    t("L3", 0, 5),
-    t("T1", 5, 1),
-    t("T2", 5, 3),
-    t("T3", 5, 5),
+    t("L1", 0, 1.33),
+    t("L2", 0, 4),
+    t("L3", 0, 6.67),
+    t("T1", 5, 1.33),
+    t("T2", 5, 4),
+    t("T3", 5, 6.67),
   ],
 };
 
@@ -128,13 +128,13 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 8,
+        h: 16,
         terminals: [
-          t("L1", 4, 1),
-          t("L2", 4, 2.5),
-          t("L3", 4, 4),
-          t("N", 4, 5.5),
-          t("PE", 4, 7),
+          t("L1", 4, 2),
+          t("L2", 4, 5),
+          t("L3", 4, 8),
+          t("N", 4, 11),
+          t("PE", 4, 14),
         ],
       },
     },
@@ -162,26 +162,6 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
           t("P2", 0, 3.8, "2"),
           t("S1", 6, 1.2, "a"),
           t("S2", 6, 3.8, "b"),
-        ],
-      },
-    },
-  },
-  transformer3ph: {
-    prefix: "TC",
-    label: "三相變壓器",
-    variants: {
-      body: {
-        w: 10,
-        h: 9,
-        terminals: [
-          t("L1", 0, 1),
-          t("L2", 0, 3),
-          t("L3", 0, 5),
-          t("N", 0, 7),
-          t("T1", 10, 1),
-          t("T2", 10, 3),
-          t("T3", 10, 5),
-          t("TN", 10, 7),
         ],
       },
     },
@@ -549,7 +529,17 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       },
     },
   },
-  lamp: { prefix: "HL", label: "指示燈", variants: { body: twoTermVert } },
+  lamp: {
+    prefix: "HL",
+    label: "指示燈",
+    variants: {
+      body: {
+        w: 3,
+        h: 2.5,
+        terminals: [t("1", 1.5, 0), t("2", 1.5, 2.5)],
+      },
+    },
+  },
   alarm: { prefix: "HA", label: "報警器", variants: { body: twoTermVert } },
   horn: { prefix: "HA", label: "電笛", variants: { body: twoTermVert } },
   fan: {

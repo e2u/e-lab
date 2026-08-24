@@ -27,7 +27,6 @@ describe("catalog labels", () => {
     const ids = new Set(CATALOG.map((c) => c.id));
     for (const extra of [
       "dc-supply",
-      "transformer3ph",
       "rcd",
       "prox",
       "photo",

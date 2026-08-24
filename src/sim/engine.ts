@@ -29,7 +29,8 @@ export function defaultRuntime(kind: DeviceKind): DeviceRuntime {
     kind === "breaker-3p" ||
     kind === "rcd" ||
     kind === "isolator" ||
-    kind === "dc-supply";
+    kind === "dc-supply" ||
+    kind === "fuse";
   return {
     energized: false,
     energizedAlt: false,
@@ -421,6 +422,8 @@ function coilTerms(kind: DeviceKind): [string, string][] {
       return [["1", "2"]];
     case "counter":
       return [["A1", "A2"]];
+    case "transformer":
+      return [["P1", "P2"]];
     default:
       return [];
   }
@@ -560,34 +563,6 @@ export function tick(
           if (!s1) {
             stampNode(d.id, "S1", { sourceId: `xf-${d.id}`, kind: "L1" });
             stampNode(d.id, "S2", { sourceId: `xf-${d.id}`, kind: "N" });
-            grew = true;
-          }
-        }
-      }
-      if (d.kind === "transformer3ph") {
-        // Three-phase transformer: L1/L2/L3 -> T1/T2/T3 (and N/TN for Wye)
-        // Allow single-phase operation: if any phase has voltage, pass it to secondary
-        const p1 = pot(d.id, "L1");
-        const p2 = pot(d.id, "L2");
-        const p3 = pot(d.id, "L3");
-        // Check if at least one phase has voltage from a 3-phase source
-        const hasVoltage = (p1 || p2 || p3) && (
-          (p1 && p2 && p1.sourceId === p2.sourceId) ||
-          (p2 && p3 && p2.sourceId === p3.sourceId) ||
-          (p1 && p3 && p1.sourceId === p3.sourceId) ||
-          (p1 && p2 && p3 && p1.sourceId === p2.sourceId && p2.sourceId === p3.sourceId)
-        );
-        if (hasVoltage) {
-          const t1 = pot(d.id, "T1");
-          if (!t1) {
-            // Pass L1/L2/L3 to T1/T2/T3
-            if (p1) stampNode(d.id, "T1", { sourceId: `xf3-${d.id}`, kind: "L1" });
-            if (p2) stampNode(d.id, "T2", { sourceId: `xf3-${d.id}`, kind: "L2" });
-            if (p3) stampNode(d.id, "T3", { sourceId: `xf3-${d.id}`, kind: "L3" });
-            // For Wye connection, also pass N
-            if (d.params.secondaryConn === "wye") {
-              stampNode(d.id, "TN", { sourceId: `xf3-${d.id}`, kind: "N" });
-            }
             grew = true;
           }
         }
@@ -807,14 +782,6 @@ export function tick(
     if (d.kind === "transformer") {
       add("S1");
       add("S2");
-    }
-    if (d.kind === "transformer3ph") {
-      add("T1");
-      add("T2");
-      add("T3");
-      if (d.params.secondaryConn === "wye") {
-        add("TN");
-      }
     }
   }
   const distHot = bfsDist(adj, hotStarts);

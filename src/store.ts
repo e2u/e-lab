@@ -313,7 +313,7 @@ export const useLab = create<LabState>((set, get) => ({
       item.variant,
       gx,
       gy,
-      item.kind === "lamp" ? { color: "green" } : item.kind === "timer-on" || item.kind === "timer-off" ? { delayMs: 2000 } : item.kind === "temp-no" || item.kind === "temp-nc" ? { setpoint: 60 } : item.kind === "transformer" ? { ratio: "480/120" } : item.kind === "transformer3ph" ? { primaryVolts: "480", secondaryVolts: "120", primaryConn: "delta", secondaryConn: "delta" } : {},
+      item.kind === "lamp" ? { color: "green" } : item.kind === "timer-on" || item.kind === "timer-off" ? { delayMs: 2000 } : item.kind === "temp-no" || item.kind === "temp-nc" ? { setpoint: 60 } : item.kind === "transformer" ? { ratio: "480/120" } : {},
       item.defaultRot ?? 0,
     );
     set({
@@ -511,7 +511,36 @@ export const useLab = create<LabState>((set, get) => ({
     set({ circuit: next, selected: null, selectedIds: [] });
   },
 
-  loadExample: (id) => {
+  loadExample: async (id) => {
+    // First try to load from JSON file
+    try {
+      const response = await fetch(`/examples/${id}.json`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.circuit) {
+          get().pushHistory();
+          sanitizeCircuitIds(data.circuit);
+          set({
+            circuit: data.circuit,
+            snapshot: emptySnapshot(data.circuit),
+            selected: null,
+            selectedIds: [],
+            placing: null,
+            wiringFrom: null,
+            timeMs: 0,
+            held: [],
+            running: false,
+            mode: "edit",
+            docName: data.title || id,
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      // Fall back to built-in examples
+    }
+
+    // Fallback to built-in examples
     const ex = EXAMPLES.find((e) => e.id === id);
     if (!ex) return;
     get().pushHistory();

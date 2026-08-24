@@ -11,7 +11,6 @@ export type DeviceKind =
   | "mains-3ph"
   | "dc-supply"
   | "transformer"
-  | "transformer3ph"
   | "breaker-1p"
   | "breaker-3p"
   | "rcd"

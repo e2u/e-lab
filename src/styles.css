@@ -84,6 +84,22 @@ button, select, input {
   font-family: inherit;
 }
 
+.diagram-name {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid #4a533e;
+  padding: 6px 10px;
+  font-size: 14px;
+  width: 160px;
+  border-radius: 4px;
+}
+
+.diagram-name:focus {
+  outline: none;
+  border-color: var(--stripe);
+  box-shadow: 0 0 0 2px rgba(230, 193, 30, 0.2);
+}
+
 .btn {
   border: 1px solid #4a533e;
   background: linear-gradient(#3a4330, #2a3224);
@@ -260,6 +276,7 @@ button, select, input {
 
 .wire { fill: none; stroke: #2a2924; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .wire.live { stroke-width: 3.2; filter: drop-shadow(0 0 3px currentColor); }
+.wire-selection { opacity: 0.6; }
 .wire-label text {
   font-family: "Red Hat Mono", monospace;
   font-size: 11px;

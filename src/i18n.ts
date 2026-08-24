@@ -83,6 +83,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "inspector.netLabel": "Network Label",
     "inspector.hint.editMode": "Click component then press R to rotate, H for horizontal flip, V for vertical flip. Shift click or drag box for multi-select; ⌘G to group, ⇧⌘G to ungroup. Delete to remove, ⌘Z to undo.",
     "inspector.hint.dragMove": "Drag to move the whole group. Drag box on empty space for selection. ⌘G to group · ⇧⌘G to ungroup.",
+    "inspector.hint.editModeZh": "點擊元件後按 R 旋轉，H 左右鏡像，V 上下鏡像。Shift + 點擊或拖動方框可多選；⌘G 編組，⇧⌘G 打散。Delete 刪除，⌘Z 復原。",
 
     // Runtime status
     "runtime.faults": "Faults",
@@ -126,7 +127,6 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "comp.threePhaseMains": "Three-Phase Mains",
     "comp.dcSupply": "DC Supply",
     "comp.transformer": "Transformer",
-    "comp.transformer3ph": "3-Phase Transformer",
     "comp.breaker1P": "Breaker 1P",
     "comp.breaker3P": "Breaker 3P",
     "comp.rcd": "GFCI",
@@ -314,6 +314,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
 
     // Inspector labels
     "inspector.properties": "屬性",
+    "inspector.hint.editMode": "點擊元件後按 R 旋轉，H 左右鏡像，V 上下鏡像。Shift + 點擊或拖動方框可多選；⌘G 編組，⇧⌘G 打散。Delete 刪除，⌘Z 復原。",
     "inspector.netLabelHint": "相同標籤的端子視為導通，無需拉長線。空白標籤不連通；大小寫需一致。",
     "inspector.alreadyConnected": "已連通 {count} 個「{tag}」",
     "inspector.noOtherLabels": "圖上尚未有其他「{tag}」",
@@ -398,7 +399,6 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "comp.threePhaseMains": "三相電源",
     "comp.dcSupply": "直流電源",
     "comp.transformer": "變壓器",
-    "comp.transformer3ph": "三相變壓器",
     "comp.breaker1P": "單極斷路器",
     "comp.breaker3P": "三極斷路器",
     "comp.rcd": "GFCI 接地故障斷路器",

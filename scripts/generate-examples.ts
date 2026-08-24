@@ -1,31 +1,10 @@
-import { addDevice, addSymbol, addWire, emptyCircuit } from "./circuitBuilder";
-import type { Circuit } from "./types";
+import { addDevice, addSymbol, addWire, emptyCircuit } from "../src/circuitBuilder";
+import type { Circuit } from "../src/types";
+import { writeFileSync, mkdirSync } from "fs";
+import { join } from "path";
 
-export interface Example {
-  id: string;
-  title: string;
-  blurb: string;
-  build: () => Circuit;
-}
-
-export function lampJog(): Circuit {
-  const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "body", 2, 4);
-  const nl1 = addDevice(c, "net-label", "NL1", "body", 6, 1);
-  const nl2 = addDevice(c, "net-label", "NL2", "body", 6, 3);
-  const sb = addDevice(c, "pb-no", "SB1", "body", 12, 4);
-  const hl = addDevice(c, "lamp", "HL1", "body", 20, 4, { color: "green" });
-  
-  // Use net labels for power connections
-  addWire(c, g.symbol, "L1", nl1.symbol, "1");
-  addWire(c, g.symbol, "L2", nl2.symbol, "1");
-  addWire(c, nl1.symbol, "1", sb.symbol, "1");
-  addWire(c, sb.symbol, "2", hl.symbol, "1");
-  addWire(c, hl.symbol, "2", nl2.symbol, "1");
-  return c;
-}
-
-export function transformer(): Circuit {
+// transformer example
+function transformer(): Circuit {
   const c = emptyCircuit();
   const g = addDevice(c, "mains-3ph", "G1", "body", 2, 2);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 10, 1);
@@ -42,7 +21,25 @@ export function transformer(): Circuit {
   return c;
 }
 
-export function selfHoldMotor(): Circuit {
+// lampJog example
+function lampJog(): Circuit {
+  const c = emptyCircuit();
+  const g = addDevice(c, "mains-3ph", "G1", "body", 2, 4);
+  const nl1 = addDevice(c, "net-label", "NL1", "body", 6, 1);
+  const nl2 = addDevice(c, "net-label", "NL2", "body", 6, 3);
+  const sb = addDevice(c, "pb-no", "SB1", "body", 12, 4);
+  const hl = addDevice(c, "lamp", "HL1", "body", 20, 4, { color: "green" });
+  
+  addWire(c, g.symbol, "L1", nl1.symbol, "1");
+  addWire(c, g.symbol, "L2", nl2.symbol, "1");
+  addWire(c, nl1.symbol, "1", sb.symbol, "1");
+  addWire(c, sb.symbol, "2", hl.symbol, "1");
+  addWire(c, hl.symbol, "2", nl2.symbol, "1");
+  return c;
+}
+
+// selfHoldMotor example
+function selfHoldMotor(): Circuit {
   const c = emptyCircuit();
   const g = addDevice(c, "mains-3ph", "G1", "body", 1, 1);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 4, 1);
@@ -61,12 +58,10 @@ export function selfHoldMotor(): Circuit {
   const start = addDevice(c, "pb-no", "SB2", "body", 16, 13);
   const hl = addDevice(c, "lamp", "HL1", "body", 30, 19, { color: "green" });
 
-  // Power distribution using net labels
   addWire(c, g.symbol, "L1", nl1.symbol, "1");
   addWire(c, g.symbol, "L2", nl2.symbol, "1");
   addWire(c, g.symbol, "L3", nl3.symbol, "1");
   
-  // Main power through breaker
   addWire(c, nl1.symbol, "1", qf.symbol, "L1");
   addWire(c, nl2.symbol, "1", qf.symbol, "L2");
   addWire(c, nl3.symbol, "1", qf.symbol, "L3");
@@ -80,15 +75,12 @@ export function selfHoldMotor(): Circuit {
   addWire(c, fr.symbol, "T2", m.symbol, "V");
   addWire(c, fr.symbol, "T3", m.symbol, "W");
 
-  // Transformer power from net labels
   addWire(c, nl1.symbol, "1", tc.symbol, "P1");
   addWire(c, nl2.symbol, "1", tc.symbol, "P2");
 
-  // Transformer secondary to net labels
   addWire(c, tc.symbol, "S1", nlS1.symbol, "1");
   addWire(c, tc.symbol, "S2", nlS2.symbol, "1");
 
-  // Control circuit using net labels
   addWire(c, nlS1.symbol, "1", stop.symbol, "1");
   addWire(c, stop.symbol, "2", start.symbol, "1");
   addWire(c, start.symbol, "2", fr.symbol, "95");
@@ -96,13 +88,13 @@ export function selfHoldMotor(): Circuit {
   addWire(c, kmNo, "14", km.symbol, "A1");
   addWire(c, km.symbol, "A2", nlS2.symbol, "1");
   
-  // Indicator light circuit using net labels
   addWire(c, nlS1.symbol, "1", hl.symbol, "1");
   addWire(c, hl.symbol, "2", nlS2.symbol, "1");
   return c;
 }
 
-export function fwdRevJog(): Circuit {
+// fwdRevJog example
+function fwdRevJog(): Circuit {
   const c = emptyCircuit();
   const g = addDevice(c, "mains-3ph", "G1", "body", 1, 1);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 4, 1);
@@ -116,13 +108,11 @@ export function fwdRevJog(): Circuit {
   const fwd = addDevice(c, "pb-no", "SB2", "body", 14, 14);
   const rev = addDevice(c, "pb-no", "SB3", "body", 20, 14);
 
-  // Power distribution using net labels
   addWire(c, g.symbol, "L1", nl1.symbol, "1");
   addWire(c, g.symbol, "L2", nl2.symbol, "1");
   addWire(c, g.symbol, "L3", nl3.symbol, "1");
   addWire(c, g.symbol, "N", nlN.symbol, "1");
   
-  // Main power through breaker
   addWire(c, nl1.symbol, "1", qf.symbol, "L1");
   addWire(c, nl2.symbol, "1", qf.symbol, "L2");
   addWire(c, nl3.symbol, "1", qf.symbol, "L3");
@@ -133,7 +123,6 @@ export function fwdRevJog(): Circuit {
   addWire(c, kmr.symbol, "T2", m.symbol, "V");
   addWire(c, kmr.symbol, "T3", m.symbol, "W");
 
-  // Control circuit using net labels
   addWire(c, nl1.symbol, "1", stop.symbol, "1");
   addWire(c, stop.symbol, "2", fwd.symbol, "1");
   addWire(c, stop.symbol, "2", rev.symbol, "1");
@@ -144,7 +133,8 @@ export function fwdRevJog(): Circuit {
   return c;
 }
 
-export function starDeltaStart(): Circuit {
+// starDeltaStart example
+function starDeltaStart(): Circuit {
   const c = emptyCircuit();
   const g = addDevice(c, "mains-3ph", "G1", "body", 1, 1);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 4, 1);
@@ -174,12 +164,10 @@ export function starDeltaStart(): Circuit {
   const hlY = addDevice(c, "lamp", "HL2", "body", 46, 21, { color: "yellow" });
   const hlD = addDevice(c, "lamp", "HL3", "body", 46, 26, { color: "blue" });
 
-  // Power distribution using net labels
   addWire(c, g.symbol, "L1", nl1.symbol, "1");
   addWire(c, g.symbol, "L2", nl2.symbol, "1");
   addWire(c, g.symbol, "L3", nl3.symbol, "1");
   
-  // Main power through breaker
   addWire(c, nl1.symbol, "1", qf.symbol, "L1");
   addWire(c, nl2.symbol, "1", qf.symbol, "L2");
   addWire(c, nl3.symbol, "1", qf.symbol, "L3");
@@ -193,19 +181,15 @@ export function starDeltaStart(): Circuit {
   addWire(c, fr.symbol, "T2", m.symbol, "V");
   addWire(c, fr.symbol, "T3", m.symbol, "W");
 
-  // Star connection
   addWire(c, kmYMain, "T1", kmYMain, "T2");
   addWire(c, kmYMain, "T2", kmYMain, "T3");
 
-  // Transformer power from net labels
   addWire(c, nl1.symbol, "1", tc.symbol, "P1");
   addWire(c, nl2.symbol, "1", tc.symbol, "P2");
 
-  // Transformer secondary to net labels
   addWire(c, tc.symbol, "S1", nlS1.symbol, "1");
   addWire(c, tc.symbol, "S2", nlS2.symbol, "1");
 
-  // Control circuit using net labels
   addWire(c, nlS1.symbol, "1", stop.symbol, "1");
   addWire(c, stop.symbol, "2", start.symbol, "1");
   addWire(c, start.symbol, "2", fr.symbol, "95");
@@ -231,7 +215,8 @@ export function starDeltaStart(): Circuit {
   return c;
 }
 
-export function selectorReversing(): Circuit {
+// selectorReversing example
+function selectorReversing(): Circuit {
   const c = emptyCircuit();
   const g = addDevice(c, "mains-3ph", "G1", "body", 1, 1);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 4, 1);
@@ -258,12 +243,10 @@ export function selectorReversing(): Circuit {
   const nlA2 = addDevice(c, "net-label", "NA2", "body", 28, 17);
   const nl95 = addDevice(c, "net-label", "N95", "body", 26, 8);
 
-  // Power distribution using net labels
   addWire(c, g.symbol, "L1", nl1.symbol, "1");
   addWire(c, g.symbol, "L2", nl2.symbol, "1");
   addWire(c, g.symbol, "L3", nl3.symbol, "1");
   
-  // Main power through breaker
   addWire(c, nl1.symbol, "1", qf.symbol, "L1");
   addWire(c, nl2.symbol, "1", qf.symbol, "L2");
   addWire(c, nl3.symbol, "1", qf.symbol, "L3");
@@ -283,7 +266,6 @@ export function selectorReversing(): Circuit {
   addWire(c, ol.symbol, "T2", m.symbol, "V");
   addWire(c, ol.symbol, "T3", m.symbol, "W");
 
-  // Control circuit
   addWire(c, nl1.symbol, "1", stop.symbol, "1");
   addWire(c, stop.symbol, "2", start.symbol, "1");
   addWire(c, start.symbol, "2", sa.symbol, "COM");
@@ -312,41 +294,58 @@ export function selectorReversing(): Circuit {
   return c;
 }
 
-export const EXAMPLES: Example[] = [
+interface Example {
+  id: string;
+  title: string;
+  blurb: string;
+  circuit: Circuit;
+}
+
+const examples: Example[] = [
   {
     id: "transformer",
     title: "變壓器/Transformer",
     blurb: "三相電源經變壓器降壓，驅動綠色指示燈。",
-    build: transformer,
+    circuit: transformer(),
   },
   {
     id: "lamp",
     title: "指示燈點動/Lamp Jog",
     blurb: "按常開按鈕，L1 經按鈕點亮指示燈。/Press NO button to light the lamp from L1.",
-    build: lampJog,
+    circuit: lampJog(),
   },
   {
     id: "dol",
     title: "接觸器自鎖起動",
     blurb: "停止常閉、起動常開、KM 自鎖、熱繼電保護三相電機。",
-    build: selfHoldMotor,
+    circuit: selfHoldMotor(),
   },
   {
     id: "rev",
     title: "正反轉點動",
     blurb: "正反轉起動器，綠鈕正轉、另一綠鈕反轉，紅鈕停止。",
-    build: fwdRevJog,
+    circuit: fwdRevJog(),
   },
   {
     id: "yd",
     title: "星三角降壓起動",
     blurb: "KM1 線路、KM2 星形、KM3 三角形，KT 延時由星切三角。",
-    build: starDeltaStart,
+    circuit: starDeltaStart(),
   },
   {
     id: "selrev",
     title: "選擇開關正反轉",
     blurb: "NEMA 梯形圖：STOP／START、FWD-OFF-REV 選擇開關、F／R 互鎖。先撳選擇開關再 START。",
-    build: selectorReversing,
+    circuit: selectorReversing(),
   },
 ];
+
+// Generate JSON files
+mkdirSync("examples", { recursive: true });
+for (const ex of examples) {
+  const json = JSON.stringify(ex, null, 2);
+  writeFileSync(join("examples", `${ex.id}.json`), json);
+  console.log(`Generated examples/${ex.id}.json`);
+}
+
+console.log("Done!");

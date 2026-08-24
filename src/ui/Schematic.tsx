@@ -283,6 +283,44 @@ export function Schematic() {
                 stroke={sel ? "#e6c11e" : color}
                 strokeDasharray={w.broken ? "6 5" : undefined}
               />
+              {sel && (
+                <>
+                  <path
+                    d={d}
+                    className="wire-selection"
+                    fill="none"
+                    stroke="#0066cc"
+                    strokeWidth="4"
+                    strokeDasharray="8 4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {(() => {
+                    let minX = a.x, minY = a.y, maxX = a.x, maxY = a.y;
+                    for (const p of pts) {
+                      minX = Math.min(minX, p.x);
+                      minY = Math.min(minY, p.y);
+                      maxX = Math.max(maxX, p.x);
+                      maxY = Math.max(maxY, p.y);
+                    }
+                    const w = Math.abs(maxX - minX);
+                    const h = Math.abs(maxY - minY);
+                    return (
+                      <rect
+                        x={minX - 6}
+                        y={minY - 6}
+                        width={w + 12}
+                        height={h + 12}
+                        rx="4"
+                        fill="none"
+                        stroke="#0066cc"
+                        strokeWidth="1.5"
+                        strokeDasharray="6 4"
+                      />
+                    );
+                  })()}
+                </>
+              )}
               {w.broken && (
                 <g transform={`translate(${mid.x} ${mid.y})`} className="break-x">
                   <line x1="-6" y1="-6" x2="6" y2="6" stroke="#c4391d" strokeWidth="2.4" />

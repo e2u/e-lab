@@ -270,46 +270,6 @@ export function Inspector() {
           />
         </label>
       )}
-      {dev.kind === "transformer3ph" && (
-        <>
-          <label>
-            {t("inspector.primaryVolts")}
-            <input
-              type="text"
-              value={dev.params.primaryVolts ?? "480"}
-              onChange={(e) => useLab.getState().updateDevice(dev.id, { primaryVolts: e.target.value })}
-            />
-          </label>
-          <label>
-            {t("inspector.secondaryVolts")}
-            <input
-              type="text"
-              value={dev.params.secondaryVolts ?? "120"}
-              onChange={(e) => useLab.getState().updateDevice(dev.id, { secondaryVolts: e.target.value })}
-            />
-          </label>
-          <label>
-            {t("inspector.primaryConn")}
-            <select
-              value={dev.params.primaryConn ?? "delta"}
-              onChange={(e) => useLab.getState().updateDevice(dev.id, { primaryConn: e.target.value as "delta" | "wye" })}
-            >
-              <option value="delta">Δ (Delta)</option>
-              <option value="wye">Y (Wye)</option>
-            </select>
-          </label>
-          <label>
-            {t("inspector.secondaryConn")}
-            <select
-              value={dev.params.secondaryConn ?? "delta"}
-              onChange={(e) => useLab.getState().updateDevice(dev.id, { secondaryConn: e.target.value as "delta" | "wye" })}
-            >
-              <option value="delta">Δ (Delta)</option>
-              <option value="wye">Y (Wye)</option>
-            </select>
-          </label>
-        </>
-      )}
       {(dev.kind === "gen-ac" || dev.kind === "gen-dc") && (
         <>
           <label>

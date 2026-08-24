@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { EXAMPLES } from "./examples";
+import { useEffect, useState } from "react";
+import { EXAMPLES, type Example } from "./examples";
 import { rotateSelected, useLab } from "./store";
 import { t } from "./i18n";
 import { Bench, ProcessRack } from "./ui/Bench";
@@ -19,6 +19,7 @@ export function App() {
   const docName = useLab((s) => s.docName);
   const process = useLab((s) => s.process);
   const lang = useLab((s) => s.lang);
+  const [examples, setExamples] = useState<Example[]>(EXAMPLES);
 
   useEffect(() => {
     const id = window.setTimeout(() => useLab.getState().persistDraft(), 700);
@@ -124,6 +125,27 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Load examples from JSON files
+  useEffect(() => {
+    const loadExamples = async () => {
+      try {
+        const response = await fetch("/src/examples/list.json");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.examples && Array.isArray(data.examples)) {
+            setExamples(data.examples);
+            return;
+          }
+        }
+      } catch (e) {
+        console.log("Failed to load examples from JSON, using default examples");
+      }
+      // Fallback to default examples
+      setExamples(EXAMPLES);
+    };
+    loadExamples();
+  }, []);
+
   useEffect(() => {
     const devices = useLab.getState().circuit.devices;
     const noisy = devices.some(
@@ -160,27 +182,25 @@ export function App() {
           <button className={`btn ${mode === "run" ? "active" : ""}`} onClick={() => useLab.getState().setMode("run")}>
             {t("toolbar.run")}
           </button>
-          <button className="btn ok" onClick={() => useLab.getState().setRunning(true)} disabled={mode !== "run"}>
-            ▶
-          </button>
-          <button className="btn" onClick={() => useLab.getState().setRunning(false)}>
-            ⏸
-          </button>
-          <button className="btn" onClick={() => useLab.getState().step()} disabled={mode !== "run"}>
-            {t("toolbar.step")}
-          </button>
           <button className="btn" onClick={() => useLab.getState().resetSim()}>
             {t("toolbar.reset")}
           </button>
         </div>
         <div className="top-actions">
           <select defaultValue="dol" onChange={(e) => useLab.getState().loadExample(e.target.value)}>
-            {EXAMPLES.map((ex) => (
+            {examples.map((ex) => (
               <option key={ex.id} value={ex.id}>
                 {ex.title}
               </option>
             ))}
           </select>
+          <input
+            type="text"
+            className="diagram-name"
+            value={docName}
+            onChange={(e) => useLab.getState().setDocName(e.target.value)}
+            placeholder={t("lib.diagramName") || "Diagram Name"}
+          />
           <button className="btn" onClick={() => useLab.getState().newBoard()}>
             {t("lib.newDiagram")}
           </button>

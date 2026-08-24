@@ -1,0 +1,154 @@
+{
+  "id": "transformer",
+  "title": "變壓器/Transformer",
+  "blurb": "三相電源經變壓器降壓，驅動綠色指示燈。",
+  "circuit": {
+    "devices": [
+      {
+        "id": "d_2_f59c5440",
+        "kind": "mains-3ph",
+        "tag": "G1",
+        "params": {}
+      },
+      {
+        "id": "d_4_7fbe2697",
+        "kind": "net-label",
+        "tag": "NL1",
+        "params": {}
+      },
+      {
+        "id": "d_6_72adb164",
+        "kind": "net-label",
+        "tag": "NL2",
+        "params": {}
+      },
+      {
+        "id": "d_8_68855359",
+        "kind": "transformer",
+        "tag": "TC1",
+        "params": {
+          "ratio": "480/120"
+        }
+      },
+      {
+        "id": "d_a_f2196d01",
+        "kind": "lamp",
+        "tag": "HL1",
+        "params": {
+          "color": "green"
+        }
+      }
+    ],
+    "symbols": [
+      {
+        "id": "s_3_df17dc6f",
+        "deviceId": "d_2_f59c5440",
+        "variant": "body",
+        "x": 2,
+        "y": 2,
+        "rot": 0
+      },
+      {
+        "id": "s_5_2ce51b2c",
+        "deviceId": "d_4_7fbe2697",
+        "variant": "body",
+        "x": 10,
+        "y": 1,
+        "rot": 0
+      },
+      {
+        "id": "s_7_f976fbff",
+        "deviceId": "d_6_72adb164",
+        "variant": "body",
+        "x": 10,
+        "y": 3,
+        "rot": 0
+      },
+      {
+        "id": "s_9_5f81ca48",
+        "deviceId": "d_8_68855359",
+        "variant": "body",
+        "x": 18,
+        "y": 2,
+        "rot": 0
+      },
+      {
+        "id": "s_b_6261a4c1",
+        "deviceId": "d_a_f2196d01",
+        "variant": "body",
+        "x": 26,
+        "y": 2,
+        "rot": 0
+      }
+    ],
+    "wires": [
+      {
+        "id": "w_c_b45ad2a0",
+        "a": {
+          "symbolId": "s_3_df17dc6f",
+          "term": "L1"
+        },
+        "b": {
+          "symbolId": "s_5_2ce51b2c",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_d_852a3699",
+        "a": {
+          "symbolId": "s_3_df17dc6f",
+          "term": "L2"
+        },
+        "b": {
+          "symbolId": "s_7_f976fbff",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_e_219ccc52",
+        "a": {
+          "symbolId": "s_5_2ce51b2c",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_9_5f81ca48",
+          "term": "P1"
+        }
+      },
+      {
+        "id": "w_f_c9a3601e",
+        "a": {
+          "symbolId": "s_7_f976fbff",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_9_5f81ca48",
+          "term": "P2"
+        }
+      },
+      {
+        "id": "w_g_b417522e",
+        "a": {
+          "symbolId": "s_9_5f81ca48",
+          "term": "S1"
+        },
+        "b": {
+          "symbolId": "s_b_6261a4c1",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_h_e4185d0f",
+        "a": {
+          "symbolId": "s_b_6261a4c1",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_9_5f81ca48",
+          "term": "S2"
+        }
+      }
+    ],
+    "groups": []
+  }
+}

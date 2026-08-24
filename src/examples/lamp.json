@@ -1,0 +1,141 @@
+{
+  "id": "lamp",
+  "title": "指示燈點動/Lamp Jog",
+  "blurb": "按常開按鈕，L1 經按鈕點亮指示燈。/Press NO button to light the lamp from L1.",
+  "circuit": {
+    "devices": [
+      {
+        "id": "d_i_f27c7146",
+        "kind": "mains-3ph",
+        "tag": "G1",
+        "params": {}
+      },
+      {
+        "id": "d_k_c9c460fa",
+        "kind": "net-label",
+        "tag": "NL1",
+        "params": {}
+      },
+      {
+        "id": "d_m_b6e062ee",
+        "kind": "net-label",
+        "tag": "NL2",
+        "params": {}
+      },
+      {
+        "id": "d_o_1f26e73a",
+        "kind": "pb-no",
+        "tag": "SB1",
+        "params": {}
+      },
+      {
+        "id": "d_q_47b38c25",
+        "kind": "lamp",
+        "tag": "HL1",
+        "params": {
+          "color": "green"
+        }
+      }
+    ],
+    "symbols": [
+      {
+        "id": "s_j_dadb5145",
+        "deviceId": "d_i_f27c7146",
+        "variant": "body",
+        "x": 2,
+        "y": 4,
+        "rot": 0
+      },
+      {
+        "id": "s_l_23e6ce48",
+        "deviceId": "d_k_c9c460fa",
+        "variant": "body",
+        "x": 6,
+        "y": 1,
+        "rot": 0
+      },
+      {
+        "id": "s_n_d82719c7",
+        "deviceId": "d_m_b6e062ee",
+        "variant": "body",
+        "x": 6,
+        "y": 3,
+        "rot": 0
+      },
+      {
+        "id": "s_p_e5754da9",
+        "deviceId": "d_o_1f26e73a",
+        "variant": "body",
+        "x": 12,
+        "y": 4,
+        "rot": 0
+      },
+      {
+        "id": "s_r_bfed6e00",
+        "deviceId": "d_q_47b38c25",
+        "variant": "body",
+        "x": 20,
+        "y": 4,
+        "rot": 0
+      }
+    ],
+    "wires": [
+      {
+        "id": "w_s_b914b8c2",
+        "a": {
+          "symbolId": "s_j_dadb5145",
+          "term": "L1"
+        },
+        "b": {
+          "symbolId": "s_l_23e6ce48",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_t_e73496d9",
+        "a": {
+          "symbolId": "s_j_dadb5145",
+          "term": "L2"
+        },
+        "b": {
+          "symbolId": "s_n_d82719c7",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_u_b05fc0d4",
+        "a": {
+          "symbolId": "s_l_23e6ce48",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_p_e5754da9",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_v_6c6f5826",
+        "a": {
+          "symbolId": "s_p_e5754da9",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_r_bfed6e00",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_w_a80932d1",
+        "a": {
+          "symbolId": "s_r_bfed6e00",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_n_d82719c7",
+          "term": "1"
+        }
+      }
+    ],
+    "groups": []
+  }
+}

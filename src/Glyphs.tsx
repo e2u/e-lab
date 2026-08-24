@@ -393,9 +393,14 @@ function poles(
                     />
                 )}
                 {labels && (
-                    <Txt x={6} y={y - 4} className="term-lab">
-                        {labels[i]?.[0]}
-                    </Txt>
+                    <>
+                        <Txt x={6} y={y - 4} className="term-lab">
+                            {labels[i]?.[0]}
+                        </Txt>
+                        <Txt x={w * GRID - 6} y={y - 4} className="term-lab" textAnchor="end">
+                            {labels[i]?.[1]}
+                        </Txt>
+                    </>
                 )}
             </g>,
         );
@@ -971,13 +976,15 @@ function GlyphBody({
         const col = LAMP[device.params.color ?? "green"] ?? LAMP.green;
         const cx = (w * GRID) / 2;
         const cy = (h * GRID) / 2;
+        const tagX = w * GRID - 4;
+        const tagY = cy - 4;
         const letter =
             (device.params.color ?? "green") === "red"
                 ? "R"
                 : (device.params.color ?? "green") === "green"
                     ? "G"
                     : (device.params.color ?? "green") === "yellow"
-                        ? "A"
+                        ? "Y"
                         : (device.params.color ?? "green") === "blue"
                             ? "B"
                             : "W";
@@ -1005,7 +1012,9 @@ function GlyphBody({
                 <Txt x={cx} y={cy + 4} textAnchor="middle" className="sym-tag">
                     {letter}
                 </Txt>
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+                <Txt x={tagX+10} y={tagY} textAnchor="end" className="sym-tag">
+                    {device.tag}
+                </Txt>
             </S>
         );
     }
@@ -1056,7 +1065,9 @@ function GlyphBody({
                 <Txt x={cx} y={h * GRID * 0.52} textAnchor="middle" className="term-lab">
                     {kind === "fuse" ? "FU" : "CB"}
                 </Txt>
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+                <Txt x={w * GRID + 4} y={h * GRID - 42} textAnchor="end" className="sym-tag">
+                    {device.tag}
+                </Txt>
             </S>
         );
     }
@@ -1066,10 +1077,10 @@ function GlyphBody({
             <S w={w} h={h}>
                 <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink}
                       strokeWidth="1.5"/>
-                {poles(w, 6, 3, !tripped, undefined, "thermal")}
+                {poles(w, 6, 3, !tripped, [["L1", "T1"], ["L2", "T2"], ["L3", "T3"]] as [string, string][], "thermal")}
                 {barContact(w, 7 * GRID, !tripped, "95", "96")}
                 {barContact(w, 9 * GRID, tripped, "97", "98")}
-                <Tag x={6} y={12} text={`${device.tag} OL`}/>
+                <Tag x={6} y={-5} text={`${device.tag} OL`}/>
             </S>
         );
     }
@@ -1081,6 +1092,10 @@ function GlyphBody({
                 : kind === "rcd"
                     ? "GFCI"
                     : "CB";
+        // L1/L2/L3 and T1/T2/T3 for breaker-3p and isolator
+        const labels = (kind === "breaker-3p" || kind === "isolator")
+            ? [["L1", "T1"], ["L2", "T2"], ["L3", "T3"]] as [string, string][]
+            : undefined;
         return (
             <S w={w} h={h}>
                 <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink}
@@ -1090,11 +1105,11 @@ function GlyphBody({
                     h,
                     Math.min(n, 3),
                     Boolean(rt?.on && !rt?.tripped),
-                    undefined,
+                    labels,
                     kind === "breaker-3p" || kind === "isolator" ? "arc" : "bar",
                     kind === "breaker-3p" || kind === "isolator",
                 )}
-                <Tag x={6} y={12} text={`${device.tag} ${title}`}/>
+                <Tag x={6} y={-7} text={`${device.tag} ${title}`}/>
             </S>
         );
     }
@@ -1146,11 +1161,11 @@ function GlyphBody({
         const cols = ["#a65628", "#ff7f00", "#eccd26", "#ffffff", "#2ca02c"]; // Brown, Orange, Yellow, White, Green
         // L1, L2, L3, N, G positions
         const positions = [
-            {y: baseY * 0.7 - 0.1 * GRID, label: "L1"}, // L1
-            {y: baseY * 1.7 - 0.21 * GRID, label: "L2"}, // L2
-            {y: baseY * 2.7 - 0.3 * GRID, label: "L3"}, // L3
-            {y: baseY * 3.7 - 0.4 * GRID, label: "N"},   // N
-            {y: baseY * 4.7 - 0.5 * GRID, label: "G"},   // G
+            {y: baseY * 0.7 - 0.3 * GRID, label: "L1"}, // L1
+            {y: baseY * 1.7 - 0.5 * GRID, label: "L2"}, // L2
+            {y: baseY * 2.7 - 0.6 * GRID, label: "L3"}, // L3
+            {y: baseY * 3.7 - 0.9 * GRID, label: "N"},   // N
+            {y: baseY * 4.7 - 1 * GRID, label: "G"},   // G
         ];
         return (
             <S w={w} h={h}>
@@ -1158,8 +1173,8 @@ function GlyphBody({
                       strokeWidth="2"/>
                 {positions.map((pos, i) => (
                     <g key={pos.label}>
-                        <circle cx={termX} cy={pos.y} r="6" fill={cols[i]}/>
-                        <Txt x={8} y={pos.y + 10} fill="#efe6d0" fontSize="11" fontFamily="Red Hat Mono, monospace">
+                        <circle cx={termX} cy={pos.y} r="8" fill={cols[i]}/>
+                        <Txt x={50} y={pos.y+3} fill="#efe6d0" fontSize="11" fontFamily="Red Hat Mono, monospace">
                             {pos.label}
                         </Txt>
                     </g>
@@ -1206,6 +1221,7 @@ function GlyphBody({
         const rightLine = 22;
         const coilTop = cy - 24;
         const coilBottom = cy + 14;
+        const coilColor = hot ? "#c45a12" : ink; // Red/orange when energized, black when de-energized
         // Primary coil (left side)
         const primaryCoil = (
             <path
@@ -1220,7 +1236,7 @@ function GlyphBody({
       l ${leftLine} 0
     `}
                 fill="none"
-                stroke={ink}
+                stroke={coilColor}
                 strokeWidth="1.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -1241,7 +1257,7 @@ function GlyphBody({
       l ${rightLine} 0
     `}
                 fill="none"
-                stroke={ink}
+                stroke={coilColor}
                 strokeWidth="1.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -1258,164 +1274,9 @@ function GlyphBody({
                 <line x1={cx - 2} y1={coilTop} x2={cx - 2} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
                 <line x1={cx + 2} y1={coilTop} x2={cx + 2} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
 
-
-                <Tag x={6} y={14} text={device.tag} />
+                <Tag x={6} y={-5} text={device.tag} />
                 <Txt x={cx} y={h * GRID - 4} textAnchor="middle" fontSize="16">
                     {device.params.ratio ?? "480/120"}
-                </Txt>
-            </S>
-        );
-    }
-
-    if (kind === "transformer3ph") {
-        const cx = (w * GRID) / 2;
-        const cy = (h * GRID) / 2;
-        const coilLeft = -24;
-        const coilTop = cy - 28;
-        const coilBottom = cy + 18;
-        const termY = [1, 3, 5, 7]; // Terminal Y positions (L1, L2, L3, N)
-
-        // Helper to draw a coil
-        const drawCoil = (offsetX: number, direction: 1 | -1) => (
-            <path
-                d={`
-          M ${cx + offsetX} ${coilTop}
-          c ${direction * 46} 0 ${direction * 46} 10 ${direction * 0} 11
-          c ${direction * 46} 0 ${direction * 46} 10 ${direction * 0} 11
-          c ${direction * 46} 0 ${direction * 46} 10 ${direction * 0} 11
-          c ${direction * 46} 0 ${direction * 46} 10 ${direction * 0} 13
-          M ${cx + offsetX} ${coilTop}
-          l ${coilLeft * (direction as number)} 0
-          M ${cx + offsetX} ${coilBottom}
-          l ${coilLeft * (direction as number)} 0
-        `}
-                fill="none"
-                stroke={ink}
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        );
-
-        // Primary coil (left side)
-        const primaryCoil = drawCoil(-40, 1);
-
-        // Secondary coil (right side)
-        const secondaryCoil = drawCoil(40, -1);
-
-        // Core - three parallel lines
-        const core = (
-            <>
-                <line x1={cx - 4} y1={coilTop} x2={cx - 4} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
-                <line x1={cx} y1={coilTop} x2={cx} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
-                <line x1={cx + 4} y1={coilTop} x2={cx + 4} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
-            </>
-        );
-
-        // Draw connection lines for Wye (Y) - 3 phase lines + 1 neutral line (total 4)
-        const drawWyeConnection = (side: "left" | "right") => {
-            const x = side === "left" ? 0 : w * GRID;
-            const neutralY = termY[3] * GRID; // N terminal position
-            const termRadius = 6;
-            return (
-                <g>
-                    {/* Phase lines (L1, L2, L3) - stop before terminal circle */}
-                    <line x1={x} y1={termY[0] * GRID} x2={x} y2={neutralY - termRadius} stroke={ink} strokeWidth="1.6" />
-                    <line x1={x} y1={termY[1] * GRID} x2={x} y2={neutralY - termRadius} stroke={ink} strokeWidth="1.6" />
-                    <line x1={x} y1={termY[2] * GRID} x2={x} y2={neutralY - termRadius} stroke={ink} strokeWidth="1.6" />
-                    {/* Neutral line (N) - starts from terminal circle */}
-                    <line x1={x} y1={neutralY + termRadius} x2={x} y2={termY[3] * GRID} stroke={ink} strokeWidth="1.6" />
-                </g>
-            );
-        };
-
-        // Draw connection lines for Delta (Δ) - 3 phase lines only (no neutral)
-        const drawDeltaConnection = (side: "left" | "right") => {
-            const x = side === "left" ? 0 : w * GRID;
-            const termRadius = 6;
-            const topY = termY[0] * GRID;
-            const bottomY = termY[2] * GRID;
-            return (
-                <g>
-                    {/* Vertical line connecting L1 to L3 - stop before terminal circles */}
-                    <line x1={x} y1={topY + termRadius} x2={x} y2={bottomY - termRadius} stroke={ink} strokeWidth="1.6" />
-                    {/* Small diagonal marks to indicate delta - L1 side */}
-                    <line x1={x} y1={topY + termRadius} x2={x - 6} y2={topY + termRadius + 6} stroke={ink} strokeWidth="1.6" />
-                    <line x1={x} y1={bottomY - termRadius} x2={x - 6} y2={bottomY - termRadius - 6} stroke={ink} strokeWidth="1.6" />
-                    {side === "right" && (
-                        <>
-                            {/* Small diagonal marks to indicate delta - L3 side */}
-                            <line x1={x} y1={topY + termRadius} x2={x + 6} y2={topY + termRadius + 6} stroke={ink} strokeWidth="1.6" />
-                            <line x1={x} y1={bottomY - termRadius} x2={x + 6} y2={bottomY - termRadius - 6} stroke={ink} strokeWidth="1.6" />
-                        </>
-                    )}
-                </g>
-            );
-        };
-
-        // Winding labels
-        const windingLabel = (text: string, x: number, y: number) => (
-            <Txt x={x} y={y} fontSize="12" textAnchor="middle" fill={ink}>
-                {text}
-            </Txt>
-        );
-
-        // Terminal colors for L1, L2, L3, N
-        const termColors = ["#a65628", "#ff7f00", "#eccd26", "#ffffff"]; // brown, orange, yellow, white
-
-        // Draw terminal circles and labels for each phase
-        const drawTerminal = (side: "left" | "right", label: string, colorIndex: number, y: number, show: boolean) => {
-            const termX = side === "left" ? 13 : w * GRID - 13;
-            const textX = side === "left" ? 25 : w * GRID - 32;
-            const color = termColors[colorIndex];
-            return (
-                <g key={label} style={{opacity: show ? 1 : 0}}>
-                    <circle cx={termX} cy={y * GRID} r="6" fill={color} stroke={ink} strokeWidth="1.5" />
-                    <Txt x={textX} y={y * GRID + 8} fill={ink} fontSize="11" fontWeight="bold">
-                        {label}
-                    </Txt>
-                </g>
-            );
-        };
-
-        return (
-            <S w={w} h={h}>
-                {/* Border */}
-                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="none" stroke={ink} strokeWidth="1.5" />
-                {primaryCoil}
-                {secondaryCoil}
-                {core}
-                {/* Connection lines - Primary (left) */}
-                {device.params.primaryConn === "wye"
-                    ? drawWyeConnection("left")
-                    : drawDeltaConnection("left")}
-                {/* Connection lines - Secondary (right) */}
-                {device.params.secondaryConn === "wye"
-                    ? drawWyeConnection("right")
-                    : drawDeltaConnection("right")}
-                {/* Terminals - Primary (left) */}
-                {drawTerminal("left", "L1", 0, termY[0], true)}
-                {drawTerminal("left", "L2", 1, termY[1], true)}
-                {drawTerminal("left", "L3", 2, termY[2], true)}
-                {drawTerminal("left", "N", 3, termY[3], device.params.primaryConn === "wye")}
-                {/* Terminals - Secondary (right) */}
-                {drawTerminal("right", "T1", 0, termY[0], true)}
-                {drawTerminal("right", "T2", 1, termY[1], true)}
-                {drawTerminal("right", "T3", 2, termY[2], true)}
-                {drawTerminal("right", "TN", 3, termY[3], device.params.secondaryConn === "wye")}
-                {/* Device tag */}
-                <Tag x={26} y={12} text={device.tag} />
-                {/* Winding labels */}
-                {windingLabel("P", 0, coilTop - 4)}
-                {windingLabel("S", w * GRID, coilTop - 4)}
-                {/* Connection type labels */}
-                {device.params.primaryConn === "wye" && <Txt x={50} y={coilTop + 80} fontSize="32" fill={ink}>Y</Txt>}
-                {device.params.primaryConn === "delta" && <Txt x={50} y={coilTop + 80} fontSize="32" fill={ink}>Δ</Txt>}
-                {device.params.secondaryConn === "wye" && <Txt x={w * GRID - 80} y={coilTop + 80} fontSize="32" fill={ink}>Y</Txt>}
-                {device.params.secondaryConn === "delta" && <Txt x={w * GRID - 80} y={coilTop + 80} fontSize="32" fill={ink}>Δ</Txt>}
-                {/* Voltage display */}
-                <Txt x={cx} y={h * GRID - 4} textAnchor="middle" fontSize="16">
-                    {device.params.primaryVolts ?? "480"} / {device.params.secondaryVolts ?? "120"}
                 </Txt>
             </S>
         );

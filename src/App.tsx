@@ -125,11 +125,11 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Load examples from JSON files
+  // Load examples from JSON files with cache-buster
   useEffect(() => {
     const loadExamples = async () => {
       try {
-        const response = await fetch("/src/examples/list.json");
+        const response = await fetch(`/src/examples/list.json?v=${Date.now()}`);
         if (response.ok) {
           const data = await response.json();
           if (data.examples && Array.isArray(data.examples)) {

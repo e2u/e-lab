@@ -512,9 +512,9 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   loadExample: async (id) => {
-    // First try to load from JSON file
+    // First try to load from JSON file with cache-buster
     try {
-      const response = await fetch(`/examples/${id}.json`);
+      const response = await fetch(`/src/examples/${id}.json?v=${Date.now()}`);
       if (response.ok) {
         const data = await response.json();
         if (data.circuit) {

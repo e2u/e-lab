@@ -628,11 +628,16 @@ input[type="range"] { width: 100%; accent-color: var(--stripe); }
 }
 
 /* Collapsible panels */
-.palette.collapsed, .side.collapsed {
-  width: 0 !important;
+.workspace > aside.palette,
+.workspace > aside.side {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.workspace.collapsed-left > aside.palette,
+.workspace.collapsed-right > aside.side {
+  flex-basis: 0 !important;
   min-width: 0 !important;
-  border-right: none;
-  border-left: none;
   padding: 0;
   overflow: hidden;
 }

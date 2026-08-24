@@ -45,16 +45,27 @@ test:
 
 deploy: build
 	@echo "Deploying to GitHub Pages..."
-	@if [ -z "$(GITHUB_USER)" ] || [ -z "$(GITHUB_REPO)" ]; then \
-		echo "Error: GITHUB_USER and GITHUB_REPO must be set"; \
-		echo "Example: make deploy GITHUB_USER=username GITHUB_REPO=reponame"; \
+	@if [ -z "$(GITHUB_REPOSITORY)" ]; then \
+		echo "Error: GITHUB_REPOSITORY must be set"; \
+		echo "Example: make deploy GITHUB_REPOSITORY=e2u/e-lab"; \
 		exit 1; \
 	fi
-	@echo "Pushing to gh-pages branch for user/$(GITHUB_USER)/repo/$(GITHUB_REPO)..."
-	@git add -f dist/
-	@git commit -m "Auto-deploy to GitHub Pages at $$(date '+%Y-%m-%d %H:%M:%S')"
-	@git subtree push --prefix dist origin gh-pages
-	@echo "Deployment complete!"
+	@REPO_NAME=$$(echo $(GITHUB_REPOSITORY) | cut -d'/' -f2); \
+	BASE_PATH="/$${REPO_NAME}/"; \
+	echo "Building with base path: $$BASE_PATH..."; \
+	GITHUB_REPOSITORY=$$(echo $(GITHUB_REPOSITORY)) NODE_ENV=production npm run build; \
+	echo "Deployment configuration:"; \
+	echo "  Repository: $(GITHUB_REPOSITORY)"; \
+	echo "  Base Path: $$BASE_PATH"; \
+	echo ""; \
+	echo "Next steps:"; \
+	echo "1. Go to https://github.com/$(GITHUB_REPOSITORY)/settings/pages"; \
+	echo "2. Under 'Source', select 'Deploy from a branch'"; \
+	echo "3. Select branch: gh-pages, folder: / (root)"; \
+	echo "4. Click Save"; \
+	echo ""; \
+	echo "After saving, your site will be available at:"; \
+	echo "  https://$(GITHUB_USER).github.io/$${REPO_NAME}/"
 
 clean:
 	@echo "Cleaning build artifacts..."

@@ -9,7 +9,9 @@ export function Palette() {
     <aside className="palette">
       <p className="hint">{t("lib.paletteHint")}</p>
       {GROUPS.map((g) => {
-        const items = CATALOG.filter((c) => c.group === g.label);
+        // Use the English label for filtering since CATALOG uses English group names
+        const groupNameEn = g.id.replace(/_/g, " ");
+        const items = CATALOG.filter((c) => c.group === g.label || c.group === g.labelEn || c.group === groupNameEn);
         if (!items.length) return null;
         return (
           <div className="group" key={g.id}>

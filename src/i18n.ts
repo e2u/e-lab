@@ -302,6 +302,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "msg.confirmDiscardMessage": "You have unsaved changes. What would you like to do?",
     "msg.saveAndContinue": "Save & Continue",
     "msg.discardChanges": "Discard Changes",
+    "msg.cancel": "Cancel",
     
     // Brand and common UI
     "brand.subtitle": "Relay Control Simulation Lab",

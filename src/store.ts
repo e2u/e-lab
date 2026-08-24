@@ -757,9 +757,9 @@ export const useLab = create<LabState>((set, get) => ({
     window.history.replaceState(null, "", hash);
     try {
       await navigator.clipboard.writeText(url);
-      set({ notice: "分享連結已複製" });
+      set({ notice: t("msg.shareCopied") });
     } catch {
-      set({ notice: "已寫入網址列，請手動複製" });
+      set({ notice: t("msg.shareUrl") });
     }
   },
   persistDraft: () => {

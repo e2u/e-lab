@@ -1,5 +1,6 @@
 import { sanitizeCircuitIds } from "./ids";
 import type { Circuit, ProcessVars } from "./types";
+import { tOr } from "./i18n";
 
 export const DOC_VERSION = 1 as const;
 
@@ -155,7 +156,7 @@ export function startupDoc(
     if (shared) {
       return {
         circuit: shared.circuit,
-        name: shared.name ?? "分享電路",
+        name: shared.name ?? tOr("msg.unnamedDiagram", "Untitled Diagram"),
         process: shared.process,
       };
     }
@@ -163,7 +164,7 @@ export function startupDoc(
     if (draft) {
       return {
         circuit: draft.circuit,
-        name: draft.name ?? "草稿",
+        name: draft.name ?? tOr("msg.unnamedDiagram", "Untitled Diagram"),
         process: draft.process,
       };
     }

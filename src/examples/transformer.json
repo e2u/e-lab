@@ -1,8 +1,6 @@
 {
   "version": 1,
-  "id": "transformer",
-  "title": "變壓器/Transformer",
-  "blurb": "",
+  "name": "transformer",
   "circuit": {
     "devices": [
       {
@@ -67,34 +65,6 @@
         "id": "d_10_a15f07ad",
         "kind": "net-label",
         "tag": "L2",
-        "params": {}
-      },
-      {
-        "id": "d_14_5696e8bc",
-        "kind": "transformer",
-        "tag": "TC2",
-        "params": {
-          "ratio": "480/120"
-        }
-      },
-      {
-        "id": "d_16_7f30d1e0",
-        "kind": "lamp",
-        "tag": "HL2",
-        "params": {
-          "color": "yellow"
-        }
-      },
-      {
-        "id": "d_1a_9baf3c46",
-        "kind": "net-label",
-        "tag": "L2",
-        "params": {}
-      },
-      {
-        "id": "d_1c_4d6dcef8",
-        "kind": "net-label",
-        "tag": "L3",
         "params": {}
       }
     ],
@@ -178,40 +148,6 @@
         "variant": "body",
         "x": 13,
         "y": 19,
-        "rot": 0,
-        "flipX": true
-      },
-      {
-        "id": "s_15_94b739e8",
-        "deviceId": "d_14_5696e8bc",
-        "variant": "body",
-        "x": 20,
-        "y": 26,
-        "rot": 0
-      },
-      {
-        "id": "s_17_fdaecb7b",
-        "deviceId": "d_16_7f30d1e0",
-        "variant": "body",
-        "x": 33,
-        "y": 27,
-        "rot": 0
-      },
-      {
-        "id": "s_1b_488410ac",
-        "deviceId": "d_1a_9baf3c46",
-        "variant": "body",
-        "x": 13,
-        "y": 26,
-        "rot": 0,
-        "flipX": true
-      },
-      {
-        "id": "s_1d_502d655f",
-        "deviceId": "d_1c_4d6dcef8",
-        "variant": "body",
-        "x": 13,
-        "y": 29,
         "rot": 0,
         "flipX": true
       }
@@ -313,54 +249,6 @@
         },
         "b": {
           "symbolId": "s_9_12865545",
-          "term": "P2"
-        }
-      },
-      {
-        "id": "w_18_b09b5fd3",
-        "a": {
-          "symbolId": "s_17_fdaecb7b",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_15_94b739e8",
-          "term": "S1"
-        },
-        "jog": {
-          "axis": "y",
-          "pos": 594
-        }
-      },
-      {
-        "id": "w_19_c6a66131",
-        "a": {
-          "symbolId": "s_15_94b739e8",
-          "term": "S2"
-        },
-        "b": {
-          "symbolId": "s_17_fdaecb7b",
-          "term": "2"
-        }
-      },
-      {
-        "id": "w_1g_4b62aa12",
-        "a": {
-          "symbolId": "s_1b_488410ac",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_15_94b739e8",
-          "term": "P1"
-        }
-      },
-      {
-        "id": "w_1h_fa4ecbf8",
-        "a": {
-          "symbolId": "s_1d_502d655f",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_15_94b739e8",
           "term": "P2"
         }
       }

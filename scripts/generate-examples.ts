@@ -294,50 +294,21 @@ function selectorReversing(): Circuit {
   return c;
 }
 
-interface Example {
+interface ExampleJson {
   id: string;
-  title: string;
-  blurb: string;
+  version: number;
+  name: string;
+  blurb?: string;
   circuit: Circuit;
 }
 
-const examples: Example[] = [
-  {
-    id: "transformer",
-    title: "變壓器/Transformer",
-    blurb: "三相電源經變壓器降壓，驅動綠色指示燈。",
-    circuit: transformer(),
-  },
-  {
-    id: "lamp",
-    title: "指示燈點動/Lamp Jog",
-    blurb: "按常開按鈕，L1 經按鈕點亮指示燈。/Press NO button to light the lamp from L1.",
-    circuit: lampJog(),
-  },
-  {
-    id: "dol",
-    title: "接觸器自鎖起動",
-    blurb: "停止常閉、起動常開、KM 自鎖、熱繼電保護三相電機。",
-    circuit: selfHoldMotor(),
-  },
-  {
-    id: "rev",
-    title: "正反轉點動",
-    blurb: "正反轉起動器，綠鈕正轉、另一綠鈕反轉，紅鈕停止。",
-    circuit: fwdRevJog(),
-  },
-  {
-    id: "yd",
-    title: "星三角降壓起動",
-    blurb: "KM1 線路、KM2 星形、KM3 三角形，KT 延時由星切三角。",
-    circuit: starDeltaStart(),
-  },
-  {
-    id: "selrev",
-    title: "選擇開關正反轉",
-    blurb: "NEMA 梯形圖：STOP／START、FWD-OFF-REV 選擇開關、F／R 互鎖。先撳選擇開關再 START。",
-    circuit: selectorReversing(),
-  },
+const examples: ExampleJson[] = [
+  { id: "transformer", version: 1, name: "變壓器/Transformer", circuit: transformer() },
+  { id: "lamp", version: 1, name: "指示燈點動/Lamp Jog", circuit: lampJog() },
+  { id: "dol", version: 1, name: "接觸器自鎖起動", circuit: selfHoldMotor() },
+  { id: "rev", version: 1, name: "正反轉點動", circuit: fwdRevJog() },
+  { id: "yd", version: 1, name: "星三角降壓起動", circuit: starDeltaStart() },
+  { id: "selrev", version: 1, name: "選擇開關正反轉", circuit: selectorReversing() },
 ];
 
 // Generate JSON files

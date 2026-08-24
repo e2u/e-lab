@@ -232,6 +232,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "ctx.group": "Group",
     "ctx.ungroup": "Ungroup",
     "ctx.delete": "Delete",
+    "ctx.align": "Align",
     "ctx.alignLeft": "Align Left",
     "ctx.alignRight": "Align Right",
     "ctx.alignTop": "Align Top",
@@ -242,6 +243,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "ctx.selectAll": "Select All",
     "ctx.paste": "Paste",
     "ctx.brokenWire": "Broken Wire Fault",
+    "ctx.shiftSelect": "(Shift + Select)",
     "ctx.nothingSelected": "Nothing selected",
 
     // Toolbar extra
@@ -578,6 +580,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "ctx.group": "編成一組",
     "ctx.ungroup": "打散",
     "ctx.delete": "刪除",
+    "ctx.align": "對齊",
     "ctx.alignLeft": "左對齊",
     "ctx.alignRight": "右對齊",
     "ctx.alignTop": "上對齊",
@@ -588,6 +591,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "ctx.selectAll": "全選",
     "ctx.paste": "貼上",
     "ctx.brokenWire": "斷線故障",
+    "ctx.shiftSelect": "(先 Shift 多選)",
     "ctx.nothingSelected": "未選取任何項目",
 
     // Toolbar extra

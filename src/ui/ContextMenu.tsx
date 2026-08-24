@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { t, tOr } from "../i18n";
 import { selectionHasGroup } from "../groups";
 import { useLab } from "../store";
 
@@ -28,6 +29,11 @@ export function ContextMenu({
     onClose();
   };
 
+  const lang = useLab((s) => s.lang);
+  const toggleLanguage = () => {
+    useLab.getState().setLang(lang === "en" ? "zh" : "en");
+  };
+
   const style: CSSProperties = {
     left: Math.min(pos.x, window.innerWidth - 220),
     top: Math.min(pos.y, window.innerHeight - 360),
@@ -40,90 +46,96 @@ export function ContextMenu({
         style={style}
         onPointerDown={(e) => e.stopPropagation()}
       >
+        {/* Language Toggle */}
+        <div className="ctx-sep" />
+        <button type="button" onClick={toggleLanguage} className="menu-lang">
+          {lang === "en" ? tOr("notice.lang.zh", "中文") : tOr("notice.lang.en", "English")}
+        </button>
+
         {hasSymbols && (
           <>
             <button type="button" onClick={() => run(() => useLab.getState().rotateSelected(1))}>
-              旋轉 90° <kbd>R</kbd>
+              {t("ctx.rotate")} <kbd>R</kbd>
             </button>
             <button type="button" onClick={() => run(() => useLab.getState().rotateSelected(-1))}>
-              逆時針旋轉 <kbd>⇧R</kbd>
+              {t("ctx.rotateCCW")} <kbd>⇧R</kbd>
             </button>
             <button type="button" onClick={() => run(() => useLab.getState().flipSelected("h"))}>
-              左右鏡像 <kbd>H</kbd>
+              {t("ctx.flipH")} <kbd>H</kbd>
             </button>
             <button type="button" onClick={() => run(() => useLab.getState().flipSelected("v"))}>
-              上下鏡像 <kbd>V</kbd>
+              {t("ctx.flipV")} <kbd>V</kbd>
             </button>
             <button type="button" onClick={() => run(() => useLab.getState().duplicateSelected())}>
-              複製一份 <kbd>⌘D</kbd>
+              {t("ctx.duplicate")} <kbd>⌘D</kbd>
             </button>
             <button type="button" onClick={() => run(() => useLab.getState().copySelected())}>
-              複製 <kbd>⌘C</kbd>
+              {t("ctx.copy")} <kbd>⌘C</kbd>
             </button>
             <button
               type="button"
               disabled={n < 2}
               onClick={() => run(() => useLab.getState().groupSelected())}
             >
-              編成一組 <kbd>⌘G</kbd>
+              {t("ctx.group")} <kbd>⌘G</kbd>
             </button>
             <button
               type="button"
               disabled={!canUngroup}
               onClick={() => run(() => useLab.getState().ungroupSelected())}
             >
-              打散 <kbd>⇧⌘G</kbd>
+              {t("ctx.ungroup")} <kbd>⇧⌘G</kbd>
             </button>
             <div className="ctx-sep" />
-            <div className="ctx-label">對齊 {n < 2 ? "（先 Shift 多選）" : ""}</div>
+            <div className="ctx-label">{t("ctx.align")} {n < 2 ? `（${t("ctx.shiftSelect")}）` : ""}</div>
             <button type="button" disabled={n < 2} onClick={() => run(() => useLab.getState().alignSelected("left"))}>
-              左對齊
+              {t("ctx.alignLeft")}
             </button>
             <button type="button" disabled={n < 2} onClick={() => run(() => useLab.getState().alignSelected("right"))}>
-              右對齊
+              {t("ctx.alignRight")}
             </button>
             <button type="button" disabled={n < 2} onClick={() => run(() => useLab.getState().alignSelected("top"))}>
-              上對齊
+              {t("ctx.alignTop")}
             </button>
             <button type="button" disabled={n < 2} onClick={() => run(() => useLab.getState().alignSelected("bottom"))}>
-              下對齊
+              {t("ctx.alignBottom")}
             </button>
             <button type="button" disabled={n < 2} onClick={() => run(() => useLab.getState().alignSelected("hcenter"))}>
-              水平置中
+              {t("ctx.alignCenterH")}
             </button>
             <button type="button" disabled={n < 2} onClick={() => run(() => useLab.getState().alignSelected("vcenter"))}>
-              垂直置中
+              {t("ctx.alignCenterV")}
             </button>
             <button type="button" onClick={() => run(() => useLab.getState().snapSelected())}>
-              對齊網格
+              {t("ctx.snapGrid")}
             </button>
             <div className="ctx-sep" />
             <button type="button" className="danger" onClick={() => run(() => useLab.getState().deleteSelected())}>
-              刪除 <kbd>Del</kbd>
+              {t("ctx.delete")} <kbd>Del</kbd>
             </button>
           </>
         )}
         {hasWire && (
           <>
             <button type="button" onClick={() => run(() => useLab.getState().toggleWireBroken(selected.id))}>
-              斷線故障
+              {t("ctx.brokenWire")}
             </button>
             <button type="button" className="danger" onClick={() => run(() => useLab.getState().deleteSelected())}>
-              刪除導線
+              {t("ctx.delete")} {t("wire")}
             </button>
           </>
         )}
         {!hasSymbols && !hasWire && (
           <>
             <button type="button" onClick={() => run(() => useLab.getState().selectAll())}>
-              全選 <kbd>⌘A</kbd>
+              {t("ctx.selectAll")} <kbd>⌘A</kbd>
             </button>
             <button
               type="button"
               disabled={!clipboard?.symbols.length}
               onClick={() => run(() => useLab.getState().pasteClipboard())}
             >
-              貼上 <kbd>⌘V</kbd>
+              {t("ctx.paste")} <kbd>⌘V</kbd>
             </button>
           </>
         )}

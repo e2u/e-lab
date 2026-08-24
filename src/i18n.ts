@@ -296,6 +296,9 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "notice.lang.zh": "Language: Chinese",
     "notice.lang.en": "Language: English",
 
+    // Confirmation messages
+    "msg.confirmDiscard": "Current diagram will be lost. Continue?",
+    
     // Brand and common UI
     "brand.subtitle": "Relay Control Simulation Lab",
     "lib.newDiagram": "New Diagram",

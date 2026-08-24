@@ -21,6 +21,15 @@ import { emptySnapshot, tick } from "./sim/engine";
 import { GRID, type Circuit, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
 import { getLang as getLanguage, setLang as setLanguage, t } from "./i18n";
 
+// Check if circuit has unsaved changes by comparing with a reference (e.g., blank template)
+function hasUnsavedChanges(circuit: Circuit): boolean {
+  return (
+    circuit.devices.length > 0 ||
+    circuit.symbols.length > 0 ||
+    circuit.wires.length > 0
+  );
+}
+
 function readLang(): Lang {
   return getLanguage();
 }
@@ -85,7 +94,7 @@ export interface LabState {
   rebind: (symbolId: string, deviceId: string) => void;
   deleteSelected: () => void;
   loadExample: (id: string) => void;
-  loadBlankTemplate: () => void;
+  loadBlankTemplate: (skipConfirm?: boolean) => void;
   newBoard: () => void;
   undo: () => void;
   redo: () => void;
@@ -610,7 +619,13 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   newBoard: () => {
-    useLab.getState().loadBlankTemplate();
+    if (hasUnsavedChanges(get().circuit)) {
+      const confirmDiscard = t("msg.confirmDiscard") || "Current diagram will be lost. Continue?";
+      if (!window.confirm(confirmDiscard)) {
+        return; // User cancelled
+      }
+    }
+    useLab.getState().loadBlankTemplate(true); // Skip confirm in loadBlankTemplate since we already confirmed
   },
 
   undo: () => {

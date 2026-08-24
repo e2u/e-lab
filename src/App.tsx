@@ -8,6 +8,15 @@ import { Inspector } from "./ui/Inspector";
 import { Palette } from "./ui/Palette";
 import { Schematic } from "./ui/Schematic";
 
+// Check if circuit has unsaved changes (has any devices, symbols or wires)
+function hasCircuitChanged(circuit: any): boolean {
+  return (
+    (circuit.devices?.length ?? 0) > 0 ||
+    (circuit.symbols?.length ?? 0) > 0 ||
+    (circuit.wires?.length ?? 0) > 0
+  );
+}
+
 export function App() {
   const mode = useLab((s) => s.mode);
   const running = useLab((s) => s.running);
@@ -168,6 +177,28 @@ export function App() {
 
   const faults = snapshot.faults;
 
+  // Handle new diagram with confirmation
+  const handleNewDiagram = () => {
+    if (hasCircuitChanged(circuit)) {
+      const confirmDiscard = t("msg.confirmDiscard") || "Current diagram will be lost. Continue?";
+      if (!window.confirm(confirmDiscard)) {
+        return; // User cancelled
+      }
+    }
+    useLab.getState().loadBlankTemplate(true); // Skip confirm in loadBlankTemplate since we already confirmed
+  };
+
+  // Handle example selection with confirmation
+  const handleSelectExample = (exampleId: string) => {
+    if (hasCircuitChanged(circuit)) {
+      const confirmDiscard = t("msg.confirmDiscard") || "Current diagram will be lost. Continue?";
+      if (!window.confirm(confirmDiscard)) {
+        return; // User cancelled, do nothing
+      }
+    }
+    useLab.getState().loadExample(exampleId);
+  };
+
   return (
     <div className="app">
       <header className="topbar">
@@ -188,7 +219,17 @@ export function App() {
         </div>
         <div className="top-actions">
           <label className="action-label">{t("lib.example")}:</label>
-          <select defaultValue="dol" onChange={(e) => useLab.getState().loadExample(e.target.value)}>
+          <select 
+            defaultValue="dol" 
+            onChange={(e) => handleSelectExample(e.target.value)}
+            onClick={(e) => {
+              const select = e.target as HTMLSelectElement;
+              if (!confirm(t("msg.confirmDiscard") || "Current diagram will be lost. Continue?")) {
+                // Revert to previous value
+                select.value = useLab.getState().docName ? "current" : "dol";
+              }
+            }}
+          >
             {examples.map((ex) => (
               <option key={ex.id} value={ex.id}>
                 {ex.title}
@@ -202,7 +243,7 @@ export function App() {
             onChange={(e) => useLab.getState().setDocName(e.target.value)}
             placeholder={t("lib.diagramNamePlaceholder") || "Enter diagram name..."}
           />
-          <button className="btn" onClick={() => useLab.getState().newBoard()}>
+          <button className="btn" onClick={() => handleNewDiagram()}>
             {t("lib.newDiagram")}
           </button>
           <select

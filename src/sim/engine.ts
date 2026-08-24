@@ -28,7 +28,6 @@ export function defaultRuntime(kind: DeviceKind): DeviceRuntime {
     kind === "breaker-1p" ||
     kind === "breaker-3p" ||
     kind === "rcd" ||
-    kind === "isolator" ||
     kind === "dc-supply" ||
     kind === "fuse";
   return {

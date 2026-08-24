@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { catalogItem, suggestNetLabelTag } from "./catalog";
 import { addDevice, addSymbol, addWire, emptyCircuit, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
+import { loadExampleJson } from "./examples/index";
 import { expandIds, groupSymbols, pruneGroups, selectionHasGroup, ungroupSymbols } from "./groups";
 import { EXAMPLES, selfHoldMotor } from "./examples";
 import { allWireRoutes, nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
@@ -522,35 +523,29 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   loadExample: async (id) => {
-    // First try to load from JSON file with cache-buster
-    try {
-      const response = await fetch(`/src/examples/${id}.json?v=${Date.now()}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.circuit) {
-          get().pushHistory();
-          sanitizeCircuitIds(data.circuit);
-          set({
-            circuit: data.circuit,
-            snapshot: emptySnapshot(data.circuit),
-            selected: null,
-            selectedIds: [],
-            placing: null,
-            wiringFrom: null,
-            timeMs: 0,
-            held: [],
-            running: false,
-            mode: "edit",
-            docName: data.title || id,
-          });
-          return;
-        }
-      }
-    } catch (e) {
-      // Fall back to built-in examples
+    // Try to load from JSON module first (works in both dev and GitHub Pages)
+    const jsonData = await loadExampleJson(id);
+    
+    if (jsonData && jsonData.circuit) {
+      get().pushHistory();
+      sanitizeCircuitIds(jsonData.circuit);
+      set({
+        circuit: jsonData.circuit,
+        snapshot: emptySnapshot(jsonData.circuit),
+        selected: null,
+        selectedIds: [],
+        placing: null,
+        wiringFrom: null,
+        timeMs: 0,
+        held: [],
+        running: false,
+        mode: "edit",
+        docName: jsonData.title || id,
+      });
+      return;
     }
 
-    // Fallback to built-in examples
+    // Fallback to built-in examples for backward compatibility
     const ex = EXAMPLES.find((e) => e.id === id);
     if (!ex) return;
     get().pushHistory();

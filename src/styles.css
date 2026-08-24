@@ -80,6 +80,13 @@ body::before {
   align-items: center;
 }
 
+.action-label {
+  font-weight: 600;
+  color: #c9c2a8;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
 button, select, input {
   font-family: inherit;
 }

@@ -300,6 +300,8 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "brand.subtitle": "Relay Control Simulation Lab",
     "lib.newDiagram": "New Diagram",
     "lib.language": "Language",
+    "lib.example": "Example",
+    "lib.diagramNamePlaceholder": "Enter diagram name...",
   },
   zh: {
     // Wire color codes (美國標準 with line identifiers)
@@ -317,6 +319,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "brand.subtitle": "繼電器控制實驗枱",
     "lib.newDiagram": "空白圖紙",
     "lib.language": "語言選擇",
+    "lib.diagramNamePlaceholder": "輸入圖紙名稱...",
     // Menu items
     "menu.file": "檔案",
     "menu.edit": "編輯",

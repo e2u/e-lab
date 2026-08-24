@@ -187,6 +187,7 @@ export function App() {
           </button>
         </div>
         <div className="top-actions">
+          <label className="action-label">{t("lib.example")}:</label>
           <select defaultValue="dol" onChange={(e) => useLab.getState().loadExample(e.target.value)}>
             {examples.map((ex) => (
               <option key={ex.id} value={ex.id}>
@@ -199,7 +200,7 @@ export function App() {
             className="diagram-name"
             value={docName}
             onChange={(e) => useLab.getState().setDocName(e.target.value)}
-            placeholder={t("lib.diagramName") || "Diagram Name"}
+            placeholder={t("lib.diagramNamePlaceholder") || "Enter diagram name..."}
           />
           <button className="btn" onClick={() => useLab.getState().newBoard()}>
             {t("lib.newDiagram")}

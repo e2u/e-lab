@@ -2,17 +2,14 @@
 type ExampleImporter = () => Promise<any>;
 
 const exampleImports: Record<string, ExampleImporter> = {
-  dol: () => import("./dol.json"),
-  lamp: () => import("./lamp.json"),
-  list: () => import("./list.json"),
-  rev: () => import("./rev.json"),
-  selrev: () => import("./selrev.json"),
-  "three-phase-motor": () => import("./three-phase-motor.json"),
   transformer: () => import("./transformer.json"),
-  yd: () => import("./yd.json"),
+  "three-phase-motor": () => import("./three-phase-motor.json"),
 };
 
 export async function loadExampleJson(id: string): Promise<any> {
+  // Special case: none means blank template, no JSON needed
+  if (id === "none") return { circuit: null };
+  
   try {
     const importer = exampleImports[id];
     if (!importer) return null;

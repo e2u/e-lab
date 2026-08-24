@@ -523,6 +523,13 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   loadExample: async (id) => {
+    // Special case: none means load blank template
+    if (id === "none") {
+      get().pushHistory();
+      get().loadBlankTemplate();
+      return;
+    }
+    
     // Try to load from JSON module first (works in both dev and GitHub Pages)
     const jsonData = await loadExampleJson(id);
     

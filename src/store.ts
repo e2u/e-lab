@@ -536,6 +536,10 @@ export const useLab = create<LabState>((set, get) => ({
     if (jsonData && jsonData.circuit) {
       get().pushHistory();
       sanitizeCircuitIds(jsonData.circuit);
+      
+      // Handle different JSON formats (some use 'title', some use 'name')
+      const docName = jsonData.title || jsonData.name || id;
+      
       set({
         circuit: jsonData.circuit,
         snapshot: emptySnapshot(jsonData.circuit),
@@ -547,7 +551,7 @@ export const useLab = create<LabState>((set, get) => ({
         held: [],
         running: false,
         mode: "edit",
-        docName: jsonData.title || id,
+        docName: docName,
       });
       return;
     }

@@ -10,34 +10,41 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps:deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+
+      # 1. 安装 Deno 环境
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
         with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
+          deno-version: v2.x # 使用最新的 Deno 2 版本
+
+      # 2. 提前缓存/下载 Deno 依赖，确保环境完整
+      - name: Cache dependencies
+        run: deno cache main.ts || true # 这里的 main.ts 可以换成你项目的入口文件，或者直接跳过这一步，Deno 在运行 task 时会自动下载
+
+      # 3. 执行你的构建任务（会触发 Deno 自动下载 npm 依赖并生成本地 node_modules）
       - name: Build project
-        env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          echo "Building for repository: $GITHUB_REPOSITORY"
-          npm run build
-      
+        run: deno task build
+
+      # 4. 上传 Vite 打包生成的 dist 静态目录
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
-      
+          path: './dist'
+
+      # 5. 部署到 Pages
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4

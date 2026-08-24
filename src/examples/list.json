@@ -8,6 +8,10 @@
       "id": "transformer",
       "title": "變壓器/Transformer",
       "blurb": "三相電源經變壓器降壓，驅動綠色指示燈。"
+    },
+    {
+      "id": "three-phase-motor",
+      "title": "Three Phase Motor Control"
     }
   ]
 }

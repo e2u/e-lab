@@ -777,7 +777,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {contactLines(w, h, false, "pb", isPressed)}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+                <Tag x={15} y={h * GRID-5} text={device.tag}/>
             </S>
         );
     }
@@ -785,7 +785,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {contactLines(w, h, true, "pb", isPressed)}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+                <Tag x={20} y={h * GRID-5} text={device.tag}/>
             </S>
         );
     }
@@ -793,7 +793,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {contactLines(w, h, kind !== "estop-no", "estop", isPressed)}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+                <Tag x={20} y={h * GRID-5} text={device.tag}/>
             </S>
         );
     }
@@ -1012,7 +1012,7 @@ function GlyphBody({
                 <Txt x={cx} y={cy + 4} textAnchor="middle" className="sym-tag">
                     {letter}
                 </Txt>
-                <Txt x={tagX+10} y={tagY} textAnchor="end" className="sym-tag">
+                <Txt x={tagX-50} y={tagY+9} textAnchor="end" className="sym-tag">
                     {device.tag}
                 </Txt>
             </S>
@@ -1030,7 +1030,7 @@ function GlyphBody({
                     strokeWidth="2"
                 />
                 <path d={`M ${cx + 12} ${cy - 10} q 10 10 0 20`} fill="none" stroke={ink} strokeWidth="1.5"/>
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+                <Tag x={55} y={h * GRID-50} text={device.tag}/>
             </S>
         );
     }

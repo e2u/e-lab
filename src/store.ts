@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { catalogItem, suggestNetLabelTag } from "./catalog";
-import { addDevice, addSymbol, emptyCircuit, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
+import { addDevice, addSymbol, addWire, emptyCircuit, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { expandIds, groupSymbols, pruneGroups, selectionHasGroup, ungroupSymbols } from "./groups";
 import { EXAMPLES, selfHoldMotor } from "./examples";
 import { allWireRoutes, nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
@@ -85,6 +85,7 @@ export interface LabState {
   rebind: (symbolId: string, deviceId: string) => void;
   deleteSelected: () => void;
   loadExample: (id: string) => void;
+  loadBlankTemplate: () => void;
   newBoard: () => void;
   undo: () => void;
   redo: () => void;
@@ -561,20 +562,45 @@ export const useLab = create<LabState>((set, get) => ({
     });
   },
 
-  newBoard: () => {
+  loadBlankTemplate: () => {
+    // Default blank template with power distribution using net labels
+    const c = emptyCircuit();
+    
+    // Add mains-3ph device at position (0, 0)
+    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
+    
+    // Add net-label devices for power distribution
+    const nlL1 = addDevice(c, "net-label", "L1", "body", 8, 1);
+    const nlL2 = addDevice(c, "net-label", "L2", "body", 8, 4);
+    const nlL3 = addDevice(c, "net-label", "L3", "body", 8, 7);
+    const nlN = addDevice(c, "net-label", "N", "body", 8, 10);
+    const nlPE = addDevice(c, "net-label", "G", "body", 8, 13); // G for Ground
+    
+    // Connect power to net labels
+    addWire(c, g.symbol, "L1", nlL1.symbol, "1");
+    addWire(c, g.symbol, "L2", nlL2.symbol, "1");
+    addWire(c, g.symbol, "L3", nlL3.symbol, "1");
+    addWire(c, g.symbol, "N", nlN.symbol, "1");
+    addWire(c, g.symbol, "PE", nlPE.symbol, "1");
+    
     get().pushHistory();
-    const circuit = emptyCircuit();
     set({
-      circuit,
-      snapshot: emptySnapshot(circuit),
+      circuit: c,
+      snapshot: emptySnapshot(c),
       selected: null,
       selectedIds: [],
       placing: null,
       wiringFrom: null,
       timeMs: 0,
       held: [],
+      running: false,
+      mode: "edit",
       docName: "未命名圖紙",
     });
+  },
+
+  newBoard: () => {
+    useLab.getState().loadBlankTemplate();
   },
 
   undo: () => {

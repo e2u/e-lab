@@ -1,4 +1,5 @@
 import { LAMP_COLORS } from "../catalog";
+import { t } from "../i18n";
 import { useLab } from "../store";
 
 const lampHex: Record<string, string> = {
@@ -128,30 +129,30 @@ export function ProcessRack() {
   const set = useLab((s) => s.setProcess);
   return (
     <div className="process">
-      <h3>過程量</h3>
+      <h3>{t("lib.processVars")}</h3>
       <label>
-        溫度
+        {t("process.temperature")}
         <input type="range" min={0} max={120} value={p.temperature} onChange={(e) => set({ temperature: Number(e.target.value) })} />
         <span>{p.temperature}°</span>
       </label>
       <label>
-        液位
+        {t("process.level")}
         <input type="range" min={0} max={100} value={p.level} onChange={(e) => set({ level: Number(e.target.value) })} />
         <span>{p.level}%</span>
       </label>
       <label>
-        流量
+        {t("process.flow")}
         <input type="range" min={0} max={100} value={p.flow} onChange={(e) => set({ flow: Number(e.target.value) })} />
         <span>{p.flow}%</span>
       </label>
       <label>
-        壓力
+        {t("process.pressure")}
         <input type="range" min={0} max={16} step={0.1} value={p.pressure} onChange={(e) => set({ pressure: Number(e.target.value) })} />
         <span>{p.pressure.toFixed(1)}</span>
       </label>
       <label className="chk">
         <input type="checkbox" checked={p.limitHit} onChange={(e) => set({ limitHit: e.target.checked })} />
-        限位觸發
+        {t("process.limitHit")}
       </label>
     </div>
   );

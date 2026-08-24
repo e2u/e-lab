@@ -273,6 +273,13 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "bench.controls": "Controls",
     "bench.sensors": "Sensors",
 
+    // Process rack labels
+    "process.temperature": "Temperature",
+    "process.level": "Level",
+    "process.flow": "Flow",
+    "process.pressure": "Pressure",
+    "process.limitHit": "Limit Hit",
+
     // Notice messages
     "notice.lang.zh": "Language: Chinese",
     "notice.lang.en": "Language: English",
@@ -551,6 +558,13 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "bench.motors": "馬達與風扇",
     "bench.controls": "繼電器與接觸器",
     "bench.sensors": "感測器",
+
+    // Process rack labels
+    "process.temperature": "溫度",
+    "process.level": "液位",
+    "process.flow": "流量",
+    "process.pressure": "壓力",
+    "process.limitHit": "限位觸發",
   },
 };
 

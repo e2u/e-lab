@@ -257,8 +257,8 @@ export function App() {
             title={t("lib.language")}
             onChange={(e) => useLab.getState().setLang(e.target.value as any)}
           >
-            <option value="en">English</option>
-            <option value="zh">中文</option>
+            <option value="en">{t("lang.en")}</option>
+            <option value="zh">{t("lang.zh")}</option>
           </select>
           <FilesMenu />
           <button className="btn" onClick={() => useLab.getState().undo()}>

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { t, tOr } from "../i18n";
+import { t } from "../i18n";
 import { selectionHasGroup } from "../groups";
 import { useLab } from "../store";
 
@@ -49,7 +49,7 @@ export function ContextMenu({
         {/* Language Toggle */}
         <div className="ctx-sep" />
         <button type="button" onClick={toggleLanguage} className="menu-lang">
-          {lang === "en" ? tOr("notice.lang.zh", "中文") : tOr("notice.lang.en", "English")}
+          {lang === "en" ? t("lang.zh") : t("lang.en")}
         </button>
 
         {hasSymbols && (

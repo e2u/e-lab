@@ -332,6 +332,10 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "lib.language": "Language",
     "lib.example": "Example",
     "lib.diagramNamePlaceholder": "Enter diagram name...",
+    
+    // Language options for dropdown
+    "lang.en": "English",
+    "lang.zh": "中文",
   },
   zh: {
     // Wire color codes (美國標準 with line identifiers)
@@ -358,6 +362,10 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "lib.language": "語言選擇",
     "lib.diagramNamePlaceholder": "輸入圖紙名稱...",
 
+    // Language options for dropdown
+    "lang.en": " English ",
+    "lang.zh": " 中文 ",
+    
     // Files menu labels (Chinese)
     "files.menuLabel": "檔案",
     "files.docName": "圖名",

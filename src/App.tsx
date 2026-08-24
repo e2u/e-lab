@@ -185,13 +185,25 @@ export function App() {
   };
 
   // Handle discard modal action
-  const handleDiscardModalClose = (saveAndContinue?: boolean) => {
+  const handleDiscardModalClose = (action?: string) => {
     setDiscardModalOpen(false);
     
-    if (pendingAction && saveAndContinue) {
+    if (!pendingAction) {
+      setPendingAction(null);
+      return;
+    }
+    
+    if (action === 'save') {
       // Export current circuit first
       useLab.getState().exportFile();
       
+      if (pendingAction.type === 'new') {
+        useLab.getState().loadBlankTemplate(true);
+      } else if (pendingAction.type === 'example' && pendingAction.exampleId) {
+        useLab.getState().loadExample(pendingAction.exampleId);
+      }
+    } else if (action === 'discard') {
+      // Discard changes and continue with the action
       if (pendingAction.type === 'new') {
         useLab.getState().loadBlankTemplate(true);
       } else if (pendingAction.type === 'example' && pendingAction.exampleId) {

@@ -3,7 +3,7 @@ import { useLab } from "../store";
 
 interface DiscardModalProps {
   isOpen: boolean;
-  onClose: (saveAndContinue?: boolean) => void;
+  onClose: (action?: string) => void;
 }
 
 export function DiscardModal({ isOpen, onClose }: DiscardModalProps) {
@@ -13,11 +13,11 @@ export function DiscardModal({ isOpen, onClose }: DiscardModalProps) {
     // Export current circuit as JSON first
     useLab.getState().exportFile();
     // Then continue with the action
-    onClose(true);
+    onClose('save');
   };
 
   const handleDiscard = () => {
-    onClose(false);
+    onClose('discard');
   };
 
   return (

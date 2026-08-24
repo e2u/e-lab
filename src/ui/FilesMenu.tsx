@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { t } from "../i18n";
 import { listSaves } from "../persist";
 import { useLab } from "../store";
 
@@ -11,26 +12,26 @@ export function FilesMenu() {
 
   return (
     <details className="menu">
-      <summary className="btn">檔案</summary>
+      <summary className="btn">{t("files.menuLabel") || "File"}</summary>
       <div className="menu-pop">
         <label className="menu-name">
-          圖名
+          {t("files.docName")}
           <input
             value={docName}
             onChange={(e) => useLab.getState().setDocName(e.target.value)}
           />
         </label>
         <button className="btn" onClick={() => useLab.getState().saveToLibrary()}>
-          存到本機圖庫
+          {t("files.saveToLibrary")}
         </button>
         <button className="btn" onClick={() => useLab.getState().exportFile()}>
-          匯出 JSON
+          {t("files.exportJson")}
         </button>
         <button className="btn" onClick={() => inputRef.current?.click()}>
-          開啟檔案
+          {t("files.openFile")}
         </button>
         <button className="btn ok" onClick={() => void useLab.getState().copyShareLink()}>
-          複製分享連結
+          {t("files.copyShareLink")}
         </button>
         <input
           ref={inputRef}
@@ -45,14 +46,14 @@ export function FilesMenu() {
               try {
                 useLab.getState().importDoc(JSON.parse(text));
               } catch {
-                useLab.getState().setNotice("無法讀取檔案");
+                useLab.getState().setNotice(t("files.unableToRead"));
               }
             });
           }}
         />
         {saves.length > 0 && (
           <>
-            <div className="menu-label">本機圖庫</div>
+            <div className="menu-label">{t("files.localLibrary")}</div>
             {saves.map((s) => (
               <div className="save-row" key={s.id}>
                 <button className="cat-item" onClick={() => useLab.getState().loadSave(s.id)}>

@@ -304,6 +304,17 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "msg.discardChanges": "Discard Changes",
     "msg.cancel": "Cancel",
     
+    // Files menu labels (English)
+    "files.menuLabel": "File",
+    "files.docName": "Document Name",
+    "files.saveToLibrary": "Save to Local Library",
+    "files.exportJson": "Export JSON",
+    "files.openFile": "Open File",
+    "files.copyShareLink": "Copy Share Link",
+    "files.localLibrary": "Local Library",
+    "files.fileFormatError": "File format incorrect",
+    "files.unableToRead": "Unable to read file",
+    
     // Brand and common UI
     "brand.subtitle": "Relay Control Simulation Lab",
     "lib.newDiagram": "New Diagram",
@@ -335,6 +346,18 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "lib.newDiagram": "空白圖紙",
     "lib.language": "語言選擇",
     "lib.diagramNamePlaceholder": "輸入圖紙名稱...",
+
+    // Files menu labels (Chinese)
+    "files.menuLabel": "檔案",
+    "files.docName": "圖名",
+    "files.saveToLibrary": "存到本機圖庫",
+    "files.exportJson": "匯出 JSON",
+    "files.openFile": "開啟檔案",
+    "files.copyShareLink": "複製分享連結",
+    "files.localLibrary": "本機圖庫",
+    "files.fileFormatError": "檔案格式不正確",
+    "files.unableToRead": "無法讀取檔案",
+
     // Menu items
     "menu.file": "檔案",
     "menu.edit": "編輯",

@@ -35,6 +35,38 @@ export function App() {
   const docName = useLab((s) => s.docName);
   const process = useLab((s) => s.process);
   const lang = useLab((s) => s.lang);
+  // Panel visibility states with localStorage persistence
+  const [showPalette, setShowPalette] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("elab.showPalette");
+      return saved ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
+  });
+  
+  const [showSide, setShowSide] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("elab.showSide");
+      return saved ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
+  });
+
+  // Persist panel state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("elab.showPalette", String(showPalette));
+    } catch {}
+  }, [showPalette]);
+  
+  useEffect(() => {
+    try {
+      localStorage.setItem("elab.showSide", String(showSide));
+    } catch {}
+  }, [showSide]);
+
   const [examples, setExamples] = useState<Example[]>(EXAMPLES);
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'new' | 'example'; exampleId?: string } | null>(null);
@@ -275,12 +307,34 @@ export function App() {
       />
 
       <div className="workspace">
-        <Palette />
+        <aside className={`palette ${showPalette ? '' : 'collapsed'}`}>
+          {showPalette && <Palette />}
+          {!showPalette && (
+            <button 
+              className="expand-btn"
+              onClick={() => setShowPalette(true)}
+              title={t("toolbar.expand")}
+            >
+              «
+            </button>
+          )}
+        </aside>
         <Schematic />
-        <aside className="side">
-          <Bench />
-          <ProcessRack />
-          <Inspector />
+        <aside className={`side ${showSide ? '' : 'collapsed'}`}>
+          {showSide && <>
+            <Bench />
+            <ProcessRack />
+            <Inspector />
+          </>}
+          {!showSide && (
+            <button 
+              className="expand-btn"
+              onClick={() => setShowSide(true)}
+              title={t("toolbar.expand")}
+            >
+              »
+            </button>
+          )}
         </aside>
       </div>
 

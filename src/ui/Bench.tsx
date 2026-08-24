@@ -18,7 +18,7 @@ export function Bench() {
 
   return (
     <div className="bench">
-      <h3>實物檯</h3>
+      <h3>{t("lib.title")}</h3>
       <div className="bench-grid">
         {circuit.devices.map((d) => {
           const rt = runtime[d.id];
@@ -32,7 +32,7 @@ export function Bench() {
                   disabled={mode !== "run"}
                   onClick={() => useLab.getState().toggleIo(d.id, "actuated")}
                 />
-                {d.tag} 急停{extra}
+                {d.tag} {t("bench.estop")}{extra}
               </div>
             );
           }
@@ -74,7 +74,7 @@ export function Bench() {
                   <div className="hub" />
                 </div>
                 {d.tag} {rt.direction < 0 ? "REV" : rt.direction > 0 ? "FWD" : ""}
-                {rt.starDelta === "star" ? " Y" : rt.starDelta === "delta" ? " Δ" : ""}
+                {rt.starDelta === "star" ? t("bench.starDeltaStar") : rt.starDelta === "delta" ? t("bench.starDeltaDelta") : ""}
               </div>
             );
           }
@@ -100,7 +100,7 @@ export function Bench() {
                   disabled={mode !== "run"}
                   onClick={() => useLab.getState().toggleIo(d.id, "tripped")}
                 >
-                  {rt.tripped ? "跳脫" : "復位"}
+                  {rt.tripped ? t("bench.overloadTrip") : t("bench.overloadReset")}
                 </button>
                 {d.tag}
               </div>
@@ -110,7 +110,7 @@ export function Bench() {
             return (
               <div className="widget" key={d.id}>
                 <div className="pilot" style={{ background: rt.lit ? "#e23d2b" : "#2a241c" }} />
-                {d.tag} {rt.lit ? "鳴" : ""}
+                {d.tag} {rt.lit ? t("bench.alarmSound") : ""}
               </div>
             );
           }
@@ -118,7 +118,7 @@ export function Bench() {
         })}
       </div>
       <p className="hint" style={{ marginTop: 8 }}>
-        運行模式下按綠鈕起動、紅鈕停止。熱繼電可模擬跳脫。{LAMP_COLORS.length ? "" : ""}
+        {t("bench.hint")}{LAMP_COLORS.length ? "" : ""}
       </p>
     </div>
   );

@@ -280,6 +280,18 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "process.pressure": "Pressure",
     "process.limitHit": "Limit Hit",
 
+    // Bench widget text
+    "bench.estop": "E-Stop",
+    "bench.pbNo": "Start",
+    "bench.pbNc": "Stop",
+    "bench.fwdRev": "FWD/REV",
+    "bench.starDeltaStar": "Y",
+    "bench.starDeltaDelta": "Δ",
+    "bench.overloadTrip": "TRIP",
+    "bench.overloadReset": "RESET",
+    "bench.alarmSound": "SOUND",
+    "bench.hint": "Press green button to start, red button to stop in run mode. Overload can simulate trip.",
+
     // Notice messages
     "notice.lang.zh": "Language: Chinese",
     "notice.lang.en": "Language: English",
@@ -565,6 +577,18 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "process.flow": "流量",
     "process.pressure": "壓力",
     "process.limitHit": "限位觸發",
+
+    // Bench widget text
+    "bench.estop": "急停",
+    "bench.pbNo": "啟動",
+    "bench.pbNc": "停止",
+    "bench.fwdRev": "正反轉",
+    "bench.starDeltaStar": "星形",
+    "bench.starDeltaDelta": "三角",
+    "bench.overloadTrip": "跳脫",
+    "bench.overloadReset": "復位",
+    "bench.alarmSound": "鳴",
+    "bench.hint": "運行模式下按綠鈕起動、紅鈕停止。熱繼電可模擬跳脫。",
   },
 };
 

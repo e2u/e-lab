@@ -111,6 +111,28 @@ npm run preview
    https://e2u.github.io/e-lab/
    ```
 
+### 常見問題：404 錯誤
+
+如果你看到 404 錯誤，請檢查以下幾點：
+
+1. **確保已正確配置 GitHub Pages**：
+   - 前往 Settings > Pages
+   - Source 必須設為 `gh-pages` 分支和 `/ (root)` 文件夾
+
+2. **等待部署完成**：
+   - 第一次部署可能需要幾分鐘時間
+   - 刷新瀏覽器緩存（Ctrl+Shift+R 或 Cmd+Shift+R）
+
+3. **確認 URL 正確**：
+   - 公開倉庫：`https://username.github.io/repo-name/`
+   - 這裡是：`https://e2u.github.io/e-lab/`
+
+4. **本地測試構建結果**：
+   ```bash
+   npm run preview
+   ```
+   這將啟動一個本地服務器來預覽生產版本。
+
 4. **每次更新後重新部署**：
    ```bash
    make build

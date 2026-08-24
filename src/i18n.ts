@@ -85,12 +85,12 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "inspector.hint.dragMove": "Drag to move the whole group. Drag box on empty space for selection. ⌘G to group · ⇧⌘G to ungroup.",
     "inspector.hint.editModeZh": "點擊元件後按 R 旋轉，H 左右鏡像，V 上下鏡像。Shift + 點擊或拖動方框可多選；⌘G 編組，⇧⌘G 打散。Delete 刪除，⌘Z 復原。",
 
-    // Wire color codes (NEMA standard)
-    "wireColor.brown": "Brown",
-    "wireColor.orange": "Orange",
-    "wireColor.yellow": "Yellow",
-    "wireColor.white": "White",
-    "wireColor.green": "Green (Ground)",
+    // Wire color codes (NEMA standard with line identifiers)
+    "wireColor.l1Brown": "L1 Brown",
+    "wireColor.l2Orange": "L2 Orange",
+    "wireColor.l3Yellow": "L3 Yellow",
+    "wireColor.nWhite": "N White",
+    "wireColor.peGreen": "PE Green (Ground)",
 
     // Runtime status
     "runtime.faults": "Faults",
@@ -283,12 +283,12 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "lib.language": "Language",
   },
   zh: {
-    // Wire color codes (美國標準)
-    "wireColor.brown": "棕色",
-    "wireColor.orange": "橙色",
-    "wireColor.yellow": "黃色",
-    "wireColor.white": "白色",
-    "wireColor.green": "綠色（地線）",
+    // Wire color codes (美國標準 with line identifiers)
+    "wireColor.l1Brown": "L1 棕色",
+    "wireColor.l2Orange": "L2 橙色",
+    "wireColor.l3Yellow": "L3 黃色",
+    "wireColor.nWhite": "N 白色",
+    "wireColor.peGreen": "PE 綠色（地線）",
 
     // Notice messages
     "notice.lang.zh": "語言：中文",

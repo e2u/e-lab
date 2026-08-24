@@ -295,6 +295,44 @@ button, select, input {
 }
 .electron { fill: #ffd08a; stroke: #e07020; stroke-width: 0.6; }
 
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--paper);
+  padding: 24px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.modal-content p {
+  color: var(--ink);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .port {
   fill: #efe6d0;
   stroke: #1b1a16;

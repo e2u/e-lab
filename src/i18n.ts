@@ -298,6 +298,10 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
 
     // Confirmation messages
     "msg.confirmDiscard": "Current diagram will be lost. Continue?",
+    "msg.confirmDiscardTitle": "Unsaved Changes",
+    "msg.confirmDiscardMessage": "You have unsaved changes. What would you like to do?",
+    "msg.saveAndContinue": "Save & Continue",
+    "msg.discardChanges": "Discard Changes",
     
     // Brand and common UI
     "brand.subtitle": "Relay Control Simulation Lab",
@@ -317,6 +321,13 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     // Notice messages
     "notice.lang.zh": "語言：中文",
     "notice.lang.en": "語言：英文",
+
+    // Confirmation messages (Chinese)
+    "msg.confirmDiscardTitle": "未保存的更改",
+    "msg.confirmDiscardMessage": "您有未保存的更改。您想做什麼？",
+    "msg.saveAndContinue": "保存並繼續",
+    "msg.discardChanges": "放棄更改",
+    "msg.cancel": "取消",
 
     // Brand and common UI
     "brand.subtitle": "繼電器控制實驗枱",

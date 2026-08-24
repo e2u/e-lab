@@ -563,23 +563,33 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   loadBlankTemplate: () => {
-    // Default blank template with power distribution using net labels
+    // Default blank template with power distribution using net labels and isolator
     const c = emptyCircuit();
     
     // Add mains-3ph device at position (0, 0)
     const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
     
-    // Add net-label devices for power distribution
-    const nlL1 = addDevice(c, "net-label", "L1", "body", 8, 1);
-    const nlL2 = addDevice(c, "net-label", "L2", "body", 8, 4);
-    const nlL3 = addDevice(c, "net-label", "L3", "body", 8, 7);
-    const nlN = addDevice(c, "net-label", "N", "body", 8, 10);
-    const nlPE = addDevice(c, "net-label", "G", "body", 8, 13); // G for Ground
+    // Add isolator at position (6, 1)
+    const iso = addDevice(c, "isolator", "Main Disconnect Breaker", "body", 6, 1);
     
-    // Connect power to net labels
-    addWire(c, g.symbol, "L1", nlL1.symbol, "1");
-    addWire(c, g.symbol, "L2", nlL2.symbol, "1");
-    addWire(c, g.symbol, "L3", nlL3.symbol, "1");
+    // Add net-label devices for power distribution
+    const nlL1 = addDevice(c, "net-label", "L1", "body", 13, 2);
+    const nlL2 = addDevice(c, "net-label", "L2", "body", 13, 4);
+    const nlL3 = addDevice(c, "net-label", "L3", "body", 13, 6);
+    const nlN = addDevice(c, "net-label", "N", "body", 6, 10);
+    const nlPE = addDevice(c, "net-label", "G", "body", 6, 13); // G for Ground
+    
+    // Connect power to isolator
+    addWire(c, g.symbol, "L1", iso.symbol, "L1");
+    addWire(c, g.symbol, "L2", iso.symbol, "L2");
+    addWire(c, g.symbol, "L3", iso.symbol, "L3");
+    
+    // Connect isolator output to net labels
+    addWire(c, iso.symbol, "T1", nlL1.symbol, "1");
+    addWire(c, iso.symbol, "T2", nlL2.symbol, "1");
+    addWire(c, iso.symbol, "T3", nlL3.symbol, "1");
+    
+    // Connect N and PE directly to net labels
     addWire(c, g.symbol, "N", nlN.symbol, "1");
     addWire(c, g.symbol, "PE", nlPE.symbol, "1");
     

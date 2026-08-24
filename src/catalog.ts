@@ -82,7 +82,7 @@ const timerVariants: KindMeta["variants"] = {
 const twoTermVert: VariantDef = {
   w: 3,
   h: 4,
-  terminals: [t("1", 1.5, 0), t("2", 1.5, 4)],
+  terminals: [t("1", 1.5, 1), t("2", 1.5, 3)],
 };
 
 const pole3: VariantDef = {

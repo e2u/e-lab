@@ -3,7 +3,7 @@ import { catalogItem, suggestNetLabelTag } from "./catalog";
 import { addDevice, addSymbol, addWire, emptyCircuit, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
 import { expandIds, groupSymbols, pruneGroups, selectionHasGroup, ungroupSymbols } from "./groups";
-import { EXAMPLES, selfHoldMotor } from "./examples";
+import { EXAMPLES } from "./examples";
 import { allWireRoutes, nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
@@ -145,7 +145,8 @@ function mergeRuntime(circuit: Circuit, prev: SimSnapshot["runtime"]): SimSnapsh
   return next;
 }
 
-const boot = startupDoc(selfHoldMotor, "接觸器自鎖起動");
+// Initialize with blank template for fresh start (ignores localStorage draft)
+const boot = startupDoc(emptyCircuit, "未命名圖紙");
 sanitizeCircuitIds(boot.circuit);
 
 export const useLab = create<LabState>((set, get) => ({

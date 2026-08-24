@@ -145,24 +145,7 @@ export function App() {
 
   // Load examples on mount - works in both dev and GitHub Pages
   useEffect(() => {
-    loadExamplesFromImports().then((examples) => {
-      setExamples(examples);
-      
-      // Auto-load three-phase-motor example after examples are loaded
-      // unless there's unsaved changes or a draft
-      setTimeout(() => {
-        const lab = useLab.getState();
-        const hasChanges = 
-          lab.circuit.devices.length > 0 ||
-          lab.circuit.symbols.length > 0 ||
-          lab.circuit.wires.length > 0;
-        
-        // Only auto-load if circuit is empty (fresh start)
-        if (!hasChanges) {
-          lab.loadExample("three-phase-motor");
-        }
-      }, 100);
-    });
+    loadExamplesFromImports().then(setExamples);
   }, []);
 
   useEffect(() => {

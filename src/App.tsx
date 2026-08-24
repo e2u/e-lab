@@ -306,11 +306,9 @@ export function App() {
         onClose={handleDiscardModalClose} 
       />
 
-      <div className={`workspace ${showPalette ? '' : 'collapsed-left'} ${showSide ? '' : 'collapsed-right'}`}>
-        <aside className="palette">
-          <div style={{ opacity: showPalette ? 1 : 0, height: showPalette ? 'auto' : 0, overflow: 'hidden', transition: 'opacity 0.3s ease, height 0.3s ease' }}>
-            <Palette />
-          </div>
+      <div className="workspace">
+        <aside className={`palette ${showPalette ? '' : 'collapsed'}`}>
+          {showPalette && <Palette />}
           {!showPalette && (
             <button 
               className="expand-btn"
@@ -322,12 +320,12 @@ export function App() {
           )}
         </aside>
         <Schematic />
-        <aside className="side">
-          <div style={{ opacity: showSide ? 1 : 0, height: showSide ? 'auto' : 0, overflow: 'hidden', transition: 'opacity 0.3s ease, height 0.3s ease' }}>
+        <aside className={`side ${showSide ? '' : 'collapsed'}`}>
+          {showSide && <>
             <Bench />
             <ProcessRack />
             <Inspector />
-          </div>
+          </>}
           {!showSide && (
             <button 
               className="expand-btn"

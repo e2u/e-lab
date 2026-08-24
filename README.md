@@ -2,27 +2,25 @@
 
 e-lab 是一个基于 Web 的电子电路模拟实验室，允许用户设计、构建和模拟电子电路。
 
+[![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-deployed-brightgreen)](https://e2u.github.io/e-lab/)
+
 ## 🚀 快速开始
 
 ### 环境要求
-- [Deno](https://deno.com/) (推荐) 或 [Node.js](https://nodejs.org/)
+- Node.js >= 18.x
+- npm >= 9.x
 
 ### 安装依赖
-如果你使用 Deno，通常不需要手动运行安装命令，但为了确保兼容性，可以在根目录下运行：
-```bash
-deno install
-```
-或者使用 npm：
 ```bash
 npm install
 ```
 
 ### 开发模式启动
-使用 Deno 启动本地开发服务器（支持热更新）：
+启动本地开发服务器（支持热更新）：
 ```bash
-deno task dev
+make dev
 ```
-或者使用 npm：
+或直接运行：
 ```bash
 npm run dev
 ```
@@ -63,6 +61,64 @@ deno task test
 ```bash
 npm test
 ```
+
+## 🛠️ 构建与部署
+
+### 使用 Makefile（推薦）
+
+本項目提供了一個 Makefile 來簡化開發流程。以下是可用的命令：
+
+| 命令 | 說明 |
+|------|------|
+| `make install` | 安裝依賴 |
+| `make dev` | 啟動開發服務器 |
+| `make build` | 構建生產版本 |
+| `make preview` | 預覽生產版本 |
+| `make test` | 運行測試 |
+
+### 手動運行 NPM 命令
+
+#### 構建生產版本
+編譯 TypeScript 代碼並進行打包優化：
+```bash
+npm run build
+```
+構建產物將生成在 `dist/` 目錄中。
+
+#### 預覽構建結果
+在本地預覽打包後的生產版本：
+```bash
+npm run preview
+```
+
+### 部署到 GitHub Pages
+
+1. **首次設置**：確保已創建 `gh-pages` 分支
+   ```bash
+   git branch gh-pages
+   git push origin gh-pages --set-upstream
+   ```
+
+2. **配置 GitHub Pages**：
+   - 訪問 https://github.com/e2u/e-lab/settings/pages
+   - 在「Source」部分選擇：
+     - Branch: `gh-pages`
+     - Folder: `/ (root)`
+   - 點擊 Save
+
+3. **完成後你的網站會在**：
+   ```
+   https://e2u.github.io/e-lab/
+   ```
+
+4. **每次更新後重新部署**：
+   ```bash
+   make build
+   # 然後手動推送到 gh-pages 分支
+   git add dist/
+   git commit -m "Update to GitHub Pages"
+   git subtree push --prefix dist origin gh-pages
+   ```
 
 ## 📦 技术栈
 - **框架**: [React 19](https://react.dev/)

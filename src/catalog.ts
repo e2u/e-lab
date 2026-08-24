@@ -478,7 +478,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
   },
   relay: {
     prefix: "KA",
-    label: "中間繼電器",
+    label: "Intermediate Relay",
     variants: {
       coil: coilBody,
       "aux-no": {
@@ -721,17 +721,17 @@ export const CATALOG: CatalogItem[] = [
   { id: "pressure-no", kind: "pressure-no", variant: "body", group: "感測器", label: "壓力常開", labelEn: "Press NO", prefix: "SP", creates: "device" },
   { id: "pressure-nc", kind: "pressure-nc", variant: "body", group: "感測器", label: "壓力常閉", labelEn: "Press NC", prefix: "SP", creates: "device" },
 
-  { id: "km-coil", kind: "contactor", variant: "coil", group: "繼電器／接觸器", label: "接觸器線圈", labelEn: "KM Coil", prefix: "KM", creates: "device" },
-  { id: "km-main", kind: "contactor", variant: "main", group: "繼電器／接觸器", label: "接觸器主觸點", labelEn: "KM Main", prefix: "KM", creates: "attach" },
-  { id: "km-no", kind: "contactor", variant: "aux-no", group: "繼電器／接觸器", label: "接觸器常開 13-14", labelEn: "KM NO 13-14", prefix: "KM", creates: "attach", defaultRot: 0 },
-  { id: "km-nc", kind: "contactor", variant: "aux-nc", group: "繼電器／接觸器", label: "接觸器常閉 21-22", labelEn: "KM NC 21-22", prefix: "KM", creates: "attach", defaultRot: 0 },
-  { id: "km-no2", kind: "contactor", variant: "aux-no2", group: "繼電器／接觸器", label: "接觸器常開 43-44", labelEn: "KM NO 43-44", prefix: "KM", creates: "attach", defaultRot: 0 },
-  { id: "km-nc2", kind: "contactor", variant: "aux-nc2", group: "繼電器／接觸器", label: "接觸器常閉 31-32", labelEn: "KM NC 31-32", prefix: "KM", creates: "attach", defaultRot: 0 },
-  { id: "ka-coil", kind: "relay", variant: "coil", group: "繼電器／接觸器", label: "中間繼電器", labelEn: "KA Coil", prefix: "KA", creates: "device" },
-  { id: "ka-no", kind: "relay", variant: "aux-no", group: "繼電器／接觸器", label: "繼電器常開 1-2", labelEn: "KA NO 1-2", prefix: "KA", creates: "attach", defaultRot: 0 },
-  { id: "ka-nc", kind: "relay", variant: "aux-nc", group: "繼電器／接觸器", label: "繼電器常閉 3-4", labelEn: "KA NC 3-4", prefix: "KA", creates: "attach", defaultRot: 0 },
-  { id: "ka-no2", kind: "relay", variant: "aux-no2", group: "繼電器／接觸器", label: "繼電器常開 5-6", labelEn: "KA NO 5-6", prefix: "KA", creates: "attach", defaultRot: 0 },
-  { id: "ka-nc2", kind: "relay", variant: "aux-nc2", group: "繼電器／接觸器", label: "繼電器常閉 7-8", labelEn: "KA NC 7-8", prefix: "KA", creates: "attach", defaultRot: 0 },
+  { id: "km-coil", kind: "contactor", variant: "coil", group: "Relays / Contactors", label: "Contactor Coil", labelEn: "Contactor Coil", prefix: "KM", creates: "device" },
+  { id: "km-main", kind: "contactor", variant: "main", group: "Relays / Contactors", label: "Contactor Main Contacts", labelEn: "Contactor Main Contacts", prefix: "KM", creates: "attach" },
+  { id: "km-no", kind: "contactor", variant: "aux-no", group: "Relays / Contactors", label: "Contactor Aux NO (13-14)", labelEn: "Contactor Aux NO (13-14)", prefix: "KM", creates: "attach", defaultRot: 0 },
+  { id: "km-nc", kind: "contactor", variant: "aux-nc", group: "Relays / Contactors", label: "Contactor Aux NC (21-22)", labelEn: "Contactor Aux NC (21-22)", prefix: "KM", creates: "attach", defaultRot: 0 },
+  { id: "km-no2", kind: "contactor", variant: "aux-no2", group: "Relays / Contactors", label: "Contactor Aux NO (43-44)", labelEn: "Contactor Aux NO (43-44)", prefix: "KM", creates: "attach", defaultRot: 0 },
+  { id: "km-nc2", kind: "contactor", variant: "aux-nc2", group: "Relays / Contactors", label: "Contactor Aux NC (31-32)", labelEn: "Contactor Aux NC (31-32)", prefix: "KM", creates: "attach", defaultRot: 0 },
+  { id: "ka-coil", kind: "relay", variant: "coil", group: "Relays / Contactors", label: "Intermediate Relay", labelEn: "Intermediate Relay", prefix: "KA", creates: "device" },
+  { id: "ka-no", kind: "relay", variant: "aux-no", group: "Relays / Contactors", label: "Relay Aux NO (1-2)", labelEn: "Relay Aux NO (1-2)", prefix: "KA", creates: "attach", defaultRot: 0 },
+  { id: "ka-nc", kind: "relay", variant: "aux-nc", group: "Relays / Contactors", label: "Relay Aux NC (3-4)", labelEn: "Relay Aux NC (3-4)", prefix: "KA", creates: "attach", defaultRot: 0 },
+  { id: "ka-no2", kind: "relay", variant: "aux-no2", group: "Relays / Contactors", label: "Relay Aux NO (5-6)", labelEn: "Relay Aux NO (5-6)", prefix: "KA", creates: "attach", defaultRot: 0 },
+  { id: "ka-nc2", kind: "relay", variant: "aux-nc2", group: "Relays / Contactors", label: "Relay Aux NC (7-8)", labelEn: "Relay Aux NC (7-8)", prefix: "KA", creates: "attach", defaultRot: 0 },
 
   { id: "timer-on", kind: "timer-on", variant: "coil", group: "計時器", label: "通電延時線圈", labelEn: "Timer ON Coil", prefix: "KT", creates: "device" },
   { id: "timer-on-nc", kind: "timer-on", variant: "delayed-nc", group: "計時器", label: "通電延時 NC 15-16", labelEn: "TON NC 15-16", prefix: "KT", creates: "attach", defaultRot: 0 },

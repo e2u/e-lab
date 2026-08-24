@@ -233,7 +233,7 @@ export function App() {
         <div className="top-actions">
           <label className="action-label">{t("lib.example")}:</label>
           <select 
-            defaultValue="dol" 
+            defaultValue="none"  // Changed from "dol" to "none"
             onChange={(e) => handleRequestSelectExample(e.target.value)}
           >
             {examples.map((ex) => (

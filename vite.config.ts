@@ -1,13 +1,20 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-// Get the repository name for GitHub Pages base path
-const repoName = process.env.GITHUB_REPOSITORY ? 
-  "/" + process.env.GITHUB_REPOSITORY.split("/")[1] + "/" : "/e-lab/";
+// Determine base path based on deployment target
+let basePath = '/';
+if (process.env.NODE_ENV === 'production') {
+  // For GitHub Pages, use /repo-name/
+  const githubRepo = process.env.GITHUB_REPOSITORY || '';
+  if (githubRepo.includes('/')) {
+    const repoName = githubRepo.split('/')[1];
+    basePath = `/${repoName}/`;
+  }
+}
 
 export default defineConfig({
   plugins: [react()],
-  base: process.env.NODE_ENV === 'production' ? repoName : '/',
+  base: basePath,
   test: {
     environment: "node",
   },

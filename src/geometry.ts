@@ -517,10 +517,6 @@ function lineIntersect(
   return null;
 }
 
-function nearAny(p: { x: number; y: number }, pts: { x: number; y: number }[], r: number): boolean {
-  return pts.some((q) => Math.hypot(p.x - q.x, p.y - q.y) < r);
-}
-
 export const HOP_R = 10;
 
 /** A crossing of two unconnected wires. The hopping wire draws a semicircle. */
@@ -578,7 +574,11 @@ export function findWireCrossovers(circuit: Circuit, routes?: Map<string, Pt[]>)
           if (!axisA || !axisB || axisA === axisB) continue;
           const intersect = lineIntersect(segA.a, segA.b, segB.a, segB.b);
           if (!intersect) continue;
-          if (nearAny(intersect, ports, GRID * 0.4)) continue;
+          // Check if intersection is near any port - skip only if it's exactly at a port
+          // But still show crossover if lines cross in the middle of their segments
+          const distToPorts = ports.map(p => Math.hypot(intersect.x - p.x, intersect.y - p.y));
+          const minDist = Math.min(...distToPorts);
+          if (minDist < GRID * 0.25 && !isNearSegmentEnd(intersect, segA) && !isNearSegmentEnd(intersect, segB)) continue;
           const hopAxis: "x" | "y" = axisA === "x" || axisB === "x" ? "x" : "y";
           const hopWireId = hopAxis === axisA ? wireA.wire.id : wireB.wire.id;
           if (!crossovers.some((c) => Math.hypot(c.x - intersect.x, c.y - intersect.y) < 2)) {
@@ -589,6 +589,13 @@ export function findWireCrossovers(circuit: Circuit, routes?: Map<string, Pt[]>)
     }
   }
   return crossovers;
+}
+
+// Helper to check if point is near segment endpoints
+function isNearSegmentEnd(p: { x: number; y: number }, seg: { a: { x: number; y: number }; b: { x: number; y: number } }): boolean {
+  const distA = Math.hypot(p.x - seg.a.x, p.y - seg.a.y);
+  const distB = Math.hypot(p.x - seg.b.x, p.y - seg.b.y);
+  return distA < GRID * 0.25 || distB < GRID * 0.25;
 }
 
 function hopSweep(hopAxis: "x" | "y", from: { x: number; y: number }, to: { x: number; y: number }): 0 | 1 {

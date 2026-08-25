@@ -123,7 +123,7 @@ const starterBody: VariantDef = {
 
 export const KINDS: Record<DeviceKind, KindMeta> = {
   "mains-3ph": {
-    prefix: "G",
+    prefix: "GEN",
     label: "三相電源",
     variants: {
       body: {
@@ -167,7 +167,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     },
   },
   "breaker-1p": {
-    prefix: "QF",
+    prefix: "CB",
     label: "單極斷路器",
     variants: {
       body: {
@@ -178,7 +178,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     },
   },
   "breaker-3p": {
-    prefix: "QF",
+    prefix: "CB",
     label: "三極斷路器",
     variants: { body: pole3 },
   },
@@ -208,7 +208,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: { body: twoTermVert },
   },
   isolator: {
-    prefix: "QS",
+    prefix: "DISC",
     label: "隔離開關",
     variants: { body: pole3 },
   },
@@ -504,12 +504,12 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     },
   },
   "timer-on": {
-    prefix: "KT",
+    prefix: "TR",
     label: "通電延時",
     variants: timerVariants,
   },
   "timer-off": {
-    prefix: "KT",
+    prefix: "TR",
     label: "斷電延時",
     variants: timerVariants,
   },
@@ -733,16 +733,16 @@ export const CATALOG: CatalogItem[] = [
   { id: "ka-no2", kind: "relay", variant: "aux-no2", group: "Relays / Contactors", label: "Relay Aux NO 5-6", labelEn: "Relay Aux NO 5-6", prefix: "KA", creates: "attach", defaultRot: 0 },
   { id: "ka-nc2", kind: "relay", variant: "aux-nc2", group: "Relays / Contactors", label: "Relay Aux NC 7-8", labelEn: "Relay Aux NC 7-8", prefix: "KA", creates: "attach", defaultRot: 0 },
 
-  { id: "timer-on", kind: "timer-on", variant: "coil", group: "計時器", label: "通電延時線圈", labelEn: "Timer ON Coil", prefix: "KT", creates: "device" },
-  { id: "timer-on-nc", kind: "timer-on", variant: "delayed-nc", group: "計時器", label: "通電延時 NC 15-16", labelEn: "TON NC 15-16", prefix: "KT", creates: "attach", defaultRot: 0 },
-  { id: "timer-on-no", kind: "timer-on", variant: "delayed-no", group: "計時器", label: "通電延時 NO 15-18", labelEn: "TON NO 15-18", prefix: "KT", creates: "attach", defaultRot: 0 },
-  { id: "timer-on-inst-nc", kind: "timer-on", variant: "inst-nc", group: "計時器", label: "通電延時瞬時 NC 21-22", labelEn: "TON Inst NC 21-22", prefix: "KT", creates: "attach", defaultRot: 0 },
-  { id: "timer-on-inst-no", kind: "timer-on", variant: "inst-no", group: "計時器", label: "通電延時瞬時 NO 21-24", labelEn: "TON Inst NO 21-24", prefix: "KT", creates: "attach", defaultRot: 0 },
-  { id: "timer-off", kind: "timer-off", variant: "coil", group: "計時器", label: "斷電延時線圈", labelEn: "Timer OFF Coil", prefix: "KT", creates: "device" },
-  { id: "timer-off-nc", kind: "timer-off", variant: "delayed-nc", group: "計時器", label: "斷電延時 NC 15-16", labelEn: "TOF NC 15-16", prefix: "KT", creates: "attach", defaultRot: 0 },
-  { id: "timer-off-no", kind: "timer-off", variant: "delayed-no", group: "計時器", label: "斷電延時 NO 15-18", labelEn: "TOF NO 15-18", prefix: "KT", creates: "attach", defaultRot: 0 },
-  { id: "timer-off-inst-nc", kind: "timer-off", variant: "inst-nc", group: "計時器", label: "斷電延時瞬時 NC 21-22", labelEn: "TOF Inst NC 21-22", prefix: "KT", creates: "attach", defaultRot: 0 },
-  { id: "timer-off-inst-no", kind: "timer-off", variant: "inst-no", group: "計時器", label: "斷電延時瞬時 NO 21-24", labelEn: "TOF Inst NO 21-24", prefix: "KT", creates: "attach", defaultRot: 0 },
+  { id: "timer-on", kind: "timer-on", variant: "coil", group: "計時器", label: "通電延時線圈", labelEn: "Timer ON Coil", prefix: "TR", creates: "device" },
+  { id: "timer-on-nc", kind: "timer-on", variant: "delayed-nc", group: "計時器", label: "通電延時 NC 15-16", labelEn: "TON NC 15-16", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-on-no", kind: "timer-on", variant: "delayed-no", group: "計時器", label: "通電延時 NO 15-18", labelEn: "TON NO 15-18", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-on-inst-nc", kind: "timer-on", variant: "inst-nc", group: "計時器", label: "通電延時瞬時 NC 21-22", labelEn: "TON Inst NC 21-22", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-on-inst-no", kind: "timer-on", variant: "inst-no", group: "計時器", label: "通電延時瞬時 NO 21-24", labelEn: "TON Inst NO 21-24", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-off", kind: "timer-off", variant: "coil", group: "計時器", label: "斷電延時線圈", labelEn: "Timer OFF Coil", prefix: "TR", creates: "device" },
+  { id: "timer-off-nc", kind: "timer-off", variant: "delayed-nc", group: "計時器", label: "斷電延時 NC 15-16", labelEn: "TOF NC 15-16", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-off-no", kind: "timer-off", variant: "delayed-no", group: "計時器", label: "斷電延時 NO 15-18", labelEn: "TOF NO 15-18", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-off-inst-nc", kind: "timer-off", variant: "inst-nc", group: "計時器", label: "斷電延時瞬時 NC 21-22", labelEn: "TOF Inst NC 21-22", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-off-inst-no", kind: "timer-off", variant: "inst-no", group: "計時器", label: "斷電延時瞬時 NO 21-24", labelEn: "TOF Inst NO 21-24", prefix: "TR", creates: "attach", defaultRot: 0 },
 
   { id: "lamp", kind: "lamp", variant: "body", group: "指示與負載", label: "指示燈", labelEn: "Pilot lamp", prefix: "HL", creates: "device" },
   { id: "alarm", kind: "alarm", variant: "body", group: "指示與負載", label: "報警器", labelEn: "Alarm", prefix: "HA", creates: "device" },

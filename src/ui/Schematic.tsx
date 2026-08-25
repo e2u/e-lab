@@ -122,8 +122,8 @@ export function Schematic() {
     }
     if (wireDrag.current && mode === "edit") {
       const axis = wireDrag.current.axis;
-      // Snap to 1/8 grid for more precise control
-      const SNAP_GRID = GRID / 8; // 22 / 8 = 2.75px
+      // Snap to 1/16 grid for more precise control
+      const SNAP_GRID = GRID / 16; // 22 / 16 = 1.375px
       const pos = axis === "x" ? Math.round(world.x / SNAP_GRID) * SNAP_GRID : Math.round(world.y / SNAP_GRID) * SNAP_GRID;
       useLab.getState().setWireJog(wireDrag.current.id, { axis, pos });
       return;

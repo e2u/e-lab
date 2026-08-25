@@ -419,7 +419,7 @@ export function segmentAxis(
 export function hitWireSegment(
   pts: { x: number; y: number }[],
   p: { x: number; y: number },
-  threshold = 10,
+  threshold = 14,
 ): { index: number; axis: "x" | "y" } | null {
   if (pts.length < 4) return null;
   let best: { index: number; axis: "x" | "y"; d: number } | null = null;

@@ -129,8 +129,10 @@ export function Schematic() {
       return;
     }
     if (drag.current && mode === "edit") {
-      const nx = Math.round(p.x - drag.current.dx);
-      const ny = Math.round(p.y - drag.current.dy);
+      // Snap to 1/16 grid for more precise control
+      const SNAP_GRID = GRID / 16; // 22 / 16 = 1.375px
+      const nx = Math.round((p.x - drag.current.dx) / SNAP_GRID) * SNAP_GRID;
+      const ny = Math.round((p.y - drag.current.dy) / SNAP_GRID) * SNAP_GRID;
       const origin = drag.current.origins[drag.current.id];
       if (!origin) return;
       const ddx = nx - origin.x;

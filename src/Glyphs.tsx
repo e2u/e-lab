@@ -34,14 +34,6 @@ function S(props: SVGProps<SVGSVGElement> & { w: number; h: number }) {
     );
 }
 
-function Tag({x, y, text, light = false}: { x: number; y: number; text: string; light?: boolean }) {
-    return (
-        <Txt x={x} y={y} className="sym-tag" fill={light ? "#e0e0e0" : ink}>
-            {text}
-        </Txt>
-    );
-}
-
 type ContactExtra = "pb" | "limit" | "temp" | "press" | "float" | "prox" | "photo" | "foot" | "estop";
 
 function contactOperator(
@@ -356,6 +348,10 @@ function poles(
         const thB = xM + 2 * thR;
         const leadL = contact === "thermal" ? thA : xL;
         const leadR = contact === "thermal" ? thB : xR;
+        
+        // For breaker-3p, isolator, overload - use red stroke when open
+        const isBreakerOrIsolatorOrOverload = contact !== "bar";
+        
         items.push(
             <g key={i}>
                 <line x1={4} y1={y} x2={leadL} y2={y} stroke={ink} strokeWidth="2"/>
@@ -373,14 +369,16 @@ function poles(
                         fill="none"
                         stroke={stroke}
                         strokeWidth="2.2"
+                        className={!closed && isBreakerOrIsolatorOrOverload ? "contact-broken" : ""}
                     />
                 ) : contact === "thermal" ? (
                     <path
                         d={`M ${thA} ${y} A ${thR} ${thR} 0 0 1 ${xM} ${y} A ${thR} ${thR} 0 0 0 ${thB} ${y}`}
                         fill="none"
-                        stroke={stroke}
+                        stroke={!closed && isBreakerOrIsolatorOrOverload ? "#c4391d" : stroke}
                         strokeWidth="2.2"
                         strokeLinecap="round"
+                        className={!closed && isBreakerOrIsolatorOrOverload ? "contact-broken" : ""}
                     />
                 ) : (
                     <line
@@ -388,8 +386,9 @@ function poles(
                         y1={y - (closed ? 0 : 7)}
                         x2={w * GRID * 0.66}
                         y2={y + (closed ? 0 : 7)}
-                        stroke={stroke}
+                        stroke={!closed && isBreakerOrIsolatorOrOverload ? "#c4391d" : stroke}
                         strokeWidth="2"
+                        className={!closed && isBreakerOrIsolatorOrOverload ? "contact-broken" : ""}
                     />
                 )}
                 {labels && (
@@ -777,7 +776,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {contactLines(w, h, false, "pb", isPressed)}
-                <Tag x={15} y={h * GRID-5} text={device.tag}/>
+
             </S>
         );
     }
@@ -785,7 +784,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {contactLines(w, h, true, "pb", isPressed)}
-                <Tag x={20} y={h * GRID-5} text={device.tag}/>
+
             </S>
         );
     }
@@ -793,7 +792,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {contactLines(w, h, kind !== "estop-no", "estop", isPressed)}
-                <Tag x={20} y={h * GRID-5} text={device.tag}/>
+
             </S>
         );
     }
@@ -803,7 +802,7 @@ function GlyphBody({
                 {contactPair(w, 1 * GRID, false, Boolean(rt?.actuated), "1", "2")}
                 {contactPair(w, 2.4 * GRID, true, !rt?.actuated, "3", "4")}
                 <line x1={w * GRID / 2 - 8} y1={8} x2={w * GRID / 2 + 8} y2={2} stroke={ink} strokeWidth="2"/>
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -813,7 +812,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {togglePoles(w, h, n, dt, Boolean(rt?.actuated))}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -822,7 +821,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {limitArm(w, closed)}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -832,7 +831,7 @@ function GlyphBody({
                 {contactPair(w, 1 * GRID, false, Boolean(rt?.actuated), "1", "2")}
                 {contactPair(w, 2.4 * GRID, true, !rt?.actuated, "3", "4")}
                 <Txt x={w * GRID / 2 + 10} y={1 * GRID} fontSize="9" fill={ink}>FS</Txt>
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -841,7 +840,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {footPedal(w, closed, kind === "foot-nc")}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -866,7 +865,7 @@ function GlyphBody({
                 <line x1={xL} y1={y} x2={p2x} y2={p2y} stroke={ink} strokeWidth="2"/>
                 <line x1={hx} y1={hy} x2={hx} y2={fy - fr} stroke={ink} strokeWidth="2"/>
                 <circle cx={hx} cy={fy} r={fr} fill="#efe6d0" stroke={ink} strokeWidth="2.2"/>
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -875,7 +874,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {tempSwitch(w, closed)}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -884,7 +883,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {pressureSwitch(w, closed)}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -893,7 +892,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {flowSwitch(w, closed)}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -901,7 +900,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {contactLines(w, h, false, kind)}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -932,25 +931,21 @@ function GlyphBody({
                 {poles.map((p) => (
                     <g key={p.l}>{barContact(w, p.y * GRID, hot, p.l, p.t)}</g>
                 ))}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
     if (kind === "contactor" && (variant === "aux-no" || variant === "aux-no2")) {
-        const lab = variant === "aux-no2" ? "43-44" : "13-14";
         return (
             <S w={w} h={h}>
                 {contactLines(w, h, false, undefined, false, hot)}
-                <Tag x={4} y={h * GRID + 12} text={`${device.tag} NO ${lab}`}/>
             </S>
         );
     }
     if (kind === "contactor" && (variant === "aux-nc" || variant === "aux-nc2")) {
-        const lab = variant === "aux-nc2" ? "31-32" : "21-22";
         return (
             <S w={w} h={h}>
                 {contactLines(w, h, true, undefined, false, !hot)}
-                <Tag x={4} y={h * GRID + 12} text={`${device.tag} NC ${lab}`}/>
             </S>
         );
     }
@@ -963,12 +958,9 @@ function GlyphBody({
     }
     if (kind === "relay") {
         const nc = variant === "aux-nc" || variant === "aux-nc2";
-        const lab =
-            variant === "aux-no2" ? "5-6" : variant === "aux-nc2" ? "7-8" : variant === "aux-nc" ? "3-4" : "1-2";
         return (
             <S w={w} h={h}>
                 {contactLines(w, h, nc, undefined, false, nc ? !hot : hot)}
-                <Tag x={4} y={h * GRID + 12} text={`${device.tag} ${nc ? "NC" : "NO"} ${lab}`}/>
             </S>
         );
     }
@@ -1030,7 +1022,7 @@ function GlyphBody({
                     strokeWidth="2"
                 />
                 <path d={`M ${cx + 12} ${cy - 10} q 10 10 0 20`} fill="none" stroke={ink} strokeWidth="1.5"/>
-                <Tag x={55} y={h * GRID-50} text={device.tag}/>
+
             </S>
         );
     }
@@ -1065,9 +1057,6 @@ function GlyphBody({
                 <Txt x={cx} y={h * GRID * 0.52} textAnchor="middle" className="term-lab">
                     {kind === "fuse" ? "FU" : "CB"}
                 </Txt>
-                <Txt x={w * GRID + 4} y={h * GRID - 42} textAnchor="end" className="sym-tag">
-                    {device.tag}
-                </Txt>
             </S>
         );
     }
@@ -1080,36 +1069,35 @@ function GlyphBody({
                 {poles(w, 6, 3, !tripped, [["L1", "T1"], ["L2", "T2"], ["L3", "T3"]] as [string, string][], "thermal")}
                 {barContact(w, 7 * GRID, !tripped, "95", "96")}
                 {barContact(w, 9 * GRID, tripped, "97", "98")}
-                <Tag x={6} y={-5} text={`${device.tag} OL`}/>
+
             </S>
         );
     }
     if (kind === "breaker-3p" || kind === "isolator" || kind === "rcd") {
         const n = kind === "rcd" ? 4 : 3;
-        const title =
-            kind === "isolator"
-                ? "DISC"
-                : kind === "rcd"
-                    ? "GFCI"
-                    : "CB";
         // L1/L2/L3 and T1/T2/T3 for breaker-3p and isolator
         const labels = (kind === "breaker-3p" || kind === "isolator")
             ? [["L1", "T1"], ["L2", "T2"], ["L3", "T3"]] as [string, string][]
             : undefined;
+        
+        // Determine border color based on contact state
+        const closed = Boolean(rt?.on && !rt?.tripped);
+        const borderColor = (kind === "breaker-3p" || kind === "isolator") && !closed ? "#c4391d" : ink;
+        
         return (
             <S w={w} h={h}>
-                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink}
+                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={borderColor}
                       strokeWidth="1.5"/>
                 {poles(
                     w,
                     h,
                     Math.min(n, 3),
-                    Boolean(rt?.on && !rt?.tripped),
+                    closed,
                     labels,
                     kind === "breaker-3p" || kind === "isolator" ? "arc" : "bar",
                     kind === "breaker-3p" || kind === "isolator",
                 )}
-                <Tag x={6} y={-7} text={`${device.tag} ${title}`}/>
+
             </S>
         );
     }
@@ -1134,12 +1122,26 @@ function GlyphBody({
         const boxW = w * GRID - boxX - 1;
         const boxH = 22;
         const boxY = cy - boxH / 2;
+        
+        // Determine background color based on label or custom color
+        let bgFill = "#efe6d0"; // default
+        if (label === "L1") bgFill = "#a65628";
+        else if (label === "L2") bgFill = "#ff7f00";
+        else if (label === "L3") bgFill = "#eccd26";
+        else if (label === "N") bgFill = "#ffffff";
+        else if (label === "G" || label === "Ground") bgFill = "#2ca02c";
+        else if (label === "A1" || label === "A2") bgFill = "#3a6ea5";
+        // Use custom color from params if set
+        if (device.params.color) {
+            bgFill = device.params.color;
+        }
+        
         return (
             <S w={w} h={h}>
                 <line x1={0} y1={cy} x2={boxX} y2={cy} stroke={ink} strokeWidth="2"/>
                 <polygon
                     points={`${boxX},${cy} ${boxX + 8},${boxY} ${boxX + boxW},${boxY} ${boxX + boxW},${boxY + boxH} ${boxX + 8},${boxY + boxH}`}
-                    fill={hot ? "#f0d27a" : "#efe6d0"}
+                    fill={bgFill}
                     stroke={ink}
                     strokeWidth="1.6"
                 />
@@ -1148,6 +1150,7 @@ function GlyphBody({
                     y={cy + 4}
                     textAnchor="middle"
                     className="sym-tag"
+                    fill="#ffffff"
                 >
                     {label}
                 </Txt>
@@ -1274,7 +1277,6 @@ function GlyphBody({
                 <line x1={cx - 2} y1={coilTop} x2={cx - 2} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
                 <line x1={cx + 2} y1={coilTop} x2={cx + 2} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
 
-                <Tag x={6} y={-5} text={device.tag} />
                 <Txt x={cx} y={h * GRID - 4} textAnchor="middle" fontSize="16">
                     {device.params.ratio ?? "480/120"}
                 </Txt>
@@ -1284,25 +1286,14 @@ function GlyphBody({
 
     if (kind === "timer-on" || kind === "timer-off") {
         if (variant === "coil") {
-            const kindLab = kind === "timer-on" ? "TON" : "TOF";
-            const elapsed = rt ? `${Math.round(rt.elapsedMs / 100) / 10}s` : "";
             return (
                 <S w={w} h={h}>
                     {coilBox(w, h, device.tag, hot)}
-                    <Tag x={4} y={h * GRID + 12} text={`${kindLab} ${elapsed}`.trim()}/>
                 </S>
             );
         }
         const delayed = variant === "delayed-nc" || variant === "delayed-no";
         const nc = variant === "delayed-nc" || variant === "inst-nc";
-        const lab =
-            variant === "delayed-nc"
-                ? "15-16"
-                : variant === "delayed-no"
-                    ? "15-18"
-                    : variant === "inst-nc"
-                        ? "21-22"
-                        : "21-24";
         const conducting = delayed
             ? nc
                 ? !Boolean(rt?.done)
@@ -1313,7 +1304,6 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {timedContact(w, conducting, delayed, kind === "timer-off")}
-                <Tag x={4} y={h * GRID + 12} text={`${device.tag} ${nc ? "NC" : "NO"} ${lab}`}/>
             </S>
         );
     }
@@ -1339,7 +1329,6 @@ function GlyphBody({
                     <path d={`M ${cx} ${cy - 16} Q ${cx + 8} ${cy} ${cx} ${cy + 16} Q ${cx - 8} ${cy} ${cx} ${cy - 16}`}
                           fill="#3a4a32"/>
                 </g>
-                <Tag x={6} y={12} text={device.tag}/>
             </S>
         );
     }
@@ -1369,7 +1358,7 @@ function GlyphBody({
                 <Txt x={w * GRID - 8} y={y - r - 5} textAnchor="end" className="term-lab">
                     A2
                 </Txt>
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -1399,7 +1388,7 @@ function GlyphBody({
                 <Txt x={cx} y={cy + 8} textAnchor="middle" fontSize="28" fill={ink} fontWeight="700">
                     M
                 </Txt>
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -1423,7 +1412,7 @@ function GlyphBody({
                 <Txt x={cx} y={cy + 18} textAnchor="middle" fontSize="16" fill={ink}>
                     1~
                 </Txt>
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -1444,7 +1433,6 @@ function GlyphBody({
                 <Txt x={cx} y={cy + 36} textAnchor="middle" className="sym-tag">
                     M DC
                 </Txt>
-                <Tag x={4} y={14} text={device.tag}/>
             </S>
         );
     }
@@ -1457,7 +1445,6 @@ function GlyphBody({
                 <Txt x={cx} y={cy + 4} textAnchor="middle" className="sym-tag">
                     {kind === "gen-ac" ? "G~" : "G="}
                 </Txt>
-                <Tag x={4} y={14} text={device.tag}/>
             </S>
         );
     }
@@ -1605,7 +1592,7 @@ function GlyphBody({
                         </Txt>
                     </g>
                 ))}
-                <Tag x={6} y={18} text={device.tag}/>
+
             </S>
         );
     }
@@ -1675,7 +1662,7 @@ function GlyphBody({
                 <line x1={cx} y1={shaftTop} x2={cx} y2={y2} stroke={ink} strokeWidth="2"/>
                 {arm(-14, -12, pos === 0)}
                 {arm(14, -12, pos === 1)}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -1740,7 +1727,7 @@ function GlyphBody({
                 {arm(-14, -10, pos === 1)}
                 {arm(0, -16, pos === 0)}
                 {arm(14, -10, pos === 2)}
-                <Tag x={4} y={h * GRID + 12} text={device.tag}/>
+
             </S>
         );
     }
@@ -1750,7 +1737,6 @@ function GlyphBody({
     return (
         <S w={w} h={h}>
             <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink} strokeWidth="1.5"/>
-            <Tag x={8} y={20} text={device.tag}/>
         </S>
     );
 }

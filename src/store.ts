@@ -20,7 +20,7 @@ import {
 } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
 import { GRID, type Circuit, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
-import { getLang as getLanguage, setLang as setLanguage, t, tOr } from "./i18n";
+import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
 // Check if circuit has unsaved changes by comparing with a reference (e.g., blank template)
 function hasUnsavedChanges(circuit: Circuit): boolean {
@@ -708,12 +708,12 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     for (const w of next.wires) w.broken = false;
     for (const d of next.devices) d.params.welded = false;
-    set({ circuit: next, notice: t("notice.clearedFaults") });
+    set({ circuit: next, notice: "已清除全部故障" });
   },
 
   saveToLibrary: (name) => {
     const s = get();
-    const title = (name ?? s.docName).trim() || tOr("msg.unnamedDiagram", "Untitled Diagram");
+    const title = (name ?? s.docName).trim() || "未命名圖紙";
     const save: SavedLab = {
       id: uid("lab"),
       name: title,
@@ -721,7 +721,7 @@ export const useLab = create<LabState>((set, get) => ({
       doc: makeDoc(s.circuit, title, s.process),
     };
     putSave(save);
-    set({ docName: title, savesTick: s.savesTick + 1, notice: t("notice.saveToLibSuccess", { name: title }) });
+    set({ docName: title, savesTick: s.savesTick + 1, notice: `已存檔「${title}」` });
   },
   loadSave: (id) => {
     const found = listSaves().find((s) => s.id === id);
@@ -888,7 +888,7 @@ export const useLab = create<LabState>((set, get) => ({
     const groups = (circuit.groups ?? [])
       .filter((g) => g.memberIds.length >= 2 && g.memberIds.every((id) => idSet.has(id)))
       .map((g) => clone(g));
-    set({ clipboard: { devices, symbols, wires, groups }, notice: t("notice.duplicateCopied", { count: symbols.length }) });
+    set({ clipboard: { devices, symbols, wires, groups }, notice: `已複製 ${symbols.length} 個元件` });
   },
 
   pasteClipboard: () => {

@@ -290,6 +290,13 @@ button, select, input {
   font-weight: 600;
   fill: #1b1a16;
 }
+.sym-tag {
+  font-family: "Red Hat Mono", monospace;
+  font-size: 12px;
+  font-weight: 500;
+  fill: #333;
+  text-shadow: 0 0 4px var(--paper), 0 0 8px var(--paper);
+}
 .wire-label-bg {
   fill: var(--paper);
 }
@@ -421,6 +428,17 @@ button, select, input {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Broken contact animation - red/yellow flashing */
+.contact-broken {
+  stroke: #e6c11e;
+  animation: flash 0.8s ease-in-out infinite;
+}
+
+@keyframes flash {
+  0%, 100% { stroke: #e6c11e; filter: drop-shadow(0 0 3px #e6c11e); }
+  50% { stroke: #c4391d; filter: drop-shadow(0 0 5px #c4391d); }
+}
 
 .widget {
   display: flex;

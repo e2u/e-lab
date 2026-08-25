@@ -689,11 +689,11 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
 export const CATALOG: CatalogItem[] = [
   { id: "mains-3ph", kind: "mains-3ph", variant: "body", group: "電源與保護", label: "三相電源", labelEn: "Mains 3Φ", prefix: "G", creates: "device" },
   { id: "transformer", kind: "transformer", variant: "body", group: "電源與保護", label: "控制變壓器", labelEn: "Transformer", prefix: "TC", creates: "device" },
-  { id: "breaker-1p", kind: "breaker-1p", variant: "body", group: "電源與保護", label: "單極斷路器", labelEn: "MCB 1P", prefix: "QF", creates: "device" },
-  { id: "breaker-3p", kind: "breaker-3p", variant: "body", group: "電源與保護", label: "三極斷路器", labelEn: "MCB 3P", prefix: "QF", creates: "device" },
+  { id: "breaker-1p", kind: "breaker-1p", variant: "body", group: "電源與保護", label: "單極斷路器", labelEn: "MCB 1P", prefix: "SCB", creates: "device" },
+  { id: "breaker-3p", kind: "breaker-3p", variant: "body", group: "電源與保護", label: "三極斷路器", labelEn: "MCB 3P", prefix: "CB", creates: "device" },
   { id: "fuse", kind: "fuse", variant: "body", group: "電源與保護", label: "熔斷器", labelEn: "Fuse", prefix: "FU", creates: "device" },
-  { id: "isolator", kind: "isolator", variant: "body", group: "電源與保護", label: "隔離開關", labelEn: "Isolator", prefix: "QS", creates: "device" },
-  { id: "overload", kind: "overload", variant: "body", group: "電源與保護", label: "熱繼電器", labelEn: "Overload FR", prefix: "FR", creates: "device" },
+  { id: "isolator", kind: "isolator", variant: "body", group: "電源與保護", label: "隔離開關", labelEn: "Isolator", prefix: "DISC", creates: "device" },
+  { id: "overload", kind: "overload", variant: "body", group: "電源與保護", label: "熱繼電器", labelEn: "Overload FR", prefix: "OL", creates: "device" },
 
   { id: "net-label", kind: "net-label", variant: "body", group: "接線", label: "標籤端子", labelEn: "Net label", prefix: "L1", creates: "device" },
 

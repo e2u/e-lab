@@ -392,97 +392,419 @@ export function Schematic() {
             dev.kind === "net-label" &&
             dev.tag.trim() === selectedNetTag;
           return (
-            <g
-              key={sym.id}
-              className="sym-g"
-              transform={glyphTransform(sym, v.w, v.h)}
-              onContextMenu={(e) => {
-                const lab = useLab.getState();
-                if (lab.mode === "edit" && !lab.placing) {
-                  if (!lab.selectedIds.includes(sym.id)) lab.select({ type: "symbol", id: sym.id });
-                }
-                openMenu(e);
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                const lab = useLab.getState();
-                if (lab.placing) {
-                  placeAtEvent(e);
-                  return;
-                }
-                if (lab.mode === "edit") {
-                  if (dev.kind === "junction" && lab.wiringFrom) {
-                    lab.clickPort({ symbolId: sym.id, term: "1" });
+            <g key={sym.id}>
+              {/* 元件主體 - 保持旋轉 */}
+              <g
+                className="sym-g"
+                transform={glyphTransform(sym, v.w, v.h)}
+                onContextMenu={(e) => {
+                  const lab = useLab.getState();
+                  if (lab.mode === "edit" && !lab.placing) {
+                    if (!lab.selectedIds.includes(sym.id)) lab.select({ type: "symbol", id: sym.id });
+                  }
+                  openMenu(e);
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  const lab = useLab.getState();
+                  if (lab.placing) {
+                    placeAtEvent(e);
                     return;
                   }
-                  if (e.shiftKey) lab.selectToggle(sym.id);
-                  else if (!lab.selectedIds.includes(sym.id)) lab.select({ type: "symbol", id: sym.id });
-                  else if (lab.selectedIds.length > 1) {
-                    clickIsolate.current = { id: sym.id, x: e.clientX, y: e.clientY };
+                  if (lab.mode === "edit") {
+                    if (dev.kind === "junction" && lab.wiringFrom) {
+                      lab.clickPort({ symbolId: sym.id, term: "1" });
+                      return;
+                    }
+                    if (e.shiftKey) lab.selectToggle(sym.id);
+                    else if (!lab.selectedIds.includes(sym.id)) lab.select({ type: "symbol", id: sym.id });
+                    else if (lab.selectedIds.length > 1) {
+                      clickIsolate.current = { id: sym.id, x: e.clientX, y: e.clientY };
+                    }
+                    const p = toGrid(e);
+                    const ids = useLab.getState().selectedIds;
+                    const group = ids.length ? ids : [sym.id];
+                    const origins: Record<string, { x: number; y: number }> = {};
+                    for (const id of group) {
+                      const s = lab.circuit.symbols.find((x) => x.id === id);
+                      if (s) origins[id] = { x: s.x, y: s.y };
+                    }
+                    origins[sym.id] = { x: sym.x, y: sym.y };
+                    drag.current = { id: sym.id, dx: p.x - sym.x, dy: p.y - sym.y, origins };
+                    if (dev.kind === "junction") junctionClick.current = { id: sym.id, x: e.clientX, y: e.clientY };
+                    return;
                   }
-                  const p = toGrid(e);
-                  const ids = useLab.getState().selectedIds;
-                  const group = ids.length ? ids : [sym.id];
-                  const origins: Record<string, { x: number; y: number }> = {};
-                  for (const id of group) {
-                    const s = lab.circuit.symbols.find((x) => x.id === id);
-                    if (s) origins[id] = { x: s.x, y: s.y };
-                  }
-                  origins[sym.id] = { x: sym.x, y: sym.y };
-                  drag.current = { id: sym.id, dx: p.x - sym.x, dy: p.y - sym.y, origins };
-                  if (dev.kind === "junction") junctionClick.current = { id: sym.id, x: e.clientX, y: e.clientY };
-                  return;
-                }
-                interact(dev.kind, dev.id, true);
-              }}
-              onPointerUp={() => interact(dev.kind, dev.id, false)}
-              onPointerLeave={() => interact(dev.kind, dev.id, false)}
-            >
-              {dev.kind === "junction" ? (
-                <>
-                  <rect className="sym-hit" x={-12} y={-12} width={24} height={24} fill="transparent" />
-                  {sel && (
-                    <circle cx={0} cy={0} r={10} fill="none" stroke="#2ca02c" strokeDasharray="4 3" pointerEvents="none" />
-                  )}
-                </>
-              ) : (
-                <>
-                  <rect
-                    className="sym-hit"
-                    x={0}
-                    y={0}
-                    width={v.w * GRID}
-                    height={v.h * GRID}
-                    fill="transparent"
-                  />
-                  {(sel || netMatch) && (
+                  interact(dev.kind, dev.id, true);
+                }}
+                onPointerUp={() => interact(dev.kind, dev.id, false)}
+                onPointerLeave={() => interact(dev.kind, dev.id, false)}
+              >
+                {dev.kind === "junction" ? (
+                  <>
+                    <rect className="sym-hit" x={-12} y={-12} width={24} height={24} fill="transparent" />
+                    {sel && (
+                      <circle cx={0} cy={0} r={10} fill="none" stroke="#2ca02c" strokeDasharray="4 3" pointerEvents="none" />
+                    )}
+                  </>
+                ) : (
+                  <>
                     <rect
-                      x={-4}
-                      y={-4}
-                      width={v.w * GRID + 8}
-                      height={v.h * GRID + 8}
-                      fill="none"
-                      stroke={sel ? "#2ca02c" : "#3b7de0"}
-                      strokeDasharray="4 3"
-                      pointerEvents="none"
+                      className="sym-hit"
+                      x={0}
+                      y={0}
+                      width={v.w * GRID}
+                      height={v.h * GRID}
+                      fill="transparent"
                     />
-                  )}
-                </>
-              )}
-              <SymbolGlyph
-                device={dev}
-                variant={sym.variant}
-                w={v.w}
-                h={v.h}
-                rt={rt}
-                pressed={held.includes(dev.id) || Boolean(rt?.actuated)}
-                flipX={sym.flipX}
-                flipY={sym.flipY}
-              />
-              {dev.params.welded && (
-                <text x={4} y={-6} className="weld-tag" transform={textUnflipTransform(4, -6, sym.flipX, sym.flipY)}>
-                  熔
-                </text>
+                    {(sel || netMatch) && (
+                      <rect
+                        x={-4}
+                        y={-4}
+                        width={v.w * GRID + 8}
+                        height={v.h * GRID + 8}
+                        fill="none"
+                        stroke={sel ? "#2ca02c" : "#3b7de0"}
+                        strokeDasharray="4 3"
+                        pointerEvents="none"
+                      />
+                    )}
+                  </>
+                )}
+                <SymbolGlyph
+                  device={dev}
+                  variant={sym.variant}
+                  w={v.w}
+                  h={v.h}
+                  rt={rt}
+                  pressed={held.includes(dev.id) || Boolean(rt?.actuated)}
+                  flipX={sym.flipX}
+                  flipY={sym.flipY}
+                />
+                {dev.params.welded && (
+                  <text x={4} y={-6} className="weld-tag" transform={textUnflipTransform(4, -6, sym.flipX, sym.flipY)}>
+                    熔
+                  </text>
+                )}
+              </g>
+              {/* 元件 tag - 單獨渲染，不旋轉 */}
+              {dev.kind !== "junction" && dev.kind !== "mains-3ph" && dev.kind !== "net-label" && (
+                <g pointerEvents="none">
+                  {(() => {
+                    // 根據元件類型設置 Tag 位置
+                    let tagX: number, tagY: number, textAnchor: "start" | "middle";
+                    
+                    // Breaker 1P 和 Fuse - 放在右邊，向上 0.33 格
+                    if (dev.kind === "breaker-1p") {
+                      tagX = (sym.x + v.w - 1) * GRID;
+                      tagY = (sym.y + v.h - 5) * GRID;
+                      textAnchor = "start";
+                    } else if (dev.kind === "fuse") {
+                      tagX = (sym.x + v.w - 1) * GRID;
+                      tagY = (sym.y + v.h - 3.5) * GRID;
+                      textAnchor = "start";
+                    }
+                    // Transformer - 放在頂部
+                    else if (dev.kind === "transformer") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = sym.y * GRID - 0.5 * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Breaker 3P, Isolator, RCD - 放在頂部
+                    else if (dev.kind === "breaker-3p") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = sym.y * GRID - 0.5 * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "isolator") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = sym.y * GRID - 0.5 * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "rcd") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = sym.y * GRID - 0.5 * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Overload - 放在頂部
+                    else if (dev.kind === "overload") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = sym.y * GRID - 0.5 * GRID;
+                      textAnchor = "middle";
+                    }
+                    // PB NO 和 PB NC - 放在底部
+                    else if (dev.kind === "pb-no") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h - 3.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "pb-nc") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h - 2.9) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // E-Stop - 放在底部
+                    else if (dev.kind === "estop") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "estop-nc") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h - 3.2) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "estop-no") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h - 3.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Selector - 放在底部
+                    else if (dev.kind === "selector-2") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h - 5.7) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "selector-3") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h - 6.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Toggle - 放在底部
+                    else if (dev.kind === "toggle") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "toggle-spst") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "toggle-spdt") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "toggle-dpst") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "toggle-dpdt") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "toggle-4pdt") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Foot - 放在底部
+                    else if (dev.kind === "foot") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "foot-no") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "foot-nc") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Limit - 放在底部
+                    else if (dev.kind === "limit-no") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "limit-nc") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Float - 放在底部
+                    else if (dev.kind === "float") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Temp - 放在底部
+                    else if (dev.kind === "temp-no") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "temp-nc") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Pressure - 放在底部
+                    else if (dev.kind === "pressure-no") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "pressure-nc") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Flow - 放在底部
+                    else if (dev.kind === "flow-no") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "flow-nc") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Prox - 放在底部
+                    else if (dev.kind === "prox") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Photo - 放在底部
+                    else if (dev.kind === "photo") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Contactor - 放在底部
+                    else if (dev.kind === "contactor") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Relay - 放在底部
+                    else if (dev.kind === "relay") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Timer - 放在底部
+                    else if (dev.kind === "timer-on") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "timer-off") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Counter - 放在底部
+                    else if (dev.kind === "counter") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Lamp - 放在底部
+                    else if (dev.kind === "lamp") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Alarm - 放在底部
+                    else if (dev.kind === "alarm") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Fan - 放在底部
+                    else if (dev.kind === "fan") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Heater - 放在底部
+                    else if (dev.kind === "heater") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Solenoid - 放在底部
+                    else if (dev.kind === "solenoid") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Motor - 放在底部
+                    else if (dev.kind === "motor-3ph") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "motor-1ph") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // DC Motor - 放在底部
+                    else if (dev.kind === "motor-dc") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Generator - 放在底部
+                    else if (dev.kind === "gen-ac") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "gen-dc") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Starter - 放在底部
+                    else if (dev.kind === "starter-dol") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "starter-fwd") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "starter-rev") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    } else if (dev.kind === "starter-rev-combo") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // DC Supply - 放在底部
+                    else if (dev.kind === "dc-supply") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Horn - 放在底部
+                    else if (dev.kind === "horn") {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = (sym.y + v.h + 0.5) * GRID;
+                      textAnchor = "middle";
+                    }
+                    // Default - 放在頂部
+                    else {
+                      tagX = (sym.x + v.w / 2) * GRID;
+                      tagY = sym.y * GRID - 0.5 * GRID;
+                      textAnchor = "middle";
+                    }
+                    
+                    const tagWidth = dev.tag.length * 7;
+                    return (
+                      <>
+                        <rect
+                          x={tagX - (textAnchor === "start" ? 4 : tagWidth / 2 + 6)}
+                          y={tagY - 10}
+                          width={textAnchor === "start" ? tagWidth + 8 : tagWidth + 12}
+                          height={14}
+                          rx="2"
+                          fill="#efe6d0"
+                        />
+                        <text
+                          x={tagX}
+                          y={tagY + 4}
+                          textAnchor={textAnchor}
+                          className="sym-tag"
+                        >
+                          {dev.tag}
+                        </text>
+                      </>
+                    );
+                  })()}
+                </g>
               )}
             </g>
           );
@@ -510,7 +832,6 @@ export function Schematic() {
         })}
 
         {(circuit.groups ?? []).map((g) => {
-          if (!g.memberIds.some((id) => selectedIds.includes(id))) return null;
           const box = unionBounds(circuit, g.memberIds);
           if (!box) return null;
           return (
@@ -522,6 +843,10 @@ export function Schematic() {
               width={box.w * GRID + 12}
               height={box.h * GRID + 12}
               rx="4"
+              fill="none"
+              stroke="#0066cc"
+              strokeWidth="1.5"
+              strokeDasharray="6 4"
             />
           );
         })}

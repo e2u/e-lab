@@ -230,6 +230,16 @@ export function Inspector() {
           </select>
         </label>
       )}
+      {dev.kind === "net-label" && (
+        <label>
+          {t("inspector.color")}
+          <input
+            type="color"
+            value={dev.params.color ?? "#efe6d0"}
+            onChange={(e) => useLab.getState().updateDevice(dev.id, { color: e.target.value })}
+          />
+        </label>
+      )}
       {(dev.kind === "timer-on" || dev.kind === "timer-off") && (
         <label>
           {t("inspector.delayMs")}

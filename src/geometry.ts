@@ -528,20 +528,6 @@ export interface WireCrossover {
   hopAxis: "x" | "y";
 }
 
-function collectPortWorlds(circuit: Circuit): { x: number; y: number }[] {
-  const out: { x: number; y: number }[] = [];
-  for (const s of circuit.symbols) {
-    const dev = circuit.devices.find((d) => d.id === s.deviceId);
-    if (!dev) continue;
-    const v = variantDef(dev.kind, s.variant);
-    for (const term of v.terminals) {
-      const p = terminalWorld(circuit, { symbolId: s.id, term: term.id });
-      if (p) out.push(p);
-    }
-  }
-  return out;
-}
-
 function sharesJunction(a: { a: PortRef; b: PortRef }, b: { a: PortRef; b: PortRef }, circuit: Circuit): boolean {
   const ids = [a.a.symbolId, a.b.symbolId];
   return ids.some((id) => (b.a.symbolId === id || b.b.symbolId === id) && isJunction(id, circuit));
@@ -550,7 +536,6 @@ function sharesJunction(a: { a: PortRef; b: PortRef }, b: { a: PortRef; b: PortR
 /** Find unconnected wire crossings. Vertical wire hops over horizontal. */
 export function findWireCrossovers(circuit: Circuit, routes?: Map<string, Pt[]>): WireCrossover[] {
   const crossovers: WireCrossover[] = [];
-  const ports = collectPortWorlds(circuit);
   const resolved = routes ?? allWireRoutes(circuit);
   const wireSegments = circuit.wires.map((w) => {
     const pts = resolved.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
@@ -575,18 +560,7 @@ export function findWireCrossovers(circuit: Circuit, routes?: Map<string, Pt[]>)
           const intersect = lineIntersect(segA.a, segA.b, segB.a, segB.b);
           if (!intersect) continue;
           
-          // Check if intersection is near any port
-          const distToPorts = ports.map(p => Math.hypot(intersect.x - p.x, intersect.y - p.y));
-          const minDist = Math.min(...distToPorts);
-          
-          // Skip crossover only if it's exactly at a port AND the intersection is at segment endpoints
-          // Don't skip if lines actually cross each other (even near ports)
-          const segANearEnd = isNearSegmentEnd(intersect, segA);
-          const segBNearEnd = isNearSegmentEnd(intersect, segB);
-          
-          // If both segments end at the intersection point near a port, skip it
-          if (minDist < GRID * 0.25 && segANearEnd && segBNearEnd) continue;
-          
+          // Always show crossover for wire crossings
           const hopAxis: "x" | "y" = axisA === "x" || axisB === "x" ? "x" : "y";
           const hopWireId = hopAxis === axisA ? wireA.wire.id : wireB.wire.id;
           if (!crossovers.some((c) => Math.hypot(c.x - intersect.x, c.y - intersect.y) < 2)) {
@@ -597,13 +571,6 @@ export function findWireCrossovers(circuit: Circuit, routes?: Map<string, Pt[]>)
     }
   }
   return crossovers;
-}
-
-// Helper to check if point is near segment endpoints
-function isNearSegmentEnd(p: { x: number; y: number }, seg: { a: { x: number; y: number }; b: { x: number; y: number } }): boolean {
-  const distA = Math.hypot(p.x - seg.a.x, p.y - seg.a.y);
-  const distB = Math.hypot(p.x - seg.b.x, p.y - seg.b.y);
-  return distA < GRID * 0.25 || distB < GRID * 0.25;
 }
 
 function hopSweep(hopAxis: "x" | "y", from: { x: number; y: number }, to: { x: number; y: number }): 0 | 1 {

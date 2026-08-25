@@ -574,11 +574,19 @@ export function findWireCrossovers(circuit: Circuit, routes?: Map<string, Pt[]>)
           if (!axisA || !axisB || axisA === axisB) continue;
           const intersect = lineIntersect(segA.a, segA.b, segB.a, segB.b);
           if (!intersect) continue;
-          // Check if intersection is near any port - skip only if it's exactly at a port
-          // But still show crossover if lines cross in the middle of their segments
+          
+          // Check if intersection is near any port
           const distToPorts = ports.map(p => Math.hypot(intersect.x - p.x, intersect.y - p.y));
           const minDist = Math.min(...distToPorts);
-          if (minDist < GRID * 0.25 && !isNearSegmentEnd(intersect, segA) && !isNearSegmentEnd(intersect, segB)) continue;
+          
+          // Skip crossover only if it's exactly at a port AND the intersection is at segment endpoints
+          // Don't skip if lines actually cross each other (even near ports)
+          const segANearEnd = isNearSegmentEnd(intersect, segA);
+          const segBNearEnd = isNearSegmentEnd(intersect, segB);
+          
+          // If both segments end at the intersection point near a port, skip it
+          if (minDist < GRID * 0.25 && segANearEnd && segBNearEnd) continue;
+          
           const hopAxis: "x" | "y" = axisA === "x" || axisB === "x" ? "x" : "y";
           const hopWireId = hopAxis === axisA ? wireA.wire.id : wireB.wire.id;
           if (!crossovers.some((c) => Math.hypot(c.x - intersect.x, c.y - intersect.y) < 2)) {

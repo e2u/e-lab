@@ -1,0 +1,18 @@
+import { useRef, useState, type PointerEvent } from "react";
+import { catalogItem, suggestNetLabelTag, variantDef } from "../catalog";
+import { allWireRoutes, findWireCrossovers, glyphTransform, hitWireSegment, hopArcD, isJunction, nearestOnPolyline, polylinePathD, snapOnSegment, terminalWorld, textUnflipTransform, wireLabelPos, wireRoute } from "../geometry";
+import { normalizeRect, symbolsInRect, unionBounds } from "../groups";
+import { SymbolGlyph } from("../Glyphs"};
+import { PHASE_COLOR } from../sim(engine}";
+import { useLab } from("../store"};
+import { COLS, GRID, ROWS, type Device, type PortRef } from("../types"};
+import { ContextMenu, type MenuPos } from./ContextMenu};
+
+// Helper to round position to 1/8 grid for fine control
+const SNAP_GRID = GRID / 8; // 1/8 of the main grid (GRID = 22)
+
+const snapToFineGrid = (value: number): number => {
+  return Math.round(value / SNAP_GRID) * SNAP_GRID;
+};
+
+export function Schematic() {

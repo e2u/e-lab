@@ -7,6 +7,74 @@ export function circuitGroups(circuit: Circuit): SymbolGroup[] {
   return circuit.groups;
 }
 
+export function findInternalJunctions(circuit: Circuit, ids: string[]): string[] {
+  const set = new Set(ids);
+  const junctions = circuit.symbols.filter((s) => {
+    if (set.has(s.id)) return false;
+    const dev = circuit.devices.find((d) => d.id === s.deviceId);
+    return dev?.kind === "junction";
+  });
+  if (!junctions.length) return [];
+
+  const outsideNonJunctions = new Set(
+    circuit.symbols
+      .filter((s) => {
+        if (set.has(s.id)) return false;
+        const dev = circuit.devices.find((d) => d.id === s.deviceId);
+        return dev?.kind !== "junction";
+      })
+      .map((s) => s.id),
+  );
+
+  const adj = new Map<string, string[]>();
+  for (const w of circuit.wires) {
+    if (!adj.has(w.a.symbolId)) adj.set(w.a.symbolId, []);
+    if (!adj.has(w.b.symbolId)) adj.set(w.b.symbolId, []);
+    adj.get(w.a.symbolId)!.push(w.b.symbolId);
+    adj.get(w.b.symbolId)!.push(w.a.symbolId);
+  }
+
+  const visitedFromOutside = new Set<string>();
+  const queue: string[] = [...outsideNonJunctions];
+  for (const q of queue) visitedFromOutside.add(q);
+
+  let head = 0;
+  while (head < queue.length) {
+    const cur = queue[head++];
+    const neighbors = adj.get(cur) ?? [];
+    for (const n of neighbors) {
+      if (!set.has(n) && !visitedFromOutside.has(n)) {
+        visitedFromOutside.add(n);
+        queue.push(n);
+      }
+    }
+  }
+
+  const reachableFromSet = new Set<string>();
+  const setQueue: string[] = [...set];
+  for (const q of setQueue) reachableFromSet.add(q);
+  let setHead = 0;
+  while (setHead < setQueue.length) {
+    const cur = setQueue[setHead++];
+    const neighbors = adj.get(cur) ?? [];
+    for (const n of neighbors) {
+      if (!visitedFromOutside.has(n) && !reachableFromSet.has(n)) {
+        reachableFromSet.add(n);
+        setQueue.push(n);
+      }
+    }
+  }
+
+  const internalJunctionIds: string[] = [];
+  for (const j of junctions) {
+    if (!visitedFromOutside.has(j.id) && reachableFromSet.has(j.id)) {
+      internalJunctionIds.push(j.id);
+    }
+  }
+
+  return internalJunctionIds;
+}
+
 export function expandIds(circuit: Circuit, ids: string[]): string[] {
   const want = new Set(ids);
   const live = new Set(circuit.symbols.map((s) => s.id));
@@ -16,6 +84,11 @@ export function expandIds(circuit: Circuit, ids: string[]): string[] {
         if (live.has(id)) want.add(id);
       }
     }
+  }
+  const currentMembers = circuit.symbols.map((s) => s.id).filter((id) => want.has(id));
+  const internalJunctions = findInternalJunctions(circuit, currentMembers);
+  for (const jid of internalJunctions) {
+    want.add(jid);
   }
   return circuit.symbols.map((s) => s.id).filter((id) => want.has(id));
 }
@@ -38,7 +111,12 @@ export function selectionHasGroup(circuit: Circuit, ids: string[]): boolean {
   return ids.some((id) => Boolean(groupOf(circuit, id)));
 }
 
-export function groupSymbols(circuit: Circuit, ids: string[]): SymbolGroup | null {
+export function groupSymbols(
+  circuit: Circuit,
+  ids: string[],
+  color?: string,
+  name?: string,
+): SymbolGroup | null {
   const members = expandIds(circuit, ids);
   if (members.length < 2) return null;
   circuit.groups = (circuit.groups ?? []).filter((g) => !g.memberIds.some((id) => members.includes(id)));
@@ -48,7 +126,7 @@ export function groupSymbols(circuit: Circuit, ids: string[]): SymbolGroup | nul
     ...circuit.wires.map((w) => w.id),
     ...circuitGroups(circuit).map((g) => g.id),
   ]);
-  const g: SymbolGroup = { id: uniqueId("g", used), memberIds: members };
+  const g: SymbolGroup = { id: uniqueId("g", used), memberIds: members, color, name };
   circuitGroups(circuit).push(g);
   return g;
 }

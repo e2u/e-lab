@@ -780,6 +780,18 @@ export function catalogItem(id: string): CatalogItem {
 
 export const LAMP_COLORS = ["red", "green", "yellow", "white", "blue"] as const;
 
+export const GROUP_COLORS = [
+  "#3b7de0",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#9333ea",
+  "#06b6d4",
+  "#ec4899",
+  "#8b5cf6",
+  "#64748b",
+] as const;
+
 /** Reuse the selected / last net-label name so consecutive drops stay on the same net. */
 export function suggestNetLabelTag(circuit: Circuit, selectedSymbolId?: string | null): string {
   if (selectedSymbolId) {

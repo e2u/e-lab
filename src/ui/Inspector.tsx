@@ -1,4 +1,4 @@
-import { KINDS, LAMP_COLORS } from "../catalog";
+import { GROUP_COLORS, KINDS, LAMP_COLORS } from "../catalog";
 import { selectionHasGroup, selectionIsGroup } from "../groups";
 import { catalogCompKey, t, tOr } from "../i18n";
 import { useLab } from "../store";
@@ -115,6 +115,30 @@ export function Inspector() {
     return (
       <div className="inspector">
         <h3>{asGroup ? `${t("lib.group")} · ${selectedIds.length} ${t("unit.items")}` : `${t("toolbar.selected")}: ${selectedIds.length} ${t("unit.items")}`}</h3>
+        {asGroup && (
+          <div className="group-color-section">
+            <label>
+              {t("inspector.groupColor")}
+              <input
+                type="color"
+                value={asGroup.color || "#3b7de0"}
+                onChange={(e) => useLab.getState().updateGroup(asGroup.id, { color: e.target.value })}
+              />
+            </label>
+            <div className="color-swatches">
+              {GROUP_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`color-swatch-btn ${((asGroup.color || "#3b7de0").toLowerCase() === c.toLowerCase()) ? "active" : ""}`}
+                  style={{ backgroundColor: c }}
+                  title={c}
+                  onClick={() => useLab.getState().updateGroup(asGroup.id, { color: c })}
+                />
+              ))}
+            </div>
+          </div>
+        )}
         <p className="hint">{t("inspector.hint.dragMove")}</p>
         <div className="align-grid">
           <button className="btn" onClick={() => useLab.getState().alignSelected("left")}>{t("ctx.alignLeft")}</button>

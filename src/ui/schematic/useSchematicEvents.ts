@@ -2,7 +2,7 @@ import { useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { hitWireSegment, wireRoute } from "../../geometry";
 import { normalizeRect, symbolsInRect } from "../../groups";
 import { useLab } from "../../store";
-import { GRID, type Circuit, type Device, type Mode, type PortRef, type SymbolInst, type Wire } from "../../types";
+import { GRID, type Circuit, type Device, type Mode, type PortRef, type SymbolInst, type Wire, type WireJog } from "../../types";
 import type { MenuPos } from "../ContextMenu";
 import { interact } from "./interact";
 
@@ -27,6 +27,7 @@ export function useSchematicEvents({
     dx: number;
     dy: number;
     origins: Record<string, { x: number; y: number }>;
+    wireJogOrigins: Record<string, WireJog>;
   } | null>(null);
   const wireDrag = useRef<{ id: string; axis: "x" | "y" } | null>(null);
   const junctionClick = useRef<{ id: string; x: number; y: number } | null>(null);
@@ -150,7 +151,14 @@ export function useSchematicEvents({
         x: o.x + ddx,
         y: o.y + ddy,
       }));
-      useLab.getState().moveGroup(updates);
+      const wireUpdates = Object.entries(drag.current.wireJogOrigins).map(([id, jog]) => ({
+        id,
+        jog: {
+          axis: jog.axis,
+          pos: jog.axis === "x" ? jog.pos + ddx * GRID : jog.pos + ddy * GRID,
+        },
+      }));
+      useLab.getState().moveGroup(updates, wireUpdates);
       return;
     }
     if (mode === "edit" && !placing) {
@@ -263,7 +271,14 @@ export function useSchematicEvents({
         if (s) origins[id] = { x: s.x, y: s.y };
       }
       origins[sym.id] = { x: sym.x, y: sym.y };
-      drag.current = { id: sym.id, dx: p.x - sym.x, dy: p.y - sym.y, origins };
+      const groupSet = new Set(Object.keys(origins));
+      const wireJogOrigins: Record<string, WireJog> = {};
+      for (const w of lab.circuit.wires) {
+        if (w.jog && groupSet.has(w.a.symbolId) && groupSet.has(w.b.symbolId)) {
+          wireJogOrigins[w.id] = { ...w.jog };
+        }
+      }
+      drag.current = { id: sym.id, dx: p.x - sym.x, dy: p.y - sym.y, origins, wireJogOrigins };
       if (dev.kind === "junction") junctionClick.current = { id: sym.id, x: e.clientX, y: e.clientY };
       return;
     }

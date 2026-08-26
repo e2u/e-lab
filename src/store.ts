@@ -92,7 +92,10 @@ export interface LabState {
   pasteClipboard: () => void;
   placeAt: (x: number, y: number) => void;
   moveSymbol: (id: string, x: number, y: number) => void;
-  moveGroup: (updates: { id: string; x: number; y: number }[]) => void;
+  moveGroup: (
+    updates: { id: string; x: number; y: number }[],
+    wireUpdates?: { id: string; jog: WireJog }[],
+  ) => void;
   clickPort: (port: PortRef) => void;
   connectToWire: (wireId: string, world: { x: number; y: number }) => void;
   setWireJog: (id: string, jog: WireJog) => void;
@@ -112,6 +115,7 @@ export interface LabState {
   setDocName: (name: string) => void;
   setNotice: (notice: string | null) => void;
   updateWire: (id: string, patch: { label?: string }) => void;
+  updateGroup: (groupId: string, patch: { color?: string; name?: string }) => void;
   toggleWireBroken: (id: string) => void;
   toggleDeviceWelded: (id: string) => void;
   clearFaults: () => void;
@@ -367,13 +371,36 @@ export const useLab = create<LabState>((set, get) => ({
     sym.y = y;
     set({ circuit: next, isDirty: true });
   },
-  moveGroup: (updates) => {
+  moveGroup: (updates, wireUpdates) => {
     const next = clone(get().circuit);
+    const movedIds = new Set(updates.map((u) => u.id));
+    const deltas = new Map<string, { dx: number; dy: number }>();
     for (const u of updates) {
       const sym = next.symbols.find((s) => s.id === u.id);
       if (sym) {
+        deltas.set(u.id, { dx: u.x - sym.x, dy: u.y - sym.y });
         sym.x = u.x;
         sym.y = u.y;
+      }
+    }
+    if (wireUpdates && wireUpdates.length > 0) {
+      for (const wu of wireUpdates) {
+        const w = next.wires.find((x) => x.id === wu.id);
+        if (w) w.jog = wu.jog;
+      }
+    } else {
+      for (const w of next.wires) {
+        if (w.jog && movedIds.has(w.a.symbolId) && movedIds.has(w.b.symbolId)) {
+          const da = deltas.get(w.a.symbolId);
+          const db = deltas.get(w.b.symbolId);
+          if (da && db && Math.abs(da.dx - db.dx) < 1e-4 && Math.abs(da.dy - db.dy) < 1e-4) {
+            if (w.jog.axis === "x") {
+              w.jog.pos += da.dx * GRID;
+            } else if (w.jog.axis === "y") {
+              w.jog.pos += da.dy * GRID;
+            }
+          }
+        }
       }
     }
     set({ circuit: next, isDirty: true });
@@ -719,6 +746,15 @@ export const useLab = create<LabState>((set, get) => ({
     if (patch.label !== undefined) w.label = patch.label;
     set({ circuit: next, isDirty: true });
   },
+  updateGroup: (groupId, patch) => {
+    get().pushHistory();
+    const next = clone(get().circuit);
+    const g = (next.groups ?? []).find((x) => x.id === groupId);
+    if (!g) return;
+    if (patch.color !== undefined) g.color = patch.color;
+    if (patch.name !== undefined) g.name = patch.name;
+    set({ circuit: next, isDirty: true });
+  },
   toggleWireBroken: (id) => {
     get().pushHistory();
     const next = clone(get().circuit);
@@ -841,11 +877,21 @@ export const useLab = create<LabState>((set, get) => ({
     if (!ids.length) return;
     get().pushHistory();
     const next = clone(get().circuit);
+    const movedIds = new Set(ids);
     for (const id of ids) {
       const sym = next.symbols.find((s) => s.id === id);
       if (!sym) continue;
       sym.x += dx;
       sym.y += dy;
+    }
+    for (const w of next.wires) {
+      if (w.jog && movedIds.has(w.a.symbolId) && movedIds.has(w.b.symbolId)) {
+        if (w.jog.axis === "x") {
+          w.jog.pos += dx * GRID;
+        } else if (w.jog.axis === "y") {
+          w.jog.pos += dy * GRID;
+        }
+      }
     }
     set({ circuit: next, isDirty: true });
   },
@@ -888,11 +934,29 @@ export const useLab = create<LabState>((set, get) => ({
     if (!ids.length) return;
     get().pushHistory();
     const next = clone(get().circuit);
+    const movedIds = new Set(ids);
+    const deltas = new Map<string, { dx: number; dy: number }>();
     for (const id of ids) {
       const sym = next.symbols.find((s) => s.id === id);
       if (!sym) continue;
-      sym.x = Math.round(sym.x);
-      sym.y = Math.round(sym.y);
+      const nx = Math.round(sym.x);
+      const ny = Math.round(sym.y);
+      deltas.set(id, { dx: nx - sym.x, dy: ny - sym.y });
+      sym.x = nx;
+      sym.y = ny;
+    }
+    for (const w of next.wires) {
+      if (w.jog && movedIds.has(w.a.symbolId) && movedIds.has(w.b.symbolId)) {
+        const da = deltas.get(w.a.symbolId);
+        const db = deltas.get(w.b.symbolId);
+        if (da && db && Math.abs(da.dx - db.dx) < 1e-4 && Math.abs(da.dy - db.dy) < 1e-4) {
+          if (w.jog.axis === "x") {
+            w.jog.pos += da.dx * GRID;
+          } else if (w.jog.axis === "y") {
+            w.jog.pos += da.dy * GRID;
+          }
+        }
+      }
     }
     set({ circuit: next, isDirty: true });
   },
@@ -965,17 +1029,29 @@ export const useLab = create<LabState>((set, get) => ({
       const a = symMap.get(w.a.symbolId);
       const b = symMap.get(w.b.symbolId);
       if (!a || !b) continue;
+      const jog = w.jog
+        ? {
+            axis: w.jog.axis,
+            pos: w.jog.axis === "x" ? w.jog.pos + 2 * GRID : w.jog.pos + 2 * GRID,
+          }
+        : undefined;
       next.wires.push({
         ...clone(w),
         id: uniqueId("w", used),
         a: { symbolId: a, term: w.a.term },
         b: { symbolId: b, term: w.b.term },
+        jog,
       });
     }
     for (const g of clipboard.groups ?? []) {
       const memberIds = g.memberIds.map((id) => symMap.get(id)).filter((id): id is string => Boolean(id));
       if (memberIds.length < 2) continue;
-      next.groups.push({ id: uniqueId("g", used), memberIds });
+      next.groups.push({
+        id: uniqueId("g", used),
+        memberIds,
+        color: g.color,
+        name: g.name,
+      });
     }
     const newIds = [...symMap.values()];
     set({

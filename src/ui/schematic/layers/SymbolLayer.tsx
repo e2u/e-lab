@@ -158,6 +158,7 @@ export function SymbolLayer({
       {(circuit.groups ?? []).map((g) => {
         const box = unionBounds(circuit, g.memberIds);
         if (!box) return null;
+        const color = g.color || "#3b7de0";
         return (
           <rect
             key={g.id}
@@ -168,7 +169,8 @@ export function SymbolLayer({
             height={box.h * GRID + 12}
             rx="4"
             fill="none"
-            stroke="#0066cc"
+            stroke={color}
+            style={{ stroke: color }}
             strokeWidth="1.5"
             strokeDasharray="6 4"
           />

@@ -340,7 +340,6 @@ button, select, input {
 
 .group-box {
   fill: none;
-  stroke: #3b7de0;
   stroke-width: 1.4;
   stroke-dasharray: 7 4;
   pointer-events: none;
@@ -581,6 +580,41 @@ input[type="range"] { width: 100%; accent-color: var(--stripe); }
   color: var(--nameplate);
   padding: 3px 6px;
   width: 120px;
+}
+
+.group-color-section {
+  margin: 6px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.color-swatch-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s, border-color 0.1s;
+}
+
+.color-swatch-btn:hover {
+  transform: scale(1.15);
+  border-color: #fff;
+}
+
+.color-swatch-btn.active {
+  outline: 2px solid var(--stripe);
+  outline-offset: 1px;
+  border-color: #fff;
 }
 
 .hint {

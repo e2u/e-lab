@@ -139,6 +139,8 @@ export interface Wire {
 export interface SymbolGroup {
   id: string;
   memberIds: string[];
+  name?: string;
+  color?: string;
 }
 
 export interface Circuit {

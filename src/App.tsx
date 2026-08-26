@@ -146,6 +146,12 @@ export function App() {
   // Load examples on mount - works in both dev and GitHub Pages
   useEffect(() => {
     loadExamplesFromImports().then(setExamples);
+    
+    // Load Three-Phase Motor Control example on first visit (when circuit is empty)
+    const lab = useLab.getState();
+    if (lab.circuit.devices.length === 0 && lab.circuit.symbols.length === 0) {
+      lab.loadExample("three-phase-motor");
+    }
   }, []);
 
   useEffect(() => {

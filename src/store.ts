@@ -312,6 +312,8 @@ export const useLab = create<LabState>((set, get) => ({
         circuit: next,
         selected: { type: "symbol", id: placed.id },
         selectedIds: [placed.id],
+        placing: null, // 放置一個元件後回到佈線模式
+        wiringFrom: null,
         snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
       });
       return;
@@ -332,6 +334,8 @@ export const useLab = create<LabState>((set, get) => ({
       circuit: next,
       selected: { type: "symbol", id: created.symbol.id },
       selectedIds: [created.symbol.id],
+      placing: null, // 放置一個元件後回到佈線模式
+      wiringFrom: null,
       snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
     });
   },

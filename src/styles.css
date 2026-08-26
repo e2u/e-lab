@@ -581,12 +581,12 @@ button, select, input {
   0%, 100% {
     stroke: #e6c11e;
     filter: drop-shadow(0 0 3px #e6c11e);
-    transform: scale(0.15);
+    transform: scale(0.5);
   }
   50% {
     stroke: #c4391d;
     filter: drop-shadow(0 0 5px #c4391d);
-    transform: scale(2.5);
+    transform: scale(1.5);
   }
 }
 

@@ -135,6 +135,8 @@ function isPortRef(value: PortRef | { x: number; y: number }): value is PortRef 
 function betweenStubs(
   a1: { x: number; y: number },
   b1: { x: number; y: number },
+  oa?: { x: number; y: number },
+  ob?: { x: number; y: number },
   jog?: WireJog,
 ): { x: number; y: number }[] {
   if (jog?.axis === "y") {
@@ -143,6 +145,42 @@ function betweenStubs(
   if (jog?.axis === "x") {
     return [a1, { x: jog.pos, y: a1.y }, { x: jog.pos, y: b1.y }, b1];
   }
+  if (a1.x === b1.x || a1.y === b1.y) {
+    return [a1, b1];
+  }
+
+  // If both outward directions are horizontal
+  if (oa && ob && oa.x !== 0 && ob.x !== 0) {
+    const midX = Math.round((a1.x + b1.x) / 2);
+    return [a1, { x: midX, y: a1.y }, { x: midX, y: b1.y }, b1];
+  }
+
+  // If both outward directions are vertical
+  if (oa && ob && oa.y !== 0 && ob.y !== 0) {
+    const midY = Math.round((a1.y + b1.y) / 2);
+    return [a1, { x: a1.x, y: midY }, { x: b1.x, y: midY }, b1];
+  }
+
+  // If oa is horizontal and ob is vertical
+  if (oa && ob && oa.x !== 0 && ob.y !== 0) {
+    return [a1, { x: b1.x, y: a1.y }, b1];
+  }
+
+  // If oa is vertical and ob is horizontal
+  if (oa && ob && oa.y !== 0 && ob.x !== 0) {
+    return [a1, { x: a1.x, y: b1.y }, b1];
+  }
+
+  // If only oa is horizontal
+  if (oa && oa.x !== 0) {
+    return [a1, { x: b1.x, y: a1.y }, b1];
+  }
+
+  // If only oa is vertical
+  if (oa && oa.y !== 0) {
+    return [a1, { x: a1.x, y: b1.y }, b1];
+  }
+
   return manhattan(a1, b1);
 }
 
@@ -179,11 +217,17 @@ export function wireRoute(
     const ob = terminalOutward(circuit, to);
     const sb = stubLen(circuit, to);
     const b1 = { x: b.x + ob.x * sb, y: b.y + ob.y * sb };
-    for (const p of betweenStubs(a1, b1, jog).slice(1)) append(pts, p);
+    for (const p of betweenStubs(a1, b1, oa, ob, jog).slice(1)) append(pts, p);
     append(pts, b);
     return pts;
   }
-  for (const p of manhattan(a1, to).slice(1)) append(pts, p);
+  const mid = oa.x !== 0 ? { x: to.x, y: a1.y } : { x: a1.x, y: to.y };
+  if (a1.x === to.x || a1.y === to.y) {
+    append(pts, to);
+  } else {
+    append(pts, mid);
+    append(pts, to);
+  }
   return pts;
 }
 
@@ -280,6 +324,39 @@ function colorLanes(comp: Occ[]): Map<string, number> {
   return lanes;
 }
 
+export function cleanPolyline(pts: Pt[]): Pt[] {
+  if (pts.length <= 2) return pts;
+  const out: Pt[] = [pts[0]];
+  for (let i = 1; i < pts.length; i += 1) {
+    const p = pts[i];
+    const prev = out[out.length - 1];
+    if (Math.abs(p.x - prev.x) < 0.5 && Math.abs(p.y - prev.y) < 0.5) continue;
+    out.push(p);
+  }
+  let changed = true;
+  while (changed && out.length >= 3) {
+    changed = false;
+    for (let i = 0; i < out.length - 2; i += 1) {
+      const a = out[i];
+      const b = out[i + 1];
+      const c = out[i + 2];
+      // Collinear horizontal
+      if (Math.abs(a.y - b.y) < 0.5 && Math.abs(b.y - c.y) < 0.5) {
+        out.splice(i + 1, 1);
+        changed = true;
+        break;
+      }
+      // Collinear vertical
+      if (Math.abs(a.x - b.x) < 0.5 && Math.abs(b.x - c.x) < 0.5) {
+        out.splice(i + 1, 1);
+        changed = true;
+        break;
+      }
+    }
+  }
+  return out;
+}
+
 /** Routes every wire, then nudges overlapping parallel runs apart. Terminals stay put. */
 export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
   const base = new Map<string, Pt[]>();
@@ -337,7 +414,7 @@ export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
       rebuilt.push({ x: B.x + ox, y: B.y + oy });
       rebuilt.push({ x: B.x, y: B.y });
     }
-    out.set(id, rebuilt);
+    out.set(id, cleanPolyline(rebuilt));
   }
   return out;
 }

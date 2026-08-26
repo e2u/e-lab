@@ -112,6 +112,7 @@ export function Inspector() {
 
   if (selectedIds.length > 1) {
     const asGroup = selectionIsGroup(circuit, selectedIds);
+    const hasGroup = Boolean(asGroup) || selectionHasGroup(circuit, selectedIds);
     return (
       <div className="inspector">
         <h3>{asGroup ? `${t("lib.group")} · ${selectedIds.length} ${t("unit.items")}` : `${t("toolbar.selected")}: ${selectedIds.length} ${t("unit.items")}`}</h3>
@@ -149,8 +150,8 @@ export function Inspector() {
           <button className="btn" onClick={() => useLab.getState().alignSelected("bottom")}>{t("ctx.alignBottom")}</button>
         </div>
         <button className="btn" onClick={() => useLab.getState().rotateSelected(1)}>{t("ctx.rotate")}</button>
-        <button className="btn" onClick={() => useLab.getState().flipSelected("h")}>{t("ctx.flipH")}</button>
-        <button className="btn" onClick={() => useLab.getState().flipSelected("v")}>{t("ctx.flipV")}</button>
+        <button className="btn" disabled={hasGroup} onClick={() => useLab.getState().flipSelected("h")}>{t("ctx.flipH")}</button>
+        <button className="btn" disabled={hasGroup} onClick={() => useLab.getState().flipSelected("v")}>{t("ctx.flipV")}</button>
         <button className="btn" onClick={() => useLab.getState().duplicateSelected()}>{t("ctx.duplicate")}</button>
         {!asGroup && (
           <button className="btn" onClick={() => useLab.getState().groupSelected()}>{t("ctx.group")}</button>
@@ -351,10 +352,10 @@ export function Inspector() {
       <button className="btn" onClick={() => useLab.getState().rotateSelected(1)}>
         {t("inspector.rotate90")}
       </button>
-      <button className="btn" onClick={() => useLab.getState().flipSelected("h")}>
+      <button className="btn" disabled={selectionHasGroup(circuit, [sym.id])} onClick={() => useLab.getState().flipSelected("h")}>
         {t("inspector.flipH")}
       </button>
-      <button className="btn" onClick={() => useLab.getState().flipSelected("v")}>
+      <button className="btn" disabled={selectionHasGroup(circuit, [sym.id])} onClick={() => useLab.getState().flipSelected("v")}>
         {t("inspector.flipV")}
       </button>
       <button className="btn danger" onClick={() => useLab.getState().deleteSelected()}>

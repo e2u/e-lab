@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit } from "./circuitBuilder";
 import { GRID } from "./types";
-import { allWireRoutes, HOP_R, STUB, WIRE_LANE, findWireCrossovers, hopArcD, nearestOnPolyline, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute } from "./geometry";
+import { allWireRoutes, cleanPolyline, HOP_R, STUB, WIRE_LANE, findWireCrossovers, hopArcD, nearestOnPolyline, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute } from "./geometry";
 
 describe("wire routing stubs", () => {
   it("leaves a coil terminal in a straight stub before turning", () => {
@@ -197,5 +197,36 @@ describe("wire crossovers", () => {
     expect(pos!.horizontal).toBe(true);
     expect(pos!.x).toBeCloseTo(100);
     expect(pos!.y).toBeLessThan(40);
+  });
+
+  it("routes in the middle channel between horizontal terminals avoiding terminal overlap", () => {
+    const c = emptyCircuit();
+    const km1 = addDevice(c, "contactor", "KM1", "coil", 4, 4); // A2 at right (out.x = 1)
+    const km2 = addDevice(c, "contactor", "KM2", "coil", 16, 8); // A1 at left (out.x = -1)
+    addWire(c, km1.symbol, "A2", km2.symbol, "A1");
+    const pts = wireRoute(c, c.wires[0].a, c.wires[0].b);
+    const start = terminalWorld(c, c.wires[0].a)!;
+    const end = terminalWorld(c, c.wires[0].b)!;
+
+    // The vertical leg should be in the middle channel (around (start.x + end.x) / 2)
+    const midX = (start.x + STUB + end.x - STUB) / 2;
+    const vertPts = pts.filter((p, i) => i > 0 && i < pts.length - 1 && Math.abs(p.x - midX) < 2);
+    expect(vertPts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("simplifies collinear segments with cleanPolyline", () => {
+    const pts = [
+      { x: 0, y: 0 },
+      { x: 50, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 50 },
+      { x: 100, y: 100 },
+    ];
+    const cleaned = cleanPolyline(pts);
+    expect(cleaned).toEqual([
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 100 },
+    ]);
   });
 });

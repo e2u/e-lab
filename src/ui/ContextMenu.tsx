@@ -22,7 +22,9 @@ export function ContextMenu({
   const n = selectedIds.length;
   const hasSymbols = n > 0;
   const hasWire = selected?.type === "wire";
-  const canUngroup = selectionHasGroup(circuit, selectedIds);
+  const effectiveIds = selectedIds.length ? selectedIds : selected?.type === "symbol" ? [selected.id] : [];
+  const hasGroup = selectionHasGroup(circuit, effectiveIds);
+  const canUngroup = hasGroup;
 
   const run = (fn: () => void) => {
     fn();
@@ -60,10 +62,10 @@ export function ContextMenu({
             <button type="button" onClick={() => run(() => useLab.getState().rotateSelected(-1))}>
               {t("ctx.rotateCCW")} <kbd>⇧R</kbd>
             </button>
-            <button type="button" onClick={() => run(() => useLab.getState().flipSelected("h"))}>
+            <button type="button" disabled={hasGroup} onClick={() => run(() => useLab.getState().flipSelected("h"))}>
               {t("ctx.flipH")} <kbd>H</kbd>
             </button>
-            <button type="button" onClick={() => run(() => useLab.getState().flipSelected("v"))}>
+            <button type="button" disabled={hasGroup} onClick={() => run(() => useLab.getState().flipSelected("v"))}>
               {t("ctx.flipV")} <kbd>V</kbd>
             </button>
             <button type="button" onClick={() => run(() => useLab.getState().duplicateSelected())}>

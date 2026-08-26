@@ -2,9 +2,9 @@ import { create } from "zustand";
 import { catalogItem, suggestNetLabelTag } from "./catalog";
 import { addDevice, addSymbol, addWire, emptyCircuit, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
-import { expandIds, groupSymbols, pruneGroups, selectionHasGroup, ungroupSymbols } from "./groups";
+import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols } from "./groups";
 import { EXAMPLES } from "./examples";
-import { allWireRoutes, nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { allWireRoutes, nearestOnPolyline, portsEqual, snapOnSegment, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   downloadJson,
@@ -843,13 +843,24 @@ export const useLab = create<LabState>((set, get) => ({
         ? [selected.id]
         : [];
     if (!ids.length) return;
+    const res = rotateSelection(circuit, ids, dir);
+    if (!res || (!res.symbolUpdates.length && !res.wireJogUpdates.length)) return;
+
     get().pushHistory();
     const next = clone(circuit);
-    for (const id of ids) {
-      const sym = next.symbols.find((x) => x.id === id);
-      if (!sym || isJunctionSymbol(next, id)) continue;
-      const step = dir === 1 ? 90 : 270;
-      sym.rot = ((sym.rot + step) % 360) as 0 | 90 | 180 | 270;
+    for (const update of res.symbolUpdates) {
+      const sym = next.symbols.find((x) => x.id === update.id);
+      if (sym) {
+        sym.x = update.x;
+        sym.y = update.y;
+        sym.rot = update.rot;
+      }
+    }
+    for (const update of res.wireJogUpdates) {
+      const w = next.wires.find((x) => x.id === update.id);
+      if (w) {
+        w.jog = update.jog;
+      }
     }
     set({ circuit: next, isDirty: true });
   },
@@ -862,6 +873,7 @@ export const useLab = create<LabState>((set, get) => ({
         ? [selected.id]
         : [];
     if (!ids.length) return;
+    if (selectionHasGroup(circuit, ids)) return;
     get().pushHistory();
     const next = clone(circuit);
     for (const id of ids) {
@@ -899,32 +911,23 @@ export const useLab = create<LabState>((set, get) => ({
   alignSelected: (edge) => {
     const { circuit, selectedIds } = get();
     if (selectedIds.length < 2) return;
-    const boxes = selectedIds
-      .map((id) => {
-        const sym = circuit.symbols.find((s) => s.id === id);
-        if (!sym) return null;
-        const b = symbolBounds(circuit, sym);
-        return b ? { id, ...b } : null;
-      })
-      .filter((b): b is { id: string; x: number; y: number; w: number; h: number } => b !== null);
-    if (boxes.length < 2) return;
-    const minX = Math.min(...boxes.map((b) => b.x));
-    const minY = Math.min(...boxes.map((b) => b.y));
-    const maxR = Math.max(...boxes.map((b) => b.x + b.w));
-    const maxB = Math.max(...boxes.map((b) => b.y + b.h));
-    const midX = (minX + maxR) / 2;
-    const midY = (minY + maxB) / 2;
+    const res = alignEntities(circuit, selectedIds, edge);
+    if (!res || (!res.symbolUpdates.length && !res.wireJogUpdates.length)) return;
+
     get().pushHistory();
     const next = clone(circuit);
-    for (const box of boxes) {
-      const sym = next.symbols.find((s) => s.id === box.id);
-      if (!sym) continue;
-      if (edge === "left") sym.x = minX;
-      if (edge === "right") sym.x = maxR - box.w;
-      if (edge === "top") sym.y = minY;
-      if (edge === "bottom") sym.y = maxB - box.h;
-      if (edge === "hcenter") sym.x = Math.round(midX - box.w / 2);
-      if (edge === "vcenter") sym.y = Math.round(midY - box.h / 2);
+    for (const update of res.symbolUpdates) {
+      const sym = next.symbols.find((s) => s.id === update.id);
+      if (sym) {
+        sym.x = update.x;
+        sym.y = update.y;
+      }
+    }
+    for (const update of res.wireJogUpdates) {
+      const w = next.wires.find((x) => x.id === update.id);
+      if (w) {
+        w.jog = update.jog;
+      }
     }
     set({ circuit: next, isDirty: true });
   },

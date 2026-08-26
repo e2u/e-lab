@@ -125,8 +125,26 @@ button, select, input {
 
 .workspace {
   display: grid;
-  grid-template-columns: 250px 1fr 300px;
+  grid-template-columns: var(--palette-width, 250px) 1fr var(--side-width, 300px);
+  grid-template-areas: "palette schematic side";
   min-height: 0;
+  position: relative;
+}
+
+.workspace.palette-collapsed {
+  --palette-width: 0px;
+}
+
+.workspace.side-collapsed {
+  --side-width: 0px;
+}
+
+.palette {
+  grid-area: palette;
+}
+
+.side {
+  grid-area: side;
 }
 
 .palette, .side {
@@ -139,9 +157,86 @@ button, select, input {
 .side {
   border-right: none;
   border-left: 1px solid #10150d;
-  display: grid;
-  grid-template-rows: 1fr auto auto;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+}
+
+.palette-header, .side-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #3d4634;
+}
+
+.palette-title, .side-title {
+  font-family: Teko, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--stripe);
+  text-transform: uppercase;
+}
+
+.panel-close-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #9aa18d;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.panel-close-btn:hover {
+  background: #2a3223;
+  border-color: #4a533e;
+  color: var(--nameplate);
+}
+
+.panel-toggle {
+  position: absolute;
+  top: 14px;
+  z-index: 25;
+  background: linear-gradient(180deg, #353f2c, #242c1e);
+  border: 1px solid #4a533e;
+  color: var(--nameplate);
+  width: 20px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  user-select: none;
+}
+
+.panel-toggle:hover {
+  background: linear-gradient(180deg, #445139, #303b27);
+  border-color: var(--stripe);
+  color: var(--stripe);
+  box-shadow: 0 0 10px rgba(230, 193, 30, 0.3);
+}
+
+.panel-toggle.left {
+  left: var(--palette-width, 250px);
+  border-left: none;
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+.panel-toggle.right {
+  right: var(--side-width, 300px);
+  border-right: none;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
 }
 
 .group h3, .panel h3 {
@@ -170,6 +265,7 @@ button, select, input {
 .cat-item.selected { outline: 1px solid var(--stripe); }
 
 .paper-wrap {
+  grid-area: schematic;
   overflow: auto;
   background: #3a3428;
   position: relative;

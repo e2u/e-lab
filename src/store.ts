@@ -26,6 +26,20 @@ function readLang(): Lang {
   return getLanguage();
 }
 
+function readSidebarState(): { paletteOpen: boolean; sideOpen: boolean } {
+  if (typeof localStorage === "undefined") return { paletteOpen: true, sideOpen: true };
+  try {
+    const p = localStorage.getItem("elab.sidebar.paletteOpen");
+    const s = localStorage.getItem("elab.sidebar.sideOpen");
+    return {
+      paletteOpen: p !== null ? p === "true" : true,
+      sideOpen: s !== null ? s === "true" : true,
+    };
+  } catch {
+    return { paletteOpen: true, sideOpen: true };
+  }
+}
+
 export interface Selection {
   type: "symbol" | "wire";
   id: string;
@@ -52,6 +66,8 @@ export interface LabState {
   savesTick: number;
   lang: Lang;
   isDirty: boolean;
+  paletteOpen: boolean;
+  sideOpen: boolean;
 
   setMode: (mode: Mode) => void;
   setRunning: (running: boolean) => void;
@@ -107,6 +123,10 @@ export interface LabState {
   copyShareLink: () => Promise<void>;
   persistDraft: () => void;
   setLang: (lang: Lang) => void;
+  setPaletteOpen: (open: boolean) => void;
+  setSideOpen: (open: boolean) => void;
+  togglePalette: () => void;
+  toggleSide: () => void;
 }
 
 const defaultProcess = (): ProcessVars => ({
@@ -140,6 +160,7 @@ function mergeRuntime(circuit: Circuit, prev: SimSnapshot["runtime"]): SimSnapsh
 // Initialize from URL share hash, saved draft, or fallback to empty template
 const boot = startupDoc(emptyCircuit, t("doc.untitled"));
 sanitizeCircuitIds(boot.circuit);
+const sidebarBoot = readSidebarState();
 
 export const useLab = create<LabState>((set, get) => ({
   circuit: boot.circuit,
@@ -162,6 +183,8 @@ export const useLab = create<LabState>((set, get) => ({
   savesTick: 0,
   lang: readLang(),
   isDirty: false,
+  paletteOpen: sidebarBoot.paletteOpen,
+  sideOpen: sidebarBoot.sideOpen,
 
   pushHistory: () => {
     const { history, circuit } = get();
@@ -967,6 +990,36 @@ export const useLab = create<LabState>((set, get) => ({
   setLang: (lang) => {
     setLanguage(lang);
     set({ lang, notice: lang === "zh" ? t("notice.lang.zh") : t("notice.lang.en") });
+  },
+
+  setPaletteOpen: (open) => {
+    try {
+      localStorage.setItem("elab.sidebar.paletteOpen", String(open));
+    } catch {}
+    set({ paletteOpen: open });
+  },
+
+  setSideOpen: (open) => {
+    try {
+      localStorage.setItem("elab.sidebar.sideOpen", String(open));
+    } catch {}
+    set({ sideOpen: open });
+  },
+
+  togglePalette: () => {
+    const next = !get().paletteOpen;
+    try {
+      localStorage.setItem("elab.sidebar.paletteOpen", String(next));
+    } catch {}
+    set({ paletteOpen: next });
+  },
+
+  toggleSide: () => {
+    const next = !get().sideOpen;
+    try {
+      localStorage.setItem("elab.sidebar.sideOpen", String(next));
+    } catch {}
+    set({ sideOpen: next });
   },
 
 }));

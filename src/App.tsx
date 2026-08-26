@@ -8,6 +8,7 @@ import { Inspector } from "./ui/Inspector";
 import { Palette } from "./ui/Palette";
 import { Schematic } from "./ui/Schematic";
 import { DiscardModal } from "./ui/DiscardModal";
+import { TogglePanelButton } from "./ui/TogglePanelButton";
 
 
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
@@ -36,6 +37,8 @@ export function App() {
   const process = useLab((s) => s.process);
   const lang = useLab((s) => s.lang);
   const isDirty = useLab((s) => s.isDirty);
+  const paletteOpen = useLab((s) => s.paletteOpen);
+  const sideOpen = useLab((s) => s.sideOpen);
   const [examples, setExamples] = useState<Example[]>(EXAMPLES);
   const [selectedExample, setSelectedExample] = useState<string>("none");
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
@@ -66,6 +69,16 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if (typing(e)) return;
       const lab = useLab.getState();
+      if (e.key === "[" || ((e.metaKey || e.ctrlKey) && e.key === "[")) {
+        e.preventDefault();
+        lab.togglePalette();
+        return;
+      }
+      if (e.key === "]" || ((e.metaKey || e.ctrlKey) && e.key === "]")) {
+        e.preventDefault();
+        lab.toggleSide();
+        return;
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         lab.deleteSelected();
@@ -300,14 +313,38 @@ export function App() {
         onClose={handleDiscardModalClose} 
       />
 
-      <div className="workspace">
-        <Palette />
+      <div className={`workspace ${!paletteOpen ? "palette-collapsed" : ""} ${!sideOpen ? "side-collapsed" : ""}`}>
+        {paletteOpen && <Palette />}
         <Schematic />
-        <aside className="side">
-          <Bench />
-          <ProcessRack />
-          <Inspector />
-        </aside>
+        {sideOpen && (
+          <aside className="side">
+            <div className="side-header">
+              <span className="side-title">{t("toolbar.sidePanel")}</span>
+              <button
+                type="button"
+                className="panel-close-btn"
+                onClick={() => useLab.getState().setSideOpen(false)}
+                title={t("toolbar.collapseRight")}
+                aria-label={t("toolbar.collapseRight")}
+              >
+                ✕
+              </button>
+            </div>
+            <Bench />
+            <ProcessRack />
+            <Inspector />
+          </aside>
+        )}
+        <TogglePanelButton
+          direction="left"
+          isOpen={paletteOpen}
+          onClick={() => useLab.getState().togglePalette()}
+        />
+        <TogglePanelButton
+          direction="right"
+          isOpen={sideOpen}
+          onClick={() => useLab.getState().toggleSide()}
+        />
       </div>
 
       <footer className="statusbar">

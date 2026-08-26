@@ -29,6 +29,14 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "toolbar.rotate": "Rotate",
     "toolbar.flipH": "Flip H",
     "toolbar.flipV": "Flip V",
+    "toolbar.palette": "Component Library",
+    "toolbar.sidePanel": "Inspector & Bench",
+    "toolbar.togglePalette": "Toggle Component Library ([)",
+    "toolbar.toggleSide": "Toggle Inspector & Bench (])",
+    "toolbar.collapseLeft": "Collapse Component Library ([)",
+    "toolbar.expandLeft": "Expand Component Library ([)",
+    "toolbar.collapseRight": "Collapse Inspector & Bench (])",
+    "toolbar.expandRight": "Expand Inspector & Bench (])",
 
     // Inspector labels
     "inspector.properties": "Properties",
@@ -441,6 +449,14 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "toolbar.rotate": "旋轉",
     "toolbar.flipH": "左右鏡像",
     "toolbar.flipV": "上下鏡像",
+    "toolbar.palette": "元件庫",
+    "toolbar.sidePanel": "屬性與工作台",
+    "toolbar.togglePalette": "切換元件庫 ([)",
+    "toolbar.toggleSide": "切換屬性與工作台 (])",
+    "toolbar.collapseLeft": "收起元件庫 ([)",
+    "toolbar.expandLeft": "展開元件庫 ([)",
+    "toolbar.collapseRight": "收起屬性與工作台 (])",
+    "toolbar.expandRight": "展開屬性與工作台 (])",
 
     // Inspector labels
     "inspector.properties": "屬性",

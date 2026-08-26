@@ -7,6 +7,18 @@ export function Palette() {
   const lang = useLab((s) => s.lang);
   return (
     <aside className="palette">
+      <div className="palette-header">
+        <span className="palette-title">{t("toolbar.palette")}</span>
+        <button
+          type="button"
+          className="panel-close-btn"
+          onClick={() => useLab.getState().setPaletteOpen(false)}
+          title={t("toolbar.collapseLeft")}
+          aria-label={t("toolbar.collapseLeft")}
+        >
+          ✕
+        </button>
+      </div>
       <p className="hint">{t("lib.paletteHint")}</p>
       {GROUPS.map((g) => {
         // Use the English label for filtering since CATALOG uses English group names

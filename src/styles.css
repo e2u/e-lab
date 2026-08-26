@@ -569,15 +569,25 @@ button, select, input {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Broken contact animation - red/yellow flashing */
+/* Broken contact animation - red/yellow flashing & scaling */
 .contact-broken {
   stroke: #e6c11e;
+  transform-box: fill-box;
+  transform-origin: center;
   animation: flash 0.8s ease-in-out infinite;
 }
 
 @keyframes flash {
-  0%, 100% { stroke: #e6c11e; filter: drop-shadow(0 0 3px #e6c11e); }
-  50% { stroke: #c4391d; filter: drop-shadow(0 0 5px #c4391d); }
+  0%, 100% {
+    stroke: #e6c11e;
+    filter: drop-shadow(0 0 3px #e6c11e);
+    transform: scale(0.15);
+  }
+  50% {
+    stroke: #c4391d;
+    filter: drop-shadow(0 0 5px #c4391d);
+    transform: scale(2.5);
+  }
 }
 
 .widget {

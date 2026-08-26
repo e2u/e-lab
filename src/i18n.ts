@@ -37,6 +37,10 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "toolbar.expandLeft": "Expand Component Library ([)",
     "toolbar.collapseRight": "Collapse Inspector & Bench (])",
     "toolbar.expandRight": "Expand Inspector & Bench (])",
+    "toolbar.zoom": "Zoom",
+    "toolbar.zoomIn": "Zoom In (⌘+)",
+    "toolbar.zoomOut": "Zoom Out (⌘-)",
+    "toolbar.zoomReset": "Reset Zoom (⌘0)",
 
     // Inspector labels
     "inspector.properties": "Properties",
@@ -458,6 +462,10 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "toolbar.expandLeft": "展開元件庫 ([)",
     "toolbar.collapseRight": "收起屬性與工作台 (])",
     "toolbar.expandRight": "展開屬性與工作台 (])",
+    "toolbar.zoom": "縮放",
+    "toolbar.zoomIn": "放大 (⌘+)",
+    "toolbar.zoomOut": "縮小 (⌘-)",
+    "toolbar.zoomReset": "重設縮放 (⌘0)",
 
     // Inspector labels
     "inspector.properties": "屬性",

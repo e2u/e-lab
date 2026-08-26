@@ -123,6 +123,51 @@ button, select, input {
 .btn.danger { border-color: var(--danger); color: #ffb4a6; }
 .btn.ok { border-color: var(--ok); color: var(--ok); }
 
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #2a3224;
+  border: 1px solid #4a533e;
+  border-radius: 4px;
+  padding: 1px;
+}
+
+.zoom-controls .btn-icon {
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+  border: none;
+  background: transparent;
+  color: var(--nameplate);
+  cursor: pointer;
+}
+
+.zoom-controls .btn-icon:hover:not(:disabled) {
+  background: rgba(230, 193, 30, 0.15);
+  color: var(--stripe);
+}
+
+.zoom-controls .btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.zoom-select {
+  background: transparent;
+  color: var(--nameplate);
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 4px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.zoom-select:focus {
+  outline: none;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: var(--palette-width, 250px) 1fr var(--side-width, 300px);

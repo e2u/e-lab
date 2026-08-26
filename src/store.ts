@@ -19,11 +19,23 @@ import {
   type SavedLab,
 } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
-import { GRID, type Circuit, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
+import { GRID, ZOOM_LEVELS, type Circuit, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
 function readLang(): Lang {
   return getLanguage();
+}
+
+function readZoom(): number {
+  if (typeof localStorage === "undefined") return 1;
+  try {
+    const val = localStorage.getItem("elab.zoom");
+    if (!val) return 1;
+    const n = parseFloat(val);
+    return isNaN(n) ? 1 : Math.max(0.25, Math.min(1.5, n));
+  } catch {
+    return 1;
+  }
 }
 
 function readSidebarState(): { paletteOpen: boolean; sideOpen: boolean } {
@@ -68,6 +80,7 @@ export interface LabState {
   isDirty: boolean;
   paletteOpen: boolean;
   sideOpen: boolean;
+  zoom: number;
 
   setMode: (mode: Mode) => void;
   setRunning: (running: boolean) => void;
@@ -131,6 +144,10 @@ export interface LabState {
   setSideOpen: (open: boolean) => void;
   togglePalette: () => void;
   toggleSide: () => void;
+  setZoom: (zoom: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
 }
 
 const defaultProcess = (): ProcessVars => ({
@@ -189,6 +206,7 @@ export const useLab = create<LabState>((set, get) => ({
   isDirty: false,
   paletteOpen: sidebarBoot.paletteOpen,
   sideOpen: sidebarBoot.sideOpen,
+  zoom: readZoom(),
 
   pushHistory: () => {
     const { history, circuit } = get();
@@ -1099,6 +1117,32 @@ export const useLab = create<LabState>((set, get) => ({
       localStorage.setItem("elab.sidebar.sideOpen", String(next));
     } catch {}
     set({ sideOpen: next });
+  },
+
+  setZoom: (zoom) => {
+    const validZoom = Math.max(0.25, Math.min(1.5, Math.round(zoom * 100) / 100));
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("elab.zoom", String(validZoom));
+      }
+    } catch {}
+    set({ zoom: validZoom });
+  },
+
+  zoomIn: () => {
+    const { zoom } = get();
+    const next = ZOOM_LEVELS.find((l) => l > zoom + 0.001);
+    get().setZoom(next ?? ZOOM_LEVELS[ZOOM_LEVELS.length - 1]);
+  },
+
+  zoomOut: () => {
+    const { zoom } = get();
+    const prev = [...ZOOM_LEVELS].reverse().find((l) => l < zoom - 0.001);
+    get().setZoom(prev ?? ZOOM_LEVELS[0]);
+  },
+
+  resetZoom: () => {
+    get().setZoom(1);
   },
 
 }));

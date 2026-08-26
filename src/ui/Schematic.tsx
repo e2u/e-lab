@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { allWireRoutes, findWireCrossovers } from "../geometry";
 import { useLab } from "../store";
 import { COLS, GRID, ROWS } from "../types";
@@ -19,6 +20,25 @@ export function Schematic() {
   const wiringFrom = useLab((s) => s.wiringFrom);
   const hoverPort = useLab((s) => s.hoverPort);
   const held = useLab((s) => s.held);
+  const zoom = useLab((s) => s.zoom);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          useLab.getState().zoomIn();
+        } else if (e.deltaY > 0) {
+          useLab.getState().zoomOut();
+        }
+      }
+    };
+    wrap.addEventListener("wheel", onWheel, { passive: false });
+    return () => wrap.removeEventListener("wheel", onWheel);
+  }, []);
 
   let selectedNetTag = "";
   if (selected?.type === "symbol") {
@@ -60,15 +80,19 @@ export function Schematic() {
   });
 
   return (
-    <div className="paper-wrap">
+    <div className="paper-wrap" ref={wrapRef}>
       <svg
         ref={svgRef}
         className={`paper${placing ? " placing" : ""}${mode === "run" ? " run" : ""}${wiringFrom ? " wiring" : ""}`}
-        width={COLS * GRID}
-        height={ROWS * GRID}
+        width={COLS * GRID * zoom}
+        height={ROWS * GRID * zoom}
+        viewBox={`0 0 ${COLS * GRID} ${ROWS * GRID}`}
         onPointerMove={onSvgMove}
         onPointerUp={onSvgPointerUp}
-        style={wireCursor ? { cursor: wireCursor } : undefined}
+        style={{
+          backgroundSize: `${GRID * zoom}px ${GRID * zoom}px`,
+          ...(wireCursor ? { cursor: wireCursor } : {}),
+        }}
         onContextMenu={onSvgContextMenu}
       >
         <PaperBackground onPaperDown={onPaperDown} />

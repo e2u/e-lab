@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { EXAMPLES, type Example } from "./examples";
 import { rotateSelected, useLab } from "./store";
+import { ZOOM_LEVELS } from "./types";
 import { formatFaultMessage, t, tOr } from "./i18n";
 import { Bench, ProcessRack } from "./ui/Bench";
 import { FilesMenu } from "./ui/FilesMenu";
@@ -39,6 +40,7 @@ export function App() {
   const isDirty = useLab((s) => s.isDirty);
   const paletteOpen = useLab((s) => s.paletteOpen);
   const sideOpen = useLab((s) => s.sideOpen);
+  const zoom = useLab((s) => s.zoom);
   const [examples, setExamples] = useState<Example[]>(EXAMPLES);
   const [selectedExample, setSelectedExample] = useState<string>("none");
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
@@ -77,6 +79,21 @@ export function App() {
       if (e.key === "]" || ((e.metaKey || e.ctrlKey) && e.key === "]")) {
         e.preventDefault();
         lab.toggleSide();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "=" || e.key === "+")) {
+        e.preventDefault();
+        lab.zoomIn();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "-" || e.key === "_")) {
+        e.preventDefault();
+        lab.zoomOut();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "0") {
+        e.preventDefault();
+        lab.resetZoom();
         return;
       }
       if (e.key === "Delete" || e.key === "Backspace") {
@@ -303,6 +320,43 @@ export function App() {
           <button className="btn" onClick={() => useLab.getState().redo()} title={t("toolbar.redo")}>
             {t("toolbar.redo")}
           </button>
+          <div className="zoom-controls">
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={() => useLab.getState().zoomOut()}
+              title={t("toolbar.zoomOut")}
+              disabled={zoom <= 0.25}
+            >
+              −
+            </button>
+            <select
+              className="zoom-select"
+              value={zoom}
+              title={t("toolbar.zoom")}
+              onChange={(e) => useLab.getState().setZoom(parseFloat(e.target.value))}
+            >
+              {ZOOM_LEVELS.map((lvl) => (
+                <option key={lvl} value={lvl}>
+                  {Math.round(lvl * 100)}%
+                </option>
+              ))}
+              {!ZOOM_LEVELS.includes(zoom as any) && (
+                <option value={zoom}>
+                  {Math.round(zoom * 100)}%
+                </option>
+              )}
+            </select>
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={() => useLab.getState().zoomIn()}
+              title={t("toolbar.zoomIn")}
+              disabled={zoom >= 1.5}
+            >
+              +
+            </button>
+          </div>
         </div>
       </header>
       {notice && <div className="toast">{notice}</div>}

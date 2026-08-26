@@ -968,8 +968,6 @@ function GlyphBody({
         const col = LAMP[device.params.color ?? "green"] ?? LAMP.green;
         const cx = (w * GRID) / 2;
         const cy = (h * GRID) / 2;
-        const tagX = w * GRID - 4;
-        const tagY = cy - 4;
         const letter =
             (device.params.color ?? "green") === "red"
                 ? "R"
@@ -1003,9 +1001,6 @@ function GlyphBody({
                 })}
                 <Txt x={cx} y={cy + 4} textAnchor="middle" className="sym-tag">
                     {letter}
-                </Txt>
-                <Txt x={tagX-50} y={tagY+9} textAnchor="end" className="sym-tag">
-                    {device.tag}
                 </Txt>
             </S>
         );

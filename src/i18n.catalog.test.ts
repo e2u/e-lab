@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG, GROUPS } from "./catalog";
-import { TRANSLATIONS, catalogCompKey, setLang, tOr } from "./i18n";
+import { TRANSLATIONS, catalogCompKey, formatFaultMessage, setLang, tOr } from "./i18n";
 
 describe("catalog labels", () => {
   it("maps selector and net-label ids to real translation keys", () => {
@@ -62,5 +62,49 @@ describe("catalog labels", () => {
         expect(TRANSLATIONS[lang][key], `${lang} missing ${key}`).toBeDefined();
       }
     }
+  });
+
+  it("formats fault messages using i18n", () => {
+    setLang("en");
+    expect(formatFaultMessage({ level: "warn", message: "fallback", msgKey: "fault.brokenWire" })).toBe(
+      "Broken wire fault (select wire to restore)",
+    );
+    expect(
+      formatFaultMessage({
+        level: "warn",
+        message: "fallback",
+        msgKey: "fault.weldedContact",
+        msgParams: { tag: "KM1" },
+      }),
+    ).toBe("KM1 welded contact");
+    expect(
+      formatFaultMessage({
+        level: "error",
+        message: "fallback",
+        msgKey: "fault.shortCircuit",
+        msgParams: { a: "L1", b: "L2" },
+      }),
+    ).toBe("Short circuit: L1 and L2 connected to the same point");
+
+    setLang("zh");
+    expect(formatFaultMessage({ level: "warn", message: "fallback", msgKey: "fault.brokenWire" })).toBe(
+      "斷線故障（選取該導線可復原）",
+    );
+    expect(
+      formatFaultMessage({
+        level: "warn",
+        message: "fallback",
+        msgKey: "fault.weldedContact",
+        msgParams: { tag: "KM1" },
+      }),
+    ).toBe("KM1 觸點熔死");
+    expect(
+      formatFaultMessage({
+        level: "error",
+        message: "fallback",
+        msgKey: "fault.shortCircuit",
+        msgParams: { a: "L1", b: "L2" },
+      }),
+    ).toBe("短路：L1 與 L2 接到同一點");
   });
 });

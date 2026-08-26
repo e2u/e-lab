@@ -121,7 +121,7 @@ export function ContextMenu({
               {t("ctx.brokenWire")}
             </button>
             <button type="button" className="danger" onClick={() => run(() => useLab.getState().deleteSelected())}>
-              {t("ctx.delete")} {t("wire")}
+              {t("ctx.deleteWire")}
             </button>
           </>
         )}

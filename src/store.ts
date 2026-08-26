@@ -138,7 +138,7 @@ function mergeRuntime(circuit: Circuit, prev: SimSnapshot["runtime"]): SimSnapsh
 }
 
 // Initialize from URL share hash, saved draft, or fallback to empty template
-const boot = startupDoc(emptyCircuit, "未命名圖紙");
+const boot = startupDoc(emptyCircuit, t("doc.untitled"));
 sanitizeCircuitIds(boot.circuit);
 
 export const useLab = create<LabState>((set, get) => ({
@@ -157,7 +157,7 @@ export const useLab = create<LabState>((set, get) => ({
   future: [],
   timeMs: 0,
   hoverPort: null,
-  docName: boot.name ?? "未命名圖紙",
+  docName: boot.name ?? t("doc.untitled"),
   notice: null,
   savesTick: 0,
   lang: readLang(),
@@ -631,7 +631,7 @@ export const useLab = create<LabState>((set, get) => ({
       held: [],
       running: false,
       mode: "edit",
-      docName: "未命名圖紙",
+      docName: t("doc.untitled"),
       isDirty: false,
     });
   },
@@ -717,12 +717,12 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     for (const w of next.wires) w.broken = false;
     for (const d of next.devices) d.params.welded = false;
-    set({ circuit: next, notice: "已清除全部故障", isDirty: true });
+    set({ circuit: next, notice: t("notice.clearedFaults"), isDirty: true });
   },
 
   saveToLibrary: (name) => {
     const s = get();
-    const title = (name ?? s.docName).trim() || "未命名圖紙";
+    const title = (name ?? s.docName).trim() || t("doc.untitled");
     const save: SavedLab = {
       id: uid("lab"),
       name: title,
@@ -730,7 +730,7 @@ export const useLab = create<LabState>((set, get) => ({
       doc: makeDoc(s.circuit, title, s.process),
     };
     putSave(save);
-    set({ docName: title, savesTick: s.savesTick + 1, notice: `已存檔「${title}」`, isDirty: false });
+    set({ docName: title, savesTick: s.savesTick + 1, notice: t("notice.savedDoc", { title }), isDirty: false });
   },
   loadSave: (id) => {
     const found = listSaves().find((s) => s.id === id);
@@ -766,9 +766,9 @@ export const useLab = create<LabState>((set, get) => ({
     window.history.replaceState(null, "", hash);
     try {
       await navigator.clipboard.writeText(url);
-      set({ notice: t("msg.shareCopied") });
+      set({ notice: t("notice.shareCopied") });
     } catch {
-      set({ notice: t("msg.shareUrl") });
+      set({ notice: t("notice.shareFailed") });
     }
   },
   persistDraft: () => {
@@ -897,7 +897,7 @@ export const useLab = create<LabState>((set, get) => ({
     const groups = (circuit.groups ?? [])
       .filter((g) => g.memberIds.length >= 2 && g.memberIds.every((id) => idSet.has(id)))
       .map((g) => clone(g));
-    set({ clipboard: { devices, symbols, wires, groups }, notice: `已複製 ${symbols.length} 個元件` });
+    set({ clipboard: { devices, symbols, wires, groups }, notice: t("notice.copiedSymbols", { count: symbols.length }) });
   },
 
   pasteClipboard: () => {

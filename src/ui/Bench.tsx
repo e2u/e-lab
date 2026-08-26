@@ -73,7 +73,7 @@ export function Bench() {
                 <div className={`machine ${Math.abs(rt.rpm) > 0.2 ? "spin" : ""}`}>
                   <div className="hub" />
                 </div>
-                {d.tag} {rt.direction < 0 ? "REV" : rt.direction > 0 ? "FWD" : ""}
+                {d.tag}{rt.direction < 0 ? ` ${t("bench.rev")}` : rt.direction > 0 ? ` ${t("bench.fwd")}` : ""}
                 {rt.starDelta === "star" ? t("bench.starDeltaStar") : rt.starDelta === "delta" ? t("bench.starDeltaDelta") : ""}
               </div>
             );
@@ -86,7 +86,7 @@ export function Bench() {
                   disabled={mode !== "run"}
                   onClick={() => useLab.getState().toggleIo(d.id, "on")}
                 >
-                  {rt.on && !rt.tripped ? "ON" : "OFF"}
+                  {rt.on && !rt.tripped ? t("bench.on") : t("bench.off")}
                 </button>
                 {d.tag}
               </div>

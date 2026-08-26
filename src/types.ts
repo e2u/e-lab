@@ -185,6 +185,8 @@ export interface WireLive {
 export interface Fault {
   level: "warn" | "error";
   message: string;
+  msgKey?: string;
+  msgParams?: Record<string, string | number>;
   deviceId?: string;
 }
 

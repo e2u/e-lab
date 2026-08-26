@@ -1,6 +1,6 @@
 import { KINDS, LAMP_COLORS } from "../catalog";
 import { selectionHasGroup, selectionIsGroup } from "../groups";
-import { t } from "../i18n";
+import { catalogCompKey, t, tOr } from "../i18n";
 import { useLab } from "../store";
 import type { Circuit, DeviceKind } from "../types";
 
@@ -43,7 +43,7 @@ function NetLabelHint({
               if (e.target.value) useLab.getState().updateDevice(deviceId, { tag: e.target.value });
             }}
           >
-            <option value="">(Select)</option>
+            <option value="">{t("inspector.select")}</option>
             {names.map((n) => (
               <option key={n} value={n}>
                 {n}
@@ -193,7 +193,7 @@ export function Inspector() {
 
   return (
     <div className="inspector">
-      <h3>{KINDS[dev.kind].label}</h3>
+      <h3>{tOr(catalogCompKey(dev.kind), KINDS[dev.kind].label)}</h3>
       <label>
         {dev.kind === "net-label" ? t("inspector.netLabel") : t("inspector.tag")}
         <input value={dev.tag} onChange={(e) => useLab.getState().updateDevice(dev.id, { tag: e.target.value })} />
@@ -288,7 +288,7 @@ export function Inspector() {
               value={dev.params.shaftWith ?? ""}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { shaftWith: e.target.value })}
             >
-              <option value="">(None)</option>
+              <option value="">{t("inspector.none")}</option>
               {machines
                 .filter((m) => m.id !== dev.id)
                 .map((m) => (
@@ -299,7 +299,7 @@ export function Inspector() {
             </select>
           </label>
           <button className="btn" onClick={() => useLab.getState().toggleIo(dev.id, "prime")}>
-            {t("inspector.primeMover")} {dev.params.primeMover ? "(ON)" : "(OFF)"}
+            {t("inspector.primeMover")} {dev.params.primeMover ? ` (${t("inspector.on")})` : ` (${t("inspector.off")})`}
           </button>
         </>
       )}

@@ -38,6 +38,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "inspector.enterLabel": "Enter a label, e.g., L1, N, T1.",
     "inspector.existingLabels": "Apply existing label",
     "inspector.select": "(Select)",
+    "inspector.none": "(None)",
     "inspector.wire": "Wire",
     "inspector.wireLabel": "Wire label",
     "inspector.wireLabelPlaceholder": "e.g. L1, 220V",
@@ -138,8 +139,39 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     
     // Save to library messages
     "notice.saveToLibSuccess": "Saved '{name}' to library",
+    "notice.savedDoc": "Saved '{title}'",
+    "notice.noLocalHistory": "No local history",
+    "notice.revertedHistory": "Reverted to history version",
+    "notice.noLocalSaves": "No local saves",
+    "notice.deletedSaveWithName": "Deleted '{name}'",
+    "notice.shareCopied": "Share link copied",
+    "notice.shareFailed": "Copy failed",
+    "notice.exampleLoaded": "Example loaded",
+    "notice.copiedSymbols": "Copied {count} component(s)",
+    "notice.pastedSymbols": "Pasted {count} component(s)",
+    "doc.untitled": "Untitled Diagram",
+
+    // Fault messages
+    "fault.brokenWire": "Broken wire fault (select wire to restore)",
+    "fault.weldedContact": "{tag} welded contact",
+    "fault.shortCircuit": "Short circuit: {a} and {b} connected to the same point",
+    "fault.fwdRevBothEnergized": "{tag} forward and reverse coils energized simultaneously; mechanical interlock prevented main contact closure",
+
+    // Symbol layer
+    "symbol.weldedTag": "WELD",
+
+    // Examples
+    "example.none.title": "Blank Template",
+    "example.transformer.title": "Transformer",
+    "example.three-phase-motor.title": "Three Phase Motor Control",
+
+    // Status bar
+    "status.edit": "EDIT",
+    "status.run": "RUN",
+    "status.pause": "PAUSE",
 
     // Component labels (catalog)
+    "comp.junction": "Junction",
     "comp.threePhaseMains": "Three-Phase Mains",
     "comp.dcSupply": "DC Supply",
     "comp.transformer": "Transformer",
@@ -243,6 +275,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "ctx.selectAll": "Select All",
     "ctx.paste": "Paste",
     "ctx.brokenWire": "Broken Wire Fault",
+    "ctx.deleteWire": "Delete Wire",
     "ctx.shiftSelect": "(Shift + Select)",
     "ctx.nothingSelected": "Nothing selected",
 
@@ -296,6 +329,10 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "bench.pbNo": "Start",
     "bench.pbNc": "Stop",
     "bench.fwdRev": "FWD/REV",
+    "bench.rev": "REV",
+    "bench.fwd": "FWD",
+    "bench.on": "ON",
+    "bench.off": "OFF",
     "bench.starDeltaStar": "Y",
     "bench.starDeltaDelta": "Δ",
     "bench.overloadTrip": "TRIP",
@@ -414,6 +451,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "inspector.enterLabel": "請輸入標籤，例如 L1、N、T1。",
     "inspector.existingLabels": "套用已有標籤",
     "inspector.select": "(選擇)",
+    "inspector.none": "(無)",
     "inspector.wire": "導線",
     "inspector.wireLabel": "導線標籤",
     "inspector.wireLabelPlaceholder": "例如 L1、220V",
@@ -494,8 +532,39 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     
     // Save to library messages
     "notice.saveToLibSuccess": "已存檔「{name}」到庫中",
+    "notice.savedDoc": "已存檔「{title}」",
+    "notice.noLocalHistory": "無本地歷史",
+    "notice.revertedHistory": "已復原至歷史版本",
+    "notice.noLocalSaves": "無本地存檔",
+    "notice.deletedSaveWithName": "已刪除「{name}」",
+    "notice.shareCopied": "已複製分享鏈接",
+    "notice.shareFailed": "複製失敗",
+    "notice.exampleLoaded": "已載入範例",
+    "notice.copiedSymbols": "已複製 {count} 個元件",
+    "notice.pastedSymbols": "已貼上 {count} 個元件",
+    "doc.untitled": "未命名圖紙",
+
+    // Fault messages
+    "fault.brokenWire": "斷線故障（選取該導線可復原）",
+    "fault.weldedContact": "{tag} 觸點熔死",
+    "fault.shortCircuit": "短路：{a} 與 {b} 接到同一點",
+    "fault.fwdRevBothEnergized": "{tag} 正反轉線圈同時得電，機械互鎖阻止主觸點閉合",
+
+    // Symbol layer
+    "symbol.weldedTag": "熔",
+
+    // Examples
+    "example.none.title": "空白圖紙",
+    "example.transformer.title": "變壓器",
+    "example.three-phase-motor.title": "三相馬達控制",
+
+    // Status bar
+    "status.edit": "編輯",
+    "status.run": "運行",
+    "status.pause": "暫停",
 
     // Component labels (catalog)
+    "comp.junction": "連接點",
     "comp.threePhaseMains": "三相電源",
     "comp.dcSupply": "直流電源",
     "comp.transformer": "變壓器",
@@ -599,6 +668,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "ctx.selectAll": "全選",
     "ctx.paste": "貼上",
     "ctx.brokenWire": "斷線故障",
+    "ctx.deleteWire": "刪除導線",
     "ctx.shiftSelect": "(先 Shift 多選)",
     "ctx.nothingSelected": "未選取任何項目",
 
@@ -652,6 +722,10 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "bench.pbNo": "啟動",
     "bench.pbNc": "停止",
     "bench.fwdRev": "正反轉",
+    "bench.rev": "反轉",
+    "bench.fwd": "正轉",
+    "bench.on": "開啟",
+    "bench.off": "關閉",
     "bench.starDeltaStar": "星形",
     "bench.starDeltaDelta": "三角",
     "bench.overloadTrip": "跳脫",
@@ -662,19 +736,21 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
 };
 
 const DEFAULT_LANG: Lang = "en";
+let memoryLang: Lang = DEFAULT_LANG;
 
 export function getLang(): Lang {
-  if (typeof localStorage === "undefined") return DEFAULT_LANG;
+  if (typeof localStorage === "undefined") return memoryLang;
   try {
     const v = localStorage.getItem("elab.lang");
     if (v === "zh" || v === "en") return v as Lang;
   } catch {
     /* ignore */
   }
-  return DEFAULT_LANG;
+  return memoryLang;
 }
 
 export function setLang(lang: Lang): void {
+  memoryLang = lang;
   try {
     localStorage.setItem("elab.lang", lang);
   } catch {
@@ -765,4 +841,11 @@ export function tOr(key: string, fallback: string, params?: Record<string, strin
   const msg = TRANSLATIONS[getLang()][key];
   if (!msg) return fallback;
   return interpolate(msg, params);
+}
+
+export function formatFaultMessage(f: { level?: "warn" | "error"; message: string; msgKey?: string; msgParams?: Record<string, string | number> }): string {
+  if (f.msgKey) {
+    return t(f.msgKey, f.msgParams);
+  }
+  return f.message;
 }

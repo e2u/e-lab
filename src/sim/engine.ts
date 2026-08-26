@@ -493,7 +493,11 @@ export function tick(
   const faults: Fault[] = [];
   for (const w of circuit.wires) {
     if (w.broken) {
-      faults.push({ level: "warn", message: "斷線故障（選取該導線可復原）" });
+      faults.push({
+        level: "warn",
+        message: "斷線故障（選取該導線可復原）",
+        msgKey: "fault.brokenWire",
+      });
     }
   }
   for (const d of circuit.devices) {
@@ -501,6 +505,8 @@ export function tick(
       faults.push({
         level: "warn",
         message: `${d.tag} 觸點熔死`,
+        msgKey: "fault.weldedContact",
+        msgParams: { tag: d.tag },
         deviceId: d.id,
       });
     }
@@ -514,6 +520,8 @@ export function tick(
       faults.push({
         level: "error",
         message: `短路：${existing.kind} 與 ${p.kind} 接到同一點`,
+        msgKey: "fault.shortCircuit",
+        msgParams: { a: existing.kind, b: p.kind },
         deviceId,
       });
       return;
@@ -673,6 +681,8 @@ export function tick(
       faults.push({
         level: "warn",
         message: `${d.tag} 正反轉線圈同時得電，機械互鎖阻止主觸點閉合`,
+        msgKey: "fault.fwdRevBothEnergized",
+        msgParams: { tag: d.tag },
         deviceId: d.id,
       });
     }

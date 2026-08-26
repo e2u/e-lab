@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { EXAMPLES, type Example } from "./examples";
 import { rotateSelected, useLab } from "./store";
-import { t } from "./i18n";
+import { formatFaultMessage, t, tOr } from "./i18n";
 import { Bench, ProcessRack } from "./ui/Bench";
 import { FilesMenu } from "./ui/FilesMenu";
 import { Inspector } from "./ui/Inspector";
@@ -261,7 +261,7 @@ export function App() {
           >
             {examples.map((ex) => (
               <option key={ex.id} value={ex.id}>
-                {ex.title}
+                {tOr(`example.${ex.id}.title`, ex.title)}
               </option>
             ))}
           </select>
@@ -311,12 +311,12 @@ export function App() {
       </div>
 
       <footer className="statusbar">
-        <span>{mode === "edit" ? "EDIT" : running ? "RUN" : "PAUSE"}</span>
+        <span>{mode === "edit" ? t("status.edit") : running ? t("status.run") : t("status.pause")}</span>
         <span>{Math.round(timeMs)} ms</span>
-        <span>{placing ? `${t("runtime.placing")}: ${ placing}` : t("runtime.wiring")}</span>
+        <span>{placing ? `${t("runtime.placing")}: ${placing}` : t("runtime.wiring")}</span>
         <span>{`${t("wireColor.l1Brown")} · ${t("wireColor.l2Orange")} · ${t("wireColor.l3Yellow")} · ${t("wireColor.nWhite")} · ${t("wireColor.peGreen")}`}</span>
         <span>NEMA/JIC</span>
-        {faults[0] ? <span className="fault">{faults[0].message}</span> : <span>{t("runtime.circuitNormal")}</span>}
+        {faults[0] ? <span className="fault">{formatFaultMessage(faults[0])}</span> : <span>{t("runtime.circuitNormal")}</span>}
         {circuit.wires.some((w) => w.broken) || circuit.devices.some((d) => d.params.welded) ? (
           <span className="fault">{t("runtime.faultInjection")}</span>
         ) : null}

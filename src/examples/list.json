@@ -2,16 +2,18 @@
   "examples": [
     {
       "id": "none",
-      "title": "None"
+      "title": "Blank Template",
+      "blurb": "空白圖紙與基礎電源分配"
     },
     {
       "id": "transformer",
-      "title": "變壓器/Transformer",
+      "title": "Transformer",
       "blurb": "三相電源經變壓器降壓，驅動綠色指示燈。"
     },
     {
       "id": "three-phase-motor",
-      "title": "Three Phase Motor Control"
+      "title": "Three Phase Motor Control",
+      "blurb": "三相電機基礎控制迴路。"
     }
   ]
 }

@@ -89,15 +89,16 @@ export function selfHoldMotor(): Circuit {
   addWire(c, tc.symbol, "S2", nlS2.symbol, "1");
 
   // Control circuit using net labels
-  addWire(c, nlS1.symbol, "1", stop.symbol, "1");
+  addWire(c, nlS1.symbol, "1", fr.symbol, "95");
+  addWire(c, fr.symbol, "96", stop.symbol, "1");
   addWire(c, stop.symbol, "2", start.symbol, "1");
-  addWire(c, start.symbol, "2", fr.symbol, "95");
-  addWire(c, fr.symbol, "96", kmNo, "13");
+  addWire(c, stop.symbol, "2", kmNo, "13");
+  addWire(c, start.symbol, "2", km.symbol, "A1");
   addWire(c, kmNo, "14", km.symbol, "A1");
   addWire(c, km.symbol, "A2", nlS2.symbol, "1");
   
   // Indicator light circuit using net labels
-  addWire(c, nlS1.symbol, "1", hl.symbol, "1");
+  addWire(c, km.symbol, "A1", hl.symbol, "1");
   addWire(c, hl.symbol, "2", nlS2.symbol, "1");
   return c;
 }
@@ -206,27 +207,28 @@ export function starDeltaStart(): Circuit {
   addWire(c, tc.symbol, "S2", nlS2.symbol, "1");
 
   // Control circuit using net labels
-  addWire(c, nlS1.symbol, "1", stop.symbol, "1");
+  addWire(c, nlS1.symbol, "1", fr.symbol, "95");
+  addWire(c, fr.symbol, "96", stop.symbol, "1");
   addWire(c, stop.symbol, "2", start.symbol, "1");
-  addWire(c, start.symbol, "2", fr.symbol, "95");
-  addWire(c, fr.symbol, "96", kmLNo, "13");
+  addWire(c, stop.symbol, "2", kmLNo, "13");
+  addWire(c, start.symbol, "2", kmL.symbol, "A1");
   addWire(c, kmLNo, "14", kmL.symbol, "A1");
   addWire(c, kmL.symbol, "A2", nlS2.symbol, "1");
-  addWire(c, fr.symbol, "96", kt.symbol, "A1");
+  addWire(c, kmL.symbol, "A1", kt.symbol, "A1");
   addWire(c, kt.symbol, "A2", nlS2.symbol, "1");
-  addWire(c, fr.symbol, "96", ktNc, "15");
+  addWire(c, kmL.symbol, "A1", ktNc, "15");
   addWire(c, ktNc, "16", kmDNc, "21");
   addWire(c, kmDNc, "22", kmY.symbol, "A1");
   addWire(c, kmY.symbol, "A2", nlS2.symbol, "1");
-  addWire(c, fr.symbol, "96", ktNo, "15");
+  addWire(c, kmL.symbol, "A1", ktNo, "15");
   addWire(c, ktNo, "18", kmYNc, "21");
   addWire(c, kmYNc, "22", kmD.symbol, "A1");
   addWire(c, kmD.symbol, "A2", nlS2.symbol, "1");
-  addWire(c, nlS1.symbol, "1", hlRun.symbol, "1");
+  addWire(c, kmL.symbol, "A1", hlRun.symbol, "1");
   addWire(c, hlRun.symbol, "2", nlS2.symbol, "1");
-  addWire(c, nlS1.symbol, "1", hlY.symbol, "1");
+  addWire(c, kmY.symbol, "A1", hlY.symbol, "1");
   addWire(c, hlY.symbol, "2", nlS2.symbol, "1");
-  addWire(c, nlS1.symbol, "1", hlD.symbol, "1");
+  addWire(c, kmD.symbol, "A1", hlD.symbol, "1");
   addWire(c, hlD.symbol, "2", nlS2.symbol, "1");
   return c;
 }
@@ -286,6 +288,8 @@ export function selectorReversing(): Circuit {
   // Control circuit
   addWire(c, nl1.symbol, "1", stop.symbol, "1");
   addWire(c, stop.symbol, "2", start.symbol, "1");
+  addWire(c, stop.symbol, "2", fHold, "13");
+  addWire(c, stop.symbol, "2", rHold, "13");
   addWire(c, start.symbol, "2", sa.symbol, "COM");
   addWire(c, fHold, "14", sa.symbol, "COM");
   addWire(c, rHold, "14", sa.symbol, "COM");
@@ -293,60 +297,27 @@ export function selectorReversing(): Circuit {
   addWire(c, rInt, "22", nlA1F.symbol, "1");
   addWire(c, nlA1F.symbol, "1", f.symbol, "A1");
   addWire(c, f.symbol, "A2", nlA2.symbol, "1");
-  addWire(c, nlA2.symbol, "1", ol.symbol, "95");
-  addWire(c, ol.symbol, "96", nl95.symbol, "1");
-  addWire(c, nl95.symbol, "1", nl2.symbol, "1");
   addWire(c, sa.symbol, "REV", fInt, "21");
   addWire(c, fInt, "22", nlA1R.symbol, "1");
   addWire(c, nlA1R.symbol, "1", r.symbol, "A1");
   addWire(c, r.symbol, "A2", nlA2.symbol, "1");
-  addWire(c, nlA2.symbol, "1", nl95.symbol, "1");
+  addWire(c, nlA2.symbol, "1", ol.symbol, "95");
+  addWire(c, ol.symbol, "96", nl95.symbol, "1");
+  addWire(c, nl95.symbol, "1", nl2.symbol, "1");
   addWire(c, f.symbol, "A1", nlA1F.symbol, "1");
   addWire(c, nlA1F.symbol, "1", hlF.symbol, "1");
   addWire(c, hlF.symbol, "2", nlA2.symbol, "1");
-  addWire(c, nlA2.symbol, "1", f.symbol, "A2");
   addWire(c, r.symbol, "A1", nlA1R.symbol, "1");
   addWire(c, nlA1R.symbol, "1", hlR.symbol, "1");
   addWire(c, hlR.symbol, "2", nlA2.symbol, "1");
-  addWire(c, nlA2.symbol, "1", r.symbol, "A2");
   return c;
 }
 
 export const EXAMPLES: Example[] = [
   {
     id: "transformer",
-    title: "變壓器/Transformer",
+    title: "Transformer",
     blurb: "三相電源經變壓器降壓，驅動綠色指示燈。",
     build: transformer,
-  },
-  {
-    id: "lamp",
-    title: "指示燈點動/Lamp Jog",
-    blurb: "按常開按鈕，L1 經按鈕點亮指示燈。/Press NO button to light the lamp from L1.",
-    build: lampJog,
-  },
-  {
-    id: "dol",
-    title: "接觸器自鎖起動",
-    blurb: "停止常閉、起動常開、KM 自鎖、熱繼電保護三相電機。",
-    build: selfHoldMotor,
-  },
-  {
-    id: "rev",
-    title: "正反轉點動",
-    blurb: "正反轉起動器，綠鈕正轉、另一綠鈕反轉，紅鈕停止。",
-    build: fwdRevJog,
-  },
-  {
-    id: "yd",
-    title: "星三角降壓起動",
-    blurb: "KM1 線路、KM2 星形、KM3 三角形，KT 延時由星切三角。",
-    build: starDeltaStart,
-  },
-  {
-    id: "selrev",
-    title: "選擇開關正反轉",
-    blurb: "NEMA 梯形圖：STOP／START、FWD-OFF-REV 選擇開關、F／R 互鎖。先撳選擇開關再 START。",
-    build: selectorReversing,
   },
 ];

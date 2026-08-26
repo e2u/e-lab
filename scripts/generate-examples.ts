@@ -303,12 +303,7 @@ interface ExampleJson {
 }
 
 const examples: ExampleJson[] = [
-  { id: "transformer", version: 1, name: "變壓器/Transformer", circuit: transformer() },
-  { id: "lamp", version: 1, name: "指示燈點動/Lamp Jog", circuit: lampJog() },
-  { id: "dol", version: 1, name: "接觸器自鎖起動", circuit: selfHoldMotor() },
-  { id: "rev", version: 1, name: "正反轉點動", circuit: fwdRevJog() },
-  { id: "yd", version: 1, name: "星三角降壓起動", circuit: starDeltaStart() },
-  { id: "selrev", version: 1, name: "選擇開關正反轉", circuit: selectorReversing() },
+  { id: "transformer", version: 1, name: "Transformer", circuit: transformer() },
 ];
 
 // Generate JSON files

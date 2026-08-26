@@ -35,7 +35,9 @@ export function App() {
   const docName = useLab((s) => s.docName);
   const process = useLab((s) => s.process);
   const lang = useLab((s) => s.lang);
+  const isDirty = useLab((s) => s.isDirty);
   const [examples, setExamples] = useState<Example[]>(EXAMPLES);
+  const [selectedExample, setSelectedExample] = useState<string>("none");
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'new' | 'example'; exampleId?: string } | null>(null);
 
@@ -147,10 +149,11 @@ export function App() {
   useEffect(() => {
     loadExamplesFromImports().then(setExamples);
     
-    // Load Three-Phase Motor Control example on first visit (when circuit is empty)
+    // Load DOL Starter example on first visit (when circuit is empty)
     const lab = useLab.getState();
     if (lab.circuit.devices.length === 0 && lab.circuit.symbols.length === 0) {
-      lab.loadExample("three-phase-motor");
+      setSelectedExample("dol");
+      lab.loadExample("dol");
     }
   }, []);
 
@@ -176,16 +179,26 @@ export function App() {
 
   const faults = snapshot.faults;
 
-  // Handle new diagram - show modal for unsaved changes
+  // Handle new diagram - show modal for unsaved changes only if dirty
   const handleRequestNewDiagram = () => {
-    setPendingAction({ type: 'new' });
-    setDiscardModalOpen(true);
+    if (isDirty) {
+      setPendingAction({ type: 'new' });
+      setDiscardModalOpen(true);
+    } else {
+      setSelectedExample("none");
+      useLab.getState().loadBlankTemplate(true);
+    }
   };
 
-  // Handle example selection - show modal for unsaved changes
+  // Handle example selection - show modal for unsaved changes only if dirty
   const handleRequestSelectExample = (exampleId: string) => {
-    setPendingAction({ type: 'example', exampleId });
-    setDiscardModalOpen(true);
+    if (isDirty) {
+      setPendingAction({ type: 'example', exampleId });
+      setDiscardModalOpen(true);
+    } else {
+      setSelectedExample(exampleId);
+      useLab.getState().loadExample(exampleId);
+    }
   };
 
   // Handle discard modal action
@@ -202,15 +215,19 @@ export function App() {
       useLab.getState().exportFile();
       
       if (pendingAction.type === 'new') {
+        setSelectedExample("none");
         useLab.getState().loadBlankTemplate(true);
       } else if (pendingAction.type === 'example' && pendingAction.exampleId) {
+        setSelectedExample(pendingAction.exampleId);
         useLab.getState().loadExample(pendingAction.exampleId);
       }
     } else if (action === 'discard') {
       // Discard changes and continue with the action
       if (pendingAction.type === 'new') {
+        setSelectedExample("none");
         useLab.getState().loadBlankTemplate(true);
       } else if (pendingAction.type === 'example' && pendingAction.exampleId) {
+        setSelectedExample(pendingAction.exampleId);
         useLab.getState().loadExample(pendingAction.exampleId);
       }
     }
@@ -239,7 +256,7 @@ export function App() {
         <div className="top-actions">
           <label className="action-label">{t("lib.example")}:</label>
           <select 
-            defaultValue="none"  // Changed from "dol" to "none"
+            value={selectedExample}
             onChange={(e) => handleRequestSelectExample(e.target.value)}
           >
             {examples.map((ex) => (
@@ -267,8 +284,11 @@ export function App() {
             <option value="zh">{t("lang.zh")}</option>
           </select>
           <FilesMenu />
-          <button className="btn" onClick={() => useLab.getState().undo()}>
+          <button className="btn" onClick={() => useLab.getState().undo()} title={t("toolbar.undo")}>
             {t("toolbar.undo")}
+          </button>
+          <button className="btn" onClick={() => useLab.getState().redo()} title={t("toolbar.redo")}>
+            {t("toolbar.redo")}
           </button>
         </div>
       </header>

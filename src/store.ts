@@ -22,15 +22,6 @@ import { emptySnapshot, tick } from "./sim/engine";
 import { GRID, type Circuit, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
-// Check if circuit has unsaved changes by comparing with a reference (e.g., blank template)
-function hasUnsavedChanges(circuit: Circuit): boolean {
-  return (
-    circuit.devices.length > 0 ||
-    circuit.symbols.length > 0 ||
-    circuit.wires.length > 0
-  );
-}
-
 function readLang(): Lang {
   return getLanguage();
 }
@@ -60,6 +51,7 @@ export interface LabState {
   notice: string | null;
   savesTick: number;
   lang: Lang;
+  isDirty: boolean;
 
   setMode: (mode: Mode) => void;
   setRunning: (running: boolean) => void;
@@ -145,7 +137,7 @@ function mergeRuntime(circuit: Circuit, prev: SimSnapshot["runtime"]): SimSnapsh
   return next;
 }
 
-// Initialize with blank template for fresh start (ignores localStorage draft)
+// Initialize from URL share hash, saved draft, or fallback to empty template
 const boot = startupDoc(emptyCircuit, "未命名圖紙");
 sanitizeCircuitIds(boot.circuit);
 
@@ -165,10 +157,11 @@ export const useLab = create<LabState>((set, get) => ({
   future: [],
   timeMs: 0,
   hoverPort: null,
-  docName: boot.name,
+  docName: boot.name ?? "未命名圖紙",
   notice: null,
   savesTick: 0,
   lang: readLang(),
+  isDirty: false,
 
   pushHistory: () => {
     const { history, circuit } = get();
@@ -262,6 +255,7 @@ export const useLab = create<LabState>((set, get) => ({
       selectedIds: g.memberIds,
       selected: { type: "symbol", id: g.memberIds[0] },
       notice: t("notice.groupCreated", { count: g.memberIds.length }),
+      isDirty: true,
     });
   },
   ungroupSelected: () => {
@@ -270,7 +264,7 @@ export const useLab = create<LabState>((set, get) => ({
     get().pushHistory();
     const next = clone(circuit);
     ungroupSymbols(next, selectedIds);
-    set({ circuit: next, notice: t("notice.ungrouped") });
+    set({ circuit: next, notice: t("notice.ungrouped"), isDirty: true });
   },
   selectAll: () => {
     const ids = get().circuit.symbols.map((s) => s.id);
@@ -315,6 +309,7 @@ export const useLab = create<LabState>((set, get) => ({
         placing: null, // 放置一個元件後回到佈線模式
         wiringFrom: null,
         snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
+        isDirty: true,
       });
       return;
     }
@@ -337,6 +332,7 @@ export const useLab = create<LabState>((set, get) => ({
       placing: null, // 放置一個元件後回到佈線模式
       wiringFrom: null,
       snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
+      isDirty: true,
     });
   },
 
@@ -346,7 +342,7 @@ export const useLab = create<LabState>((set, get) => ({
     if (!sym) return;
     sym.x = x;
     sym.y = y;
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
   moveGroup: (updates) => {
     const next = clone(get().circuit);
@@ -357,7 +353,7 @@ export const useLab = create<LabState>((set, get) => ({
         sym.y = u.y;
       }
     }
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
 
   setWireJog: (id, jog) => {
@@ -365,7 +361,7 @@ export const useLab = create<LabState>((set, get) => ({
     const w = next.wires.find((x) => x.id === id);
     if (!w) return;
     w.jog = jog;
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
 
   clickPort: (port) => {
@@ -390,7 +386,7 @@ export const useLab = create<LabState>((set, get) => ({
       a: from,
       b: port,
     });
-    set({ circuit: next, wiringFrom: null });
+    set({ circuit: next, wiringFrom: null, isDirty: true });
   },
 
   connectToWire: (wireId, world) => {
@@ -413,7 +409,7 @@ export const useLab = create<LabState>((set, get) => ({
     if (!portsEqual(from, port) && !next.wires.some((item) => wireHasEnds(item, from, port))) {
       next.wires.push({ id: uid("w"), a: from, b: port });
     }
-    set({ circuit: next, wiringFrom: null });
+    set({ circuit: next, wiringFrom: null, isDirty: true });
   },
 
   pointerDevice: (deviceId, down) => {
@@ -472,6 +468,7 @@ export const useLab = create<LabState>((set, get) => ({
     shaftWith?: string;
     welded?: boolean;
   }) => {
+    get().pushHistory();
     const next = clone(get().circuit);
     const d = next.devices.find((x) => x.id === deviceId);
     if (!d) return;
@@ -487,15 +484,16 @@ export const useLab = create<LabState>((set, get) => ({
     if (patch.secondaryConn !== undefined) d.params.secondaryConn = patch.secondaryConn;
     if (patch.shaftWith !== undefined) d.params.shaftWith = patch.shaftWith;
     if (patch.welded !== undefined) d.params.welded = patch.welded;
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
 
   rebind: (symbolId, deviceId) => {
+    get().pushHistory();
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === symbolId);
     if (!sym) return;
     sym.deviceId = deviceId;
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
 
   deleteSelected: () => {
@@ -524,14 +522,14 @@ export const useLab = create<LabState>((set, get) => ({
       }
       pruneGroups(next);
     }
-    set({ circuit: next, selected: null, selectedIds: [] });
+    set({ circuit: next, selected: null, selectedIds: [], isDirty: true });
   },
 
   loadExample: async (id) => {
     // Special case: none means load blank template
     if (id === "none") {
       get().pushHistory();
-      get().loadBlankTemplate();
+      get().loadBlankTemplate(true);
       return;
     }
     
@@ -557,6 +555,7 @@ export const useLab = create<LabState>((set, get) => ({
         running: false,
         mode: "edit",
         docName: docName,
+        isDirty: false,
       });
       return;
     }
@@ -579,10 +578,17 @@ export const useLab = create<LabState>((set, get) => ({
       running: false,
       mode: "edit",
       docName: ex.title,
+      isDirty: false,
     });
   },
 
-  loadBlankTemplate: () => {
+  loadBlankTemplate: (skipConfirm = false) => {
+    if (!skipConfirm && get().isDirty) {
+      const confirmDiscard = t("msg.confirmDiscard") || "Current diagram will be lost. Continue?";
+      if (!window.confirm(confirmDiscard)) {
+        return;
+      }
+    }
     // Default blank template with power distribution using net labels and isolator
     const c = emptyCircuit();
     
@@ -626,17 +632,12 @@ export const useLab = create<LabState>((set, get) => ({
       running: false,
       mode: "edit",
       docName: "未命名圖紙",
+      isDirty: false,
     });
   },
 
   newBoard: () => {
-    if (hasUnsavedChanges(get().circuit)) {
-      const confirmDiscard = t("msg.confirmDiscard") || "Current diagram will be lost. Continue?";
-      if (!window.confirm(confirmDiscard)) {
-        return; // User cancelled
-      }
-    }
-    useLab.getState().loadBlankTemplate(true); // Skip confirm in loadBlankTemplate since we already confirmed
+    get().loadBlankTemplate();
   },
 
   undo: () => {
@@ -649,6 +650,7 @@ export const useLab = create<LabState>((set, get) => ({
       circuit: prev,
       selected: null,
       selectedIds: [],
+      isDirty: true,
     });
   },
   redo: () => {
@@ -661,6 +663,7 @@ export const useLab = create<LabState>((set, get) => ({
       circuit: nxt,
       selected: null,
       selectedIds: [],
+      isDirty: true,
     });
   },
 
@@ -679,17 +682,19 @@ export const useLab = create<LabState>((set, get) => ({
       mode: "edit",
       docName: name ?? get().docName,
       process: process ?? get().process,
+      isDirty: false,
     });
   },
-  setDocName: (name) => set({ docName: name }),
+  setDocName: (name) => set({ docName: name, isDirty: true }),
   setNotice: (notice) => set({ notice }),
 
   updateWire: (id, patch) => {
+    get().pushHistory();
     const next = clone(get().circuit);
     const w = next.wires.find((x) => x.id === id);
     if (!w) return;
     if (patch.label !== undefined) w.label = patch.label;
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
   toggleWireBroken: (id) => {
     get().pushHistory();
@@ -697,7 +702,7 @@ export const useLab = create<LabState>((set, get) => ({
     const w = next.wires.find((x) => x.id === id);
     if (!w) return;
     w.broken = !w.broken;
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
   toggleDeviceWelded: (id) => {
     get().pushHistory();
@@ -705,14 +710,14 @@ export const useLab = create<LabState>((set, get) => ({
     const d = next.devices.find((x) => x.id === id);
     if (!d) return;
     d.params.welded = !d.params.welded;
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
   clearFaults: () => {
     get().pushHistory();
     const next = clone(get().circuit);
     for (const w of next.wires) w.broken = false;
     for (const d of next.devices) d.params.welded = false;
-    set({ circuit: next, notice: "已清除全部故障" });
+    set({ circuit: next, notice: "已清除全部故障", isDirty: true });
   },
 
   saveToLibrary: (name) => {
@@ -725,14 +730,14 @@ export const useLab = create<LabState>((set, get) => ({
       doc: makeDoc(s.circuit, title, s.process),
     };
     putSave(save);
-    set({ docName: title, savesTick: s.savesTick + 1, notice: `已存檔「${title}」` });
+    set({ docName: title, savesTick: s.savesTick + 1, notice: `已存檔「${title}」`, isDirty: false });
   },
   loadSave: (id) => {
     const found = listSaves().find((s) => s.id === id);
     if (!found) return;
     get().pushHistory();
     get().loadCircuit(found.doc.circuit, found.name, found.doc.process);
-    set({ notice: t("notice.loadSave", { name: found.name }) });
+    set({ notice: t("notice.loadSave", { name: found.name }), isDirty: false });
   },
   deleteSave: (id) => {
     removeSave(id);
@@ -742,7 +747,7 @@ export const useLab = create<LabState>((set, get) => ({
     const s = get();
     const name = s.docName.trim() || "elab-circuit";
     downloadJson(makeDoc(s.circuit, name, s.process), `${name}.json`);
-    set({ notice: t("notice.exportJson") });
+    set({ notice: t("notice.exportJson"), isDirty: false });
   },
   importDoc: (raw) => {
     const doc = parseDoc(raw);
@@ -787,7 +792,7 @@ export const useLab = create<LabState>((set, get) => ({
       const step = dir === 1 ? 90 : 270;
       sym.rot = ((sym.rot + step) % 360) as 0 | 90 | 180 | 270;
     }
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
 
   flipSelected: (axis) => {
@@ -805,7 +810,7 @@ export const useLab = create<LabState>((set, get) => ({
       if (!sym || isJunctionSymbol(next, id)) continue;
       toggleWorldFlip(sym, axis);
     }
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
 
   nudgeSelected: (dx, dy) => {
@@ -819,7 +824,7 @@ export const useLab = create<LabState>((set, get) => ({
       sym.x += dx;
       sym.y += dy;
     }
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
 
   alignSelected: (edge) => {
@@ -852,7 +857,7 @@ export const useLab = create<LabState>((set, get) => ({
       if (edge === "hcenter") sym.x = Math.round(midX - box.w / 2);
       if (edge === "vcenter") sym.y = Math.round(midY - box.h / 2);
     }
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
 
   snapSelected: () => {
@@ -866,7 +871,7 @@ export const useLab = create<LabState>((set, get) => ({
       sym.x = Math.round(sym.x);
       sym.y = Math.round(sym.y);
     }
-    set({ circuit: next });
+    set({ circuit: next, isDirty: true });
   },
 
   duplicateSelected: () => {
@@ -955,6 +960,7 @@ export const useLab = create<LabState>((set, get) => ({
       selected: newIds.length ? { type: "symbol", id: newIds[0] } : null,
       selectedIds: newIds,
       snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
+      isDirty: true,
     });
   },
 

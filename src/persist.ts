@@ -24,7 +24,39 @@ const DRAFT_KEY = "elab.draft";
 export function isCircuit(value: unknown): value is Circuit {
   if (!value || typeof value !== "object") return false;
   const c = value as Circuit;
-  return Array.isArray(c.devices) && Array.isArray(c.symbols) && Array.isArray(c.wires);
+  if (!Array.isArray(c.devices) || !Array.isArray(c.symbols) || !Array.isArray(c.wires)) {
+    return false;
+  }
+  const validDevices = c.devices.every(
+    (d) => d && typeof d.id === "string" && typeof d.kind === "string" && typeof d.tag === "string",
+  );
+  if (!validDevices) return false;
+
+  const validSymbols = c.symbols.every(
+    (s) =>
+      s &&
+      typeof s.id === "string" &&
+      typeof s.deviceId === "string" &&
+      typeof s.variant === "string" &&
+      typeof s.x === "number" &&
+      typeof s.y === "number",
+  );
+  if (!validSymbols) return false;
+
+  const validWires = c.wires.every(
+    (w) =>
+      w &&
+      typeof w.id === "string" &&
+      w.a &&
+      typeof w.a.symbolId === "string" &&
+      typeof w.a.term === "string" &&
+      w.b &&
+      typeof w.b.symbolId === "string" &&
+      typeof w.b.term === "string",
+  );
+  if (!validWires) return false;
+
+  return true;
 }
 
 export function parseDoc(raw: unknown): LabDoc | null {

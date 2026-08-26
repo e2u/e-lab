@@ -3,9 +3,9 @@
 
 SHELL := /bin/bash
 NODE_VERSION := $(shell node --version 2>/dev/null || echo "not installed")
-NPM_VERSION := $(shell npm --version 2>/dev/null || echo "not installed")
+YARN_VERSION := $(shell yarn --version 2>/dev/null || echo "not installed")
 
-.PHONY: help install dev build preview deploy clean
+.PHONY: help install dev build preview test deploy clean
 
 help:
 	@echo "E-LAB Project - Available commands:"
@@ -21,27 +21,27 @@ help:
 install:
 	@if [ ! -d "node_modules" ]; then \
 		echo "Installing dependencies..."; \
-		npm install; \
+		yarn install; \
 	else \
 		echo "Dependencies already installed."; \
 	fi
 
 dev:
 	@echo "Starting development server..."
-	@npm run dev
+	@yarn dev
 
 build:
 	@echo "Building production version..."
-	@GITHUB_REPOSITORY=$(GITHUB_REPOSITORY) NODE_ENV=production npm run build
+	@GITHUB_REPOSITORY=$(GITHUB_REPOSITORY) NODE_ENV=production yarn build
 	@echo "Build completed! Output is in dist/ directory."
 
 preview:
 	@echo "Previewing production build..."
-	@npm run preview
+	@yarn preview
 
 test:
 	@echo "Running tests..."
-	@npm test
+	@yarn test
 
 deploy: build
 	@echo "Deploying to GitHub Pages..."

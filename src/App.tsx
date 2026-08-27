@@ -200,7 +200,19 @@ export function App() {
   // Mobile detection
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth <= 768;
+      // A device should be in mobile / drawer mode if:
+      // 1. Width <= 768px (portrait phones, small tablets)
+      // 2. OR Height <= 550px with Width <= 1024px (phones in landscape orientation)
+      // 3. OR Touch device ((hover: none) and (pointer: coarse)) with Width <= 1024px
+      const isTouch = typeof window !== "undefined" && (
+        window.matchMedia?.("(hover: none) and (pointer: coarse)").matches ||
+        (navigator?.maxTouchPoints ?? 0) > 0
+      );
+      const isLandscapeMobile = window.innerHeight <= 550 && window.innerWidth <= 1024;
+      const isSmallWidth = window.innerWidth <= 768;
+      const isTouchTabletOrPhone = Boolean(isTouch && window.innerWidth <= 1024);
+
+      const mobile = isSmallWidth || isLandscapeMobile || isTouchTabletOrPhone;
       setIsMobile(mobile);
       // Sync mobile drawer state with store state on desktop
       if (!mobile) {
@@ -210,13 +222,18 @@ export function App() {
     };
     checkMobile();
     window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    window.addEventListener("orientationchange", checkMobile);
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+      window.removeEventListener("orientationchange", checkMobile);
+    };
   }, []);
 
   // Adaptive initial zoom for small screens
   // Only apply if zoom is still at default (1.0) meaning user hasn't customized it
   useEffect(() => {
-    if (window.innerWidth <= 768 && zoom === 1) {
+    const isSmall = window.innerWidth <= 768 || window.innerHeight <= 550;
+    if (isSmall && zoom === 1) {
       useLab.getState().setZoom(0.5);
     }
   }, [zoom]);

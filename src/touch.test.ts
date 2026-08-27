@@ -82,4 +82,37 @@ describe("touch & mobile adaptation", () => {
     useLab.getState().redo();
     expect(useLab.getState().circuit.symbols.length).toBe(initialSymbolCount + 1);
   });
+
+  it("identifies mobile landscape and touch device conditions correctly", () => {
+    // Helper function matching the detection logic in App.tsx and CSS
+    const isMobileMode = (width: number, height: number, isTouch: boolean) => {
+      const isLandscapeMobile = height <= 550 && width <= 1024;
+      const isSmallWidth = width <= 768;
+      const isTouchTabletOrPhone = isTouch && width <= 1024;
+      return isSmallWidth || isLandscapeMobile || isTouchTabletOrPhone;
+    };
+
+    // 1. Phone portrait (e.g. iPhone 14 Pro: 393 x 852)
+    expect(isMobileMode(393, 852, true)).toBe(true);
+    expect(isMobileMode(393, 852, false)).toBe(true);
+
+    // 2. Phone landscape (e.g. iPhone 14 Pro: 852 x 393) -> width > 768, height <= 550
+    expect(isMobileMode(852, 393, true)).toBe(true);
+    expect(isMobileMode(852, 393, false)).toBe(true); // Should still be mobile due to height <= 550
+
+    // 3. Android phone landscape (e.g. Pixel 7: 915 x 412)
+    expect(isMobileMode(915, 412, true)).toBe(true);
+
+    // 4. iPad portrait (768 x 1024)
+    expect(isMobileMode(768, 1024, true)).toBe(true);
+
+    // 5. iPad landscape (1024 x 768) with touch
+    expect(isMobileMode(1024, 768, true)).toBe(true);
+
+    // 6. Desktop 1080p (1920 x 1080) without touch -> Desktop mode
+    expect(isMobileMode(1920, 1080, false)).toBe(false);
+
+    // 7. Desktop laptop (1366 x 768) without touch -> Desktop mode
+    expect(isMobileMode(1366, 768, false)).toBe(false);
+  });
 });

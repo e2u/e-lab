@@ -974,8 +974,8 @@ input[type="range"] { width: 100%; accent-color: var(--stripe); }
   }
 }
 
-/* Tablet portrait / mobile landscape (<= 768px) - Drawer mode */
-@media (max-width: 768px) {
+/* Tablet portrait / mobile landscape / touch devices (<= 768px, or <= 550px height, or touch <= 1024px) - Drawer mode */
+@media (max-width: 768px), (max-height: 550px) and (max-width: 1024px), (hover: none) and (pointer: coarse) and (max-width: 1024px) {
   .app {
     grid-template-rows: 46px 1fr 28px;
   }
@@ -1165,8 +1165,8 @@ input[type="range"] { width: 100%; accent-color: var(--stripe); }
   }
 }
 
-/* Height-constrained screens (e.g. 1366x768, 1280x720, laptops with taskbar) */
-@media (max-height: 800px) {
+/* Height-constrained desktop screens (e.g. 1366x768, 1280x720, laptops with taskbar) */
+@media (max-height: 800px) and (min-width: 1025px) {
   .app {
     grid-template-rows: 44px 1fr 26px;
   }
@@ -1342,7 +1342,7 @@ html, body {
   margin: 0 2px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 550px) {
   .floating-action-bar {
     bottom: 10px;
     padding: 3px 6px;

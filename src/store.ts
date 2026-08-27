@@ -39,7 +39,7 @@ function readZoom(): number {
   }
   // Adaptive default on first run based on screen resolution
   if (typeof window !== "undefined") {
-    if (window.innerWidth <= 768) return 0.5;
+    if (window.innerWidth <= 768 || window.innerHeight <= 550) return 0.5;
     if (window.innerWidth <= 1280 || window.innerHeight <= 720) return 0.5;
     if (window.innerWidth <= 1440 || window.innerHeight <= 850) return 0.75;
   }
@@ -1170,10 +1170,11 @@ export const useLab = create<LabState>((set, get) => ({
     let availW = 800;
     let availH = 600;
     if (typeof window !== "undefined") {
-      const paletteW = get().paletteOpen ? (window.innerWidth <= 1024 ? 180 : 220) : 0;
-      const sideW = get().sideOpen ? (window.innerWidth <= 1024 ? 220 : 260) : 0;
-      availW = Math.max(window.innerWidth - paletteW - sideW - 60, 300);
-      availH = Math.max(window.innerHeight - 130, 300);
+      const isDrawerMode = window.innerWidth <= 768 || window.innerHeight <= 550 || ((navigator?.maxTouchPoints ?? 0) > 0 && window.innerWidth <= 1024);
+      const paletteW = (!isDrawerMode && get().paletteOpen) ? (window.innerWidth <= 1024 ? 180 : 220) : 0;
+      const sideW = (!isDrawerMode && get().sideOpen) ? (window.innerWidth <= 1024 ? 220 : 260) : 0;
+      availW = Math.max(window.innerWidth - paletteW - sideW - 40, 300);
+      availH = Math.max(window.innerHeight - 90, 200);
     }
 
     const scale = Math.min(availW / contentW, availH / contentH);

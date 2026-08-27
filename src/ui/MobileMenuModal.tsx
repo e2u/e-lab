@@ -28,6 +28,7 @@ export function MobileMenuModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docName = useLab((s) => s.docName);
   const lang = useLab((s) => s.lang);
+  const theme = useLab((s) => s.theme);
   const zoom = useLab((s) => s.zoom);
   const savesTick = useLab((s) => s.savesTick);
   const circuit = useLab((s) => s.circuit);
@@ -255,6 +256,27 @@ export function MobileMenuModal({
                   onClick={() => useLab.getState().setLang("en")}
                 >
                   English
+                </button>
+              </div>
+            </div>
+
+            {/* Theme Switch */}
+            <div className="mobile-pref-row">
+              <span className="mobile-pref-label">{t("theme.theme") || "Theme"}</span>
+              <div className="mobile-segmented-control">
+                <button
+                  type="button"
+                  className={`mobile-segment-btn ${theme === "dark" ? "active" : ""}`}
+                  onClick={() => useLab.getState().setTheme("dark")}
+                >
+                  🌙 {t("theme.dark") || "Dark"}
+                </button>
+                <button
+                  type="button"
+                  className={`mobile-segment-btn ${theme === "light" ? "active" : ""}`}
+                  onClick={() => useLab.getState().setTheme("light")}
+                >
+                  ☀️ {t("theme.light") || "Light"}
                 </button>
               </div>
             </div>

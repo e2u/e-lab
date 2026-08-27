@@ -40,6 +40,7 @@ export function App() {
   const docName = useLab((s) => s.docName);
   const process = useLab((s) => s.process);
   const lang = useLab((s) => s.lang);
+  const theme = useLab((s) => s.theme);
   const isDirty = useLab((s) => s.isDirty);
   const paletteOpen = useLab((s) => s.paletteOpen);
   const sideOpen = useLab((s) => s.sideOpen);
@@ -68,6 +69,13 @@ export function App() {
     const id = window.setTimeout(() => useLab.getState().setNotice(null), 2600);
     return () => window.clearTimeout(id);
   }, [notice]);
+
+  // Sync theme attribute to <html> element
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", theme);
+    }
+  }, [theme]);
 
   useEffect(() => {
     if (!running || mode !== "run") return;
@@ -448,6 +456,15 @@ export function App() {
               <option value="en">{t("lang.en")}</option>
               <option value="zh">{t("lang.zh")}</option>
             </select>
+            <button
+              type="button"
+              className="btn btn-theme-toggle"
+              onClick={() => useLab.getState().toggleTheme()}
+              title={theme === "dark" ? (t("theme.switchToLight") || "Switch to Light Theme") : (t("theme.switchToDark") || "Switch to Dark Theme")}
+              aria-label={t("theme.theme") || "Theme"}
+            >
+              {theme === "dark" ? `🌙 ${t("theme.dark") || "Dark"}` : `☀️ ${t("theme.light") || "Light"}`}
+            </button>
             <FilesMenu />
             <button className="btn" onClick={() => useLab.getState().undo()} title={t("toolbar.undo")}>
               {t("toolbar.undo")}
@@ -631,6 +648,7 @@ export function App() {
         {circuit.wires.some((w) => w.broken) || circuit.devices.some((d) => d.params.welded) ? (
           <span className="fault">{t("runtime.faultInjection")}</span>
         ) : null}
+        <span className="statusbar-copyright">@2026 DW. All rights reserved.</span>
       </footer>
     </div>
   );

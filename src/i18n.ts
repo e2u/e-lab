@@ -526,6 +526,13 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     // Language options for dropdown
     "lang.en": "English",
     "lang.zh": "中文",
+
+    // Theme options
+    "theme.theme": "Theme",
+    "theme.dark": "Dark",
+    "theme.light": "Light",
+    "theme.switchToLight": "Switch to Light Theme",
+    "theme.switchToDark": "Switch to Dark Theme",
   },
   zh: {
     // Wire color codes (美國標準 with line identifiers)
@@ -1038,6 +1045,13 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "bench.overloadReset": "復位",
     "bench.alarmSound": "鳴",
     "bench.hint": "運行模式下按綠鈕起動、紅鈕停止。熱繼電可模擬跳脫。",
+
+    // Theme options
+    "theme.theme": "介面外觀",
+    "theme.dark": "深色",
+    "theme.light": "淺色",
+    "theme.switchToLight": "切換為淺色外觀",
+    "theme.switchToDark": "切換為深色外觀",
   },
 };
 

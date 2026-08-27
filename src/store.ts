@@ -20,11 +20,20 @@ import {
   type SavedLab,
 } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
-import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
+import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type Theme, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
 function readLang(): Lang {
   return getLanguage();
+}
+
+function readTheme(): Theme {
+  if (typeof localStorage === "undefined") return "light";
+  try {
+    const val = localStorage.getItem("elab.theme");
+    if (val === "light" || val === "dark") return val;
+  } catch {}
+  return "light";
 }
 
 function readZoom(): number {
@@ -86,6 +95,7 @@ export interface LabState {
   notice: string | null;
   savesTick: number;
   lang: Lang;
+  theme: Theme;
   isDirty: boolean;
   paletteOpen: boolean;
   sideOpen: boolean;
@@ -181,6 +191,8 @@ export interface LabState {
   copyShareLink: () => Promise<void>;
   persistDraft: () => void;
   setLang: (lang: Lang) => void;
+  setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
   setPaletteOpen: (open: boolean) => void;
   setSideOpen: (open: boolean) => void;
   togglePalette: () => void;
@@ -271,6 +283,7 @@ export const useLab = create<LabState>((set, get) => ({
   notice: null,
   savesTick: 0,
   lang: readLang(),
+  theme: readTheme(),
   isDirty: false,
   paletteOpen: sidebarBoot.paletteOpen,
   sideOpen: sidebarBoot.sideOpen,
@@ -1177,6 +1190,23 @@ export const useLab = create<LabState>((set, get) => ({
   setLang: (lang) => {
     setLanguage(lang);
     set({ lang, notice: lang === "zh" ? t("notice.lang.zh") : t("notice.lang.en") });
+  },
+
+  setTheme: (theme) => {
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("elab.theme", theme);
+      }
+      if (typeof document !== "undefined") {
+        document.documentElement.setAttribute("data-theme", theme);
+      }
+    } catch {}
+    set({ theme });
+  },
+
+  toggleTheme: () => {
+    const next = get().theme === "dark" ? "light" : "dark";
+    get().setTheme(next);
   },
 
   setPaletteOpen: (open) => {

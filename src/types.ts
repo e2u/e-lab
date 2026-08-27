@@ -10,6 +10,9 @@ export type Rot = 0 | 90 | 180 | 270;
 /** Language code for UI localization */
 export type Lang = "en" | "zh";
 
+/** UI Theme */
+export type Theme = "dark" | "light";
+
 export type DeviceKind =
   | "mains-3ph"
   | "dc-supply"

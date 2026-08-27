@@ -34,7 +34,7 @@ export function useSchematicEvents({
   } | null>(null);
   const wireDrag = useRef<{ id: string; axis: "x" | "y" } | null>(null);
   const junctionClick = useRef<{ id: string; x: number; y: number } | null>(null);
-  const clickIsolate = useRef<{ id: string; x: number; y: number } | null>(null);
+  const lastSymbolTapRef = useRef<{ id: string; time: number; x: number; y: number } | null>(null);
   const marqueeRef = useRef<{ x0: number; y0: number; x1: number; y1: number; shift: boolean } | null>(null);
   const [marqueeView, setMarqueeView] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [wireCursor, setWireCursor] = useState<"ew-resize" | "ns-resize" | "grab" | null>(null);
@@ -56,7 +56,6 @@ export function useSchematicEvents({
       drag.current = null;
       wireDrag.current = null;
       junctionClick.current = null;
-      clickIsolate.current = null;
       paperTouchPanRef.current = null;
     };
     window.addEventListener("pointerup", handleGlobalPointerUp);
@@ -168,7 +167,6 @@ export function useSchematicEvents({
     drag.current = null;
     wireDrag.current = null;
     junctionClick.current = null;
-    clickIsolate.current = null;
     marqueeRef.current = null;
     setMarqueeView(null);
     paperTouchPanRef.current = null;
@@ -391,19 +389,14 @@ export function useSchematicEvents({
       drag.current = null;
       wireDrag.current = null;
       junctionClick.current = null;
-      clickIsolate.current = null;
       return;
     }
     const jc = junctionClick.current;
     junctionClick.current = null;
-    const iso = clickIsolate.current;
-    clickIsolate.current = null;
     drag.current = null;
     wireDrag.current = null;
     if (jc && Math.hypot(e.clientX - jc.x, e.clientY - jc.y) < 6) {
       useLab.getState().clickPort({ symbolId: jc.id, term: "1" });
-    } else if (iso && Math.hypot(e.clientX - iso.x, e.clientY - iso.y) < 6) {
-      useLab.getState().select({ type: "symbol", id: iso.id });
     }
   };
 
@@ -482,6 +475,23 @@ export function useSchematicEvents({
       return;
     }
     if (lab.mode === "edit") {
+      const now = Date.now();
+      const lastTap = lastSymbolTapRef.current;
+      const isDoubleTap =
+        lastTap &&
+        lastTap.id === sym.id &&
+        now - lastTap.time < 350 &&
+        Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 20;
+      lastSymbolTapRef.current = { id: sym.id, time: now, x: e.clientX, y: e.clientY };
+
+      if (isDoubleTap && e.button === 0) {
+        cancelLongPress();
+        drag.current = null;
+        lab.select({ type: "symbol", id: sym.id }, true);
+        lab.setSideOpen(true);
+        return;
+      }
+
       startLongPress(e, (pos) => {
         if (!lab.selectedIds.includes(sym.id)) {
           lab.select({ type: "symbol", id: sym.id });
@@ -503,9 +513,6 @@ export function useSchematicEvents({
         lab.select({ type: "symbol", id: sym.id });
       } else {
         useLab.setState({ selected: { type: "symbol", id: sym.id } });
-        if (lab.selectedIds.length > 1) {
-          clickIsolate.current = { id: sym.id, x: e.clientX, y: e.clientY };
-        }
       }
       const p = toGrid(e);
       const ids = useLab.getState().selectedIds;
@@ -533,6 +540,16 @@ export function useSchematicEvents({
     if (e.button === 0) {
       interact(dev.kind, dev.id, true);
     }
+  };
+
+  const onSymbolDoubleClick = (e: MouseEvent<SVGElement>, sym: SymbolInst, _dev: Device) => {
+    e.stopPropagation();
+    const lab = useLab.getState();
+    if (lab.mode !== "edit") return;
+    cancelLongPress();
+    drag.current = null;
+    lab.select({ type: "symbol", id: sym.id }, true);
+    lab.setSideOpen(true);
   };
 
   const onSymbolPointerUp = (dev: Device) => {
@@ -596,6 +613,7 @@ export function useSchematicEvents({
     onWirePointerDown,
     onSymbolContextMenu,
     onSymbolPointerDown,
+    onSymbolDoubleClick,
     onSymbolPointerUp,
     onSymbolPointerLeave,
     onPortPointerDown,

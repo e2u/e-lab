@@ -128,6 +128,18 @@ export function MobileMenuModal({
                 <span className="mobile-action-icon">📂</span>
                 <span>{t("files.openFile") || "Open File"}</span>
               </button>
+
+              <button
+                type="button"
+                className="mobile-action-btn"
+                onClick={() => {
+                  onClose();
+                  useLab.getState().openPrint();
+                }}
+              >
+                <span className="mobile-action-icon">🖨️</span>
+                <span>{t("print.execute") || t("files.print") || "Print"}</span>
+              </button>
             </div>
 
             <input

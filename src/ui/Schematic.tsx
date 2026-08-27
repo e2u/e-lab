@@ -80,6 +80,7 @@ export function Schematic() {
     onWirePointerDown,
     onSymbolContextMenu,
     onSymbolPointerDown,
+    onSymbolDoubleClick,
     onSymbolPointerUp,
     onSymbolPointerLeave,
     onPortPointerDown,
@@ -152,6 +153,7 @@ export function Schematic() {
             held={held}
             onSymbolContextMenu={onSymbolContextMenu}
             onSymbolPointerDown={onSymbolPointerDown}
+            onSymbolDoubleClick={onSymbolDoubleClick}
             onSymbolPointerUp={onSymbolPointerUp}
             onSymbolPointerLeave={onSymbolPointerLeave}
           />

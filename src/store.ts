@@ -90,6 +90,7 @@ export interface LabState {
   paletteOpen: boolean;
   sideOpen: boolean;
   zoom: number;
+  printOpen: boolean;
 
   setMode: (mode: Mode) => void;
   setRunning: (running: boolean) => void;
@@ -98,7 +99,7 @@ export interface LabState {
   setProcess: (patch: Partial<ProcessVars>) => void;
   setPlacing: (id: string | null) => void;
   setHoverPort: (port: PortRef | null) => void;
-  select: (sel: Selection | null) => void;
+  select: (sel: Selection | null, isolate?: boolean) => void;
   selectToggle: (id: string) => void;
   selectIds: (ids: string[], additive?: boolean) => void;
   selectAll: () => void;
@@ -186,6 +187,8 @@ export interface LabState {
   zoomOut: () => void;
   resetZoom: () => void;
   zoomFit: () => void;
+  openPrint: () => void;
+  closePrint: () => void;
 }
 
 const defaultProcess = (): ProcessVars => ({
@@ -262,6 +265,7 @@ export const useLab = create<LabState>((set, get) => ({
   paletteOpen: sidebarBoot.paletteOpen,
   sideOpen: sidebarBoot.sideOpen,
   zoom: readZoom(),
+  printOpen: false,
 
   pushHistory: () => {
     const { history, circuit } = get();
@@ -303,14 +307,14 @@ export const useLab = create<LabState>((set, get) => ({
   setProcess: (patch) => set({ process: { ...get().process, ...patch } }),
   setPlacing: (id) => set({ placing: id, wiringFrom: null, selected: null, selectedIds: [] }),
   setHoverPort: (port) => set({ hoverPort: port }),
-  select: (sel) => {
+  select: (sel, isolate = false) => {
     if (!sel || sel.type !== "symbol") {
       set({ selected: sel, selectedIds: [], placing: null, wiringFrom: null });
       return;
     }
     set({
       selected: sel,
-      selectedIds: expandIds(get().circuit, [sel.id]),
+      selectedIds: isolate ? [sel.id] : expandIds(get().circuit, [sel.id]),
       placing: null,
       wiringFrom: null,
     });
@@ -1315,6 +1319,9 @@ export const useLab = create<LabState>((set, get) => ({
       } catch {}
     }
   },
+
+  openPrint: () => set({ printOpen: true }),
+  closePrint: () => set({ printOpen: false }),
 
 }));
 

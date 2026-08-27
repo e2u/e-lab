@@ -397,4 +397,32 @@ describe("symbol groups", () => {
     // Lamp HL1 has a different device ID and is not matched
     expect(lamp.symbol.deviceId).not.toBe(selectedDevId);
   });
+
+  it("isolates a single component when double-clicked inside a group allowing property updates", () => {
+    const c = emptyCircuit();
+    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
+    const l2 = addDevice(c, "lamp", "HL2", "body", 10, 0);
+    groupSymbols(c, [l1.symbol.id, l2.symbol.id]);
+
+    useLab.setState({ circuit: c, sideOpen: false });
+
+    // Single click selects the whole group
+    useLab.getState().select({ type: "symbol", id: l1.symbol.id });
+    expect(useLab.getState().selectedIds.sort()).toEqual([l1.symbol.id, l2.symbol.id].sort());
+    expect(useLab.getState().selected).toEqual({ type: "symbol", id: l1.symbol.id });
+
+    // Double click isolates l1 and opens the side panel
+    useLab.getState().select({ type: "symbol", id: l1.symbol.id }, true);
+    useLab.getState().setSideOpen(true);
+
+    expect(useLab.getState().selectedIds).toEqual([l1.symbol.id]);
+    expect(useLab.getState().selected).toEqual({ type: "symbol", id: l1.symbol.id });
+    expect(useLab.getState().sideOpen).toBe(true);
+
+    // Adjusting properties of l1 while inside the group
+    useLab.getState().updateDevice(l1.device.id, { tag: "HL_UPDATED", color: "red" });
+    const updatedDev = useLab.getState().circuit.devices.find((d) => d.id === l1.device.id);
+    expect(updatedDev?.tag).toBe("HL_UPDATED");
+    expect(updatedDev?.params?.color).toBe("red");
+  });
 });

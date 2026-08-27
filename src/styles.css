@@ -1983,3 +1983,438 @@ html, body {
   color: #7d8973;
   padding-top: 4px;
 }
+
+/* ============================================================
+   PRINT MODAL & PRINT STYLES
+   ============================================================ */
+
+.print-modal-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+  z-index: 1050;
+}
+
+.print-modal-container {
+  background: #182013;
+  border: 2px solid var(--stripe);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  width: 92vw;
+  max-width: 960px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--nameplate);
+}
+
+.print-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #232d1b;
+  border-bottom: 1px solid #36442a;
+}
+
+.print-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.print-modal-title h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--stripe);
+  letter-spacing: 0.04em;
+}
+
+.print-icon {
+  font-size: 20px;
+}
+
+.print-doc-badge {
+  font-size: 12px;
+  background: #141a0f;
+  color: #c9c2a8;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid #36442a;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.print-modal-body {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 20px;
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.print-preview-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.print-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9ba790;
+}
+
+.print-preview-meta {
+  font-size: 12px;
+  color: var(--stripe);
+  font-weight: 700;
+}
+
+.print-preview-canvas-wrap {
+  flex: 1;
+  min-height: 280px;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+  background: #2b3523;
+  border: 1px solid #415233;
+  border-radius: 8px;
+  padding: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.print-preview-canvas-wrap.white {
+  background: #d8ded3;
+}
+
+.print-preview-canvas-wrap.paper {
+  background: #443c2c;
+}
+
+.print-preview-canvas-wrap.transparent {
+  background: #1d2518;
+}
+
+.print-preview-doc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  font-size: 12px;
+  font-weight: 600;
+  color: #333333;
+}
+
+.print-preview-canvas-wrap.transparent .print-preview-doc-header {
+  color: #c9c2a8;
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+
+.print-preview-svg-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.print-empty-hint {
+  font-size: 12px;
+  color: #e07020;
+  text-align: center;
+  padding: 4px;
+}
+
+.print-controls-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.print-option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.print-option-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #a8b69c;
+  letter-spacing: 0.03em;
+}
+
+.print-toggle-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.print-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #202819;
+  border: 1px solid #36442a;
+  color: var(--nameplate);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.print-toggle-btn:hover {
+  background: #293420;
+  border-color: #4a5c39;
+}
+
+.print-toggle-btn.active {
+  background: #2b3921;
+  border-color: var(--stripe);
+  color: var(--stripe);
+  box-shadow: 0 0 0 1px var(--stripe);
+}
+
+.print-bg-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.print-bg-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #202819;
+  border: 1px solid #36442a;
+  color: var(--nameplate);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.print-bg-btn:hover {
+  background: #293420;
+}
+
+.print-bg-btn.active {
+  background: #2b3921;
+  border-color: var(--stripe);
+  color: var(--stripe);
+  box-shadow: 0 0 0 1px var(--stripe);
+}
+
+.bg-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #4a5c39;
+}
+
+.bg-swatch.white {
+  background: #ffffff;
+}
+
+.bg-swatch.paper {
+  background: #efe6d0;
+}
+
+.bg-swatch.transparent {
+  background: repeating-conic-gradient(#808080 0% 25%, #ffffff 0% 50%) 50% / 8px 8px;
+}
+
+.print-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.print-checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--stripe);
+  cursor: pointer;
+}
+
+.print-orientation-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #1e2617;
+  border: 1px solid #334027;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #a8b69c;
+}
+
+.print-orientation-tip strong {
+  color: var(--stripe);
+}
+
+.print-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #1e2617;
+  border-top: 1px solid #36442a;
+}
+
+.print-submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  padding: 8px 20px;
+}
+
+/* Print Mount: hidden during regular screen display */
+.print-mount {
+  display: none;
+}
+
+/* ============================================================
+   PRINT MEDIA STYLES (@media print)
+   ============================================================ */
+
+@media print {
+  @page {
+    size: auto;
+    margin: 8mm;
+  }
+
+  html, body, #root {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  /* Hide normal application UI during print */
+  .app,
+  .modal-overlay,
+  .toast,
+  .drawer-backdrop,
+  .floating-action-bar,
+  .mobile-menu-overlay,
+  .toggle-panel-btn {
+    display: none !important;
+  }
+
+  /* Show only print mount */
+  .print-mount {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: transparent !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-page-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 8px !important;
+    border-bottom: 1.5px solid #000000 !important;
+    font-family: sans-serif !important;
+    font-size: 14pt !important;
+    font-weight: 700 !important;
+    color: #000000 !important;
+  }
+
+  .print-header-meta {
+    font-size: 9pt !important;
+    font-weight: normal !important;
+    color: #555555 !important;
+  }
+
+  .print-page-body {
+    width: 100% !important;
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .print-svg {
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+  }
+
+  .print-monochrome {
+    filter: grayscale(100%) contrast(150%) !important;
+  }
+}
+
+/* Small screen adaptations for print modal */
+@media (max-width: 768px) {
+  .print-modal-container {
+    width: 96vw;
+    max-height: 95vh;
+  }
+
+  .print-modal-body {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 14px;
+  }
+
+  .print-preview-canvas-wrap {
+    min-height: 200px;
+    max-height: 300px;
+  }
+
+  .print-toggle-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .print-bg-options {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}

@@ -19,6 +19,7 @@ interface SymbolLayerProps {
   onSymbolPointerDown: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onSymbolPointerUp: (dev: Device) => void;
   onSymbolPointerLeave: (dev: Device) => void;
+  onSymbolDoubleClick?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
 }
 
 export const SymbolLayer = memo(function SymbolLayer({
@@ -32,6 +33,7 @@ export const SymbolLayer = memo(function SymbolLayer({
   onSymbolPointerDown,
   onSymbolPointerUp,
   onSymbolPointerLeave,
+  onSymbolDoubleClick,
 }: SymbolLayerProps) {
   const selectedSym = selected?.type === "symbol" ? circuit.symbols.find((s) => s.id === selected.id) : null;
   const selectedDev = selectedSym ? circuit.devices.find((d) => d.id === selectedSym.deviceId) : null;
@@ -71,6 +73,7 @@ export const SymbolLayer = memo(function SymbolLayer({
               onPointerDown={(e) => onSymbolPointerDown(e, sym, dev)}
               onPointerUp={() => onSymbolPointerUp(dev)}
               onPointerLeave={() => onSymbolPointerLeave(dev)}
+              onDoubleClick={(e) => onSymbolDoubleClick?.(e, sym, dev)}
             >
               {dev.kind === "junction" ? (
                 <>

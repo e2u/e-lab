@@ -11,6 +11,7 @@ import { DiscardModal } from "./ui/DiscardModal";
 import { TogglePanelButton } from "./ui/TogglePanelButton";
 import { FloatingActionBar } from "./ui/FloatingActionBar";
 import { MobileMenuModal } from "./ui/MobileMenuModal";
+import { PrintModal } from "./ui/PrintModal";
 
 
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
@@ -42,6 +43,7 @@ export function App() {
   const paletteOpen = useLab((s) => s.paletteOpen);
   const sideOpen = useLab((s) => s.sideOpen);
   const zoom = useLab((s) => s.zoom);
+  const printOpen = useLab((s) => s.printOpen);
   const [examples, setExamples] = useState<Example[]>(EXAMPLES);
   const [selectedExample, setSelectedExample] = useState<string>("none");
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
@@ -142,6 +144,11 @@ export function App() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
         lab.selectAll();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        lab.openPrint();
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g") {
@@ -480,6 +487,12 @@ export function App() {
         selectedExample={selectedExample}
         onSelectExample={handleRequestSelectExample}
         onRequestNewDiagram={handleRequestNewDiagram}
+      />
+
+      {/* Print Modal */}
+      <PrintModal
+        isOpen={printOpen}
+        onClose={() => useLab.getState().closePrint()}
       />
 
       {/* Mobile drawer backdrop */}

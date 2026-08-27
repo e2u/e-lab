@@ -71,6 +71,9 @@ export function FilesMenu() {
         }}>
           {t("files.openFile")}
         </button>
+        <button className="btn" onClick={() => handleAction(() => useLab.getState().openPrint())}>
+          {t("files.print") || "Print..."}
+        </button>
         <button className="btn ok" onClick={() => handleAction(() => void useLab.getState().copyShareLink())}>
           {t("files.copyShareLink")}
         </button>

@@ -2,17 +2,29 @@ import { CATALOG, GROUPS } from "../catalog";
 import { catalogCompKey, t, tOr } from "../i18n";
 import { useLab } from "../store";
 
-export function Palette() {
+export interface PaletteProps {
+  className?: string;
+  onClose?: () => void;
+}
+
+export function Palette({ className = "", onClose }: PaletteProps) {
   const placing = useLab((s) => s.placing);
   const lang = useLab((s) => s.lang);
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      useLab.getState().setPaletteOpen(false);
+    }
+  };
   return (
-    <aside className="palette">
+    <aside className={`palette ${className}`.trim()}>
       <div className="palette-header">
         <span className="palette-title">{t("toolbar.palette")}</span>
         <button
           type="button"
           className="panel-close-btn"
-          onClick={() => useLab.getState().setPaletteOpen(false)}
+          onClick={handleClose}
           title={t("toolbar.collapseLeft")}
           aria-label={t("toolbar.collapseLeft")}
         >

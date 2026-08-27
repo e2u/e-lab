@@ -19,7 +19,7 @@ import {
   type SavedLab,
 } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
-import { GRID, ZOOM_LEVELS, type Circuit, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
+import { GRID, COLS, ROWS, type Circuit, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
 function readLang(): Lang {
@@ -30,12 +30,20 @@ function readZoom(): number {
   if (typeof localStorage === "undefined") return 1;
   try {
     const val = localStorage.getItem("elab.zoom");
-    if (!val) return 1;
-    const n = parseFloat(val);
-    return isNaN(n) ? 1 : Math.max(0.25, Math.min(1.5, n));
+    if (val) {
+      const n = parseFloat(val);
+      return isNaN(n) ? 1 : Math.max(0.25, Math.min(1.5, n));
+    }
   } catch {
     return 1;
   }
+  // Adaptive default on first run based on screen resolution
+  if (typeof window !== "undefined") {
+    if (window.innerWidth <= 768) return 0.5;
+    if (window.innerWidth <= 1280 || window.innerHeight <= 720) return 0.5;
+    if (window.innerWidth <= 1440 || window.innerHeight <= 850) return 0.75;
+  }
+  return 1;
 }
 
 function readSidebarState(): { paletteOpen: boolean; sideOpen: boolean } {
@@ -148,6 +156,7 @@ export interface LabState {
   zoomIn: () => void;
   zoomOut: () => void;
   resetZoom: () => void;
+  zoomFit: () => void;
 }
 
 const defaultProcess = (): ProcessVars => ({
@@ -1131,18 +1140,45 @@ export const useLab = create<LabState>((set, get) => ({
 
   zoomIn: () => {
     const { zoom } = get();
-    const next = ZOOM_LEVELS.find((l) => l > zoom + 0.001);
-    get().setZoom(next ?? ZOOM_LEVELS[ZOOM_LEVELS.length - 1]);
+    const next = Math.min(1.5, Math.round((zoom + 0.1) * 100) / 100);
+    get().setZoom(next);
   },
 
   zoomOut: () => {
     const { zoom } = get();
-    const prev = [...ZOOM_LEVELS].reverse().find((l) => l < zoom - 0.001);
-    get().setZoom(prev ?? ZOOM_LEVELS[0]);
+    const prev = Math.max(0.25, Math.round((zoom - 0.1) * 100) / 100);
+    get().setZoom(prev);
   },
 
   resetZoom: () => {
     get().setZoom(1);
+  },
+
+  zoomFit: () => {
+    const { circuit } = get();
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const s of circuit.symbols) {
+      minX = Math.min(minX, s.x);
+      minY = Math.min(minY, s.y);
+      maxX = Math.max(maxX, s.x + 6);
+      maxY = Math.max(maxY, s.y + 6);
+    }
+    const hasElements = circuit.symbols.length > 0 && isFinite(minX);
+    const contentW = hasElements ? Math.max((maxX - minX + 6) * GRID, 400) : (COLS * GRID) * 0.4;
+    const contentH = hasElements ? Math.max((maxY - minY + 6) * GRID, 400) : (ROWS * GRID) * 0.4;
+
+    let availW = 800;
+    let availH = 600;
+    if (typeof window !== "undefined") {
+      const paletteW = get().paletteOpen ? (window.innerWidth <= 1024 ? 180 : 220) : 0;
+      const sideW = get().sideOpen ? (window.innerWidth <= 1024 ? 220 : 260) : 0;
+      availW = Math.max(window.innerWidth - paletteW - sideW - 60, 300);
+      availH = Math.max(window.innerHeight - 130, 300);
+    }
+
+    const scale = Math.min(availW / contentW, availH / contentH);
+    const fitZoom = Math.max(0.25, Math.min(1.5, Math.round(scale * 100) / 100));
+    get().setZoom(fitZoom);
   },
 
 }));

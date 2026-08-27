@@ -41,6 +41,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "toolbar.zoomIn": "Zoom In (⌘+)",
     "toolbar.zoomOut": "Zoom Out (⌘-)",
     "toolbar.zoomReset": "Reset Zoom (⌘0)",
+    "toolbar.zoomFit": "Fit Screen (⌘9)",
 
     // Inspector labels
     "inspector.properties": "Properties",
@@ -466,6 +467,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "toolbar.zoomIn": "放大 (⌘+)",
     "toolbar.zoomOut": "縮小 (⌘-)",
     "toolbar.zoomReset": "重設縮放 (⌘0)",
+    "toolbar.zoomFit": "適應屏幕 (⌘9)",
 
     // Inspector labels
     "inspector.properties": "屬性",

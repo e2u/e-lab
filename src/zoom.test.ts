@@ -7,8 +7,8 @@ describe("canvas width and zoom features", () => {
     expect(COLS).toBe(168);
   });
 
-  it("defines standard zoom levels 25%, 50%, 100%, 125%, 150%", () => {
-    expect(ZOOM_LEVELS).toEqual([0.25, 0.5, 1, 1.25, 1.5]);
+  it("defines standard zoom levels 25%, 50%, 75%, 100%, 125%, 150%", () => {
+    expect(ZOOM_LEVELS).toEqual([0.25, 0.5, 0.75, 1, 1.25, 1.5]);
   });
 
   it("initializes with default zoom level 1 (100%)", () => {
@@ -16,21 +16,21 @@ describe("canvas width and zoom features", () => {
     expect(s.zoom).toBe(1);
   });
 
-  it("can set custom zoom level within bounds", () => {
+  it("can set continuous custom zoom levels within bounds", () => {
     const s = useLab.getState();
-    s.setZoom(0.5);
-    expect(useLab.getState().zoom).toBe(0.5);
+    s.setZoom(0.63);
+    expect(useLab.getState().zoom).toBe(0.63);
 
-    s.setZoom(1.25);
-    expect(useLab.getState().zoom).toBe(1.25);
+    s.setZoom(0.85);
+    expect(useLab.getState().zoom).toBe(0.85);
 
-    s.setZoom(1.5);
-    expect(useLab.getState().zoom).toBe(1.5);
+    s.setZoom(1.15);
+    expect(useLab.getState().zoom).toBe(1.15);
 
     s.setZoom(0.25);
     expect(useLab.getState().zoom).toBe(0.25);
 
-    // Clamps to min/max
+    // Clamps to min (0.25) and max (1.5)
     s.setZoom(0.1);
     expect(useLab.getState().zoom).toBe(0.25);
 
@@ -44,8 +44,9 @@ describe("canvas width and zoom features", () => {
     expect(useLab.getState().zoom).toBe(1);
 
     s.zoomIn();
-    expect(useLab.getState().zoom).toBe(1.25);
+    expect(useLab.getState().zoom).toBe(1.1);
 
+    s.setZoom(1.45);
     s.zoomIn();
     expect(useLab.getState().zoom).toBe(1.5);
 
@@ -54,14 +55,9 @@ describe("canvas width and zoom features", () => {
     expect(useLab.getState().zoom).toBe(1.5);
 
     s.zoomOut();
-    expect(useLab.getState().zoom).toBe(1.25);
+    expect(useLab.getState().zoom).toBe(1.4);
 
-    s.zoomOut();
-    expect(useLab.getState().zoom).toBe(1);
-
-    s.zoomOut();
-    expect(useLab.getState().zoom).toBe(0.5);
-
+    s.setZoom(0.3);
     s.zoomOut();
     expect(useLab.getState().zoom).toBe(0.25);
 
@@ -71,5 +67,12 @@ describe("canvas width and zoom features", () => {
 
     s.resetZoom();
     expect(useLab.getState().zoom).toBe(1);
+  });
+
+  it("calculates best fitting zoom with zoomFit", () => {
+    const s = useLab.getState();
+    s.zoomFit();
+    expect(s.zoom).toBeGreaterThanOrEqual(0.25);
+    expect(s.zoom).toBeLessThanOrEqual(1.5);
   });
 });

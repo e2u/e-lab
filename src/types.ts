@@ -2,7 +2,7 @@ export const GRID = 22;
 export const COLS = 168;
 export const ROWS = 216;
 
-export const ZOOM_LEVELS = [0.25, 0.5, 1, 1.25, 1.5] as const;
+export const ZOOM_LEVELS = [0.25, 0.5, 0.75, 1, 1.25, 1.5] as const;
 export type ZoomLevel = (typeof ZOOM_LEVELS)[number];
 
 export type Rot = 0 | 90 | 180 | 270;

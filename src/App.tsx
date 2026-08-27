@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { EXAMPLES, type Example } from "./examples";
 import { rotateSelected, useLab } from "./store";
-import { ZOOM_LEVELS } from "./types";
 import { formatFaultMessage, t, tOr } from "./i18n";
 import { Bench, ProcessRack } from "./ui/Bench";
 import { FilesMenu } from "./ui/FilesMenu";
@@ -45,6 +44,11 @@ export function App() {
   const [selectedExample, setSelectedExample] = useState<string>("none");
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'new' | 'example'; exampleId?: string } | null>(null);
+
+  // Mobile drawer state
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
+  const [mobileSideOpen, setMobileSideOpen] = useState(false);
 
   useEffect(() => {
     const id = window.setTimeout(() => useLab.getState().persistDraft(), 700);
@@ -94,6 +98,11 @@ export function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === "0") {
         e.preventDefault();
         lab.resetZoom();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "9") {
+        e.preventDefault();
+        lab.zoomFit();
         return;
       }
       if (e.key === "Delete" || e.key === "Backspace") {
@@ -178,14 +187,38 @@ export function App() {
   // Load examples on mount - works in both dev and GitHub Pages
   useEffect(() => {
     loadExamplesFromImports().then(setExamples);
-    
-    // Load DOL Starter example on first visit (when circuit is empty)
+
+    // Load three-phase-motor example on first visit (when circuit is empty)
     const lab = useLab.getState();
     if (lab.circuit.devices.length === 0 && lab.circuit.symbols.length === 0) {
-      setSelectedExample("dol");
-      lab.loadExample("dol");
+      setSelectedExample("three-phase-motor");
+      lab.loadExample("three-phase-motor");
     }
   }, []);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      // Sync mobile drawer state with store state on desktop
+      if (!mobile) {
+        setMobilePaletteOpen(false);
+        setMobileSideOpen(false);
+      }
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Adaptive initial zoom for small screens
+  // Only apply if zoom is still at default (1.0) meaning user hasn't customized it
+  useEffect(() => {
+    if (window.innerWidth <= 768 && zoom === 1) {
+      useLab.getState().setZoom(0.5);
+    }
+  }, [zoom]);
 
   useEffect(() => {
     const devices = useLab.getState().circuit.devices;
@@ -283,6 +316,31 @@ export function App() {
             {t("toolbar.reset")}
           </button>
         </div>
+        {/* Mobile drawer toggles - only visible on mobile */}
+        {isMobile && (
+          <div className="mobile-drawer-toggles" style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={() => setMobilePaletteOpen(!mobilePaletteOpen)}
+              title={t("toolbar.palette")}
+              style={{ padding: '4px 8px', fontSize: '18px' }}
+              aria-label={t("toolbar.palette")}
+            >
+              ☰
+            </button>
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={() => setMobileSideOpen(!mobileSideOpen)}
+              title={t("toolbar.sidePanel")}
+              style={{ padding: '4px 8px', fontSize: '18px' }}
+              aria-label={t("toolbar.sidePanel")}
+            >
+              ⚙
+            </button>
+          </div>
+        )}
         <div className="top-actions">
           <label className="action-label">{t("lib.example")}:</label>
           <select 
@@ -327,34 +385,46 @@ export function App() {
               onClick={() => useLab.getState().zoomOut()}
               title={t("toolbar.zoomOut")}
               disabled={zoom <= 0.25}
+              aria-label={t("toolbar.zoomOut")}
             >
               −
             </button>
-            <select
-              className="zoom-select"
+            <input
+              type="range"
+              className="zoom-slider"
+              min="0.25"
+              max="1.5"
+              step="0.01"
               value={zoom}
-              title={t("toolbar.zoom")}
               onChange={(e) => useLab.getState().setZoom(parseFloat(e.target.value))}
+              title={`${t("toolbar.zoom")}: ${Math.round(zoom * 100)}%`}
+              aria-label={t("toolbar.zoom")}
+            />
+            <span
+              className="zoom-val"
+              onClick={() => useLab.getState().resetZoom()}
+              title={t("toolbar.zoomReset")}
             >
-              {ZOOM_LEVELS.map((lvl) => (
-                <option key={lvl} value={lvl}>
-                  {Math.round(lvl * 100)}%
-                </option>
-              ))}
-              {!ZOOM_LEVELS.includes(zoom as any) && (
-                <option value={zoom}>
-                  {Math.round(zoom * 100)}%
-                </option>
-              )}
-            </select>
+              {Math.round(zoom * 100)}%
+            </span>
             <button
               type="button"
               className="btn-icon"
               onClick={() => useLab.getState().zoomIn()}
               title={t("toolbar.zoomIn")}
               disabled={zoom >= 1.5}
+              aria-label={t("toolbar.zoomIn")}
             >
               +
+            </button>
+            <button
+              type="button"
+              className="btn-icon zoom-fit-btn"
+              onClick={() => useLab.getState().zoomFit()}
+              title={t("toolbar.zoomFit")}
+              aria-label={t("toolbar.zoomFit")}
+            >
+              ⛶
             </button>
           </div>
         </div>
@@ -362,22 +432,48 @@ export function App() {
       {notice && <div className="toast">{notice}</div>}
       
       {/* Discard Changes Modal */}
-      <DiscardModal 
-        isOpen={discardModalOpen} 
-        onClose={handleDiscardModalClose} 
+      <DiscardModal
+        isOpen={discardModalOpen}
+        onClose={handleDiscardModalClose}
       />
 
+      {/* Mobile drawer backdrop */}
+      {(isMobile && (mobilePaletteOpen || mobileSideOpen)) && (
+        <div
+          className="drawer-backdrop visible"
+          onClick={() => {
+            setMobilePaletteOpen(false);
+            setMobileSideOpen(false);
+          }}
+          aria-hidden="true"
+        />
+      )}
+
       <div className={`workspace ${!paletteOpen ? "palette-collapsed" : ""} ${!sideOpen ? "side-collapsed" : ""}`}>
-        {paletteOpen && <Palette />}
+        {/* Palette - desktop: inline, mobile: drawer */}
+        {isMobile ? (
+          <Palette
+            className={mobilePaletteOpen ? "open" : ""}
+            onClose={() => setMobilePaletteOpen(false)}
+          />
+        ) : (
+          paletteOpen && <Palette />
+        )}
+
         <Schematic />
-        {sideOpen && (
-          <aside className="side">
+
+        {/* Side panel - desktop: inline, mobile: drawer */}
+        {isMobile ? (
+          <aside
+            className={`side ${mobileSideOpen ? "open" : ""}`}
+            style={{ zIndex: mobileSideOpen ? 30 : 20 }}
+          >
             <div className="side-header">
               <span className="side-title">{t("toolbar.sidePanel")}</span>
               <button
                 type="button"
                 className="panel-close-btn"
-                onClick={() => useLab.getState().setSideOpen(false)}
+                onClick={() => setMobileSideOpen(false)}
                 title={t("toolbar.collapseRight")}
                 aria-label={t("toolbar.collapseRight")}
               >
@@ -388,7 +484,29 @@ export function App() {
             <ProcessRack />
             <Inspector />
           </aside>
+        ) : (
+          sideOpen && (
+            <aside className="side">
+              <div className="side-header">
+                <span className="side-title">{t("toolbar.sidePanel")}</span>
+                <button
+                  type="button"
+                  className="panel-close-btn"
+                  onClick={() => useLab.getState().setSideOpen(false)}
+                  title={t("toolbar.collapseRight")}
+                  aria-label={t("toolbar.collapseRight")}
+                >
+                  ✕
+                </button>
+              </div>
+              <Bench />
+              <ProcessRack />
+              <Inspector />
+            </aside>
+          )
         )}
+
+        {/* Desktop panel toggles (hidden on mobile via CSS) */}
         <TogglePanelButton
           direction="left"
           isOpen={paletteOpen}

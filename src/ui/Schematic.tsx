@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { allWireRoutes, findWireCrossovers } from "../geometry";
 import { useLab } from "../store";
 import { COLS, GRID, ROWS } from "../types";
@@ -47,8 +47,8 @@ export function Schematic() {
     if (d?.kind === "net-label") selectedNetTag = d.tag.trim();
   }
 
-  const routes = allWireRoutes(circuit);
-  const crossovers = findWireCrossovers(circuit, routes);
+  const routes = useMemo(() => allWireRoutes(circuit), [circuit]);
+  const crossovers = useMemo(() => findWireCrossovers(circuit, routes), [circuit, routes]);
 
   const {
     svgRef,
@@ -90,6 +90,7 @@ export function Schematic() {
         viewBox={`0 0 ${COLS * GRID} ${ROWS * GRID}`}
         onPointerMove={onSvgMove}
         onPointerUp={onSvgPointerUp}
+        onPointerCancel={onSvgPointerUp}
         style={{
           backgroundSize: `${GRID * zoom}px ${GRID * zoom}px`,
           ...(wireCursor ? { cursor: wireCursor } : {}),

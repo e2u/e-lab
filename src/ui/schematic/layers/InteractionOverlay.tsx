@@ -1,4 +1,4 @@
-import type { MouseEvent, PointerEvent } from "react";
+import { memo, type MouseEvent, type PointerEvent } from "react";
 import { catalogItem, suggestNetLabelTag, variantDef } from "../../../catalog";
 import { nearestOnPolyline, snapOnSegment, terminalWorld, wireRoute } from "../../../geometry";
 import { normalizeRect } from "../../../groups";
@@ -18,7 +18,7 @@ interface InteractionOverlayProps {
   onPlaceOverlayContextMenu: (e: MouseEvent<SVGRectElement>) => void;
 }
 
-export function InteractionOverlay({
+export const InteractionOverlay = memo(function InteractionOverlay({
   circuit,
   wiringFrom,
   cursor,
@@ -106,4 +106,4 @@ export function InteractionOverlay({
       })()}
     </>
   );
-}
+});

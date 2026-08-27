@@ -1,4 +1,4 @@
-import type { PointerEvent } from "react";
+import { memo, type PointerEvent } from "react";
 import { variantDef } from "../../../catalog";
 import { terminalWorld } from "../../../geometry";
 import type { Circuit, Mode, PortRef } from "../../../types";
@@ -13,7 +13,7 @@ interface PortLayerProps {
   onPortPointerLeave: () => void;
 }
 
-export function PortLayer({
+export const PortLayer = memo(function PortLayer({
   circuit,
   mode,
   wiringFrom,
@@ -63,4 +63,4 @@ export function PortLayer({
       })}
     </>
   );
-}
+});

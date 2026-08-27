@@ -1,4 +1,4 @@
-import { useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from "react";
 import { hitWireSegment, wireRoute } from "../../geometry";
 import { normalizeRect, symbolsInRect } from "../../groups";
 import { useLab } from "../../store";
@@ -44,6 +44,34 @@ export function useSchematicEvents({
   const paperTouchPanRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Smooth scroll via requestAnimationFrame
+  const rafScrollId = useRef<number | null>(null);
+  const pendingScroll = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
+
+  useEffect(() => {
+    return () => {
+      if (rafScrollId.current !== null) {
+        cancelAnimationFrame(rafScrollId.current);
+      }
+    };
+  }, []);
+
+  const scheduleScroll = (dx: number, dy: number) => {
+    pendingScroll.current.dx += dx;
+    pendingScroll.current.dy += dy;
+    if (rafScrollId.current === null && containerRef?.current) {
+      rafScrollId.current = requestAnimationFrame(() => {
+        rafScrollId.current = null;
+        if (containerRef?.current) {
+          containerRef.current.scrollLeft -= pendingScroll.current.dx;
+          containerRef.current.scrollTop -= pendingScroll.current.dy;
+        }
+        pendingScroll.current.dx = 0;
+        pendingScroll.current.dy = 0;
+      });
+    }
+  };
 
   const startLongPress = (
     e: PointerEvent,
@@ -176,6 +204,9 @@ export function useSchematicEvents({
       lab.select(null);
       if (e.pointerType === "touch") {
         paperTouchPanRef.current = { x: e.clientX, y: e.clientY, moved: false };
+        try {
+          svgRef.current?.setPointerCapture(e.pointerId);
+        } catch {}
       }
       return;
     }
@@ -183,6 +214,9 @@ export function useSchematicEvents({
     // Touch device single-finger canvas pan handling on empty paper
     if (e.pointerType === "touch" && !e.shiftKey) {
       paperTouchPanRef.current = { x: e.clientX, y: e.clientY, moved: false };
+      try {
+        svgRef.current?.setPointerCapture(e.pointerId);
+      } catch {}
       startLongPress(e, (pos) => {
         lab.select(null);
         openMenu(pos);
@@ -194,7 +228,9 @@ export function useSchematicEvents({
     marqueeRef.current = { x0: p.x, y0: p.y, x1: p.x, y1: p.y, shift: e.shiftKey };
     setMarqueeView({ x0: p.x, y0: p.y, x1: p.x, y1: p.y });
     if (!e.shiftKey) lab.select(null);
-    svgRef.current?.setPointerCapture(e.pointerId);
+    try {
+      svgRef.current?.setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   const onSvgMove = (e: PointerEvent<SVGSVGElement>) => {
@@ -217,10 +253,7 @@ export function useSchematicEvents({
         useLab.getState().setZoom(newZoom);
       }
 
-      if (containerRef?.current) {
-        containerRef.current.scrollLeft -= mid.x - pinchRef.current.lastMid.x;
-        containerRef.current.scrollTop -= mid.y - pinchRef.current.lastMid.y;
-      }
+      scheduleScroll(mid.x - pinchRef.current.lastMid.x, mid.y - pinchRef.current.lastMid.y);
       pinchRef.current.lastMid = mid;
       return;
     }
@@ -233,16 +266,21 @@ export function useSchematicEvents({
         paperTouchPanRef.current.moved = true;
         cancelLongPress();
       }
-      if (containerRef?.current) {
-        containerRef.current.scrollLeft -= dx;
-        containerRef.current.scrollTop -= dy;
-      }
-      paperTouchPanRef.current = { x: e.clientX, y: e.clientY, moved: true };
+      paperTouchPanRef.current.x = e.clientX;
+      paperTouchPanRef.current.y = e.clientY;
+      paperTouchPanRef.current.moved = true;
+      scheduleScroll(dx, dy);
       return;
     }
 
+    const labWiring = useLab.getState().wiringFrom;
     const p = toGrid(e);
-    setCursor(p);
+    if (labWiring || placing) {
+      setCursor(p);
+    } else if (cursor !== null) {
+      setCursor(null);
+    }
+
     const world = { x: p.x * GRID, y: p.y * GRID };
     if (marqueeRef.current) {
       marqueeRef.current = { ...marqueeRef.current, x1: p.x, y1: p.y };
@@ -286,7 +324,7 @@ export function useSchematicEvents({
       useLab.getState().moveGroup(updates, wireUpdates);
       return;
     }
-    if (mode === "edit" && !placing) {
+    if (e.pointerType !== "touch" && mode === "edit" && !placing) {
       let next: "ew-resize" | "ns-resize" | "grab" | null = null;
       for (const w of circuit.wires) {
         const pts = routes.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
@@ -304,6 +342,11 @@ export function useSchematicEvents({
 
   const onSvgPointerUp = (e: PointerEvent<SVGSVGElement>) => {
     cancelLongPress();
+    try {
+      if (svgRef.current?.hasPointerCapture(e.pointerId)) {
+        svgRef.current.releasePointerCapture(e.pointerId);
+      }
+    } catch {}
     pointersRef.current.delete(e.pointerId);
     if (pointersRef.current.size < 2) {
       pinchRef.current = null;

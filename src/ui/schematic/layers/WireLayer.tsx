@@ -1,4 +1,4 @@
-import type { MouseEvent, PointerEvent } from "react";
+import { memo, type MouseEvent, type PointerEvent } from "react";
 import { hopArcD, polylinePathD, terminalWorld, wireLabelPos, wireRoute, type WireCrossover } from "../../../geometry";
 import { PHASE_COLOR } from "../../../sim/engine";
 import type { Selection } from "../../../store";
@@ -14,7 +14,7 @@ interface WireLayerProps {
   onWirePointerDown: (e: PointerEvent<SVGElement>, wire: Wire, pts: { x: number; y: number }[]) => void;
 }
 
-export function WireLayer({
+export const WireLayer = memo(function WireLayer({
   circuit,
   snapshot,
   selected,
@@ -155,4 +155,4 @@ export function WireLayer({
       })}
     </>
   );
-}
+});

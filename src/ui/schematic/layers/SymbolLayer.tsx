@@ -1,4 +1,4 @@
-import type { MouseEvent, PointerEvent } from "react";
+import { memo, type MouseEvent, type PointerEvent } from "react";
 import { variantDef } from "../../../catalog";
 import { glyphTransform, isJunction, terminalWorld, textUnflipTransform } from "../../../geometry";
 import { unionBounds } from "../../../groups";
@@ -19,7 +19,7 @@ interface SymbolLayerProps {
   onSymbolPointerLeave: (dev: Device) => void;
 }
 
-export function SymbolLayer({
+export const SymbolLayer = memo(function SymbolLayer({
   circuit,
   snapshot,
   selectedIds,
@@ -178,4 +178,4 @@ export function SymbolLayer({
       })}
     </>
   );
-}
+});

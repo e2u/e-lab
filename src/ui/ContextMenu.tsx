@@ -31,11 +31,6 @@ export function ContextMenu({
     onClose();
   };
 
-  const lang = useLab((s) => s.lang);
-  const toggleLanguage = () => {
-    useLab.getState().setLang(lang === "en" ? "zh" : "en");
-  };
-
   const style: CSSProperties = {
     left: Math.min(pos.x, window.innerWidth - 220),
     top: Math.min(pos.y, window.innerHeight - 360),
@@ -48,12 +43,6 @@ export function ContextMenu({
         style={style}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        {/* Language Toggle */}
-        <div className="ctx-sep" />
-        <button type="button" onClick={toggleLanguage} className="menu-lang">
-          {lang === "en" ? t("lang.zh") : t("lang.en")}
-        </button>
-
         {hasSymbols && (
           <>
             <button type="button" onClick={() => run(() => useLab.getState().rotateSelected(1))}>
@@ -107,6 +96,12 @@ export function ContextMenu({
             </button>
             <button type="button" disabled={n < 2} onClick={() => run(() => useLab.getState().alignSelected("vcenter"))}>
               {t("ctx.alignCenterV")}
+            </button>
+            <button type="button" disabled={n < 2} onClick={() => run(() => useLab.getState().alignSelected("distribute-h"))}>
+              {t("ctx.distributeH")}
+            </button>
+            <button type="button" disabled={n < 2} onClick={() => run(() => useLab.getState().alignSelected("distribute-v"))}>
+              {t("ctx.distributeV")}
             </button>
             <button type="button" onClick={() => run(() => useLab.getState().snapSelected())}>
               {t("ctx.snapGrid")}

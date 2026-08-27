@@ -149,6 +149,10 @@ export function Inspector() {
           <button className="btn" onClick={() => useLab.getState().alignSelected("vcenter")}>{t("ctx.alignCenterV")}</button>
           <button className="btn" onClick={() => useLab.getState().alignSelected("bottom")}>{t("ctx.alignBottom")}</button>
         </div>
+        <div className="distribute-grid">
+          <button className="btn" onClick={() => useLab.getState().alignSelected("distribute-h")}>{t("ctx.distributeH")}</button>
+          <button className="btn" onClick={() => useLab.getState().alignSelected("distribute-v")}>{t("ctx.distributeV")}</button>
+        </div>
         <button className="btn" onClick={() => useLab.getState().rotateSelected(1)}>{t("ctx.rotate")}</button>
         <button className="btn" disabled={hasGroup} onClick={() => useLab.getState().flipSelected("h")}>{t("ctx.flipH")}</button>
         <button className="btn" disabled={hasGroup} onClick={() => useLab.getState().flipSelected("v")}>{t("ctx.flipV")}</button>
@@ -237,6 +241,21 @@ export function Inspector() {
                 {d.tag}
               </option>
             ))}
+          </select>
+        </label>
+      )}
+      {dev.kind === "mains-3ph" && (
+        <label>
+          {t("inspector.supplyType")}
+          <select
+            value={dev.params.supplyType ?? (sym.variant === "delta" ? "delta" : "wye")}
+            onChange={(e) => {
+              const val = e.target.value as "wye" | "delta";
+              useLab.getState().updateDevice(dev.id, { supplyType: val });
+            }}
+          >
+            <option value="wye">{t("inspector.wye")}</option>
+            <option value="delta">{t("inspector.delta")}</option>
           </select>
         </label>
       )}

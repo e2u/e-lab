@@ -198,7 +198,7 @@ export function normalizeRect(
 export function alignEntities(
   circuit: Circuit,
   selectedIds: string[],
-  edge: "left" | "right" | "top" | "bottom" | "hcenter" | "vcenter",
+  edge: "left" | "right" | "top" | "bottom" | "hcenter" | "vcenter" | "distribute-h" | "distribute-v",
 ): { symbolUpdates: { id: string; x: number; y: number }[]; wireJogUpdates: { id: string; jog: WireJog }[] } | null {
   if (selectedIds.length < 2) return null;
   const groups = circuit.groups ?? [];
@@ -232,6 +232,88 @@ export function alignEntities(
 
   if (entities.length < 2) return null;
 
+  const symbolUpdates: { id: string; x: number; y: number }[] = [];
+  const wireJogUpdates: { id: string; jog: WireJog }[] = [];
+  const updatedWires = new Set<string>();
+
+  if (edge === "distribute-h") {
+    const sorted = [...entities].sort((a, b) => (a.box.x !== b.box.x ? a.box.x - b.box.x : a.box.y - b.box.y));
+    const gap = Math.max(0, sorted[1].box.x - (sorted[0].box.x + sorted[0].box.w));
+    let currentRight = sorted[0].box.x + sorted[0].box.w;
+
+    for (let i = 1; i < sorted.length; i++) {
+      const entity = sorted[i];
+      const targetX = currentRight + gap;
+      const dx = targetX - entity.box.x;
+      currentRight = targetX + entity.box.w;
+
+      if (Math.abs(dx) < 0.0001) continue;
+
+      if (entity.type === "symbol") {
+        const sym = circuit.symbols.find((s) => s.id === entity.symbolId);
+        if (sym) {
+          symbolUpdates.push({ id: sym.id, x: sym.x + dx, y: sym.y });
+        }
+      } else {
+        const memberSet = new Set(entity.symbolIds);
+        for (const symId of entity.symbolIds) {
+          const sym = circuit.symbols.find((s) => s.id === symId);
+          if (sym) {
+            symbolUpdates.push({ id: sym.id, x: sym.x + dx, y: sym.y });
+          }
+        }
+        for (const w of circuit.wires) {
+          if (w.jog && memberSet.has(w.a.symbolId) && memberSet.has(w.b.symbolId) && !updatedWires.has(w.id)) {
+            updatedWires.add(w.id);
+            const newPos = w.jog.axis === "x" ? w.jog.pos + dx * GRID : w.jog.pos;
+            wireJogUpdates.push({ id: w.id, jog: { axis: w.jog.axis, pos: newPos } });
+          }
+        }
+      }
+    }
+
+    return { symbolUpdates, wireJogUpdates };
+  }
+
+  if (edge === "distribute-v") {
+    const sorted = [...entities].sort((a, b) => (a.box.y !== b.box.y ? a.box.y - b.box.y : a.box.x - b.box.x));
+    const gap = Math.max(0, sorted[1].box.y - (sorted[0].box.y + sorted[0].box.h));
+    let currentBottom = sorted[0].box.y + sorted[0].box.h;
+
+    for (let i = 1; i < sorted.length; i++) {
+      const entity = sorted[i];
+      const targetY = currentBottom + gap;
+      const dy = targetY - entity.box.y;
+      currentBottom = targetY + entity.box.h;
+
+      if (Math.abs(dy) < 0.0001) continue;
+
+      if (entity.type === "symbol") {
+        const sym = circuit.symbols.find((s) => s.id === entity.symbolId);
+        if (sym) {
+          symbolUpdates.push({ id: sym.id, x: sym.x, y: sym.y + dy });
+        }
+      } else {
+        const memberSet = new Set(entity.symbolIds);
+        for (const symId of entity.symbolIds) {
+          const sym = circuit.symbols.find((s) => s.id === symId);
+          if (sym) {
+            symbolUpdates.push({ id: sym.id, x: sym.x, y: sym.y + dy });
+          }
+        }
+        for (const w of circuit.wires) {
+          if (w.jog && memberSet.has(w.a.symbolId) && memberSet.has(w.b.symbolId) && !updatedWires.has(w.id)) {
+            updatedWires.add(w.id);
+            const newPos = w.jog.axis === "y" ? w.jog.pos + dy * GRID : w.jog.pos;
+            wireJogUpdates.push({ id: w.id, jog: { axis: w.jog.axis, pos: newPos } });
+          }
+        }
+      }
+    }
+
+    return { symbolUpdates, wireJogUpdates };
+  }
+
   const minX = Math.min(...entities.map((e) => e.box.x));
   const minY = Math.min(...entities.map((e) => e.box.y));
   const maxR = Math.max(...entities.map((e) => e.box.x + e.box.w));
@@ -239,43 +321,96 @@ export function alignEntities(
   const midX = (minX + maxR) / 2;
   const midY = (minY + maxB) / 2;
 
-  const symbolUpdates: { id: string; x: number; y: number }[] = [];
-  const wireJogUpdates: { id: string; jog: WireJog }[] = [];
-  const updatedWires = new Set<string>();
+  // For horizontal alignments (left/right/hcenter), sort by Y and ensure entities do not vertically overlap
+  if (edge === "left" || edge === "right" || edge === "hcenter") {
+    const sorted = [...entities].sort((a, b) => (a.box.y !== b.box.y ? a.box.y - b.box.y : a.box.x - b.box.x));
+    let prevBottom = -Infinity;
 
-  for (const entity of entities) {
-    let dx = 0;
-    let dy = 0;
-    if (edge === "left") dx = minX - entity.box.x;
-    if (edge === "right") dx = maxR - entity.box.w - entity.box.x;
-    if (edge === "top") dy = minY - entity.box.y;
-    if (edge === "bottom") dy = maxB - entity.box.h - entity.box.y;
-    if (edge === "hcenter") dx = Math.round(midX - entity.box.w / 2) - entity.box.x;
-    if (edge === "vcenter") dy = Math.round(midY - entity.box.h / 2) - entity.box.y;
+    for (const entity of sorted) {
+      let targetX = minX;
+      if (edge === "right") targetX = maxR - entity.box.w;
+      if (edge === "hcenter") targetX = Math.round(midX - entity.box.w / 2);
 
-    if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) continue;
+      const targetY = Math.max(entity.box.y, prevBottom);
+      prevBottom = targetY + entity.box.h;
 
-    if (entity.type === "symbol") {
-      const sym = circuit.symbols.find((s) => s.id === entity.symbolId);
-      if (sym) {
-        symbolUpdates.push({ id: sym.id, x: sym.x + dx, y: sym.y + dy });
-      }
-    } else {
-      const memberSet = new Set(entity.symbolIds);
-      for (const symId of entity.symbolIds) {
-        const sym = circuit.symbols.find((s) => s.id === symId);
+      const dx = targetX - entity.box.x;
+      const dy = targetY - entity.box.y;
+
+      if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) continue;
+
+      if (entity.type === "symbol") {
+        const sym = circuit.symbols.find((s) => s.id === entity.symbolId);
         if (sym) {
           symbolUpdates.push({ id: sym.id, x: sym.x + dx, y: sym.y + dy });
         }
-      }
-      for (const w of circuit.wires) {
-        if (w.jog && memberSet.has(w.a.symbolId) && memberSet.has(w.b.symbolId) && !updatedWires.has(w.id)) {
-          updatedWires.add(w.id);
-          const newPos = w.jog.axis === "x" ? w.jog.pos + dx * GRID : w.jog.pos + dy * GRID;
-          wireJogUpdates.push({ id: w.id, jog: { axis: w.jog.axis, pos: newPos } });
+      } else {
+        const memberSet = new Set(entity.symbolIds);
+        for (const symId of entity.symbolIds) {
+          const sym = circuit.symbols.find((s) => s.id === symId);
+          if (sym) {
+            symbolUpdates.push({ id: sym.id, x: sym.x + dx, y: sym.y + dy });
+          }
+        }
+        for (const w of circuit.wires) {
+          if (w.jog && memberSet.has(w.a.symbolId) && memberSet.has(w.b.symbolId) && !updatedWires.has(w.id)) {
+            updatedWires.add(w.id);
+            let newPos = w.jog.pos;
+            if (w.jog.axis === "x" && Math.abs(dx) > 0.0001) newPos += dx * GRID;
+            if (w.jog.axis === "y" && Math.abs(dy) > 0.0001) newPos += dy * GRID;
+            wireJogUpdates.push({ id: w.id, jog: { axis: w.jog.axis, pos: newPos } });
+          }
         }
       }
     }
+
+    return { symbolUpdates, wireJogUpdates };
+  }
+
+  // For vertical alignments (top/bottom/vcenter), sort by X and ensure entities do not horizontally overlap
+  if (edge === "top" || edge === "bottom" || edge === "vcenter") {
+    const sorted = [...entities].sort((a, b) => (a.box.x !== b.box.x ? a.box.x - b.box.x : a.box.y - b.box.y));
+    let prevRight = -Infinity;
+
+    for (const entity of sorted) {
+      let targetY = minY;
+      if (edge === "bottom") targetY = maxB - entity.box.h;
+      if (edge === "vcenter") targetY = Math.round(midY - entity.box.h / 2);
+
+      const targetX = Math.max(entity.box.x, prevRight);
+      prevRight = targetX + entity.box.w;
+
+      const dx = targetX - entity.box.x;
+      const dy = targetY - entity.box.y;
+
+      if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) continue;
+
+      if (entity.type === "symbol") {
+        const sym = circuit.symbols.find((s) => s.id === entity.symbolId);
+        if (sym) {
+          symbolUpdates.push({ id: sym.id, x: sym.x + dx, y: sym.y + dy });
+        }
+      } else {
+        const memberSet = new Set(entity.symbolIds);
+        for (const symId of entity.symbolIds) {
+          const sym = circuit.symbols.find((s) => s.id === symId);
+          if (sym) {
+            symbolUpdates.push({ id: sym.id, x: sym.x + dx, y: sym.y + dy });
+          }
+        }
+        for (const w of circuit.wires) {
+          if (w.jog && memberSet.has(w.a.symbolId) && memberSet.has(w.b.symbolId) && !updatedWires.has(w.id)) {
+            updatedWires.add(w.id);
+            let newPos = w.jog.pos;
+            if (w.jog.axis === "x" && Math.abs(dx) > 0.0001) newPos += dx * GRID;
+            if (w.jog.axis === "y" && Math.abs(dy) > 0.0001) newPos += dy * GRID;
+            wireJogUpdates.push({ id: w.id, jog: { axis: w.jog.axis, pos: newPos } });
+          }
+        }
+      }
+    }
+
+    return { symbolUpdates, wireJogUpdates };
   }
 
   return { symbolUpdates, wireJogUpdates };

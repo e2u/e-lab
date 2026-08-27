@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { catalogItem, suggestNetLabelTag } from "./catalog";
-import { addDevice, addSymbol, addWire, emptyCircuit, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
+import { addDevice, addSymbol, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
+import templateData from "./examples/three-phase-motor.json";
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols } from "./groups";
 import { EXAMPLES } from "./examples";
-import { allWireRoutes, nearestOnPolyline, portsEqual, snapOnSegment, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { allWireRoutes, nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   downloadJson,
@@ -106,7 +107,7 @@ export interface LabState {
   rotateSelected: (dir?: 1 | -1) => void;
   flipSelected: (axis: "h" | "v") => void;
   nudgeSelected: (dx: number, dy: number) => void;
-  alignSelected: (edge: "left" | "right" | "top" | "bottom" | "hcenter" | "vcenter") => void;
+  alignSelected: (edge: "left" | "right" | "top" | "bottom" | "hcenter" | "vcenter" | "distribute-h" | "distribute-v") => void;
   snapSelected: () => void;
   duplicateSelected: () => void;
   copySelected: () => void;
@@ -123,7 +124,8 @@ export interface LabState {
   pointerDevice: (deviceId: string, down: boolean) => void;
   toggleIo: (deviceId: string, field: "on" | "tripped" | "actuated" | "prime") => void;
   cyclePosition: (deviceId: string) => void;
-  updateDevice: (deviceId: string, patch: { tag?: string; color?: string; delayMs?: number; preset?: number; setpoint?: number; ratio?: string; primaryVolts?: string; secondaryVolts?: string; primaryConn?: "delta" | "wye"; secondaryConn?: "delta" | "wye"; shaftWith?: string; welded?: boolean }) => void;
+  updateDevice: (deviceId: string, patch: { tag?: string; color?: string; delayMs?: number; preset?: number; setpoint?: number; ratio?: string; primaryVolts?: string; secondaryVolts?: string; primaryConn?: "delta" | "wye"; secondaryConn?: "delta" | "wye"; supplyType?: "wye" | "delta"; shaftWith?: string; welded?: boolean }) => void;
+  setSymbolVariant: (symbolId: string, variant: string) => void;
   rebind: (symbolId: string, deviceId: string) => void;
   deleteSelected: () => void;
   loadExample: (id: string) => void;
@@ -187,8 +189,18 @@ function mergeRuntime(circuit: Circuit, prev: SimSnapshot["runtime"]): SimSnapsh
   return next;
 }
 
-// Initialize from URL share hash, saved draft, or fallback to empty template
-const boot = startupDoc(emptyCircuit, t("doc.untitled"));
+export function createBlankTemplateCircuit(): Circuit {
+  const c = clone(templateData.circuit as unknown as Circuit);
+  sanitizeCircuitIds(c);
+  return c;
+}
+
+export function createBlankTemplateProcess(): ProcessVars {
+  return templateData.process ? { ...defaultProcess(), ...templateData.process } : defaultProcess();
+}
+
+// Initialize from URL share hash, saved draft, or fallback to default template
+const boot = startupDoc(createBlankTemplateCircuit, t("doc.untitled"));
 sanitizeCircuitIds(boot.circuit);
 const sidebarBoot = readSidebarState();
 
@@ -376,7 +388,17 @@ export const useLab = create<LabState>((set, get) => ({
       item.variant,
       gx,
       gy,
-      item.kind === "lamp" ? { color: "green" } : item.kind === "timer-on" || item.kind === "timer-off" ? { delayMs: 2000 } : item.kind === "temp-no" || item.kind === "temp-nc" ? { setpoint: 60 } : item.kind === "transformer" ? { ratio: "480/120" } : {},
+      item.kind === "lamp"
+        ? { color: "green" }
+        : item.kind === "timer-on" || item.kind === "timer-off"
+          ? { delayMs: 2000 }
+          : item.kind === "temp-no" || item.kind === "temp-nc"
+            ? { setpoint: 60 }
+            : item.kind === "transformer"
+              ? { ratio: "480/120" }
+              : item.kind === "mains-3ph"
+                ? { supplyType: item.variant === "delta" ? "delta" : "wye" }
+                : {},
       item.defaultRot ?? 0,
     );
     set({
@@ -542,6 +564,7 @@ export const useLab = create<LabState>((set, get) => ({
     secondaryVolts?: string;
     primaryConn?: "delta" | "wye";
     secondaryConn?: "delta" | "wye";
+    supplyType?: "wye" | "delta";
     shaftWith?: string;
     welded?: boolean;
   }) => {
@@ -559,8 +582,31 @@ export const useLab = create<LabState>((set, get) => ({
     if (patch.secondaryVolts !== undefined) d.params.secondaryVolts = patch.secondaryVolts;
     if (patch.primaryConn !== undefined) d.params.primaryConn = patch.primaryConn;
     if (patch.secondaryConn !== undefined) d.params.secondaryConn = patch.secondaryConn;
+    if (patch.supplyType !== undefined) {
+      d.params.supplyType = patch.supplyType;
+      if (d.kind === "mains-3ph") {
+        for (const s of next.symbols) {
+          if (s.deviceId === deviceId) {
+            s.variant = patch.supplyType;
+          }
+        }
+      }
+    }
     if (patch.shaftWith !== undefined) d.params.shaftWith = patch.shaftWith;
     if (patch.welded !== undefined) d.params.welded = patch.welded;
+    set({ circuit: next, isDirty: true });
+  },
+
+  setSymbolVariant: (symbolId, variant) => {
+    get().pushHistory();
+    const next = clone(get().circuit);
+    const sym = next.symbols.find((s) => s.id === symbolId);
+    if (!sym) return;
+    sym.variant = variant;
+    const d = next.devices.find((x) => x.id === sym.deviceId);
+    if (d && d.kind === "mains-3ph" && (variant === "wye" || variant === "delta")) {
+      d.params.supplyType = variant;
+    }
     set({ circuit: next, isDirty: true });
   },
 
@@ -632,6 +678,7 @@ export const useLab = create<LabState>((set, get) => ({
         running: false,
         mode: "edit",
         docName: docName,
+        process: jsonData.process ? { ...defaultProcess(), ...jsonData.process } : get().process,
         isDirty: false,
       });
       return;
@@ -666,35 +713,7 @@ export const useLab = create<LabState>((set, get) => ({
         return;
       }
     }
-    // Default blank template with power distribution using net labels and isolator
-    const c = emptyCircuit();
-    
-    // Add mains-3ph device at position (0, 0)
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    
-    // Add isolator at position (6, 1)
-    const iso = addDevice(c, "isolator", "Main Disconnect Breaker", "body", 6, 1);
-    
-    // Add net-label devices for power distribution
-    const nlL1 = addDevice(c, "net-label", "L1", "body", 13, 2);
-    const nlL2 = addDevice(c, "net-label", "L2", "body", 13, 4);
-    const nlL3 = addDevice(c, "net-label", "L3", "body", 13, 6);
-    const nlN = addDevice(c, "net-label", "N", "body", 6, 10);
-    const nlPE = addDevice(c, "net-label", "G", "body", 6, 13); // G for Ground
-    
-    // Connect power to isolator
-    addWire(c, g.symbol, "L1", iso.symbol, "L1");
-    addWire(c, g.symbol, "L2", iso.symbol, "L2");
-    addWire(c, g.symbol, "L3", iso.symbol, "L3");
-    
-    // Connect isolator output to net labels
-    addWire(c, iso.symbol, "T1", nlL1.symbol, "1");
-    addWire(c, iso.symbol, "T2", nlL2.symbol, "1");
-    addWire(c, iso.symbol, "T3", nlL3.symbol, "1");
-    
-    // Connect N and PE directly to net labels
-    addWire(c, g.symbol, "N", nlN.symbol, "1");
-    addWire(c, g.symbol, "PE", nlPE.symbol, "1");
+    const c = createBlankTemplateCircuit();
     
     get().pushHistory();
     set({
@@ -709,6 +728,7 @@ export const useLab = create<LabState>((set, get) => ({
       running: false,
       mode: "edit",
       docName: t("doc.untitled"),
+      process: createBlankTemplateProcess(),
       isDirty: false,
     });
   },
@@ -1155,31 +1175,101 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   zoomFit: () => {
-    const { circuit } = get();
+    const { circuit, paletteOpen, sideOpen } = get();
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
     for (const s of circuit.symbols) {
-      minX = Math.min(minX, s.x);
-      minY = Math.min(minY, s.y);
-      maxX = Math.max(maxX, s.x + 6);
-      maxY = Math.max(maxY, s.y + 6);
+      const b = symbolBounds(circuit, s);
+      if (b) {
+        minX = Math.min(minX, b.x);
+        minY = Math.min(minY, b.y);
+        maxX = Math.max(maxX, b.x + b.w);
+        maxY = Math.max(maxY, b.y + b.h);
+      } else {
+        minX = Math.min(minX, s.x);
+        minY = Math.min(minY, s.y);
+        maxX = Math.max(maxX, s.x + 4);
+        maxY = Math.max(maxY, s.y + 4);
+      }
     }
-    const hasElements = circuit.symbols.length > 0 && isFinite(minX);
-    const contentW = hasElements ? Math.max((maxX - minX + 6) * GRID, 400) : (COLS * GRID) * 0.4;
-    const contentH = hasElements ? Math.max((maxY - minY + 6) * GRID, 400) : (ROWS * GRID) * 0.4;
+
+    for (const w of circuit.wires) {
+      const pA = terminalWorld(circuit, w.a);
+      const pB = terminalWorld(circuit, w.b);
+      if (pA) {
+        minX = Math.min(minX, pA.x / GRID);
+        minY = Math.min(minY, pA.y / GRID);
+        maxX = Math.max(maxX, pA.x / GRID);
+        maxY = Math.max(maxY, pA.y / GRID);
+      }
+      if (pB) {
+        minX = Math.min(minX, pB.x / GRID);
+        minY = Math.min(minY, pB.y / GRID);
+        maxX = Math.max(maxX, pB.x / GRID);
+        maxY = Math.max(maxY, pB.y / GRID);
+      }
+      if (w.jog) {
+        if (w.jog.axis === "x") {
+          minX = Math.min(minX, w.jog.pos / GRID);
+          maxX = Math.max(maxX, w.jog.pos / GRID);
+        } else {
+          minY = Math.min(minY, w.jog.pos / GRID);
+          maxY = Math.max(maxY, w.jog.pos / GRID);
+        }
+      }
+    }
+
+    const hasElements = (circuit.symbols.length > 0 || circuit.wires.length > 0) && isFinite(minX);
+    const padGrid = 2;
+    const contentW = hasElements ? Math.max((maxX - minX + padGrid * 2) * GRID, 400) : (COLS * GRID) * 0.4;
+    const contentH = hasElements ? Math.max((maxY - minY + padGrid * 2) * GRID, 400) : (ROWS * GRID) * 0.4;
 
     let availW = 800;
     let availH = 600;
-    if (typeof window !== "undefined") {
-      const isDrawerMode = window.innerWidth <= 768 || window.innerHeight <= 550 || ((navigator?.maxTouchPoints ?? 0) > 0 && window.innerWidth <= 1024);
-      const paletteW = (!isDrawerMode && get().paletteOpen) ? (window.innerWidth <= 1024 ? 180 : 220) : 0;
-      const sideW = (!isDrawerMode && get().sideOpen) ? (window.innerWidth <= 1024 ? 220 : 260) : 0;
-      availW = Math.max(window.innerWidth - paletteW - sideW - 40, 300);
-      availH = Math.max(window.innerHeight - 90, 200);
+    const wrap = typeof document !== "undefined" ? document.querySelector<HTMLElement>(".paper-wrap") : null;
+
+    if (wrap && wrap.clientWidth > 0 && wrap.clientHeight > 0) {
+      // Direct DOM measurement of the visible area between open panels
+      // Subtract margins/paddings (paper margin 12px*2 + wrap padding 12px*2 = 48px)
+      availW = Math.max(wrap.clientWidth - 48, 200);
+      availH = Math.max(wrap.clientHeight - 48, 200);
+    } else if (typeof window !== "undefined") {
+      // Fallback calculation when DOM measurement is not available
+      const isDrawerMode = window.innerWidth <= 768 || (window.innerHeight <= 550 && window.innerWidth <= 1024);
+      let paletteW = 0;
+      let sideW = 0;
+      if (!isDrawerMode) {
+        if (paletteOpen) {
+          paletteW = window.innerWidth <= 1024 ? 180 : window.innerWidth <= 1400 ? 200 : 230;
+        }
+        if (sideOpen) {
+          sideW = window.innerWidth <= 1024 ? 220 : window.innerWidth <= 1400 ? 240 : 270;
+        }
+      }
+      availW = Math.max(window.innerWidth - paletteW - sideW - 60, 200);
+      availH = Math.max(window.innerHeight - 100, 200);
     }
 
     const scale = Math.min(availW / contentW, availH / contentH);
     const fitZoom = Math.max(0.25, Math.min(1.5, Math.round(scale * 100) / 100));
     get().setZoom(fitZoom);
+
+    // Center content in viewport after zooming
+    if (wrap && hasElements) {
+      try {
+        const contentCenterX = ((minX + maxX) / 2) * GRID * fitZoom + 12;
+        const contentCenterY = ((minY + maxY) / 2) * GRID * fitZoom + 12;
+        const targetScrollLeft = Math.max(0, contentCenterX - wrap.clientWidth / 2);
+        const targetScrollTop = Math.max(0, contentCenterY - wrap.clientHeight / 2);
+        if (typeof wrap.scrollTo === "function") {
+          setTimeout(() => {
+            try {
+              wrap.scrollTo({ left: targetScrollLeft, top: targetScrollTop, behavior: "smooth" });
+            } catch {}
+          }, 30);
+        }
+      } catch {}
+    }
   },
 
 }));

@@ -149,10 +149,10 @@ describe("sim engine", () => {
     const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
     const tc = addDevice(c, "transformer", "TC1", "body", 6, 0);
     const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
-    addWire(c, g.symbol, "L1", tc.symbol, "P1");
-    addWire(c, g.symbol, "L2", tc.symbol, "P2");
-    addWire(c, tc.symbol, "S1", hl.symbol, "1");
-    addWire(c, hl.symbol, "2", tc.symbol, "S2");
+    addWire(c, g.symbol, "L1", tc.symbol, "H1");
+    addWire(c, g.symbol, "L2", tc.symbol, "H2");
+    addWire(c, tc.symbol, "X1", hl.symbol, "1");
+    addWire(c, hl.symbol, "2", tc.symbol, "X2");
     expect(run(c).runtime[hl.device.id].lit).toBe(true);
   });
 
@@ -526,5 +526,40 @@ describe("sim engine", () => {
     const snap = run(c, [], 2);
     expect(snap.runtime[hl.device.id].lit).toBe(true);
     expect(snap.runtime[hl2.device.id].lit).toBe(true);
+  });
+
+  it("seeds PE potential from a ground component and tracks energized state", () => {
+    const c = emptyCircuit();
+    const gnd = addDevice(c, "ground", "PE1", "body", 0, 0);
+    const nl = addDevice(c, "net-label", "PE", "body", 6, 0);
+    addWire(c, gnd.symbol, "1", nl.symbol, "1");
+
+    const snap = run(c, [], 2);
+    expect(snap.runtime[gnd.device.id].energized).toBe(true);
+    expect(snap.runtime[nl.device.id].energized).toBe(true);
+    const w = c.wires[0];
+    expect(snap.wires[w.id].kind).toBe("PE");
+  });
+
+  it("supports Wye and Delta supply modes for 3-phase mains", () => {
+    const cWye = emptyCircuit();
+    const gWye = addDevice(cWye, "mains-3ph", "G1", "wye", 0, 0, { supplyType: "wye" });
+    const hlWye = addDevice(cWye, "lamp", "HL1", "body", 6, 0);
+    addWire(cWye, gWye.symbol, "L1", hlWye.symbol, "1");
+    addWire(cWye, hlWye.symbol, "2", gWye.symbol, "N");
+
+    const snapWye = run(cWye, [], 2);
+    expect(snapWye.runtime[hlWye.device.id].lit).toBe(true);
+
+    const cDelta = emptyCircuit();
+    const gDelta = addDevice(cDelta, "mains-3ph", "G2", "delta", 0, 0, { supplyType: "delta" });
+    const mDelta = addDevice(cDelta, "motor-3ph", "M1", "body", 10, 0);
+    addWire(cDelta, gDelta.symbol, "L1", mDelta.symbol, "U");
+    addWire(cDelta, gDelta.symbol, "L2", mDelta.symbol, "V");
+    addWire(cDelta, gDelta.symbol, "L3", mDelta.symbol, "W");
+
+    const snapDelta = run(cDelta, [], 2);
+    expect(snapDelta.runtime[mDelta.device.id].direction).toBe(1);
+    expect(snapDelta.runtime[mDelta.device.id].energized).toBe(true);
   });
 });

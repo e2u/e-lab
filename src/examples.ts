@@ -35,10 +35,10 @@ export function transformer(): Circuit {
 
   addWire(c, g.symbol, "L1", nl1.symbol, "1");
   addWire(c, g.symbol, "L2", nl2.symbol, "1");
-  addWire(c, nl1.symbol, "1", tc.symbol, "P1");
-  addWire(c, nl2.symbol, "1", tc.symbol, "P2");
-  addWire(c, tc.symbol, "S1", hl.symbol, "1");
-  addWire(c, hl.symbol, "2", tc.symbol, "S2");
+  addWire(c, nl1.symbol, "1", tc.symbol, "H1");
+  addWire(c, nl2.symbol, "1", tc.symbol, "H2");
+  addWire(c, tc.symbol, "X1", hl.symbol, "1");
+  addWire(c, hl.symbol, "2", tc.symbol, "X2");
   return c;
 }
 
@@ -81,12 +81,12 @@ export function selfHoldMotor(): Circuit {
   addWire(c, fr.symbol, "T3", m.symbol, "W");
 
   // Transformer power from net labels
-  addWire(c, nl1.symbol, "1", tc.symbol, "P1");
-  addWire(c, nl2.symbol, "1", tc.symbol, "P2");
+  addWire(c, nl1.symbol, "1", tc.symbol, "H1");
+  addWire(c, nl2.symbol, "1", tc.symbol, "H2");
 
   // Transformer secondary to net labels
-  addWire(c, tc.symbol, "S1", nlS1.symbol, "1");
-  addWire(c, tc.symbol, "S2", nlS2.symbol, "1");
+  addWire(c, tc.symbol, "X1", nlS1.symbol, "1");
+  addWire(c, tc.symbol, "X2", nlS2.symbol, "1");
 
   // Control circuit using net labels
   addWire(c, nlS1.symbol, "1", fr.symbol, "95");
@@ -199,12 +199,12 @@ export function starDeltaStart(): Circuit {
   addWire(c, kmYMain, "T2", kmYMain, "T3");
 
   // Transformer power from net labels
-  addWire(c, nl1.symbol, "1", tc.symbol, "P1");
-  addWire(c, nl2.symbol, "1", tc.symbol, "P2");
+  addWire(c, nl1.symbol, "1", tc.symbol, "H1");
+  addWire(c, nl2.symbol, "1", tc.symbol, "H2");
 
   // Transformer secondary to net labels
-  addWire(c, tc.symbol, "S1", nlS1.symbol, "1");
-  addWire(c, tc.symbol, "S2", nlS2.symbol, "1");
+  addWire(c, tc.symbol, "X1", nlS1.symbol, "1");
+  addWire(c, tc.symbol, "X2", nlS2.symbol, "1");
 
   // Control circuit using net labels
   addWire(c, nlS1.symbol, "1", fr.symbol, "95");

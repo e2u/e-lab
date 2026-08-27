@@ -6,10 +6,12 @@ import { SymbolGlyph } from "../../../Glyphs";
 import { getSymbolTagPlacement } from "../../../tagPlacement";
 import { t } from "../../../i18n";
 import { GRID, type Circuit, type Device, type SimSnapshot, type SymbolInst } from "../../../types";
+import { type Selection } from "../../../store";
 
 interface SymbolLayerProps {
   circuit: Circuit;
   snapshot: SimSnapshot;
+  selected: Selection | null;
   selectedIds: string[];
   selectedNetTag: string;
   held: string[];
@@ -22,6 +24,7 @@ interface SymbolLayerProps {
 export const SymbolLayer = memo(function SymbolLayer({
   circuit,
   snapshot,
+  selected,
   selectedIds,
   selectedNetTag,
   held,
@@ -30,6 +33,9 @@ export const SymbolLayer = memo(function SymbolLayer({
   onSymbolPointerUp,
   onSymbolPointerLeave,
 }: SymbolLayerProps) {
+  const selectedSym = selected?.type === "symbol" ? circuit.symbols.find((s) => s.id === selected.id) : null;
+  const selectedDev = selectedSym ? circuit.devices.find((d) => d.id === selectedSym.deviceId) : null;
+
   return (
     <>
       {circuit.symbols.map((sym) => {
@@ -43,6 +49,14 @@ export const SymbolLayer = memo(function SymbolLayer({
           Boolean(selectedNetTag) &&
           dev.kind === "net-label" &&
           dev.tag.trim() === selectedNetTag;
+        const isSameDevice = Boolean(
+          selectedDev &&
+            dev.kind !== "junction" &&
+            dev.kind !== "net-label" &&
+            (sym.deviceId === selectedDev.id ||
+              (dev.kind === selectedDev.kind && dev.tag.trim() && dev.tag.trim() === selectedDev.tag.trim()))
+        );
+        const isRelatedSymbol = !sel && isSameDevice;
         return (
           <g key={sym.id}>
             {/* 元件主體 - 保持旋轉 */}
@@ -71,14 +85,14 @@ export const SymbolLayer = memo(function SymbolLayer({
                     height={v.h * GRID}
                     fill="transparent"
                   />
-                  {(sel || netMatch) && (
+                  {(sel || netMatch || isRelatedSymbol) && (
                     <rect
                       x={-4}
                       y={-4}
                       width={v.w * GRID + 8}
                       height={v.h * GRID + 8}
                       fill="none"
-                      stroke={sel ? "#2ca02c" : "#3b7de0"}
+                      stroke={sel ? "#2ca02c" : isRelatedSymbol ? "#d97706" : "#3b7de0"}
                       strokeDasharray="4 3"
                       pointerEvents="none"
                     />
@@ -107,6 +121,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                 {(() => {
                   const { tagX, tagY, textAnchor } = getSymbolTagPlacement(dev.kind, sym, v);
                   const tagWidth = dev.tag.length * 7;
+                  const isTagHighlighted = (selected?.type === "symbol" && selected.id === sym.id) || isSameDevice;
                   return (
                     <>
                       <rect
@@ -115,13 +130,16 @@ export const SymbolLayer = memo(function SymbolLayer({
                         width={textAnchor === "start" ? tagWidth + 8 : tagWidth + 12}
                         height={14}
                         rx="2"
-                        fill="#efe6d0"
+                        className={`sym-tag-bg ${isTagHighlighted ? "selected" : ""}`}
+                        fill={isTagHighlighted ? "#ffe066" : "#efe6d0"}
+                        stroke={isTagHighlighted ? "#d97706" : "none"}
+                        strokeWidth={isTagHighlighted ? 1.2 : 0}
                       />
                       <text
                         x={tagX}
                         y={tagY + 4}
                         textAnchor={textAnchor}
-                        className="sym-tag"
+                        className={`sym-tag ${isTagHighlighted ? "selected" : ""}`}
                       >
                         {dev.tag}
                       </text>

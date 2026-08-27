@@ -422,7 +422,10 @@ function coilTerms(kind: DeviceKind): [string, string][] {
     case "counter":
       return [["A1", "A2"]];
     case "transformer":
-      return [["P1", "P2"]];
+      return [
+        ["H1", "H2"],
+        ["P1", "P2"],
+      ];
     default:
       return [];
   }
@@ -538,8 +541,15 @@ export function tick(
       stampNode(d.id, "L1", { sourceId: d.id, kind: "L1" });
       stampNode(d.id, "L2", { sourceId: d.id, kind: "L2" });
       stampNode(d.id, "L3", { sourceId: d.id, kind: "L3" });
-      stampNode(d.id, "N", { sourceId: d.id, kind: "N" });
+      const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+      const isDelta = d.params.supplyType === "delta" || sym?.variant === "delta";
+      if (!isDelta) {
+        stampNode(d.id, "N", { sourceId: d.id, kind: "N" });
+      }
       stampNode(d.id, "PE", { sourceId: d.id, kind: "PE" });
+    }
+    if (d.kind === "ground") {
+      stampNode(d.id, "1", { sourceId: d.id, kind: "PE" });
     }
     if (d.kind === "dc-supply" && rt.on) {
       stampNode(d.id, "+", { sourceId: d.id, kind: "DC+" });
@@ -564,10 +574,15 @@ export function tick(
     guard += 1;
     for (const d of circuit.devices) {
       if (d.kind === "transformer") {
-        // Single-phase transformer: P1/P2 -> S1/S2
-        if (voltageBetween(pot(d.id, "P1"), pot(d.id, "P2"))) {
+        // Single-phase transformer: H1/H2 (or legacy P1/P2) -> X1/X2 (or legacy S1/S2)
+        const in1 = pot(d.id, "H1") ?? pot(d.id, "P1");
+        const in2 = pot(d.id, "H2") ?? pot(d.id, "P2");
+        if (voltageBetween(in1, in2)) {
+          const x1 = pot(d.id, "X1");
           const s1 = pot(d.id, "S1");
-          if (!s1) {
+          if (!x1 && !s1) {
+            stampNode(d.id, "X1", { sourceId: `xf-${d.id}`, kind: "L1" });
+            stampNode(d.id, "X2", { sourceId: `xf-${d.id}`, kind: "N" });
             stampNode(d.id, "S1", { sourceId: `xf-${d.id}`, kind: "L1" });
             stampNode(d.id, "S2", { sourceId: `xf-${d.id}`, kind: "N" });
             grew = true;
@@ -604,7 +619,7 @@ export function tick(
       rt.lit = rt.energized;
     }
 
-    if (d.kind === "net-label" || d.kind === "junction") {
+    if (d.kind === "net-label" || d.kind === "junction" || d.kind === "ground") {
       rt.energized = Boolean(pot(d.id, "1"));
     }
 
@@ -789,6 +804,8 @@ export function tick(
       add("-");
     }
     if (d.kind === "transformer") {
+      add("X1");
+      add("X2");
       add("S1");
       add("S2");
     }

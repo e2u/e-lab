@@ -87,14 +87,14 @@ const twoTermVert: VariantDef = {
 
 const pole3: VariantDef = {
   w: 5,
-  h: 8,
+  h: 6,
   terminals: [
-    t("L1", 0, 1.33),
-    t("L2", 0, 4),
-    t("L3", 0, 6.67),
-    t("T1", 5, 1.33),
-    t("T2", 5, 4),
-    t("T3", 5, 6.67),
+    t("L1", 0, 1),
+    t("L2", 0, 3),
+    t("L3", 0, 5),
+    t("T1", 5, 1),
+    t("T2", 5, 3),
+    t("T3", 5, 5),
   ],
 };
 
@@ -102,14 +102,14 @@ const starterBody: VariantDef = {
   w: 8,
   h: 10,
   terminals: [
-    t("L1", 0, 1.5),
-    t("L2", 0, 3.5),
-    t("L3", 0, 5.5),
-    t("T1", 8, 1.5),
-    t("T2", 8, 3.5),
-    t("T3", 8, 5.5),
-    t("A1", 0, 8),
-    t("A2", 8, 8),
+    t("L1", 0, 1),
+    t("L2", 0, 3),
+    t("L3", 0, 5),
+    t("T1", 8, 1),
+    t("T2", 8, 3),
+    t("T3", 8, 5),
+    t("A1", 0, 7.5),
+    t("A2", 8, 7.5),
     t("95", 0.8, 10, "95"),
     t("96", 2.6, 10, "96"),
     t("97", 5.4, 10, "97"),
@@ -121,22 +121,37 @@ const starterBody: VariantDef = {
   ],
 };
 
+const wyeMains: VariantDef = {
+  w: 4,
+  h: 10,
+  terminals: [
+    t("L1", 4, 1),
+    t("L2", 4, 3),
+    t("L3", 4, 5),
+    t("N", 4, 7),
+    t("PE", 4, 9),
+  ],
+};
+
+const deltaMains: VariantDef = {
+  w: 4,
+  h: 8,
+  terminals: [
+    t("L1", 4, 1),
+    t("L2", 4, 3),
+    t("L3", 4, 5),
+    t("PE", 4, 7),
+  ],
+};
+
 export const KINDS: Record<DeviceKind, KindMeta> = {
   "mains-3ph": {
     prefix: "GEN",
     label: "三相電源",
     variants: {
-      body: {
-        w: 4,
-        h: 16,
-        terminals: [
-          t("L1", 4, 2),
-          t("L2", 4, 5),
-          t("L3", 4, 8),
-          t("N", 4, 11),
-          t("PE", 4, 14),
-        ],
-      },
+      body: wyeMains,
+      wye: wyeMains,
+      delta: deltaMains,
     },
   },
   "dc-supply": {
@@ -158,10 +173,10 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
         w: 6,
         h: 5,
         terminals: [
-          t("P1", 0, 1.2, "1"),
-          t("P2", 0, 3.8, "2"),
-          t("S1", 6, 1.2, "a"),
-          t("S2", 6, 3.8, "b"),
+          t("H1", 0, 1, "H1"),
+          t("H2", 0, 3, "H2"),
+          t("X1", 6, 1, "X1"),
+          t("X2", 6, 3, "X2"),
         ],
       },
     },
@@ -188,16 +203,16 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 5,
-        h: 7,
+        h: 8,
         terminals: [
           t("L1", 0, 1),
-          t("L2", 0, 2.5),
-          t("L3", 0, 4),
-          t("N", 0, 5.5),
+          t("L2", 0, 3),
+          t("L3", 0, 5),
+          t("N", 0, 7),
           t("T1", 5, 1),
-          t("T2", 5, 2.5),
-          t("T3", 5, 4),
-          t("TN", 5, 5.5, "N"),
+          t("T2", 5, 3),
+          t("T3", 5, 5),
+          t("TN", 5, 7, "N"),
         ],
       },
     },
@@ -640,12 +655,12 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
         w: 12,
         h: 11,
         terminals: [
-          t("L1", 0, 1.5),
-          t("L2", 0, 3.5),
-          t("L3", 0, 5.5),
-          t("T1", 12, 1.5),
-          t("T2", 12, 3.5),
-          t("T3", 12, 5.5),
+          t("L1", 0, 1),
+          t("L2", 0, 3),
+          t("L3", 0, 5),
+          t("T1", 12, 1),
+          t("T2", 12, 3),
+          t("T3", 12, 5),
           t("A1F", 0, 7.3, "A1F"),
           t("A2F", 0, 8.5, "A2F"),
           t("A1R", 12, 7.3, "A1R"),
@@ -673,6 +688,17 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       },
     },
   },
+  ground: {
+    prefix: "PE",
+    label: "接地",
+    variants: {
+      body: {
+        w: 2,
+        h: 2,
+        terminals: [t("1", 1, 0, "PE")],
+      },
+    },
+  },
   junction: {
     prefix: "",
     label: "連接點",
@@ -687,7 +713,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
 };
 
 export const CATALOG: CatalogItem[] = [
-  { id: "mains-3ph", kind: "mains-3ph", variant: "body", group: "電源與保護", label: "三相電源", labelEn: "Mains 3Φ", prefix: "G", creates: "device" },
+  { id: "mains-3ph", kind: "mains-3ph", variant: "wye", group: "電源與保護", label: "三相電源 (Y)", labelEn: "3Φ (Y)", prefix: "G", creates: "device" },
+  { id: "mains-3ph-delta", kind: "mains-3ph", variant: "delta", group: "電源與保護", label: "三相電源 (Δ)", labelEn: "3Φ (Δ)", prefix: "G", creates: "device" },
   { id: "transformer", kind: "transformer", variant: "body", group: "電源與保護", label: "控制變壓器", labelEn: "Transformer", prefix: "TC", creates: "device" },
   { id: "breaker-1p", kind: "breaker-1p", variant: "body", group: "電源與保護", label: "單極斷路器", labelEn: "MCB 1P", prefix: "SCB", creates: "device" },
   { id: "breaker-3p", kind: "breaker-3p", variant: "body", group: "電源與保護", label: "三極斷路器", labelEn: "MCB 3P", prefix: "CB", creates: "device" },
@@ -696,6 +723,7 @@ export const CATALOG: CatalogItem[] = [
   { id: "overload", kind: "overload", variant: "body", group: "電源與保護", label: "熱繼電器", labelEn: "Overload FR", prefix: "OL", creates: "device" },
 
   { id: "net-label", kind: "net-label", variant: "body", group: "接線", label: "標籤端子", labelEn: "Net label", prefix: "L1", creates: "device" },
+  { id: "ground", kind: "ground", variant: "body", group: "接線", label: "接地", labelEn: "Ground", prefix: "PE", creates: "device" },
 
   { id: "pb-no", kind: "pb-no", variant: "body", group: "開關", label: "常開按鈕", labelEn: "PB NO", prefix: "SB", creates: "device" },
   { id: "pb-nc", kind: "pb-nc", variant: "body", group: "開關", label: "常閉按鈕", labelEn: "PB NC", prefix: "SB", creates: "device" },

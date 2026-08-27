@@ -229,4 +229,72 @@ describe("wire crossovers", () => {
       { x: 100, y: 100 },
     ]);
   });
+
+  it("routes U-turn for same-direction terminals without folding back onto symbols", () => {
+    const c = emptyCircuit();
+    const km1 = addDevice(c, "contactor", "KM1", "coil", 4, 4); // A2 at right (out.x = 1)
+    const km2 = addDevice(c, "contactor", "KM2", "coil", 4, 8); // A2 at right (out.x = 1)
+    addWire(c, km1.symbol, "A2", km2.symbol, "A2");
+    const pts = wireRoute(c, c.wires[0].a, c.wires[0].b);
+    const start = terminalWorld(c, c.wires[0].a)!;
+    const end = terminalWorld(c, c.wires[0].b)!;
+
+    // Both terminals face right, so the outer vertical channel must be to the right of both terminals
+    const maxX = Math.max(start.x, end.x);
+    for (const p of pts) {
+      expect(p.x).toBeGreaterThanOrEqual(maxX - 0.5);
+    }
+  });
+
+  it("separates overlapping vertical runs of parallel wires", () => {
+    const c = emptyCircuit();
+    const a = addJunction(c, 6, 0);
+    const b = addJunction(c, 6, 12);
+    const e = addJunction(c, 6, 2);
+    const f = addJunction(c, 6, 10);
+    addWire(c, a.symbol, "1", b.symbol, "1");
+    addWire(c, e.symbol, "1", f.symbol, "1");
+    const routes = allWireRoutes(c);
+    const p1 = routes.get(c.wires[0].id)!;
+    const p2 = routes.get(c.wires[1].id)!;
+    const midX = (pts: { x: number; y: number }[]) => {
+      let best = pts[0].x;
+      let len = -1;
+      for (let i = 0; i < pts.length - 1; i += 1) {
+        const L = Math.abs(pts[i + 1].y - pts[i].y);
+        if (L > len) {
+          len = L;
+          best = pts[i].x;
+        }
+      }
+      return best;
+    };
+    expect(Math.abs(midX(p1) - midX(p2))).toBeGreaterThanOrEqual(WIRE_LANE - 1);
+  });
+
+  it("handles parallel straight wires between two devices without spurious crossovers", () => {
+    for (const dy of [0, 1, 2, 3, 4, 5, 6, -1, -2, -3]) {
+      const c = emptyCircuit();
+      const tc1 = addDevice(c, "transformer", "TC1", "body", 4, 4);
+      const tc2 = addDevice(c, "transformer", "TC2", "body", 16, 4 + dy);
+      addWire(c, tc1.symbol, "X1", tc2.symbol, "H1");
+      addWire(c, tc1.symbol, "X2", tc2.symbol, "H2");
+      const routes = allWireRoutes(c);
+      const crossovers = findWireCrossovers(c, routes);
+      expect(crossovers).toHaveLength(0);
+    }
+  });
+
+  it("handles cross-connected wires cleanly with at most one crossover", () => {
+    for (const dy of [0, 2, 4, 6]) {
+      const c = emptyCircuit();
+      const tc1 = addDevice(c, "transformer", "TC1", "body", 4, 4);
+      const tc2 = addDevice(c, "transformer", "TC2", "body", 16, 4 + dy);
+      addWire(c, tc1.symbol, "X1", tc2.symbol, "H2");
+      addWire(c, tc1.symbol, "X2", tc2.symbol, "H1");
+      const routes = allWireRoutes(c);
+      const crossovers = findWireCrossovers(c, routes);
+      expect(crossovers.length).toBeLessThanOrEqual(1);
+    }
+  });
 });

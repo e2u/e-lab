@@ -75,4 +75,59 @@ describe("canvas width and zoom features", () => {
     expect(s.zoom).toBeGreaterThanOrEqual(0.25);
     expect(s.zoom).toBeLessThanOrEqual(1.5);
   });
+
+  it("adjusts zoomFit scale when side panels are open vs closed", () => {
+    useLab.setState({
+      circuit: {
+        devices: [
+          { id: "d1", kind: "mains-3ph", tag: "G1", params: {} },
+          { id: "d2", kind: "motor-3ph", tag: "M1", params: {} },
+        ],
+        symbols: [
+          { id: "s1", deviceId: "d1", variant: "body", x: 10, y: 10, rot: 0 },
+          { id: "s2", deviceId: "d2", variant: "body", x: 70, y: 10, rot: 0 },
+        ],
+        wires: [],
+      },
+      paletteOpen: true,
+      sideOpen: true,
+    });
+
+    // When panels are open, available width is smaller -> smaller or equal zoom
+    useLab.getState().zoomFit();
+    const zoomWithPanels = useLab.getState().zoom;
+
+    // When panels are collapsed, available width is larger -> larger or equal zoom
+    useLab.setState({ paletteOpen: false, sideOpen: false });
+    useLab.getState().zoomFit();
+    const zoomWithoutPanels = useLab.getState().zoom;
+
+    expect(zoomWithoutPanels).toBeGreaterThanOrEqual(zoomWithPanels);
+  });
+
+  it("uses DOM container measurement for zoomFit when available", () => {
+    const fakeElement = {
+      className: "paper-wrap",
+      clientWidth: 600,
+      clientHeight: 500,
+      scrollTo: () => {},
+    };
+
+    const originalDocument = (globalThis as any).document;
+    (globalThis as any).document = {
+      querySelector: (sel: string) => (sel === ".paper-wrap" ? fakeElement : null),
+    };
+
+    try {
+      useLab.getState().zoomFit();
+      expect(useLab.getState().zoom).toBeGreaterThanOrEqual(0.25);
+      expect(useLab.getState().zoom).toBeLessThanOrEqual(1.5);
+    } finally {
+      if (originalDocument) {
+        (globalThis as any).document = originalDocument;
+      } else {
+        delete (globalThis as any).document;
+      }
+    }
+  });
 });

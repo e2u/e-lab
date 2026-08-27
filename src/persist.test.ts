@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { lampJog } from "./examples";
 import { decodeShare, encodeShare, makeDoc, parseDoc } from "./persist";
+import { createBlankTemplateCircuit, createBlankTemplateProcess, useLab } from "./store";
+import templateData from "./examples/three-phase-motor.json";
 
 describe("persist", () => {
   it("round-trips a circuit through a share payload", () => {
@@ -24,5 +26,23 @@ describe("persist", () => {
     expect(parseDoc(null)).toBeNull();
     expect(parseDoc({ version: 1 })).toBeNull();
     expect(decodeShare("nope")).toBeNull();
+  });
+
+  it("loads three-phase-motor template when creating a new diagram", () => {
+    const c = createBlankTemplateCircuit();
+    expect(c.devices.length).toBe(templateData.circuit.devices.length);
+    expect(c.symbols.length).toBe(templateData.circuit.symbols.length);
+    expect(c.wires.length).toBe(templateData.circuit.wires.length);
+
+    const proc = createBlankTemplateProcess();
+    expect(proc.temperature).toBe(templateData.process.temperature);
+
+    // Test store loadBlankTemplate
+    useLab.getState().loadBlankTemplate(true);
+    const state = useLab.getState();
+    expect(state.circuit.devices.length).toBe(templateData.circuit.devices.length);
+    expect(state.circuit.symbols.length).toBe(templateData.circuit.symbols.length);
+    expect(state.circuit.wires.length).toBe(templateData.circuit.wires.length);
+    expect(state.isDirty).toBe(false);
   });
 });

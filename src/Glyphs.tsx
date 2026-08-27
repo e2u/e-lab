@@ -1070,10 +1070,10 @@ function GlyphBody({
     }
     if (kind === "breaker-3p" || kind === "isolator" || kind === "rcd") {
         const n = kind === "rcd" ? 4 : 3;
-        // L1/L2/L3 and T1/T2/T3 for breaker-3p and isolator
+        // L1/L2/L3 and T1/T2/T3 for breaker-3p and isolator, plus N/TN for rcd
         const labels = (kind === "breaker-3p" || kind === "isolator")
             ? [["L1", "T1"], ["L2", "T2"], ["L3", "T3"]] as [string, string][]
-            : undefined;
+            : [["L1", "T1"], ["L2", "T2"], ["L3", "T3"], ["N", "N"]] as [string, string][];
         
         // Determine border color based on contact state
         const closed = Boolean(rt?.on && !rt?.tripped);
@@ -1086,13 +1086,25 @@ function GlyphBody({
                 {poles(
                     w,
                     h,
-                    Math.min(n, 3),
+                    n,
                     closed,
                     labels,
                     kind === "breaker-3p" || kind === "isolator" ? "arc" : "bar",
                     kind === "breaker-3p" || kind === "isolator",
                 )}
 
+            </S>
+        );
+    }
+    if (kind === "ground") {
+        const cx = 1 * GRID;
+        const col = hot ? "#2ca02c" : ink;
+        return (
+            <S w={w} h={h}>
+                <line x1={cx} y1={0} x2={cx} y2={1.0 * GRID} stroke={col} strokeWidth="2" strokeLinecap="round" />
+                <line x1={cx - 13} y1={1.0 * GRID} x2={cx + 13} y2={1.0 * GRID} stroke={col} strokeWidth="2.2" strokeLinecap="round" />
+                <line x1={cx - 8.5} y1={1.35 * GRID} x2={cx + 8.5} y2={1.35 * GRID} stroke={col} strokeWidth="2.2" strokeLinecap="round" />
+                <line x1={cx - 4} y1={1.7 * GRID} x2={cx + 4} y2={1.7 * GRID} stroke={col} strokeWidth="2.2" strokeLinecap="round" />
             </S>
         );
     }
@@ -1153,18 +1165,26 @@ function GlyphBody({
         );
     }
     if (kind === "mains-3ph") {
+        const isDelta = variant === "delta" || device.params.supplyType === "delta";
         // Terminal X position and color circle offset
         const termX = w * GRID - 14;
-        const baseY = (h * GRID) / 5;
-        const cols = ["#a65628", "#ff7f00", "#eccd26", "#ffffff", "#2ca02c"]; // Brown, Orange, Yellow, White, Green
-        // L1, L2, L3, N, G positions
-        const positions = [
-            {y: baseY * 0.7 - 0.3 * GRID, label: "L1"}, // L1
-            {y: baseY * 1.7 - 0.5 * GRID, label: "L2"}, // L2
-            {y: baseY * 2.7 - 0.6 * GRID, label: "L3"}, // L3
-            {y: baseY * 3.7 - 0.9 * GRID, label: "N"},   // N
-            {y: baseY * 4.7 - 1 * GRID, label: "G"},   // G
-        ];
+        const cols = isDelta
+            ? ["#a65628", "#ff7f00", "#eccd26", "#2ca02c"] // Brown, Orange, Yellow, Green
+            : ["#a65628", "#ff7f00", "#eccd26", "#ffffff", "#2ca02c"]; // Brown, Orange, Yellow, White, Green
+        const positions = isDelta
+            ? [
+                {y: 1 * GRID, label: "L1"}, // L1
+                {y: 3 * GRID, label: "L2"}, // L2
+                {y: 5 * GRID, label: "L3"}, // L3
+                {y: 7 * GRID, label: "G"},  // G
+              ]
+            : [
+                {y: 1 * GRID, label: "L1"}, // L1
+                {y: 3 * GRID, label: "L2"}, // L2
+                {y: 5 * GRID, label: "L3"}, // L3
+                {y: 7 * GRID, label: "N"},  // N
+                {y: 9 * GRID, label: "G"},  // G
+              ];
         return (
             <S w={w} h={h}>
                 <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#1c2416" stroke="#e6c11e"
@@ -1172,14 +1192,17 @@ function GlyphBody({
                 {positions.map((pos, i) => (
                     <g key={pos.label}>
                         <circle cx={termX} cy={pos.y} r="8" fill={cols[i]}/>
-                        <Txt x={50} y={pos.y+3} fill="#efe6d0" fontSize="11" fontFamily="Red Hat Mono, monospace">
+                        <Txt x={termX - 16} y={pos.y + 3} textAnchor="end" fill="#efe6d0" fontSize="11" fontFamily="Red Hat Mono, monospace">
                             {pos.label}
                         </Txt>
                     </g>
                 ))}
-                <Txt x={18} y={14} textAnchor="start" fill="#ffffff" fontSize="12" fontWeight="bold"
+                <Txt x={14} y={14} textAnchor="start" fill="#ffffff" fontSize="12" fontWeight="bold"
                      fontFamily="Red Hat Mono, monospace">
                     {device.tag}
+                </Txt>
+                <Txt x={14} y={h * GRID - 8} textAnchor="start" fill="#889980" fontSize="10" fontFamily="Red Hat Mono, monospace">
+                    {isDelta ? "Δ 3P+PE" : "Y 3P+N+PE"}
                 </Txt>
             </S>
         );
@@ -1214,24 +1237,22 @@ function GlyphBody({
 
     if (kind === "transformer") {
         const cx = (w * GRID) / 2;
-        const cy = (h * GRID) / 2;
-        const leftLine = -22;
-        const rightLine = 22;
-        const coilTop = cy - 24;
-        const coilBottom = cy + 14;
+        const coilTop = 1 * GRID;
+        const coilBottom = 3 * GRID;
+        const loopH = (coilBottom - coilTop) / 3;
         const coilColor = hot ? "#c45a12" : ink; // Red/orange when energized, black when de-energized
         // Primary coil (left side)
         const primaryCoil = (
             <path
                 d={`
       M ${cx - 8} ${coilTop}
-      c -14 0 -14 10 0 10
-      c -14 0 -14 10 0 10
-      c -14 0 -14 10 0 10
-      M ${cx - 8} ${coilTop}
-      l ${leftLine} 0
-      M ${cx - 8} ${coilBottom}
-      l ${leftLine} 0
+      c -14 0 -14 ${loopH} 0 ${loopH}
+      c -14 0 -14 ${loopH} 0 ${loopH}
+      c -14 0 -14 ${loopH} 0 ${loopH}
+      M 4 ${coilTop}
+      L ${cx - 8} ${coilTop}
+      M 4 ${coilBottom}
+      L ${cx - 8} ${coilBottom}
     `}
                 fill="none"
                 stroke={coilColor}
@@ -1246,13 +1267,13 @@ function GlyphBody({
             <path
                 d={`
       M ${cx + 8} ${coilTop}
-      c 14 0 14 10 0 10
-      c 14 0 14 10 0 10
-      c 14 0 14 10 0 10
-      M ${cx + 8} ${coilTop}
-      l ${rightLine} 0
-      M ${cx + 8} ${coilBottom}
-      l ${rightLine} 0
+      c 14 0 14 ${loopH} 0 ${loopH}
+      c 14 0 14 ${loopH} 0 ${loopH}
+      c 14 0 14 ${loopH} 0 ${loopH}
+      M ${w * GRID - 4} ${coilTop}
+      L ${cx + 8} ${coilTop}
+      M ${w * GRID - 4} ${coilBottom}
+      L ${cx + 8} ${coilBottom}
     `}
                 fill="none"
                 stroke={coilColor}
@@ -1271,6 +1292,22 @@ function GlyphBody({
                 {/* Core - two parallel lines */}
                 <line x1={cx - 2} y1={coilTop} x2={cx - 2} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
                 <line x1={cx + 2} y1={coilTop} x2={cx + 2} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
+
+                {/* Primary terminal labels (Left) */}
+                <Txt x={6} y={coilTop - 4} className="term-lab">
+                    H1
+                </Txt>
+                <Txt x={6} y={coilBottom - 4} className="term-lab">
+                    H2
+                </Txt>
+
+                {/* Secondary terminal labels (Right) */}
+                <Txt x={w * GRID - 6} y={coilTop - 4} textAnchor="end" className="term-lab">
+                    X1
+                </Txt>
+                <Txt x={w * GRID - 6} y={coilBottom - 4} textAnchor="end" className="term-lab">
+                    X2
+                </Txt>
 
                 <Txt x={cx} y={h * GRID - 4} textAnchor="middle" fontSize="16">
                     {device.params.ratio ?? "480/120"}
@@ -1448,7 +1485,7 @@ function GlyphBody({
         const rev = Boolean(rt?.energizedAlt) && !hot;
         const gap = 0.4 * GRID;
         const barH = 0.5 * GRID;
-        const poleY = [1.5, 3.5, 5.5].map((v) => v * GRID);
+        const poleY = [1, 3, 5].map((v) => v * GRID);
         const xF = 3.5 * GRID;
         const xRev = 8.5 * GRID;
         const pair = (xMid: number, y: number, on: boolean) => {
@@ -1473,10 +1510,10 @@ function GlyphBody({
                     stroke={ink}
                     strokeWidth="1.5"
                 />
-                <Txt x={xF} y={1.15 * GRID} textAnchor="middle" className="term-lab">
+                <Txt x={xF} y={0.8 * GRID} textAnchor="middle" className="term-lab">
                     F
                 </Txt>
-                <Txt x={xRev} y={1.15 * GRID} textAnchor="middle" className="term-lab">
+                <Txt x={xRev} y={0.8 * GRID} textAnchor="middle" className="term-lab">
                     R
                 </Txt>
                 {poleY.map((y, i) => {
@@ -1596,7 +1633,7 @@ function GlyphBody({
             <S w={w} h={h}>
                 <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink}
                       strokeWidth="2"/>
-                {poles(w, h * 0.7, 3, hot || Boolean(rt?.energizedAlt))}
+                {poles(w, 6, 3, hot || Boolean(rt?.energizedAlt))}
                 <Txt x={(w * GRID) / 2} y={h * GRID - 16} textAnchor="middle" className="sym-tag">
                     {device.tag}
                 </Txt>

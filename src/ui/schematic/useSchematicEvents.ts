@@ -50,10 +50,24 @@ export function useSchematicEvents({
   const pendingScroll = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
 
   useEffect(() => {
+    const handleGlobalPointerUp = () => {
+      cancelLongPress();
+      drag.current = null;
+      wireDrag.current = null;
+      junctionClick.current = null;
+      clickIsolate.current = null;
+      paperTouchPanRef.current = null;
+    };
+    window.addEventListener("pointerup", handleGlobalPointerUp);
+    window.addEventListener("pointercancel", handleGlobalPointerUp);
+    window.addEventListener("blur", handleGlobalPointerUp);
     return () => {
       if (rafScrollId.current !== null) {
         cancelAnimationFrame(rafScrollId.current);
       }
+      window.removeEventListener("pointerup", handleGlobalPointerUp);
+      window.removeEventListener("pointercancel", handleGlobalPointerUp);
+      window.removeEventListener("blur", handleGlobalPointerUp);
     };
   }, []);
 
@@ -150,6 +164,13 @@ export function useSchematicEvents({
   }) => {
     e.preventDefault();
     e.stopPropagation();
+    drag.current = null;
+    wireDrag.current = null;
+    junctionClick.current = null;
+    clickIsolate.current = null;
+    marqueeRef.current = null;
+    setMarqueeView(null);
+    paperTouchPanRef.current = null;
     if (mode !== "edit") return;
     if (placing) {
       cancelPlace();
@@ -383,6 +404,8 @@ export function useSchematicEvents({
   };
 
   const onSvgContextMenu = (e: MouseEvent<SVGSVGElement>) => {
+    drag.current = null;
+    wireDrag.current = null;
     const lab = useLab.getState();
     if (lab.wiringFrom || lab.placing) {
       e.preventDefault();
@@ -394,6 +417,8 @@ export function useSchematicEvents({
   };
 
   const onWireContextMenu = (e: MouseEvent<SVGElement>, wireId: string) => {
+    drag.current = null;
+    wireDrag.current = null;
     useLab.getState().select({ type: "wire", id: wireId });
     openMenu(e);
   };
@@ -424,13 +449,22 @@ export function useSchematicEvents({
       lab.pushHistory();
       wireDrag.current = { id: wire.id, axis: hit.axis };
       setWireCursor(hit.axis === "x" ? "ew-resize" : "ns-resize");
+      try {
+        svgRef.current?.setPointerCapture(e.pointerId);
+      } catch {}
     }
   };
 
   const onSymbolContextMenu = (e: MouseEvent<SVGElement>, symId: string) => {
+    drag.current = null;
+    wireDrag.current = null;
     const lab = useLab.getState();
     if (lab.mode === "edit" && !lab.placing) {
-      if (!lab.selectedIds.includes(symId)) lab.select({ type: "symbol", id: symId });
+      if (!lab.selectedIds.includes(symId)) {
+        lab.select({ type: "symbol", id: symId });
+      } else {
+        useLab.setState({ selected: { type: "symbol", id: symId } });
+      }
     }
     openMenu(e);
   };
@@ -445,7 +479,11 @@ export function useSchematicEvents({
     }
     if (lab.mode === "edit") {
       startLongPress(e, (pos) => {
-        if (!lab.selectedIds.includes(sym.id)) lab.select({ type: "symbol", id: sym.id });
+        if (!lab.selectedIds.includes(sym.id)) {
+          lab.select({ type: "symbol", id: sym.id });
+        } else {
+          useLab.setState({ selected: { type: "symbol", id: sym.id } });
+        }
         openMenu(pos);
       });
 
@@ -453,10 +491,17 @@ export function useSchematicEvents({
         lab.clickPort({ symbolId: sym.id, term: "1" });
         return;
       }
-      if (e.shiftKey) lab.selectToggle(sym.id);
-      else if (!lab.selectedIds.includes(sym.id)) lab.select({ type: "symbol", id: sym.id });
-      else if (lab.selectedIds.length > 1) {
-        clickIsolate.current = { id: sym.id, x: e.clientX, y: e.clientY };
+      if (e.button !== 0) return;
+
+      if (e.shiftKey) {
+        lab.selectToggle(sym.id);
+      } else if (!lab.selectedIds.includes(sym.id)) {
+        lab.select({ type: "symbol", id: sym.id });
+      } else {
+        useLab.setState({ selected: { type: "symbol", id: sym.id } });
+        if (lab.selectedIds.length > 1) {
+          clickIsolate.current = { id: sym.id, x: e.clientX, y: e.clientY };
+        }
       }
       const p = toGrid(e);
       const ids = useLab.getState().selectedIds;
@@ -475,10 +520,15 @@ export function useSchematicEvents({
         }
       }
       drag.current = { id: sym.id, dx: p.x - sym.x, dy: p.y - sym.y, origins, wireJogOrigins };
+      try {
+        svgRef.current?.setPointerCapture(e.pointerId);
+      } catch {}
       if (dev.kind === "junction") junctionClick.current = { id: sym.id, x: e.clientX, y: e.clientY };
       return;
     }
-    interact(dev.kind, dev.id, true);
+    if (e.button === 0) {
+      interact(dev.kind, dev.id, true);
+    }
   };
 
   const onSymbolPointerUp = (dev: Device) => {

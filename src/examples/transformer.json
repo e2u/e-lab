@@ -98,7 +98,7 @@
         "deviceId": "d_j_7892b077",
         "variant": "body",
         "x": 7,
-        "y": 1,
+        "y": 0.2,
         "rot": 0
       },
       {
@@ -106,7 +106,7 @@
         "deviceId": "d_l_934b734d",
         "variant": "body",
         "x": 7,
-        "y": 4,
+        "y": 2.2,
         "rot": 0
       },
       {
@@ -114,7 +114,7 @@
         "deviceId": "d_n_4825226f",
         "variant": "body",
         "x": 7,
-        "y": 7,
+        "y": 4.2,
         "rot": 0
       },
       {
@@ -122,7 +122,7 @@
         "deviceId": "d_p_c3a76acb",
         "variant": "body",
         "x": 7,
-        "y": 10,
+        "y": 6.2,
         "rot": 0
       },
       {
@@ -130,7 +130,7 @@
         "deviceId": "d_r_da60fed4",
         "variant": "body",
         "x": 7,
-        "y": 13,
+        "y": 8.2,
         "rot": 0
       },
       {
@@ -138,7 +138,7 @@
         "deviceId": "d_y_b4b9f766",
         "variant": "body",
         "x": 13,
-        "y": 16,
+        "y": 16.2,
         "rot": 0,
         "flipX": true
       },
@@ -147,7 +147,7 @@
         "deviceId": "d_10_a15f07ad",
         "variant": "body",
         "x": 13,
-        "y": 19,
+        "y": 18.2,
         "rot": 0,
         "flipX": true
       }
@@ -157,7 +157,7 @@
         "id": "w_g_2e9476bf",
         "a": {
           "symbolId": "s_9_12865545",
-          "term": "S1"
+          "term": "X1"
         },
         "b": {
           "symbolId": "s_b_0fcc171e",
@@ -172,7 +172,7 @@
         },
         "b": {
           "symbolId": "s_9_12865545",
-          "term": "S2"
+          "term": "X2"
         }
       },
       {
@@ -238,7 +238,7 @@
         },
         "b": {
           "symbolId": "s_9_12865545",
-          "term": "P1"
+          "term": "H1"
         }
       },
       {
@@ -249,7 +249,7 @@
         },
         "b": {
           "symbolId": "s_9_12865545",
-          "term": "P2"
+          "term": "H2"
         }
       }
     ],

@@ -112,6 +112,7 @@ export function Schematic() {
         <SymbolLayer
           circuit={circuit}
           snapshot={snapshot}
+          selected={selected}
           selectedIds={selectedIds}
           selectedNetTag={selectedNetTag}
           held={held}

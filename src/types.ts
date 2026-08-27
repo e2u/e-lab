@@ -67,6 +67,7 @@ export type DeviceKind =
   | "starter-fwd"
   | "starter-rev"
   | "starter-rev-combo"
+  | "ground"
   | "net-label"
   | "junction";
 
@@ -94,6 +95,7 @@ export interface DeviceParams {
   secondaryVolts?: string;
   primaryConn?: "delta" | "wye";
   secondaryConn?: "delta" | "wye";
+  supplyType?: "wye" | "delta";
   primeMover?: boolean;
   shaftWith?: string;
   welded?: boolean;

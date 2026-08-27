@@ -128,6 +128,7 @@ export function getSymbolTagPlacement(
     "starter-rev-combo",
     "dc-supply",
     "horn",
+    "ground",
   ];
 
   if (bottomPlacedKinds.includes(kind)) {

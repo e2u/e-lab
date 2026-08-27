@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDevice, addWire, emptyCircuit } from "./circuitBuilder";
+import { addDevice, addSymbol, addWire, emptyCircuit } from "./circuitBuilder";
 import {
   expandIds,
   findInternalJunctions,
@@ -220,5 +220,181 @@ describe("symbol groups", () => {
     const updated = useLab.getState().circuit;
     const skm = updated.symbols.find((s) => s.id === km.symbol.id)!;
     expect(skm.flipX).toBeFalsy();
+  });
+
+  it("distributes symbols horizontally with equal gap based on the 1st and 2nd element gap", () => {
+    const c = emptyCircuit();
+    // 3 lamps: Lamp 1 at x=0 (w=2, right=2), Lamp 2 at x=6 (w=2, left=6, right=8) -> gap = 6 - 2 = 4
+    // Lamp 3 at x=20 (w=2)
+    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
+    const l2 = addDevice(c, "lamp", "HL2", "body", 6, 0);
+    const l3 = addDevice(c, "lamp", "HL3", "body", 20, 0);
+
+    useLab.setState({ circuit: c, selectedIds: [l1.symbol.id, l2.symbol.id, l3.symbol.id] });
+    useLab.getState().alignSelected("distribute-h");
+
+    const updated = useLab.getState().circuit;
+    const s1 = updated.symbols.find((s) => s.id === l1.symbol.id)!;
+    const s2 = updated.symbols.find((s) => s.id === l2.symbol.id)!;
+    const s3 = updated.symbols.find((s) => s.id === l3.symbol.id)!;
+
+    expect(s1.x).toBe(0);
+    expect(s2.x).toBe(6);
+    // s3.x should be s2.x + w2 + gap = 6 + 2 + 4 = 12
+    expect(s3.x).toBe(12);
+  });
+
+  it("distributes symbols vertically with equal gap based on the 1st and 2nd element gap", () => {
+    const c = emptyCircuit();
+    // 3 lamps: Lamp 1 at y=0 (h=2, bottom=2), Lamp 2 at y=5 (h=2, top=5, bottom=7) -> gap = 5 - 2 = 3
+    // Lamp 3 at y=30 (h=2)
+    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
+    const l2 = addDevice(c, "lamp", "HL2", "body", 0, 5);
+    const l3 = addDevice(c, "lamp", "HL3", "body", 0, 30);
+
+    useLab.setState({ circuit: c, selectedIds: [l1.symbol.id, l2.symbol.id, l3.symbol.id] });
+    useLab.getState().alignSelected("distribute-v");
+
+    const updated = useLab.getState().circuit;
+    const s1 = updated.symbols.find((s) => s.id === l1.symbol.id)!;
+    const s2 = updated.symbols.find((s) => s.id === l2.symbol.id)!;
+    const s3 = updated.symbols.find((s) => s.id === l3.symbol.id)!;
+
+    expect(s1.y).toBe(0);
+    expect(s2.y).toBe(5);
+    // s3.y should be s2.y + h2 + gap = 5 + 2 + 3 = 10
+    expect(s3.y).toBe(10);
+  });
+
+  it("distributes mixed groups and symbols with equal gap preserving group internal layout", () => {
+    const c = emptyCircuit();
+    // Element 1: Single lamp at x=0 (w=2, right=2)
+    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
+
+    // Element 2: Group of 2 lamps at x=5 and x=7 (group box: x=5 to x=9, w=4) -> gap = 5 - 2 = 3
+    const g1a = addDevice(c, "lamp", "HL2", "body", 5, 0);
+    const g1b = addDevice(c, "lamp", "HL3", "body", 7, 0);
+    groupSymbols(c, [g1a.symbol.id, g1b.symbol.id]);
+
+    // Element 3: Single lamp at x=25 (w=2)
+    const l4 = addDevice(c, "lamp", "HL4", "body", 25, 0);
+
+    useLab.setState({
+      circuit: c,
+      selectedIds: [l1.symbol.id, g1a.symbol.id, g1b.symbol.id, l4.symbol.id],
+    });
+    useLab.getState().alignSelected("distribute-h");
+
+    const updated = useLab.getState().circuit;
+    const sl1 = updated.symbols.find((s) => s.id === l1.symbol.id)!;
+    const sg1a = updated.symbols.find((s) => s.id === g1a.symbol.id)!;
+    const sg1b = updated.symbols.find((s) => s.id === g1b.symbol.id)!;
+    const sl4 = updated.symbols.find((s) => s.id === l4.symbol.id)!;
+
+    expect(sl1.x).toBe(0);
+    expect(sg1a.x).toBe(5);
+    expect(sg1b.x).toBe(7);
+    // Group right edge is 5 + 4 = 9. Next target left is 9 + gap(3) = 12.
+    expect(sl4.x).toBe(12);
+  });
+
+  it("prevents vertical overlap when aligning multiple elements to left/right/hcenter", () => {
+    const c = emptyCircuit();
+    // 3 lamps at the same y=0, but different x
+    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0); // h=2
+    const l2 = addDevice(c, "lamp", "HL2", "body", 10, 0); // h=2
+    const l3 = addDevice(c, "lamp", "HL3", "body", 20, 0); // h=2
+
+    useLab.setState({ circuit: c, selectedIds: [l1.symbol.id, l2.symbol.id, l3.symbol.id] });
+    useLab.getState().alignSelected("left");
+
+    const updated = useLab.getState().circuit;
+    const s1 = updated.symbols.find((s) => s.id === l1.symbol.id)!;
+    const s2 = updated.symbols.find((s) => s.id === l2.symbol.id)!;
+    const s3 = updated.symbols.find((s) => s.id === l3.symbol.id)!;
+
+    // All should have x=0 (minX)
+    expect(s1.x).toBe(0);
+    expect(s2.x).toBe(0);
+    expect(s3.x).toBe(0);
+
+    // They must not stack on top of each other at y=0!
+    // Since each lamp height is 2.5, they should be placed at y=0, y=2.5, y=5
+    expect(s1.y).toBe(0);
+    expect(s2.y).toBe(2.5);
+    expect(s3.y).toBe(5);
+  });
+
+  it("prevents horizontal overlap when aligning multiple elements to top/bottom/vcenter", () => {
+    const c = emptyCircuit();
+    // 3 lamps at the same x=0, but different y
+    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0); // w=3
+    const l2 = addDevice(c, "lamp", "HL2", "body", 0, 10); // w=3
+    const l3 = addDevice(c, "lamp", "HL3", "body", 0, 20); // w=3
+
+    useLab.setState({ circuit: c, selectedIds: [l1.symbol.id, l2.symbol.id, l3.symbol.id] });
+    useLab.getState().alignSelected("top");
+
+    const updated = useLab.getState().circuit;
+    const s1 = updated.symbols.find((s) => s.id === l1.symbol.id)!;
+    const s2 = updated.symbols.find((s) => s.id === l2.symbol.id)!;
+    const s3 = updated.symbols.find((s) => s.id === l3.symbol.id)!;
+
+    // All should have y=0 (minY)
+    expect(s1.y).toBe(0);
+    expect(s2.y).toBe(0);
+    expect(s3.y).toBe(0);
+
+    // They must not stack on top of each other at x=0!
+    // Since each lamp width is 3, they should be placed at x=0, x=3, x=6
+    expect(s1.x).toBe(0);
+    expect(s2.x).toBe(3);
+    expect(s3.x).toBe(6);
+  });
+
+  it("sets selected to specifically clicked symbol when selecting within a group", () => {
+    const c = emptyCircuit();
+    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
+    const l2 = addDevice(c, "lamp", "HL2", "body", 10, 0);
+    groupSymbols(c, [l1.symbol.id, l2.symbol.id]);
+
+    useLab.setState({ circuit: c });
+    useLab.getState().select({ type: "symbol", id: l1.symbol.id });
+
+    // selected should be l1, while selectedIds expands to the whole group [l1, l2]
+    expect(useLab.getState().selected).toEqual({ type: "symbol", id: l1.symbol.id });
+    expect(useLab.getState().selectedIds.sort()).toEqual([l1.symbol.id, l2.symbol.id].sort());
+
+    // Selecting l2 inside the group updates selected to l2 while preserving group selectedIds
+    useLab.getState().select({ type: "symbol", id: l2.symbol.id });
+    expect(useLab.getState().selected).toEqual({ type: "symbol", id: l2.symbol.id });
+    expect(useLab.getState().selectedIds.sort()).toEqual([l1.symbol.id, l2.symbol.id].sort());
+  });
+
+  it("links all symbols belonging to the same device (e.g. Relay/Timer/Contactor NO/NC) for device highlighting", () => {
+    const c = emptyCircuit();
+    const relay = addDevice(c, "relay", "TR1", "coil", 0, 0);
+    const noSym = addSymbol(c, relay.device.id, "aux-no", 10, 0);
+    const ncSym = addSymbol(c, relay.device.id, "aux-nc", 20, 0);
+    const lamp = addDevice(c, "lamp", "HL1", "body", 30, 0);
+
+    useLab.setState({ circuit: c });
+    useLab.getState().select({ type: "symbol", id: relay.symbol.id });
+
+    const selected = useLab.getState().selected;
+    expect(selected).toEqual({ type: "symbol", id: relay.symbol.id });
+
+    const selectedSym = c.symbols.find((s) => s.id === selected!.id);
+    const selectedDevId = selectedSym?.deviceId;
+    expect(selectedDevId).toBe(relay.device.id);
+
+    // Symbols of TR1 (coil, aux-no, aux-nc) all match selectedDevId
+    const sameDeviceSymbols = c.symbols.filter((s) => s.deviceId === selectedDevId);
+    expect(sameDeviceSymbols.map((s) => s.id).sort()).toEqual(
+      [relay.symbol.id, noSym.id, ncSym.id].sort()
+    );
+
+    // Lamp HL1 has a different device ID and is not matched
+    expect(lamp.symbol.deviceId).not.toBe(selectedDevId);
   });
 });

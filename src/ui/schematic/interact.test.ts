@@ -76,4 +76,29 @@ describe("schematic interact dispatcher", () => {
     interact("photo", "any", true);
     expect(useLab.getState().process.photoHit).toBe(true);
   });
+
+  it("aligns selected symbols in store without side effects", () => {
+    useLab.setState({
+      mode: "edit",
+      circuit: {
+        devices: [
+          { id: "d1", kind: "lamp", tag: "HL1", params: {} },
+          { id: "d2", kind: "lamp", tag: "HL2", params: {} },
+        ],
+        symbols: [
+          { id: "s1", deviceId: "d1", variant: "body", x: 2, y: 10, rot: 0 },
+          { id: "s2", deviceId: "d2", variant: "body", x: 8, y: 20, rot: 0 },
+        ],
+        wires: [],
+      },
+      selectedIds: ["s1", "s2"],
+    });
+
+    useLab.getState().alignSelected("top");
+    const symbols = useLab.getState().circuit.symbols;
+    const s1 = symbols.find((s) => s.id === "s1");
+    const s2 = symbols.find((s) => s.id === "s2");
+    expect(s1?.y).toBe(10);
+    expect(s2?.y).toBe(10);
+  });
 });

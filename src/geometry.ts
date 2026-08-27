@@ -99,12 +99,15 @@ export function terminalOutward(
   ref: PortRef,
 ): { x: number; y: number } {
   const sym = circuit.symbols.find((s) => s.id === ref.symbolId);
-  if (!sym) return { x: 1, y: 0 };
+  if (!sym) return { x: 0, y: 0 };
   const dev = circuit.devices.find((d) => d.id === sym.deviceId);
-  if (!dev) return { x: 1, y: 0 };
+  if (!dev) return { x: 0, y: 0 };
+  if (dev.kind === "junction" || dev.kind === "net-label") {
+    return { x: 0, y: 0 };
+  }
   const v = variantDef(dev.kind, sym.variant);
   const term = v.terminals.find((t) => t.id === ref.term);
-  if (!term) return { x: 1, y: 0 };
+  if (!term) return { x: 0, y: 0 };
   const p = applyFlip(term.x, term.y, v.w, v.h, sym.flipX, sym.flipY);
   const dl = p.x;
   const dr = v.w - p.x;
@@ -149,36 +152,84 @@ function betweenStubs(
     return [a1, b1];
   }
 
+  const oaActive = Boolean(oa && (oa.x !== 0 || oa.y !== 0));
+  const obActive = Boolean(ob && (ob.x !== 0 || ob.y !== 0));
+
+  if (!oaActive && !obActive) {
+    return manhattan(a1, b1);
+  }
+
+  if (!oaActive && obActive) {
+    if (ob!.x !== 0) {
+      return [a1, { x: a1.x, y: b1.y }, b1];
+    }
+    return [a1, { x: b1.x, y: a1.y }, b1];
+  }
+
+  if (oaActive && !obActive) {
+    if (oa!.x !== 0) {
+      return [a1, { x: b1.x, y: a1.y }, b1];
+    }
+    return [a1, { x: a1.x, y: b1.y }, b1];
+  }
+
+  // Both oa and ob are active
+  const oaX = oa!.x;
+  const oaY = oa!.y;
+  const obX = ob!.x;
+  const obY = ob!.y;
+
   // If both outward directions are horizontal
-  if (oa && ob && oa.x !== 0 && ob.x !== 0) {
-    const midX = Math.round((a1.x + b1.x) / 2);
-    return [a1, { x: midX, y: a1.y }, { x: midX, y: b1.y }, b1];
+  if (oaX !== 0 && obX !== 0) {
+    if (oaX * obX < 0) {
+      // Facing each other or opposite directions
+      if ((b1.x - a1.x) * oaX >= 0) {
+        // Space in between -> clean S-bend
+        const midX = Math.round((a1.x + b1.x) / 2);
+        return [a1, { x: midX, y: a1.y }, { x: midX, y: b1.y }, b1];
+      }
+      // Crossed over -> route around
+      const outX = oaX > 0 ? Math.max(a1.x, b1.x) + STUB * 3 : Math.min(a1.x, b1.x) - STUB * 3;
+      return [a1, { x: outX, y: a1.y }, { x: outX, y: b1.y }, b1];
+    }
+    // Facing same horizontal direction (C-shape / U-turn)
+    const outX = oaX > 0 ? Math.max(a1.x, b1.x) + STUB * 3 : Math.min(a1.x, b1.x) - STUB * 3;
+    return [a1, { x: outX, y: a1.y }, { x: outX, y: b1.y }, b1];
   }
 
   // If both outward directions are vertical
-  if (oa && ob && oa.y !== 0 && ob.y !== 0) {
-    const midY = Math.round((a1.y + b1.y) / 2);
-    return [a1, { x: a1.x, y: midY }, { x: b1.x, y: midY }, b1];
+  if (oaY !== 0 && obY !== 0) {
+    if (oaY * obY < 0) {
+      // Facing each other
+      if ((b1.y - a1.y) * oaY >= 0) {
+        const midY = Math.round((a1.y + b1.y) / 2);
+        return [a1, { x: a1.x, y: midY }, { x: b1.x, y: midY }, b1];
+      }
+      // Crossed over
+      const outY = oaY > 0 ? Math.max(a1.y, b1.y) + STUB * 3 : Math.min(a1.y, b1.y) - STUB * 3;
+      return [a1, { x: a1.x, y: outY }, { x: b1.x, y: outY }, b1];
+    }
+    // Facing same vertical direction
+    const outY = oaY > 0 ? Math.max(a1.y, b1.y) + STUB * 3 : Math.min(a1.y, b1.y) - STUB * 3;
+    return [a1, { x: a1.x, y: outY }, { x: b1.x, y: outY }, b1];
   }
 
   // If oa is horizontal and ob is vertical
-  if (oa && ob && oa.x !== 0 && ob.y !== 0) {
-    return [a1, { x: b1.x, y: a1.y }, b1];
+  if (oaX !== 0 && obY !== 0) {
+    if ((b1.x - a1.x) * oaX >= -0.5 && (a1.y - b1.y) * obY <= 0.5) {
+      return [a1, { x: b1.x, y: a1.y }, b1];
+    }
+    const turnX = a1.x + oaX * STUB * 2;
+    return [a1, { x: turnX, y: a1.y }, { x: turnX, y: b1.y }, b1];
   }
 
   // If oa is vertical and ob is horizontal
-  if (oa && ob && oa.y !== 0 && ob.x !== 0) {
-    return [a1, { x: a1.x, y: b1.y }, b1];
-  }
-
-  // If only oa is horizontal
-  if (oa && oa.x !== 0) {
-    return [a1, { x: b1.x, y: a1.y }, b1];
-  }
-
-  // If only oa is vertical
-  if (oa && oa.y !== 0) {
-    return [a1, { x: a1.x, y: b1.y }, b1];
+  if (oaY !== 0 && obX !== 0) {
+    if ((b1.y - a1.y) * oaY >= -0.5 && (a1.x - b1.x) * obX <= 0.5) {
+      return [a1, { x: a1.x, y: b1.y }, b1];
+    }
+    const turnY = a1.y + oaY * STUB * 2;
+    return [a1, { x: a1.x, y: turnY }, { x: b1.x, y: turnY }, b1];
   }
 
   return manhattan(a1, b1);
@@ -248,6 +299,37 @@ interface Occ {
   fixed: number;
   lo: number;
   hi: number;
+  score: number;
+}
+
+function calcOccScore(pts: Pt[], i: number, axis: "x" | "y"): number {
+  const A = pts[i];
+  const B = pts[i + 1];
+  if (axis === "x") {
+    const sy = Math.sign(B.y - A.y);
+    let sx = 0;
+    if (i > 0) {
+      sx = Math.sign(A.x - pts[i - 1].x);
+    } else if (i + 1 < pts.length - 1) {
+      sx = Math.sign(pts[i + 2].x - B.x);
+    }
+    if (sy !== 0 && sx !== 0) {
+      return -sy * sx * A.y;
+    }
+    return Math.min(A.y, B.y);
+  } else {
+    const sx = Math.sign(B.x - A.x);
+    let sy = 0;
+    if (i > 0) {
+      sy = Math.sign(A.y - pts[i - 1].y);
+    } else if (i + 1 < pts.length - 1) {
+      sy = Math.sign(pts[i + 2].y - B.y);
+    }
+    if (sx !== 0 && sy !== 0) {
+      return -sx * sy * A.x;
+    }
+    return Math.min(A.x, B.x);
+  }
 }
 
 function skipDeviceStub(circuit: Circuit, w: { a: PortRef; b: PortRef }, pts: Pt[], i: number): boolean {
@@ -269,8 +351,9 @@ function collectOcc(circuit: Circuit, id: string, w: { a: PortRef; b: PortRef },
     const a = pts[i];
     const b = pts[i + 1];
     if (Math.hypot(b.x - a.x, b.y - a.y) < GRID * 0.4) continue;
-    if (axis === "y") out.push({ id, i, axis, fixed: a.y, lo: Math.min(a.x, b.x), hi: Math.max(a.x, b.x) });
-    else out.push({ id, i, axis, fixed: a.x, lo: Math.min(a.y, b.y), hi: Math.max(a.y, b.y) });
+    const score = calcOccScore(pts, i, axis);
+    if (axis === "y") out.push({ id, i, axis, fixed: a.y, lo: Math.min(a.x, b.x), hi: Math.max(a.x, b.x), score });
+    else out.push({ id, i, axis, fixed: a.x, lo: Math.min(a.y, b.y), hi: Math.max(a.y, b.y), score });
   }
   return out;
 }
@@ -280,7 +363,7 @@ function overlapComponents(group: Occ[]): Occ[][] {
   const adj: number[][] = Array.from({ length: n }, () => []);
   for (let i = 0; i < n; i += 1) {
     for (let j = i + 1; j < n; j += 1) {
-      if (overlapSpan(group[i].lo, group[i].hi, group[j].lo, group[j].hi) >= GRID * 0.45) {
+      if (overlapSpan(group[i].lo, group[i].hi, group[j].lo, group[j].hi) >= 3) {
         adj[i].push(j);
         adj[j].push(i);
       }
@@ -307,8 +390,33 @@ function overlapComponents(group: Occ[]): Occ[][] {
   return comps;
 }
 
+function clusterOccs(occs: Occ[], threshold = 8): Occ[][] {
+  const xOccs = occs.filter((o) => o.axis === "x").sort((a, b) => a.fixed - b.fixed);
+  const yOccs = occs.filter((o) => o.axis === "y").sort((a, b) => a.fixed - b.fixed);
+  const clusters: Occ[][] = [];
+  for (const list of [xOccs, yOccs]) {
+    let current: Occ[] = [];
+    for (const o of list) {
+      if (!current.length) {
+        current.push(o);
+      } else {
+        const minFixed = Math.min(...current.map((item) => item.fixed));
+        const maxFixed = Math.max(...current.map((item) => item.fixed));
+        if (Math.abs(o.fixed - minFixed) <= threshold || Math.abs(o.fixed - maxFixed) <= threshold) {
+          current.push(o);
+        } else {
+          clusters.push(current);
+          current = [o];
+        }
+      }
+    }
+    if (current.length) clusters.push(current);
+  }
+  return clusters;
+}
+
 function colorLanes(comp: Occ[]): Map<string, number> {
-  const sorted = [...comp].sort((a, b) => a.lo - b.lo || a.id.localeCompare(b.id));
+  const sorted = [...comp].sort((a, b) => a.score - b.score || a.lo - b.lo || a.id.localeCompare(b.id));
   const laneEnds: number[] = [];
   const lanes = new Map<string, number>();
   for (const o of sorted) {
@@ -370,15 +478,9 @@ export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
     const w = byId.get(id)!;
     occs.push(...collectOcc(circuit, id, w, pts));
   }
-  const clusters = new Map<string, Occ[]>();
-  for (const o of occs) {
-    const key = `${o.axis}:${Math.round(o.fixed)}`;
-    const list = clusters.get(key) ?? [];
-    list.push(o);
-    clusters.set(key, list);
-  }
+  const clusters = clusterOccs(occs, 8);
   const shift = new Map<string, number>();
-  for (const group of clusters.values()) {
+  for (const group of clusters) {
     if (group.length < 2) continue;
     for (const comp of overlapComponents(group)) {
       if (comp.length < 2) continue;
@@ -679,7 +781,18 @@ function hopsOnSegment(
     return da >= r && db >= r;
   });
   hits.sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y));
-  return hits;
+  const out: WireCrossover[] = [];
+  for (const h of hits) {
+    if (!out.length) {
+      out.push(h);
+    } else {
+      const prev = out[out.length - 1];
+      if (Math.hypot(h.x - prev.x, h.y - prev.y) >= r * 1.2) {
+        out.push(h);
+      }
+    }
+  }
+  return out;
 }
 
 /** SVG path along an orthogonal polyline, with hop semicircles on the hopping wire. */
@@ -702,6 +815,8 @@ export function polylinePathD(
       const uy = (b.y - a.y) / len;
       const before = { x: hop.x - ux * r, y: hop.y - uy * r };
       const after = { x: hop.x + ux * r, y: hop.y + uy * r };
+      const forwardDist = (before.x - cursor.x) * ux + (before.y - cursor.y) * uy;
+      if (forwardDist < -0.1) continue;
       parts.push(`L ${before.x} ${before.y}`);
       parts.push(`A ${r} ${r} 0 0 ${hopSweep(hop.hopAxis, before, after)} ${after.x} ${after.y}`);
       cursor = after;

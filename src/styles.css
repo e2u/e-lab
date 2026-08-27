@@ -360,11 +360,25 @@ button, select, input {
   margin: 0 0 4px;
   cursor: pointer;
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
+  white-space: nowrap;
 }
 
-.cat-item small { color: #9aa18d; font-family: "Red Hat Mono", monospace; font-size: 10px; }
+.cat-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-item small {
+  color: #9aa18d;
+  font-family: "Red Hat Mono", monospace;
+  font-size: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .cat-item.selected { outline: 1px solid var(--stripe); }
 
 .paper-wrap {
@@ -475,11 +489,29 @@ button, select, input {
   cursor: pointer;
 }
 
+.sym-tag-bg {
+  fill: #efe6d0;
+  transition: fill 0.15s ease, stroke 0.15s ease, filter 0.15s ease;
+}
+
+.sym-tag-bg.selected {
+  fill: #ffe066;
+  stroke: #d97706;
+  stroke-width: 1.2px;
+  filter: drop-shadow(0 0 3px rgba(217, 119, 6, 0.45));
+}
+
 .sym-tag {
   font-family: "Red Hat Mono", monospace;
   font-size: 11px;
   fill: #1b1a16;
   font-weight: 600;
+  transition: fill 0.15s ease, font-weight 0.15s ease;
+}
+
+.sym-tag.selected {
+  fill: #000000;
+  font-weight: 700;
 }
 
 .term-lab {
@@ -894,7 +926,14 @@ input[type="range"] { width: 100%; accent-color: var(--stripe); }
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 4px;
-  margin: 8px 0;
+  margin: 8px 0 4px 0;
+}
+
+.distribute-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 0 0 8px 0;
 }
 
 /* ============================================================

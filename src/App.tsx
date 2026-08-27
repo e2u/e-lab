@@ -10,6 +10,7 @@ import { Schematic } from "./ui/Schematic";
 import { DiscardModal } from "./ui/DiscardModal";
 import { TogglePanelButton } from "./ui/TogglePanelButton";
 import { FloatingActionBar } from "./ui/FloatingActionBar";
+import { MobileMenuModal } from "./ui/MobileMenuModal";
 
 
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
@@ -46,10 +47,11 @@ export function App() {
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'new' | 'example'; exampleId?: string } | null>(null);
 
-  // Mobile drawer state
+  // Mobile drawer and menu state
   const [isMobile, setIsMobile] = useState(false);
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
   const [mobileSideOpen, setMobileSideOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const id = window.setTimeout(() => useLab.getState().persistDraft(), 700);
@@ -218,6 +220,7 @@ export function App() {
       if (!mobile) {
         setMobilePaletteOpen(false);
         setMobileSideOpen(false);
+        setMobileMenuOpen(false);
       }
     };
     checkMobile();
@@ -334,118 +337,132 @@ export function App() {
             {t("toolbar.reset")}
           </button>
         </div>
-        {/* Mobile drawer toggles - only visible on mobile */}
-        {isMobile && (
-          <div className="mobile-drawer-toggles" style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+        {/* On Mobile: show clean, touch-friendly action buttons (Palette drawer, Side panel drawer, Mobile Menu sheet) */}
+        {isMobile ? (
+          <div className="mobile-header-actions">
             <button
               type="button"
-              className="btn-icon"
-              onClick={() => setMobilePaletteOpen(!mobilePaletteOpen)}
+              className={`btn-icon mobile-header-btn ${mobilePaletteOpen ? "active" : ""}`}
+              onClick={() => {
+                setMobilePaletteOpen(!mobilePaletteOpen);
+                setMobileSideOpen(false);
+              }}
               title={t("toolbar.palette")}
-              style={{ padding: '4px 8px', fontSize: '18px' }}
               aria-label={t("toolbar.palette")}
             >
               ☰
             </button>
             <button
               type="button"
-              className="btn-icon"
-              onClick={() => setMobileSideOpen(!mobileSideOpen)}
+              className={`btn-icon mobile-header-btn ${mobileSideOpen ? "active" : ""}`}
+              onClick={() => {
+                setMobileSideOpen(!mobileSideOpen);
+                setMobilePaletteOpen(false);
+              }}
               title={t("toolbar.sidePanel")}
-              style={{ padding: '4px 8px', fontSize: '18px' }}
               aria-label={t("toolbar.sidePanel")}
             >
               ⚙
             </button>
+            <button
+              type="button"
+              className={`btn-icon mobile-header-btn ${mobileMenuOpen ? "active" : ""}`}
+              onClick={() => setMobileMenuOpen(true)}
+              title={t("toolbar.menu") || "Menu"}
+              aria-label={t("toolbar.menu") || "Menu"}
+            >
+              ⋯
+            </button>
+          </div>
+        ) : (
+          <div className="top-actions">
+            <label className="action-label">{t("lib.example")}:</label>
+            <select 
+              value={selectedExample}
+              onChange={(e) => handleRequestSelectExample(e.target.value)}
+            >
+              {examples.map((ex) => (
+                <option key={ex.id} value={ex.id}>
+                  {tOr(`example.${ex.id}.title`, ex.title)}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              className="diagram-name"
+              value={docName}
+              onChange={(e) => useLab.getState().setDocName(e.target.value)}
+              placeholder={t("lib.diagramNamePlaceholder") || "Enter diagram name..."}
+            />
+            <button className="btn" onClick={() => handleRequestNewDiagram()}>
+              {t("lib.newDiagram")}
+            </button>
+            <select
+              value={lang}
+              title={t("lib.language")}
+              onChange={(e) => useLab.getState().setLang(e.target.value as any)}
+            >
+              <option value="en">{t("lang.en")}</option>
+              <option value="zh">{t("lang.zh")}</option>
+            </select>
+            <FilesMenu />
+            <button className="btn" onClick={() => useLab.getState().undo()} title={t("toolbar.undo")}>
+              {t("toolbar.undo")}
+            </button>
+            <button className="btn" onClick={() => useLab.getState().redo()} title={t("toolbar.redo")}>
+              {t("toolbar.redo")}
+            </button>
+            <div className="zoom-controls">
+              <button
+                type="button"
+                className="btn-icon"
+                onClick={() => useLab.getState().zoomOut()}
+                title={t("toolbar.zoomOut")}
+                disabled={zoom <= 0.25}
+                aria-label={t("toolbar.zoomOut")}
+              >
+                −
+              </button>
+              <input
+                type="range"
+                className="zoom-slider"
+                min="0.25"
+                max="1.5"
+                step="0.01"
+                value={zoom}
+                onChange={(e) => useLab.getState().setZoom(parseFloat(e.target.value))}
+                title={`${t("toolbar.zoom")}: ${Math.round(zoom * 100)}%`}
+                aria-label={t("toolbar.zoom")}
+              />
+              <span
+                className="zoom-val"
+                onClick={() => useLab.getState().resetZoom()}
+                title={t("toolbar.zoomReset")}
+              >
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                type="button"
+                className="btn-icon"
+                onClick={() => useLab.getState().zoomIn()}
+                title={t("toolbar.zoomIn")}
+                disabled={zoom >= 1.5}
+                aria-label={t("toolbar.zoomIn")}
+              >
+                +
+              </button>
+              <button
+                type="button"
+                className="btn-icon zoom-fit-btn"
+                onClick={() => useLab.getState().zoomFit()}
+                title={t("toolbar.zoomFit")}
+                aria-label={t("toolbar.zoomFit")}
+              >
+                ⛶
+              </button>
+            </div>
           </div>
         )}
-        <div className="top-actions">
-          <label className="action-label">{t("lib.example")}:</label>
-          <select 
-            value={selectedExample}
-            onChange={(e) => handleRequestSelectExample(e.target.value)}
-          >
-            {examples.map((ex) => (
-              <option key={ex.id} value={ex.id}>
-                {tOr(`example.${ex.id}.title`, ex.title)}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            className="diagram-name"
-            value={docName}
-            onChange={(e) => useLab.getState().setDocName(e.target.value)}
-            placeholder={t("lib.diagramNamePlaceholder") || "Enter diagram name..."}
-          />
-          <button className="btn" onClick={() => handleRequestNewDiagram()}>
-            {t("lib.newDiagram")}
-          </button>
-          <select
-            value={lang}
-            title={t("lib.language")}
-            onChange={(e) => useLab.getState().setLang(e.target.value as any)}
-          >
-            <option value="en">{t("lang.en")}</option>
-            <option value="zh">{t("lang.zh")}</option>
-          </select>
-          <FilesMenu />
-          <button className="btn" onClick={() => useLab.getState().undo()} title={t("toolbar.undo")}>
-            {t("toolbar.undo")}
-          </button>
-          <button className="btn" onClick={() => useLab.getState().redo()} title={t("toolbar.redo")}>
-            {t("toolbar.redo")}
-          </button>
-          <div className="zoom-controls">
-            <button
-              type="button"
-              className="btn-icon"
-              onClick={() => useLab.getState().zoomOut()}
-              title={t("toolbar.zoomOut")}
-              disabled={zoom <= 0.25}
-              aria-label={t("toolbar.zoomOut")}
-            >
-              −
-            </button>
-            <input
-              type="range"
-              className="zoom-slider"
-              min="0.25"
-              max="1.5"
-              step="0.01"
-              value={zoom}
-              onChange={(e) => useLab.getState().setZoom(parseFloat(e.target.value))}
-              title={`${t("toolbar.zoom")}: ${Math.round(zoom * 100)}%`}
-              aria-label={t("toolbar.zoom")}
-            />
-            <span
-              className="zoom-val"
-              onClick={() => useLab.getState().resetZoom()}
-              title={t("toolbar.zoomReset")}
-            >
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              type="button"
-              className="btn-icon"
-              onClick={() => useLab.getState().zoomIn()}
-              title={t("toolbar.zoomIn")}
-              disabled={zoom >= 1.5}
-              aria-label={t("toolbar.zoomIn")}
-            >
-              +
-            </button>
-            <button
-              type="button"
-              className="btn-icon zoom-fit-btn"
-              onClick={() => useLab.getState().zoomFit()}
-              title={t("toolbar.zoomFit")}
-              aria-label={t("toolbar.zoomFit")}
-            >
-              ⛶
-            </button>
-          </div>
-        </div>
       </header>
       {notice && <div className="toast">{notice}</div>}
       
@@ -453,6 +470,16 @@ export function App() {
       <DiscardModal
         isOpen={discardModalOpen}
         onClose={handleDiscardModalClose}
+      />
+
+      {/* Mobile Menu Modal / Bottom Sheet */}
+      <MobileMenuModal
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        examples={examples}
+        selectedExample={selectedExample}
+        onSelectExample={handleRequestSelectExample}
+        onRequestNewDiagram={handleRequestNewDiagram}
       />
 
       {/* Mobile drawer backdrop */}

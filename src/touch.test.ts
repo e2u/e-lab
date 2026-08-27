@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { triggerHaptic } from "./ui/schematic/interact";
 import { useLab } from "./store";
+import { TRANSLATIONS } from "./i18n";
 
 describe("touch & mobile adaptation", () => {
   it("triggerHaptic calls navigator.vibrate when available", () => {
@@ -114,5 +115,25 @@ describe("touch & mobile adaptation", () => {
 
     // 7. Desktop laptop (1366 x 768) without touch -> Desktop mode
     expect(isMobileMode(1366, 768, false)).toBe(false);
+  });
+
+  it("has complete translations for mobile menu keys in all languages", () => {
+    const requiredKeys = [
+      "toolbar.menu",
+      "mobileMenu.title",
+      "mobileMenu.project",
+      "mobileMenu.examples",
+      "mobileMenu.preferences",
+      "mobileMenu.close",
+      "mobileMenu.components",
+      "mobileMenu.wires",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(TRANSLATIONS.en[key]).toBeDefined();
+      expect(TRANSLATIONS.en[key].length).toBeGreaterThan(0);
+      expect(TRANSLATIONS.zh[key]).toBeDefined();
+      expect(TRANSLATIONS.zh[key].length).toBeGreaterThan(0);
+    }
   });
 });

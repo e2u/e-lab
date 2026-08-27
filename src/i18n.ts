@@ -43,6 +43,14 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "toolbar.zoomReset": "Reset Zoom (⌘0)",
     "toolbar.zoomFit": "Fit Screen (⌘9)",
     "toolbar.quickActions": "Quick Actions",
+    "toolbar.menu": "Menu",
+    "mobileMenu.title": "Menu & Actions",
+    "mobileMenu.project": "Diagram Management",
+    "mobileMenu.examples": "Example Circuits",
+    "mobileMenu.preferences": "Preferences & View",
+    "mobileMenu.close": "Close",
+    "mobileMenu.components": "components",
+    "mobileMenu.wires": "wires",
 
     // Inspector labels
     "inspector.properties": "Properties",
@@ -470,6 +478,14 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "toolbar.zoomReset": "重設縮放 (⌘0)",
     "toolbar.zoomFit": "適應屏幕 (⌘9)",
     "toolbar.quickActions": "快捷操作",
+    "toolbar.menu": "選單",
+    "mobileMenu.title": "功能選單",
+    "mobileMenu.project": "圖紙與專案管理",
+    "mobileMenu.examples": "範例電路",
+    "mobileMenu.preferences": "偏好與檢視",
+    "mobileMenu.close": "關閉",
+    "mobileMenu.components": "個元件",
+    "mobileMenu.wires": "條導線",
 
     // Inspector labels
     "inspector.properties": "屬性",

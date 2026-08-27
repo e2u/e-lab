@@ -562,4 +562,97 @@ describe("sim engine", () => {
     expect(snapDelta.runtime[mDelta.device.id].direction).toBe(1);
     expect(snapDelta.runtime[mDelta.device.id].energized).toBe(true);
   });
+
+  it("does not trigger short circuit when multiple PE grounds connect together", () => {
+    const c = emptyCircuit();
+    const gMains = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
+    const gnd = addDevice(c, "ground", "PE1", "body", 6, 6);
+    const nl = addDevice(c, "net-label", "G", "body", 6, 2);
+
+    addWire(c, gMains.symbol, "PE", nl.symbol, "1");
+    addWire(c, gnd.symbol, "1", nl.symbol, "1");
+
+    const snap = run(c, [], 2);
+    const shortFaults = snap.faults.filter((f) => f.msgKey === "fault.shortCircuit");
+    expect(shortFaults.length).toBe(0);
+    expect(snap.runtime[gMains.device.id].short).toBeFalsy();
+    expect(snap.runtime[gnd.device.id].short).toBeFalsy();
+    expect(Object.values(snap.wires).every((w) => !w.short)).toBe(true);
+  });
+
+  it("does not trigger short circuit when transformer secondary X2 is connected to ground PE", () => {
+    const c = emptyCircuit();
+    const gMains = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
+    const pe1 = addDevice(c, "ground", "PE1", "body", 6, 12);
+    const nlG = addDevice(c, "net-label", "G", "body", 6, 10);
+    const nlL1 = addDevice(c, "net-label", "L1", "body", 10, 0);
+    const nlL2 = addDevice(c, "net-label", "L2", "body", 10, 2);
+
+    // Mains ground and phases
+    addWire(c, gMains.symbol, "PE", nlG.symbol, "1");
+    addWire(c, pe1.symbol, "1", nlG.symbol, "1");
+    addWire(c, gMains.symbol, "L1", nlL1.symbol, "1");
+    addWire(c, gMains.symbol, "L2", nlL2.symbol, "1");
+
+    // Transformer
+    const tc1 = addDevice(c, "transformer", "TC1", "body", 16, 4);
+    const tcL1 = addDevice(c, "net-label", "L1", "body", 16, 0);
+    const tcL2 = addDevice(c, "net-label", "L2", "body", 14, 0);
+    addWire(c, tcL1.symbol, "1", tc1.symbol, "H1");
+    addWire(c, tcL2.symbol, "1", tc1.symbol, "H2");
+
+    // Secondary X1 -> A1, X2 -> A2 and PE2
+    const nlA1 = addDevice(c, "net-label", "A1", "body", 16, 10);
+    const nlA2 = addDevice(c, "net-label", "A2", "body", 14, 10);
+    const pe2 = addDevice(c, "ground", "PE2", "body", 12, 10);
+    addWire(c, tc1.symbol, "X1", nlA1.symbol, "1");
+    addWire(c, tc1.symbol, "X2", nlA2.symbol, "1");
+    addWire(c, pe2.symbol, "1", nlA2.symbol, "1");
+
+    // Load between A1 and A2
+    const hl = addDevice(c, "lamp", "HL1", "body", 22, 10);
+    const loadA1 = addDevice(c, "net-label", "A1", "body", 22, 8);
+    const loadA2 = addDevice(c, "net-label", "A2", "body", 22, 12);
+    addWire(c, loadA1.symbol, "1", hl.symbol, "1");
+    addWire(c, loadA2.symbol, "1", hl.symbol, "2");
+
+    const snap = run(c, [], 2);
+    const shortFaults = snap.faults.filter((f) => f.msgKey === "fault.shortCircuit");
+    expect(shortFaults.length).toBe(0);
+    expect(snap.runtime[tc1.device.id].short).toBeFalsy();
+    expect(snap.runtime[pe2.device.id].short).toBeFalsy();
+    expect(snap.runtime[hl.device.id].lit).toBe(true);
+    expect(Object.values(snap.wires).every((w) => !w.short)).toBe(true);
+  });
+
+  it("detects short circuit when BOTH X1 and X2 of transformer secondary are connected to PE", () => {
+    const c = emptyCircuit();
+    const gMains = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
+    const tc1 = addDevice(c, "transformer", "TC1", "body", 10, 0);
+    addWire(c, gMains.symbol, "L1", tc1.symbol, "H1");
+    addWire(c, gMains.symbol, "L2", tc1.symbol, "H2");
+
+    const pe = addDevice(c, "ground", "PE", "body", 10, 8);
+    // Short secondary by connecting both X1 and X2 to the same PE ground
+    addWire(c, tc1.symbol, "X1", pe.symbol, "1");
+    addWire(c, tc1.symbol, "X2", pe.symbol, "1");
+
+    const snap = run(c, [], 2);
+    const shortFaults = snap.faults.filter((f) => f.msgKey === "fault.shortCircuit");
+    expect(shortFaults.length).toBeGreaterThan(0);
+    expect(snap.runtime[tc1.device.id].short).toBe(true);
+  });
+
+  it("detects direct short circuits and flags runtime and wires with short strobe state", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
+    // Directly short L1 and L2
+    addWire(c, g.symbol, "L1", g.symbol, "L2");
+
+    const snap = run(c, [], 2);
+    const shortFaults = snap.faults.filter((f) => f.msgKey === "fault.shortCircuit");
+    expect(shortFaults.length).toBeGreaterThan(0);
+    expect(snap.runtime[g.device.id].short).toBe(true);
+    expect(snap.wires[c.wires[0].id].short).toBe(true);
+  });
 });

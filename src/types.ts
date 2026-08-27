@@ -69,6 +69,7 @@ export type DeviceKind =
   | "starter-rev-combo"
   | "ground"
   | "net-label"
+  | "title-block"
   | "junction";
 
 export type PotentialKind = "L1" | "L2" | "L3" | "N" | "PE" | "DC+" | "DC-";
@@ -99,6 +100,15 @@ export interface DeviceParams {
   primeMover?: boolean;
   shaftWith?: string;
   welded?: boolean;
+  projectName?: string;
+  projectNo?: string;
+  rev?: string;
+  sheetNum?: string;
+  sheetTotal?: string;
+  description?: string;
+  designedBy?: string;
+  date?: string;
+  scale?: number;
 }
 
 export interface Device {
@@ -181,12 +191,14 @@ export interface DeviceRuntime {
   prevEnergized: boolean;
   prevPulse: boolean;
   starDelta: "star" | "delta" | null;
+  short?: boolean;
 }
 
 export interface WireLive {
   live: boolean;
   kind: PotentialKind | null;
   dir: 1 | -1 | 0;
+  short?: boolean;
 }
 
 export interface Fault {

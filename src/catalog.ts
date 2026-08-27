@@ -699,6 +699,17 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       },
     },
   },
+  "title-block": {
+    prefix: "TB",
+    label: "圖紙標題欄",
+    variants: {
+      body: {
+        w: 16,
+        h: 5,
+        terminals: [],
+      },
+    },
+  },
   junction: {
     prefix: "",
     label: "連接點",
@@ -780,6 +791,7 @@ export const CATALOG: CatalogItem[] = [
   { id: "motor-1ph", kind: "motor-1ph", variant: "body", group: "電機", label: "單相電機", labelEn: "Motor 1Φ", prefix: "M", creates: "device" },
 
   { id: "starter-rev-combo", kind: "starter-rev-combo", variant: "body", group: "起動器", label: "正反轉組合起動器", labelEn: "Reversing Starter", prefix: "KMR", creates: "device" },
+  { id: "title-block", kind: "title-block", variant: "body", group: "圖紙標註", label: "圖紙標題欄", labelEn: "Title Block", prefix: "TB", creates: "device" },
 ];
 
 export const GROUPS = [
@@ -792,6 +804,7 @@ export const GROUPS = [
   { id: "Lighting_Load", label: "指示與負載", labelEn: "Lighting / Load" },
   { id: "Motor_Generator", label: "電機", labelEn: "Motors" },
   { id: "Starter", label: "起動器", labelEn: "Starter" },
+  { id: "Annotations", label: "圖紙標註", labelEn: "Annotations" },
 ] as const;
 
 export function variantDef(kind: DeviceKind, variant: string): VariantDef {

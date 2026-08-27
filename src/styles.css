@@ -392,6 +392,71 @@ button, select, input {
   contain: content;
 }
 
+.schematic-container {
+  display: inline-block;
+  position: relative;
+  padding: 18px;
+  width: max-content;
+}
+
+.schematic-container.with-rulers {
+  padding: 0;
+  display: grid;
+  grid-template-columns: 20px auto;
+  grid-template-rows: 20px auto;
+  width: max-content;
+}
+
+.ruler-corner {
+  grid-column: 1;
+  grid-row: 1;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 15;
+  background: #25221b;
+  border-right: 1px solid #453e30;
+  border-bottom: 1px solid #453e30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #8c8370;
+  user-select: none;
+}
+
+.ruler-top-wrap {
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 20px;
+  background: #25221b;
+  border-bottom: 1px solid #453e30;
+  overflow: hidden;
+  user-select: none;
+}
+
+.ruler-left-wrap {
+  grid-column: 1;
+  grid-row: 2;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  width: 20px;
+  background: #25221b;
+  border-right: 1px solid #453e30;
+  overflow: hidden;
+  user-select: none;
+}
+
+.schematic-container.with-rulers .paper {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+}
+
 .paper {
   background-color: var(--paper);
   background-image:
@@ -689,6 +754,47 @@ button, select, input {
   }
 }
 
+/* Short circuit strobe animation for wires & components */
+.wire.short-circuit {
+  stroke: #ff2a00 !important;
+  stroke-width: 3.5px !important;
+  animation: short-wire-strobe 0.22s ease-in-out infinite alternate !important;
+}
+
+@keyframes short-wire-strobe {
+  0% {
+    stroke: #ff1100;
+    filter: drop-shadow(0 0 4px #ff1100);
+    stroke-width: 2.8px;
+  }
+  100% {
+    stroke: #ffe600;
+    filter: drop-shadow(0 0 10px #ff3300);
+    stroke-width: 4.5px;
+  }
+}
+
+.sym-short-flash {
+  fill: rgba(255, 30, 0, 0.2);
+  stroke: #ff1100;
+  stroke-width: 2.5px;
+  stroke-dasharray: 6 3;
+  animation: sym-short-strobe 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes sym-short-strobe {
+  0% {
+    stroke: #ff1100;
+    fill: rgba(255, 30, 0, 0.15);
+    filter: drop-shadow(0 0 4px #ff1100);
+  }
+  100% {
+    stroke: #ffe600;
+    fill: rgba(255, 230, 0, 0.35);
+    filter: drop-shadow(0 0 12px #ff2a00);
+  }
+}
+
 .widget {
   display: flex;
   flex-direction: column;
@@ -734,6 +840,48 @@ input[type="range"] { width: 100%; accent-color: var(--stripe); }
   color: var(--nameplate);
   padding: 3px 6px;
   width: 120px;
+}
+
+.title-block-editor {
+  margin: 6px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title-block-editor label {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  margin: 5px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a4b397;
+}
+
+.title-block-editor input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.title-block-editor .row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.title-block-scale-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.title-block-scale-btns .btn {
+  padding: 3px 6px;
+  font-size: 11px;
+  min-width: 32px;
 }
 
 .group-color-section {

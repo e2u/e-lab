@@ -109,6 +109,15 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "inspector.flipH": "Flip Horizontally",
     "inspector.flipV": "Flip Vertically",
     "inspector.delete": "Delete",
+    "inspector.projectName": "PROJECT NAME",
+    "inspector.projectNo": "PROJECT NO",
+    "inspector.rev": "REV",
+    "inspector.sheet": "SHEET",
+    "inspector.sheetTotal": "TOTAL SHEETS",
+    "inspector.description": "DESCRIPTION",
+    "inspector.designedBy": "DESIGNED BY",
+    "inspector.date": "DATE",
+    "inspector.scale": "SCALE",
     "inspector.netLabel": "Network Label",
     "inspector.hint.editMode": "Click component then press R to rotate, H for horizontal flip, V for vertical flip. Shift click or drag box for multi-select; ⌘G to group, ⇧⌘G to ungroup. Delete to remove, ⌘Z to undo.",
     "inspector.hint.dragMove": "Drag to move the whole group. Drag box on empty space for selection. ⌘G to group · ⇧⌘G to ungroup.",
@@ -201,6 +210,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     // Component labels (catalog)
     "comp.junction": "Junction",
     "comp.ground": "Ground",
+    "comp.titleBlock": "Title Block",
     "comp.threePhaseMains": "Three-Phase Mains",
     "comp.threePhaseMainsWye": "Three-Phase Mains (Y)",
     "comp.threePhaseMainsDelta": "Three-Phase Mains (Δ)",
@@ -342,6 +352,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "lib.group.Lighting_Load": "Lighting / Load",
     "lib.group.Motor_Generator": "Motors",
     "lib.group.Starter": "Starters",
+    "lib.group.Annotations": "Annotations",
 
     // Bench panel
     "bench.pushbuttons": "Pushbuttons",
@@ -555,6 +566,15 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "inspector.flipH": "左右鏡像",
     "inspector.flipV": "上下鏡像",
     "inspector.delete": "刪除",
+    "inspector.projectName": "PROJECT NAME (項目名稱)",
+    "inspector.projectNo": "PROJECT NO (項目編號)",
+    "inspector.rev": "REV (版本)",
+    "inspector.sheet": "SHEET (頁碼)",
+    "inspector.sheetTotal": "TOTAL (總頁數)",
+    "inspector.description": "DESCRIPTION (說明)",
+    "inspector.designedBy": "DESIGNED BY (設計者)",
+    "inspector.date": "DATE (日期)",
+    "inspector.scale": "SCALE (縮放比例)",
 
     // Runtime status
     "runtime.faults": "故障",
@@ -627,6 +647,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     // Component labels (catalog)
     "comp.junction": "連接點",
     "comp.ground": "接地",
+    "comp.titleBlock": "圖紙標題欄",
     "comp.threePhaseMains": "三相電源",
     "comp.threePhaseMainsWye": "三相電源 (Y)",
     "comp.threePhaseMainsDelta": "三相電源 (Δ)",
@@ -768,6 +789,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "lib.group.Lighting_Load": "指示與負載",
     "lib.group.Motor_Generator": "電機",
     "lib.group.Starter": "起動器",
+    "lib.group.Annotations": "圖紙標註",
 
     // Bench panel
     "bench.pushbuttons": "按鈕與指示燈",
@@ -881,6 +903,7 @@ const COMP_KEY: Record<string, string> = {
   "motor-dc": "motorDc",
   "gen-ac": "genAc",
   "gen-dc": "genDc",
+  "title-block": "titleBlock",
 };
 
 /** i18n key for a catalog item id, e.g. selector-2 → comp.selector2 */

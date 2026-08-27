@@ -57,7 +57,7 @@ export const WireLayer = memo(function WireLayer({
             />
             <path
               d={d}
-              className={`wire ${live?.live ? "live" : ""} ${w.broken ? "broken" : ""}`}
+              className={`wire ${live?.live ? "live" : ""} ${w.broken ? "broken" : ""} ${live?.short ? "short-circuit" : ""}`}
               stroke={sel ? "#e6c11e" : color}
               strokeDasharray={w.broken ? "6 5" : undefined}
             />
@@ -145,7 +145,7 @@ export const WireLayer = memo(function WireLayer({
           <path
             key={`hop-${i}`}
             d={hopArcD(c)}
-            className={`wire ${live?.live ? "live" : ""}`}
+            className={`wire ${live?.live ? "live" : ""} ${live?.short ? "short-circuit" : ""}`}
             stroke={sel ? "#e6c11e" : color}
             strokeDasharray={w?.broken ? "6 5" : undefined}
             fill="none"

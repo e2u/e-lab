@@ -20,13 +20,20 @@ export function rotatePoint(
   }
 }
 
-export function symbolSize(sym: SymbolInst, kind: Circuit["devices"][0]["kind"]): {
+export function symbolSize(
+  sym: SymbolInst,
+  kind: Circuit["devices"][0]["kind"],
+  params?: Circuit["devices"][0]["params"],
+): {
   w: number;
   h: number;
 } {
   const v = variantDef(kind, sym.variant);
-  if (sym.rot === 90 || sym.rot === 270) return { w: v.h, h: v.w };
-  return { w: v.w, h: v.h };
+  const s = params?.scale ?? 1;
+  const bw = v.w * s;
+  const bh = v.h * s;
+  if (sym.rot === 90 || sym.rot === 270) return { w: bh, h: bw };
+  return { w: bw, h: bh };
 }
 
 export function symbolBounds(
@@ -35,7 +42,7 @@ export function symbolBounds(
 ): { x: number; y: number; w: number; h: number } | null {
   const dev = circuit.devices.find((d) => d.id === sym.deviceId);
   if (!dev) return null;
-  const size = symbolSize(sym, dev.kind);
+  const size = symbolSize(sym, dev.kind, dev.params);
   return { x: sym.x, y: sym.y, w: size.w, h: size.h };
 }
 

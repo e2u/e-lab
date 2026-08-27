@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "name": "Untitled Diagram",
+  "circuit": {
+    "devices": [
+      {
+        "id": "d_2v_17d5b719",
+        "kind": "mains-3ph",
+        "tag": "G1",
+        "params": {
+          "supplyType": "delta"
+        }
+      },
+      {
+        "id": "d_2x_9603a1b0",
+        "kind": "isolator",
+        "tag": "Main Disconnect Breaker",
+        "params": {}
+      },
+      {
+        "id": "d_2z_216df129",
+        "kind": "net-label",
+        "tag": "L1",
+        "params": {}
+      },
+      {
+        "id": "d_31_3ed16653",
+        "kind": "net-label",
+        "tag": "L2",
+        "params": {}
+      },
+      {
+        "id": "d_33_12aaeef7",
+        "kind": "net-label",
+        "tag": "L3",
+        "params": {}
+      },
+      {
+        "id": "d_37_07cf2007",
+        "kind": "net-label",
+        "tag": "G",
+        "params": {}
+      },
+      {
+        "id": "d_b5_d4f113fc",
+        "kind": "ground",
+        "tag": "PE1",
+        "params": {}
+      }
+    ],
+    "symbols": [
+      {
+        "id": "s_2w_b348fcc7",
+        "deviceId": "d_2v_17d5b719",
+        "variant": "delta",
+        "x": 5.5,
+        "y": 5.175000000000001,
+        "rot": 0
+      },
+      {
+        "id": "s_2y_73baf72d",
+        "deviceId": "d_2x_9603a1b0",
+        "variant": "body",
+        "x": 11.5,
+        "y": 5.175000000000001,
+        "rot": 0
+      },
+      {
+        "id": "s_30_86e8b35f",
+        "deviceId": "d_2z_216df129",
+        "variant": "body",
+        "x": 18.5,
+        "y": 5.375000000000001,
+        "rot": 0
+      },
+      {
+        "id": "s_32_d3114220",
+        "deviceId": "d_31_3ed16653",
+        "variant": "body",
+        "x": 18.5,
+        "y": 7.375000000000001,
+        "rot": 0
+      },
+      {
+        "id": "s_34_2b917a5d",
+        "deviceId": "d_33_12aaeef7",
+        "variant": "body",
+        "x": 18.5,
+        "y": 9.375,
+        "rot": 0
+      },
+      {
+        "id": "s_38_bf2442c5",
+        "deviceId": "d_37_07cf2007",
+        "variant": "body",
+        "x": 11.6875,
+        "y": 11.4375,
+        "rot": 0
+      },
+      {
+        "id": "s_b6_7ebae301",
+        "deviceId": "d_b5_d4f113fc",
+        "variant": "body",
+        "x": 10.6875,
+        "y": 13.625,
+        "rot": 0
+      }
+    ],
+    "wires": [
+      {
+        "id": "w_39_cbbe433a",
+        "a": {
+          "symbolId": "s_2w_b348fcc7",
+          "term": "L1"
+        },
+        "b": {
+          "symbolId": "s_2y_73baf72d",
+          "term": "L1"
+        }
+      },
+      {
+        "id": "w_3a_7dc51ca4",
+        "a": {
+          "symbolId": "s_2w_b348fcc7",
+          "term": "L2"
+        },
+        "b": {
+          "symbolId": "s_2y_73baf72d",
+          "term": "L2"
+        }
+      },
+      {
+        "id": "w_3b_914a3656",
+        "a": {
+          "symbolId": "s_2w_b348fcc7",
+          "term": "L3"
+        },
+        "b": {
+          "symbolId": "s_2y_73baf72d",
+          "term": "L3"
+        }
+      },
+      {
+        "id": "w_3c_cd70ba9a",
+        "a": {
+          "symbolId": "s_2y_73baf72d",
+          "term": "T1"
+        },
+        "b": {
+          "symbolId": "s_30_86e8b35f",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_3d_1755ab32",
+        "a": {
+          "symbolId": "s_2y_73baf72d",
+          "term": "T2"
+        },
+        "b": {
+          "symbolId": "s_32_d3114220",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_3e_c1a38fe5",
+        "a": {
+          "symbolId": "s_2y_73baf72d",
+          "term": "T3"
+        },
+        "b": {
+          "symbolId": "s_34_2b917a5d",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_3g_58b0f614",
+        "a": {
+          "symbolId": "s_2w_b348fcc7",
+          "term": "PE"
+        },
+        "b": {
+          "symbolId": "s_38_bf2442c5",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_b7_e7350d61",
+        "a": {
+          "symbolId": "s_b6_7ebae301",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_38_bf2442c5",
+          "term": "1"
+        }
+      }
+    ],
+    "groups": []
+  },
+  "process": {
+    "temperature": 34,
+    "pressure": 0,
+    "level": 0,
+    "flow": 0,
+    "limitHit": false,
+    "proxHit": false,
+    "photoHit": false
+  }
+}

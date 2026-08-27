@@ -42,6 +42,9 @@ export const SymbolLayer = memo(function SymbolLayer({
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
         if (!dev) return null;
         const v = variantDef(dev.kind, sym.variant);
+        const scale = dev.params?.scale ?? 1;
+        const boxW = v.w * scale;
+        const boxH = v.h * scale;
         const rt = snapshot.runtime[dev.id];
         const sel = selectedIds.includes(sym.id);
         const netMatch =
@@ -53,6 +56,7 @@ export const SymbolLayer = memo(function SymbolLayer({
           selectedDev &&
             dev.kind !== "junction" &&
             dev.kind !== "net-label" &&
+            dev.kind !== "title-block" &&
             (sym.deviceId === selectedDev.id ||
               (dev.kind === selectedDev.kind && dev.tag.trim() && dev.tag.trim() === selectedDev.tag.trim()))
         );
@@ -62,7 +66,7 @@ export const SymbolLayer = memo(function SymbolLayer({
             {/* 元件主體 - 保持旋轉 */}
             <g
               className="sym-g"
-              transform={glyphTransform(sym, v.w, v.h)}
+              transform={glyphTransform(sym, boxW, boxH)}
               onContextMenu={(e) => onSymbolContextMenu(e, sym.id)}
               onPointerDown={(e) => onSymbolPointerDown(e, sym, dev)}
               onPointerUp={() => onSymbolPointerUp(dev)}
@@ -74,6 +78,9 @@ export const SymbolLayer = memo(function SymbolLayer({
                   {sel && (
                     <circle cx={0} cy={0} r={10} fill="none" stroke="#2ca02c" strokeDasharray="4 3" pointerEvents="none" />
                   )}
+                  {rt?.short && (
+                    <circle cx={0} cy={0} r={14} className="sym-short-flash" pointerEvents="none" />
+                  )}
                 </>
               ) : (
                 <>
@@ -81,19 +88,30 @@ export const SymbolLayer = memo(function SymbolLayer({
                     className="sym-hit"
                     x={0}
                     y={0}
-                    width={v.w * GRID}
-                    height={v.h * GRID}
+                    width={boxW * GRID}
+                    height={boxH * GRID}
                     fill="transparent"
                   />
                   {(sel || netMatch || isRelatedSymbol) && (
                     <rect
                       x={-4}
                       y={-4}
-                      width={v.w * GRID + 8}
-                      height={v.h * GRID + 8}
+                      width={boxW * GRID + 8}
+                      height={boxH * GRID + 8}
                       fill="none"
                       stroke={sel ? "#2ca02c" : isRelatedSymbol ? "#d97706" : "#3b7de0"}
                       strokeDasharray="4 3"
+                      pointerEvents="none"
+                    />
+                  )}
+                  {rt?.short && (
+                    <rect
+                      x={-6}
+                      y={-6}
+                      width={boxW * GRID + 12}
+                      height={boxH * GRID + 12}
+                      className="sym-short-flash"
+                      rx="4"
                       pointerEvents="none"
                     />
                   )}
@@ -102,8 +120,8 @@ export const SymbolLayer = memo(function SymbolLayer({
               <SymbolGlyph
                 device={dev}
                 variant={sym.variant}
-                w={v.w}
-                h={v.h}
+                w={boxW}
+                h={boxH}
                 rt={rt}
                 pressed={held.includes(dev.id) || Boolean(rt?.actuated)}
                 flipX={sym.flipX}
@@ -116,7 +134,7 @@ export const SymbolLayer = memo(function SymbolLayer({
               )}
             </g>
             {/* 元件 tag - 單獨渲染，不旋轉 */}
-            {dev.kind !== "junction" && dev.kind !== "mains-3ph" && dev.kind !== "net-label" && (
+            {dev.kind !== "junction" && dev.kind !== "mains-3ph" && dev.kind !== "net-label" && dev.kind !== "title-block" && (
               <g pointerEvents="none">
                 {(() => {
                   const { tagX, tagY, textAnchor } = getSymbolTagPlacement(dev.kind, sym, v);

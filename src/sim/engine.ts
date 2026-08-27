@@ -46,6 +46,7 @@ export function defaultRuntime(kind: DeviceKind): DeviceRuntime {
     prevEnergized: false,
     prevPulse: false,
     starDelta: null,
+    short: false,
   };
 }
 
@@ -131,6 +132,15 @@ function voltageBetween(a: Potential | null, b: Potential | null): boolean {
   return false;
 }
 
+function hasVoltageBetween(potsA: Potential[], potsB: Potential[]): boolean {
+  for (const pa of potsA) {
+    for (const pb of potsB) {
+      if (voltageBetween(pa, pb)) return true;
+    }
+  }
+  return false;
+}
+
 function phaseIndex(p: Potential | null): number | null {
   if (!p) return null;
   if (p.kind === "L1") return 0;
@@ -151,12 +161,31 @@ function permutationDir(u: number, v: number, w: number): 1 | -1 | 0 {
   return inv % 2 === 0 ? 1 : -1;
 }
 
-function potOf(
-  stamp: Map<string, Potential>,
+function nodePots(
+  stamp: Map<string, Potential[]>,
   uf: UnionFind,
   node: string,
+): Potential[] {
+  return stamp.get(uf.find(node)) ?? [];
+}
+
+function potOf(
+  stamp: Map<string, Potential[]>,
+  uf: UnionFind,
+  node: string,
+  preferredSourceId?: string,
 ): Potential | null {
-  return stamp.get(uf.find(node)) ?? null;
+  const list = stamp.get(uf.find(node));
+  if (!list || list.length === 0) return null;
+  if (preferredSourceId) {
+    const match = list.find((p) => p.sourceId === preferredSourceId);
+    if (match) return match;
+  }
+  const hot = list.find((p) => isHotKind(p.kind));
+  if (hot) return hot;
+  const ret = list.find((p) => p.kind === "N" || p.kind === "DC-");
+  if (ret) return ret;
+  return list[0] ?? null;
 }
 
 function nk(id: string, term: string): string {
@@ -514,26 +543,63 @@ export function tick(
       });
     }
   }
-  const stamp = new Map<string, Potential>();
+  const stamp = new Map<string, Potential[]>();
+  const shortRoots = new Set<string>();
+  const shortDeviceIds = new Set<string>();
 
   const stampNode = (deviceId: string, term: string, p: Potential) => {
     const root = uf.find(nk(deviceId, term));
-    const existing = stamp.get(root);
-    if (existing && (existing.sourceId !== p.sourceId || existing.kind !== p.kind)) {
+    const list = stamp.get(root) ?? [];
+
+    if (p.kind === "PE") {
+      if (!list.some((e) => e.kind === "PE" && e.sourceId === p.sourceId)) {
+        list.push(p);
+        stamp.set(root, list);
+      }
+      return;
+    }
+
+    const existingSameSource = list.find((e) => e.sourceId === p.sourceId);
+    if (existingSameSource) {
+      if (existingSameSource.kind === p.kind) {
+        return;
+      }
+      shortRoots.add(root);
+      shortDeviceIds.add(deviceId);
+      if (existingSameSource.sourceId) shortDeviceIds.add(existingSameSource.sourceId);
       faults.push({
         level: "error",
-        message: `短路：${existing.kind} 與 ${p.kind} 接到同一點`,
+        message: `短路：${existingSameSource.kind} 與 ${p.kind} 接到同一點`,
         msgKey: "fault.shortCircuit",
-        msgParams: { a: existing.kind, b: p.kind },
+        msgParams: { a: existingSameSource.kind, b: p.kind },
         deviceId,
       });
       return;
     }
-    stamp.set(root, p);
+
+    if (isHotKind(p.kind)) {
+      const conflictingHot = list.find((e) => isHotKind(e.kind) && e.sourceId !== p.sourceId);
+      if (conflictingHot) {
+        shortRoots.add(root);
+        shortDeviceIds.add(deviceId);
+        if (conflictingHot.sourceId) shortDeviceIds.add(conflictingHot.sourceId);
+        faults.push({
+          level: "error",
+          message: `短路：${conflictingHot.kind} 與 ${p.kind} 接到同一點`,
+          msgKey: "fault.shortCircuit",
+          msgParams: { a: conflictingHot.kind, b: p.kind },
+          deviceId,
+        });
+        return;
+      }
+    }
+
+    list.push(p);
+    stamp.set(root, list);
   };
 
-  const pot = (deviceId: string, term: string) =>
-    potOf(stamp, uf, nk(deviceId, term));
+  const pot = (deviceId: string, term: string, preferredSourceId?: string) =>
+    potOf(stamp, uf, nk(deviceId, term), preferredSourceId);
 
   for (const d of circuit.devices) {
     const rt = runtime[d.id];
@@ -575,12 +641,13 @@ export function tick(
     for (const d of circuit.devices) {
       if (d.kind === "transformer") {
         // Single-phase transformer: H1/H2 (or legacy P1/P2) -> X1/X2 (or legacy S1/S2)
-        const in1 = pot(d.id, "H1") ?? pot(d.id, "P1");
-        const in2 = pot(d.id, "H2") ?? pot(d.id, "P2");
-        if (voltageBetween(in1, in2)) {
-          const x1 = pot(d.id, "X1");
-          const s1 = pot(d.id, "S1");
-          if (!x1 && !s1) {
+        const in1Pots = nodePots(stamp, uf, nk(d.id, "H1")).length > 0 ? nodePots(stamp, uf, nk(d.id, "H1")) : nodePots(stamp, uf, nk(d.id, "P1"));
+        const in2Pots = nodePots(stamp, uf, nk(d.id, "H2")).length > 0 ? nodePots(stamp, uf, nk(d.id, "H2")) : nodePots(stamp, uf, nk(d.id, "P2"));
+        if (hasVoltageBetween(in1Pots, in2Pots)) {
+          const x1Pots = nodePots(stamp, uf, nk(d.id, "X1"));
+          const s1Pots = nodePots(stamp, uf, nk(d.id, "S1"));
+          const alreadyStamped = x1Pots.some((p) => p.sourceId === `xf-${d.id}`) || s1Pots.some((p) => p.sourceId === `xf-${d.id}`);
+          if (!alreadyStamped) {
             stampNode(d.id, "X1", { sourceId: `xf-${d.id}`, kind: "L1" });
             stampNode(d.id, "X2", { sourceId: `xf-${d.id}`, kind: "N" });
             stampNode(d.id, "S1", { sourceId: `xf-${d.id}`, kind: "L1" });
@@ -602,7 +669,9 @@ export function tick(
     rt.lit = false;
 
     for (const [a, b] of coilTerms(d.kind)) {
-      const live = voltageBetween(pot(d.id, a), pot(d.id, b));
+      const potsA = nodePots(stamp, uf, nk(d.id, a));
+      const potsB = nodePots(stamp, uf, nk(d.id, b));
+      const live = hasVoltageBetween(potsA, potsB);
       if (d.kind === "starter-rev-combo") {
         if (a === "A1F" && live) rt.energized = true;
         if (a === "A1R" && live) rt.energizedAlt = true;
@@ -624,23 +693,38 @@ export function tick(
     }
 
     if (d.kind === "motor-3ph") {
-      const pu = pot(d.id, "U") ?? pot(d.id, "U1");
-      const pv = pot(d.id, "V") ?? pot(d.id, "V1");
-      const pw = pot(d.id, "W") ?? pot(d.id, "W1");
+      const potsU = nodePots(stamp, uf, nk(d.id, "U1")).length > 0 ? nodePots(stamp, uf, nk(d.id, "U1")) : nodePots(stamp, uf, nk(d.id, "U"));
+      const potsV = nodePots(stamp, uf, nk(d.id, "V1")).length > 0 ? nodePots(stamp, uf, nk(d.id, "V1")) : nodePots(stamp, uf, nk(d.id, "V"));
+      const potsW = nodePots(stamp, uf, nk(d.id, "W1")).length > 0 ? nodePots(stamp, uf, nk(d.id, "W1")) : nodePots(stamp, uf, nk(d.id, "W"));
+      let pu: Potential | null = null;
+      let pv: Potential | null = null;
+      let pw: Potential | null = null;
+      for (const u of potsU) {
+        const v = potsV.find((p) => p.sourceId === u.sourceId);
+        const w = potsW.find((p) => p.sourceId === u.sourceId);
+        if (v && w) {
+          pu = u;
+          pv = v;
+          pw = w;
+          break;
+        }
+      }
       const iu = phaseIndex(pu);
       const iv = phaseIndex(pv);
       const iw = phaseIndex(pw);
-      const same =
-        pu && pv && pw && pu.sourceId === pv.sourceId && pv.sourceId === pw.sourceId;
+      const same = Boolean(pu && pv && pw && pu.sourceId === pv.sourceId && pv.sourceId === pw.sourceId);
       const dir = same && iu !== null && iv !== null && iw !== null ? permutationDir(iu, iv, iw) : 0;
       const star =
         uf.find(nk(d.id, "U2")) === uf.find(nk(d.id, "V2")) &&
         uf.find(nk(d.id, "V2")) === uf.find(nk(d.id, "W2")) &&
         uf.find(nk(d.id, "U2")) !== uf.find(nk(d.id, "U"));
+      const potsU2 = nodePots(stamp, uf, nk(d.id, "U2"));
+      const potsV2 = nodePots(stamp, uf, nk(d.id, "V2"));
+      const potsW2 = nodePots(stamp, uf, nk(d.id, "W2"));
       const delta =
-        voltageBetween(pu, pot(d.id, "U2")) &&
-        voltageBetween(pv, pot(d.id, "V2")) &&
-        voltageBetween(pw, pot(d.id, "W2"));
+        hasVoltageBetween(pu ? [pu] : [], potsU2) &&
+        hasVoltageBetween(pv ? [pv] : [], potsV2) &&
+        hasVoltageBetween(pw ? [pw] : [], potsW2);
       rt.starDelta = null;
       if (dir !== 0) {
         rt.energized = true;
@@ -661,7 +745,9 @@ export function tick(
     }
 
     if (d.kind === "motor-1ph" || d.kind === "fan") {
-      const live = voltageBetween(pot(d.id, "U1"), pot(d.id, "U2"));
+      const potsU1 = nodePots(stamp, uf, nk(d.id, "U1"));
+      const potsU2 = nodePots(stamp, uf, nk(d.id, "U2"));
+      const live = hasVoltageBetween(potsU1, potsU2);
       rt.energized = live;
       rt.direction = live ? 1 : 0;
       if (live) {
@@ -671,22 +757,29 @@ export function tick(
     }
 
     if (d.kind === "motor-dc") {
-      const a1 = pot(d.id, "A1");
-      const a2 = pot(d.id, "A2");
-      if (a1 && a2 && a1.sourceId === a2.sourceId) {
-        if (a1.kind === "DC+" && a2.kind === "DC-") {
-          rt.energized = true;
-          rt.direction = 1;
-        } else if (a1.kind === "DC-" && a2.kind === "DC+") {
-          rt.energized = true;
-          rt.direction = -1;
-        } else {
-          rt.direction = 0;
+      const potsA1 = nodePots(stamp, uf, nk(d.id, "A1"));
+      const potsA2 = nodePots(stamp, uf, nk(d.id, "A2"));
+      let live = false;
+      let dir: 1 | -1 | 0 = 0;
+      for (const a1 of potsA1) {
+        for (const a2 of potsA2) {
+          if (a1.sourceId === a2.sourceId) {
+            if (a1.kind === "DC+" && a2.kind === "DC-") {
+              live = true;
+              dir = 1;
+              break;
+            } else if (a1.kind === "DC-" && a2.kind === "DC+") {
+              live = true;
+              dir = -1;
+              break;
+            }
+          }
         }
-      } else {
-        rt.direction = 0;
+        if (live) break;
       }
-      if (rt.energized) {
+      rt.energized = live;
+      rt.direction = dir;
+      if (live) {
         loadNodes.add(nk(d.id, "A1"));
         loadNodes.add(nk(d.id, "A2"));
       }
@@ -765,7 +858,7 @@ export function tick(
 
   const potentials: Record<string, Potential | null> = {};
   for (const [node, root] of uf.parent) {
-    potentials[node] = stamp.get(uf.find(root)) ?? null;
+    potentials[node] = potOf(stamp, uf, root);
   }
 
   const currentRoots = new Set<string>();
@@ -810,6 +903,23 @@ export function tick(
       add("S2");
     }
   }
+  for (const d of circuit.devices) {
+    const rt = runtime[d.id];
+    let isShort = shortDeviceIds.has(d.id);
+    if (!isShort) {
+      for (const term of allTerminals(d.kind)) {
+        const root = uf.find(nk(d.id, term));
+        if (shortRoots.has(root)) {
+          isShort = true;
+          break;
+        }
+      }
+    }
+    if (isShort) {
+      rt.short = true;
+    }
+  }
+
   const distHot = bfsDist(adj, hotStarts);
   const distRet = bfsDist(adj, retStarts);
 
@@ -818,18 +928,20 @@ export function tick(
     const a = portDevice(circuit, w.a);
     const b = portDevice(circuit, w.b);
     if (!a || !b) {
-      wires[w.id] = { live: false, kind: null, dir: 0 };
+      wires[w.id] = { live: false, kind: null, dir: 0, short: false };
       continue;
     }
     if (w.broken) {
-      wires[w.id] = { live: false, kind: null, dir: 0 };
+      wires[w.id] = { live: false, kind: null, dir: 0, short: false };
       continue;
     }
     const p = pot(a.deviceId, a.term);
     const na = nk(a.deviceId, a.term);
     const nb = nk(b.deviceId, b.term);
     const root = uf.find(na);
-    const carrying = Boolean(p) && currentRoots.has(root);
+    const rootB = uf.find(nb);
+    const isShort = shortRoots.has(root) || shortRoots.has(rootB);
+    const carrying = (Boolean(p) && currentRoots.has(root)) || isShort;
     let dir: 1 | -1 | 0 = 0;
     if (carrying) {
       const hA = distHot.get(na);
@@ -848,8 +960,9 @@ export function tick(
     }
     wires[w.id] = {
       live: carrying,
-      kind: p?.kind ?? null,
+      kind: isShort ? (p?.kind ?? "L1") : (p?.kind ?? null),
       dir,
+      short: isShort,
     };
   }
 

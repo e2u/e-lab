@@ -1108,6 +1108,100 @@ function GlyphBody({
             </S>
         );
     }
+    if (kind === "title-block") {
+        const scale = device.params.scale ?? 1;
+        const p = device.params;
+        const projectName = (p.projectName ?? "").toUpperCase();
+        const projectNo = (p.projectNo ?? "").toUpperCase();
+        const rev = (p.rev ?? "").toUpperCase();
+        const sheetNum = (p.sheetNum ?? "1").toUpperCase();
+        const sheetTotal = (p.sheetTotal ?? "1").toUpperCase();
+        const description = (p.description ?? "").toUpperCase();
+        const designedBy = (p.designedBy ?? "").toUpperCase();
+        const date = (p.date ?? "").toUpperCase();
+
+        const baseW = 16 * GRID;
+        const baseH = 5 * GRID;
+
+        return (
+            <S w={w} h={h}>
+                <g transform={scale !== 1 ? `scale(${scale})` : undefined}>
+                    {/* Background & Outer Border */}
+                    <rect x={0} y={0} width={baseW} height={baseH} fill="#ffffff" stroke={ink} strokeWidth="1.6" />
+
+                    {/* Row 1 Horizontal Divider */}
+                    <line x1={0} y1={40} x2={baseW} y2={40} stroke={ink} strokeWidth="1.2" />
+                    {/* Row 1 Vertical Dividers */}
+                    <line x1={220} y1={0} x2={220} y2={40} stroke={ink} strokeWidth="1.2" />
+                    <line x1={290} y1={0} x2={290} y2={40} stroke={ink} strokeWidth="1.2" />
+
+                    {/* PROJECT NAME */}
+                    <Txt x={6} y={13} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        PROJECT NAME:
+                    </Txt>
+                    <Txt x={6} y={30} fill="#111111" fontSize="13" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        {projectName}
+                    </Txt>
+
+                    {/* PROJECT NO */}
+                    <Txt x={226} y={13} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        PROJECT NO:
+                    </Txt>
+                    <Txt x={226} y={30} fill="#111111" fontSize="11" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        {projectNo}
+                    </Txt>
+
+                    {/* REV */}
+                    <Txt x={296} y={13} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        REV:
+                    </Txt>
+                    <Txt x={296} y={30} fill="#111111" fontSize="12" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        {rev}
+                    </Txt>
+
+                    {/* Row 2 Horizontal Divider */}
+                    <line x1={0} y1={75} x2={baseW} y2={75} stroke={ink} strokeWidth="1.2" />
+                    {/* Row 2 Vertical Divider */}
+                    <line x1={240} y1={40} x2={240} y2={75} stroke={ink} strokeWidth="1.2" />
+
+                    {/* DESCRIPTION */}
+                    <Txt x={6} y={53} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        DESCRIPTION:
+                    </Txt>
+                    <Txt x={6} y={68} fill="#111111" fontSize="11" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="600">
+                        {description}
+                    </Txt>
+
+                    {/* SHEET */}
+                    <Txt x={246} y={53} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        SHEET: __ OF ___
+                    </Txt>
+                    <Txt x={246} y={68} fill="#111111" fontSize="11" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        {sheetNum} OF {sheetTotal}
+                    </Txt>
+
+                    {/* Row 3 Vertical Divider */}
+                    <line x1={176} y1={75} x2={176} y2={baseH} stroke={ink} strokeWidth="1.2" />
+
+                    {/* DESIGNED BY */}
+                    <Txt x={6} y={88} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        DESIGNED BY:
+                    </Txt>
+                    <Txt x={6} y={102} fill="#111111" fontSize="11" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="600">
+                        {designedBy}
+                    </Txt>
+
+                    {/* DATE */}
+                    <Txt x={182} y={88} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
+                        DATE:
+                    </Txt>
+                    <Txt x={182} y={102} fill="#111111" fontSize="11" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="600">
+                        {date}
+                    </Txt>
+                </g>
+            </S>
+        );
+    }
     if (kind === "junction") {
         return (
             <S w={Math.max(w, 1)} h={Math.max(h, 1)}>

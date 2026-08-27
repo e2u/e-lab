@@ -471,7 +471,7 @@ export function rotateSelection(
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
         const kind = dev?.kind ?? "lamp";
         const isJunction = kind === "junction";
-        const sizeBefore = symbolSize(sym, kind);
+        const sizeBefore = symbolSize(sym, kind, dev?.params);
         const scx = sym.x + sizeBefore.w / 2;
         const scy = sym.y + sizeBefore.h / 2;
 
@@ -487,7 +487,7 @@ export function rotateSelection(
 
         const newRot = isJunction ? sym.rot : (((sym.rot + step) % 360) as Rot);
         const symTemp = { ...sym, rot: newRot };
-        const sizeAfter = symbolSize(symTemp, kind);
+        const sizeAfter = symbolSize(symTemp, kind, dev?.params);
 
         const newX = Math.round((scxNew - sizeAfter.w / 2) * 16) / 16;
         const newY = Math.round((scyNew - sizeAfter.h / 2) * 16) / 16;

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { catalogItem, suggestNetLabelTag } from "./catalog";
 import { addDevice, addSymbol, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
-import templateData from "./examples/three-phase-motor.json";
+import templateData from "./examples/blank-template.json";
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols } from "./groups";
 import { EXAMPLES } from "./examples";
 import { allWireRoutes, nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
@@ -20,7 +20,7 @@ import {
   type SavedLab,
 } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
-import { GRID, COLS, ROWS, type Circuit, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
+import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
 function readLang(): Lang {
@@ -124,7 +124,34 @@ export interface LabState {
   pointerDevice: (deviceId: string, down: boolean) => void;
   toggleIo: (deviceId: string, field: "on" | "tripped" | "actuated" | "prime") => void;
   cyclePosition: (deviceId: string) => void;
-  updateDevice: (deviceId: string, patch: { tag?: string; color?: string; delayMs?: number; preset?: number; setpoint?: number; ratio?: string; primaryVolts?: string; secondaryVolts?: string; primaryConn?: "delta" | "wye"; secondaryConn?: "delta" | "wye"; supplyType?: "wye" | "delta"; shaftWith?: string; welded?: boolean }) => void;
+  updateDevice: (
+    deviceId: string,
+    patch: {
+      tag?: string;
+      params?: Partial<DeviceParams>;
+      color?: string;
+      delayMs?: number;
+      preset?: number;
+      setpoint?: number;
+      ratio?: string;
+      primaryVolts?: string;
+      secondaryVolts?: string;
+      primaryConn?: "delta" | "wye";
+      secondaryConn?: "delta" | "wye";
+      supplyType?: "wye" | "delta";
+      shaftWith?: string;
+      welded?: boolean;
+      projectName?: string;
+      projectNo?: string;
+      rev?: string;
+      sheetNum?: string;
+      sheetTotal?: string;
+      description?: string;
+      designedBy?: string;
+      date?: string;
+      scale?: number;
+    },
+  ) => void;
   setSymbolVariant: (symbolId: string, variant: string) => void;
   rebind: (symbolId: string, deviceId: string) => void;
   deleteSelected: () => void;
@@ -187,6 +214,13 @@ function mergeRuntime(circuit: Circuit, prev: SimSnapshot["runtime"]): SimSnapsh
     if (prev[d.id]) next[d.id] = { ...next[d.id], ...prev[d.id] };
   }
   return next;
+}
+
+function formatMMDDYYYY(d = new Date()): string {
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
 }
 
 export function createBlankTemplateCircuit(): Circuit {
@@ -398,7 +432,19 @@ export const useLab = create<LabState>((set, get) => ({
               ? { ratio: "480/120" }
               : item.kind === "mains-3ph"
                 ? { supplyType: item.variant === "delta" ? "delta" : "wye" }
-                : {},
+                : item.kind === "title-block"
+                  ? {
+                      projectName: "MOTOR CONTROL CIRCUIT",
+                      projectNo: "DWG-001",
+                      rev: "A",
+                      sheetNum: "1",
+                      sheetTotal: "1",
+                      description: "SCHEMATIC DIAGRAM",
+                      designedBy: "ENGINEER",
+                      date: formatMMDDYYYY(),
+                      scale: 1,
+                    }
+                  : {},
       item.defaultRot ?? 0,
     );
     set({
@@ -553,25 +599,14 @@ export const useLab = create<LabState>((set, get) => ({
     set({ snapshot: { ...get().snapshot, runtime } });
   },
 
-  updateDevice: (deviceId, patch: {
-    tag?: string;
-    color?: string;
-    delayMs?: number;
-    preset?: number;
-    setpoint?: number;
-    ratio?: string;
-    primaryVolts?: string;
-    secondaryVolts?: string;
-    primaryConn?: "delta" | "wye";
-    secondaryConn?: "delta" | "wye";
-    supplyType?: "wye" | "delta";
-    shaftWith?: string;
-    welded?: boolean;
-  }) => {
+  updateDevice: (deviceId, patch) => {
     get().pushHistory();
     const next = clone(get().circuit);
     const d = next.devices.find((x) => x.id === deviceId);
     if (!d) return;
+    if (patch.params) {
+      d.params = { ...d.params, ...patch.params };
+    }
     if (patch.tag !== undefined) d.tag = patch.tag;
     if (patch.color) d.params.color = patch.color;
     if (patch.delayMs !== undefined) d.params.delayMs = patch.delayMs;
@@ -594,6 +629,15 @@ export const useLab = create<LabState>((set, get) => ({
     }
     if (patch.shaftWith !== undefined) d.params.shaftWith = patch.shaftWith;
     if (patch.welded !== undefined) d.params.welded = patch.welded;
+    if (patch.projectName !== undefined) d.params.projectName = patch.projectName;
+    if (patch.projectNo !== undefined) d.params.projectNo = patch.projectNo;
+    if (patch.rev !== undefined) d.params.rev = patch.rev;
+    if (patch.sheetNum !== undefined) d.params.sheetNum = patch.sheetNum;
+    if (patch.sheetTotal !== undefined) d.params.sheetTotal = patch.sheetTotal;
+    if (patch.description !== undefined) d.params.description = patch.description;
+    if (patch.designedBy !== undefined) d.params.designedBy = patch.designedBy;
+    if (patch.date !== undefined) d.params.date = patch.date;
+    if (patch.scale !== undefined) d.params.scale = patch.scale;
     set({ circuit: next, isDirty: true });
   },
 

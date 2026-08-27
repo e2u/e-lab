@@ -23,6 +23,7 @@ export function useSchematicEvents({
 }: UseSchematicEventsParams) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
+  const [rulerPos, setRulerPos] = useState<{ x: number; y: number } | null>(null);
   const [menu, setMenu] = useState<MenuPos | null>(null);
   const drag = useRef<{
     id: string;
@@ -296,6 +297,9 @@ export function useSchematicEvents({
 
     const labWiring = useLab.getState().wiringFrom;
     const p = toGrid(e);
+    if (e.pointerType !== "touch") {
+      setRulerPos(p);
+    }
     if (labWiring || placing) {
       setCursor(p);
     } else if (cursor !== null) {
@@ -571,15 +575,21 @@ export function useSchematicEvents({
     cancelPlace();
   };
 
+  const onSvgLeave = () => {
+    setRulerPos(null);
+  };
+
   return {
     svgRef,
     cursor,
+    rulerPos,
     menu,
     setMenu,
     marqueeView,
     wireCursor,
     onPaperDown,
     onSvgMove,
+    onSvgLeave,
     onSvgPointerUp,
     onSvgContextMenu,
     onWireContextMenu,

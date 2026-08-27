@@ -223,26 +223,127 @@ export function Inspector() {
   return (
     <div className="inspector">
       <h3>{tOr(catalogCompKey(dev.kind), KINDS[dev.kind].label)}</h3>
-      <label>
-        {dev.kind === "net-label" ? t("inspector.netLabel") : t("inspector.tag")}
-        <input value={dev.tag} onChange={(e) => useLab.getState().updateDevice(dev.id, { tag: e.target.value })} />
-      </label>
-      {dev.kind === "net-label" ? (
-        <NetLabelHint circuit={circuit} deviceId={dev.id} tag={dev.tag} />
+      {dev.kind === "title-block" ? (
+        <div className="title-block-editor">
+          <label>
+            <span>{t("inspector.projectName")}</span>
+            <input
+              value={dev.params.projectName ?? ""}
+              placeholder="PROJECT NAME"
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, projectName: e.target.value } })}
+            />
+          </label>
+          <label>
+            <span>{t("inspector.projectNo")}</span>
+            <input
+              value={dev.params.projectNo ?? ""}
+              placeholder="DWG-001"
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, projectNo: e.target.value } })}
+            />
+          </label>
+          <div className="row-2">
+            <label>
+              <span>{t("inspector.rev")}</span>
+              <input
+                value={dev.params.rev ?? ""}
+                placeholder="A"
+                onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, rev: e.target.value } })}
+              />
+            </label>
+            <label>
+              <span>{t("inspector.sheet")}</span>
+              <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                <input
+                  style={{ width: "50%" }}
+                  value={dev.params.sheetNum ?? "1"}
+                  placeholder="1"
+                  onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, sheetNum: e.target.value } })}
+                />
+                <span style={{ fontSize: "11px", color: "var(--text-dim, #7d8973)" }}>OF</span>
+                <input
+                  style={{ width: "50%" }}
+                  value={dev.params.sheetTotal ?? "1"}
+                  placeholder="1"
+                  onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, sheetTotal: e.target.value } })}
+                />
+              </div>
+            </label>
+          </div>
+          <label>
+            <span>{t("inspector.description")}</span>
+            <input
+              value={dev.params.description ?? ""}
+              placeholder="SCHEMATIC DIAGRAM"
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, description: e.target.value } })}
+            />
+          </label>
+          <div className="row-2">
+            <label>
+              <span>{t("inspector.designedBy")}</span>
+              <input
+                value={dev.params.designedBy ?? ""}
+                placeholder="ENGINEER"
+                onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, designedBy: e.target.value } })}
+              />
+            </label>
+            <label>
+              <span>{t("inspector.date")}</span>
+              <input
+                value={dev.params.date ?? ""}
+                placeholder="MM/DD/YYYY"
+                onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, date: e.target.value } })}
+              />
+            </label>
+          </div>
+          <label>
+            <span>{t("inspector.scale")} ({(dev.params.scale ?? 1).toFixed(2)}x)</span>
+            <div className="title-block-scale-btns">
+              {[0.5, 0.75, 1, 1.25, 1.5, 2].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={`btn ${Math.abs((dev.params.scale ?? 1) - s) < 0.01 ? "primary" : ""}`}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, scale: s } })}
+                >
+                  {s}x
+                </button>
+              ))}
+            </div>
+            <input
+              type="range"
+              min="0.5"
+              max="2.5"
+              step="0.05"
+              value={dev.params.scale ?? 1}
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, scale: parseFloat(e.target.value) } })}
+              style={{ width: "100%", marginTop: "6px" }}
+            />
+          </label>
+        </div>
       ) : (
-        <div className="hint">{t("inspector.variant")}: {sym.variant} · {dev.kind}</div>
-      )}
-      {dev.kind !== "net-label" && sameKind.length > 1 && (
-        <label>
-          {t("inspector.deviceBinding")}
-          <select value={dev.id} onChange={(e) => useLab.getState().rebind(sym.id, e.target.value)}>
-            {sameKind.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.tag}
-              </option>
-            ))}
-          </select>
-        </label>
+        <>
+          <label>
+            {dev.kind === "net-label" ? t("inspector.netLabel") : t("inspector.tag")}
+            <input value={dev.tag} onChange={(e) => useLab.getState().updateDevice(dev.id, { tag: e.target.value })} />
+          </label>
+          {dev.kind === "net-label" ? (
+            <NetLabelHint circuit={circuit} deviceId={dev.id} tag={dev.tag} />
+          ) : (
+            <div className="hint">{t("inspector.variant")}: {sym.variant} · {dev.kind}</div>
+          )}
+          {dev.kind !== "net-label" && sameKind.length > 1 && (
+            <label>
+              {t("inspector.deviceBinding")}
+              <select value={dev.id} onChange={(e) => useLab.getState().rebind(sym.id, e.target.value)}>
+                {sameKind.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.tag}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </>
       )}
       {dev.kind === "mains-3ph" && (
         <label>

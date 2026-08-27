@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { lampJog } from "./examples";
 import { decodeShare, encodeShare, makeDoc, parseDoc } from "./persist";
 import { createBlankTemplateCircuit, createBlankTemplateProcess, useLab } from "./store";
-import templateData from "./examples/three-phase-motor.json";
+import templateData from "./examples/blank-template.json";
 
 describe("persist", () => {
   it("round-trips a circuit through a share payload", () => {
@@ -28,7 +28,7 @@ describe("persist", () => {
     expect(decodeShare("nope")).toBeNull();
   });
 
-  it("loads three-phase-motor template when creating a new diagram", () => {
+  it("loads blank template when creating a new diagram", () => {
     const c = createBlankTemplateCircuit();
     expect(c.devices.length).toBe(templateData.circuit.devices.length);
     expect(c.symbols.length).toBe(templateData.circuit.symbols.length);

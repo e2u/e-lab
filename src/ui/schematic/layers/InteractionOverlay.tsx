@@ -18,6 +18,13 @@ interface InteractionOverlayProps {
   onPlaceOverlayContextMenu: (e: MouseEvent<SVGRectElement>) => void;
 }
 
+function formatMMDDYYYY(d = new Date()): string {
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+
 export const InteractionOverlay = memo(function InteractionOverlay({
   circuit,
   wiringFrom,
@@ -77,8 +84,26 @@ export const InteractionOverlay = memo(function InteractionOverlay({
           tag: item.kind === "net-label"
             ? suggestNetLabelTag(circuit, selected?.type === "symbol" ? selected.id : null)
             : item.prefix,
-          params: item.kind === "lamp" ? { color: "green" } : {},
+          params:
+            item.kind === "lamp"
+              ? { color: "green" }
+              : item.kind === "title-block"
+                ? {
+                    projectName: "PROJECT NAME",
+                    projectNo: "DWG-001",
+                    rev: "A",
+                    sheetNum: "1",
+                    sheetTotal: "1",
+                    description: "SCHEMATIC DIAGRAM",
+                    designedBy: "ENGINEER",
+                    date: formatMMDDYYYY(),
+                    scale: 1,
+                  }
+                : {},
         };
+        const scale = ghost.params?.scale ?? 1;
+        const boxW = v.w * scale;
+        const boxH = v.h * scale;
         const gx = Math.round(cursor.x);
         const gy = Math.round(cursor.y);
         return (
@@ -87,7 +112,7 @@ export const InteractionOverlay = memo(function InteractionOverlay({
             transform={`translate(${gx * GRID} ${gy * GRID})`}
             pointerEvents="none"
           >
-            <SymbolGlyph device={ghost} variant={item.variant} w={v.w} h={v.h} />
+            <SymbolGlyph device={ghost} variant={item.variant} w={boxW} h={boxH} />
           </g>
         );
       })()}

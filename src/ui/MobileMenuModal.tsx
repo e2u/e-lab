@@ -89,6 +89,29 @@ export function MobileMenuModal({
         </div>
 
         <div className="mobile-menu-body">
+          {/* Tutorial Banner Section */}
+          <section className="mobile-menu-section tutorial-section">
+            <button
+              type="button"
+              className="mobile-tutorial-banner-btn"
+              onClick={() => {
+                onClose();
+                useLab.getState().openTutorial("mobile");
+              }}
+            >
+              <div className="mobile-tutorial-banner-content">
+                <span className="mobile-tutorial-banner-icon">✨</span>
+                <div className="mobile-tutorial-banner-text">
+                  <div className="mobile-tutorial-banner-title">{t("tutorial.button") || "新手指引"}</div>
+                  <div className="mobile-tutorial-banner-sub">
+                    {t("tutorial.buttonTooltip") || "三相馬達自鎖控制快速上手"}
+                  </div>
+                </div>
+              </div>
+              <span className="mobile-tutorial-banner-arrow">→</span>
+            </button>
+          </section>
+
           {/* Section 1: Diagram Management */}
           <section className="mobile-menu-section">
             <div className="mobile-menu-section-title">{t("mobileMenu.project") || "Diagram Management"}</div>

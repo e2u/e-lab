@@ -430,6 +430,91 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "print.execute": "Print",
     "print.cancel": "Cancel",
     "print.noElements": "Diagram is empty. Full canvas will be printed.",
+
+    // Tutorial labels (English)
+    "tutorial.button": "Quick Guide",
+    "tutorial.buttonTooltip": "Interactive tutorial for Three-Phase Motor Control Circuit",
+    "tutorial.step": "Step",
+    "tutorial.next": "Next Step →",
+    "tutorial.prev": "← Back",
+    "tutorial.finish": "Finish Guide ✓",
+    "tutorial.skip": "Skip Guide",
+    "tutorial.restart": "Restart",
+    "tutorial.applyStage": "Load Step Circuit",
+    "tutorial.versionPc": "💻 PC Version",
+    "tutorial.versionMobile": "📱 Mobile Version",
+    "tutorial.badge.intro": "Getting Started",
+    "tutorial.badge.palette": "Component Library",
+    "tutorial.badge.power": "Main Power Supply",
+    "tutorial.badge.transformer": "Control Power",
+    "tutorial.badge.control": "Self-Holding Latch",
+    "tutorial.badge.motor": "3-Phase Motor",
+    "tutorial.badge.run": "Simulation Run",
+    "tutorial.badge.complete": "Tutorial Complete",
+    "tutorial.badge.drawer": "Drawer Navigation",
+    "tutorial.badge.touch": "Touch & Wire",
+    "tutorial.badge.circuit": "Circuit Core",
+    "tutorial.badge.start": "Motor Running",
+
+    "tutorial.pc.step1.title": "Welcome to E-LAB Simulator!",
+    "tutorial.pc.step1.desc": "This guided tour will take you step-by-step through building and simulating a standard 'Three-Phase Motor Self-Holding Control Circuit'. You will place components from the library, connect wires, and switch to RUN mode to operate the motor!",
+    "tutorial.pc.step1.tip": "Tip: Click 'Next' to learn step-by-step, or click '⚡ Load Step Circuit' to auto-align the diagram.",
+
+    "tutorial.pc.step2.title": "Explore Component Library & Canvas",
+    "tutorial.pc.step2.desc": "The left panel is the 'Component Palette', offering 3-phase mains, disconnect switches, transformers, contactors, push buttons, and motors. Click any item to enter placement mode, then click on the canvas. Press 'R' to rotate or 'Delete' to remove.",
+    "tutorial.pc.step2.tip": "Shortcuts: ⌘Z Undo, ⌘Shift+Z Redo, ⌘G Group, Arrow keys for precision nudging.",
+
+    "tutorial.pc.step3.title": "Step 1: Main Power Supply & Disconnect",
+    "tutorial.pc.step3.desc": "Place a '3Φ Mains (Delta)' and 'Main Disconnect Breaker' at the top of the main power branch. Connect L1, L2, L3 and PE ground terminals sequentially to provide total circuit isolation and grounding protection.",
+    "tutorial.pc.step3.tip": "Wiring: Click an element terminal (circle), pull out the wire line, and click the target terminal to connect.",
+
+    "tutorial.pc.step4.title": "Step 2: Control Transformer & Power Supply",
+    "tutorial.pc.step4.desc": "Branch off L1 and L2 lines to primary terminals H1, H2 of the 'Control Transformer' to step down 480V/380V to 120V safe control voltage. Secondary terminal X1 supplies A1/A2 control lines via fuses FU1/FU2, while X2 is safely bonded to PE ground.",
+    "tutorial.pc.step4.tip": "Terminal labels: Left side shows H1/H2, right side shows X1/X2. Secondary PE grounding coexists without short circuits.",
+
+    "tutorial.pc.step5.title": "Step 3: Self-Holding Latch (Buttons & Contactor)",
+    "tutorial.pc.step5.desc": "Across the A1-A2 control lines, wire a normally-closed 'Stop (SB1)' and normally-open 'Start (SB2)' button in series to contactor coil 'M1 (KM1)'. Connect the contactor's normally-open auxiliary contact 'M1 (Aux-NO)' in parallel with the Start button to form electrical latching.",
+    "tutorial.pc.step5.tip": "Latching principle: Pressing Start energizes the coil and closes the auxiliary contact; when released, current continues flowing through the auxiliary contact!",
+
+    "tutorial.pc.step6.title": "Step 4: Connect Three-Phase Motor & Overload",
+    "tutorial.pc.step6.desc": "Insert contactor main contacts 'M1 (Main)' and thermal overload relay 'OL1 (Overload)' down the main lines, then connect directly to '3-Phase Motor M1'. When the contactor pulls in, 3-phase power drives the motor.",
+    "tutorial.pc.step6.tip": "Grid Alignment: All terminals follow unified grid spacing, rendering clean straight horizontal connections.",
+
+    "tutorial.pc.step7.title": "Step 5: Switch to RUN Mode & Simulate",
+    "tutorial.pc.step7.desc": "Click 'RUN' in the top toolbar to switch to simulation mode. Click to close the Main Disconnect Breaker, then click the normally-open 'Start (SB2)' button to watch the contactor engage, latch itself, and spin the motor at high speed!",
+    "tutorial.pc.step7.tip": "Interactive: Click 'Stop' anytime to de-energize; the right-side Inspector monitors real-time RPM and process variables.",
+
+    "tutorial.pc.step8.title": "🎉 Congratulations! You Mastered 3Φ Motor Control",
+    "tutorial.pc.step8.desc": "You've mastered power distribution, control transformers, latching circuits, and motor drives! Feel free to modify circuits, inject faults, or use the File menu to print/save. Click '✨ Quick Guide' left of Examples to re-run anytime.",
+    "tutorial.pc.step8.tip": "Pro Tip: Use the zoom slider or 'Fit Screen (Zoom Fit)' in the topbar to fit your diagram perfectly to your screen!",
+
+    "tutorial.mobile.step1.title": "Welcome to E-LAB Mobile!",
+    "tutorial.mobile.step1.desc": "This guided walkthrough will show you how to use touch gestures, slide-out drawers, and the floating action bar to build and simulate a Three-Phase Motor Control Circuit on your mobile device or tablet!",
+    "tutorial.mobile.step1.tip": "Gestures: Single-finger drag to pan the canvas, pinch with two fingers to zoom in and out.",
+
+    "tutorial.mobile.step2.title": "Header Actions & Slide-out Drawers",
+    "tutorial.mobile.step2.desc": "Tap '[☰]' at the top to open the component palette drawer; tap '[⚙]' to open the inspector; tap '[⋯]' for the full menu to save, switch examples, or print.",
+    "tutorial.mobile.step2.tip": "Drawer control: Tap the backdrop or the ✕ button to smoothly dismiss drawers.",
+
+    "tutorial.mobile.step3.title": "Component Placement & Touch Wiring",
+    "tutorial.mobile.step3.desc": "Tap a component in the palette, then tap on the canvas to place it. Terminals feature expanded touch targets: simply tap a terminal to pull a wire and snap to the destination!",
+    "tutorial.mobile.step3.tip": "Touch shortcuts: Long-press any component for 500ms to open the quick menu, or use the floating toolbar at the bottom for rotation and deletion.",
+
+    "tutorial.mobile.step4.title": "Three-Phase Motor Control Structure",
+    "tutorial.mobile.step4.desc": "The circuit contains: ① 3-Phase mains & disconnect switch ② Step-down control transformer ③ Normally-closed Stop button ④ Start button with contactor auxiliary latch ⑤ 3-Phase motor with thermal overload protection.",
+    "tutorial.mobile.step4.tip": "Tap '⚡ Load Step Circuit' below to immediately generate the complete standard wiring.",
+
+    "tutorial.mobile.step5.title": "Switch to RUN Mode for Simulation",
+    "tutorial.mobile.step5.desc": "Tap '[RUN]' in the top header to enter simulation mode. Tap the Main Disconnect Breaker on canvas to close it—wires will illuminate with animated current flow!",
+    "tutorial.mobile.step5.tip": "Haptic feedback: Supported phones provide realistic vibration feedback when operating industrial buttons and switches!",
+
+    "tutorial.mobile.step6.title": "Tap Start Button to Run the Motor!",
+    "tutorial.mobile.step6.desc": "Tap the normally-open 'Start (SB2)' button on screen. Contactor coil KM1 energizes, auxiliary latch closes, and 3-Phase Motor M1 starts spinning! Tap 'Stop' to cut power and stop the motor.",
+    "tutorial.mobile.step6.tip": "Fit screen: Tap '[⛶ Fit]' in the bottom floating toolbar to center and fit the entire diagram on your mobile screen!",
+
+    "tutorial.mobile.step7.title": "🎉 Mobile Tutorial Completed!",
+    "tutorial.mobile.step7.desc": "You're now proficient with touch circuit design and simulation! Tap '[⋯]' in the top header anytime to save, export, or print. You can relaunch this guide from the top header or menu.",
+    "tutorial.mobile.step7.tip": "Tip: Rotating your device to landscape orientation gives you a wider canvas and enhanced view!",
     
     // Brand and common UI
     "brand.subtitle": "Relay Control Simulation Lab",
@@ -505,6 +590,91 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "print.execute": "列印",
     "print.cancel": "取消",
     "print.noElements": "圖紙為空，將列印預設空白畫布。",
+
+    // Tutorial labels (Chinese)
+    "tutorial.button": "新手指引",
+    "tutorial.buttonTooltip": "三相馬達自鎖控制電路互動指引與快速上手",
+    "tutorial.step": "步驟",
+    "tutorial.next": "下一步 →",
+    "tutorial.prev": "← 上一步",
+    "tutorial.finish": "完成指引 ✓",
+    "tutorial.skip": "跳過指引",
+    "tutorial.restart": "重頭開始",
+    "tutorial.applyStage": "載入/演示本步電路",
+    "tutorial.versionPc": "💻 電腦版 (PC)",
+    "tutorial.versionMobile": "📱 移動端 (觸控)",
+    "tutorial.badge.intro": "新手起步",
+    "tutorial.badge.palette": "元件庫",
+    "tutorial.badge.power": "主迴路電源",
+    "tutorial.badge.transformer": "控制電源",
+    "tutorial.badge.control": "自鎖控制",
+    "tutorial.badge.motor": "動力負載",
+    "tutorial.badge.run": "仿真運行",
+    "tutorial.badge.complete": "完成指引",
+    "tutorial.badge.drawer": "抽屜導航",
+    "tutorial.badge.touch": "觸控接線",
+    "tutorial.badge.circuit": "核心結構",
+    "tutorial.badge.start": "馬達運轉",
+
+    "tutorial.pc.step1.title": "歡迎使用 E-LAB 電路實驗室！",
+    "tutorial.pc.step1.desc": "本指引將帶領你一步步搭建並模擬一個標準的「三相馬達自鎖控制電路」。你可以透過左側元件庫放置器件、畫布接線，並切換到運行模式點動控制馬達！",
+    "tutorial.pc.step1.tip": "提示：隨時可點擊「下一步」依序學習，或點擊「⚡ 載入/演示本步電路」同步操作。",
+
+    "tutorial.pc.step2.title": "認識元件庫與畫布放置",
+    "tutorial.pc.step2.desc": "左側為「元件庫 (Palette)」，分類提供了三相電源、隔離開關、控制變壓器、接觸器、按鈕及馬達等器件。點選元件後在畫布上點擊即可放置，選中後按「R」可旋轉，「Delete」可刪除。",
+    "tutorial.pc.step2.tip": "快捷鍵：⌘Z 復原、⌘Shift+Z 重做、⌘G 分組、方向鍵可微調位置。",
+
+    "tutorial.pc.step3.title": "第 1 步：主電源與隔離開關",
+    "tutorial.pc.step3.desc": "首先在主迴路上方放置「三相電源 (3Φ Mains)」與「隔離開關 (Main Disconnect Breaker)」，並將 L1、L2、L3 與接地 PE 端子依序相連，為整個電路提供總電源隔離與保護。",
+    "tutorial.pc.step3.tip": "接線方法：鼠標點擊元件端子（小圓圈），拉出導線點擊目標端子即可完成接線。",
+
+    "tutorial.pc.step4.title": "第 2 步：控制電源與變壓器",
+    "tutorial.pc.step4.desc": "從主線引出 L1、L2 兩相至「控制變壓器 (Transformer)」高壓側 H1、H2，將 480V/380V 降壓為 120V 安全控制電壓。低壓側 X1 經熔斷器 FU1/FU2 引出 A1、A2 控制母線，X2 接地至 PE 形成標準保護回路。",
+    "tutorial.pc.step4.tip": "端子標籤：變壓器左側標記 H1/H2，右側標記 X1/X2，接地 PE 與電源端共地不短路。",
+
+    "tutorial.pc.step5.title": "第 3 步：自鎖控制核心（按鈕與接觸器）",
+    "tutorial.pc.step5.desc": "在 A1-A2 控制母線間，串聯「常閉停止按鈕 Stop (SB1)」與「常開起動按鈕 Start (SB2)」至接觸器線圈「M1 (KM1)」。將接觸器的常開輔助觸點「M1 (Aux-NO)」與起動按鈕並聯，形成經典的「自保持自鎖迴路」。",
+    "tutorial.pc.step5.tip": "自鎖原理：當按下起動按鈕時線圈得電，輔助常開觸點閉合；鬆開按鈕後電流改由輔助觸點持續供電！",
+
+    "tutorial.pc.step6.title": "第 4 步：連接三相馬達與過載保護",
+    "tutorial.pc.step6.desc": "在主迴路下方串接接觸器主觸點「M1 (Main)」、熱過載繼電器「OL1 (Overload)」，最後三相線條直連至「三相馬達 M1」。當接觸器吸合時，三相動力電源將直接驅動馬達旋轉。",
+    "tutorial.pc.step6.tip": "佈線對齊：元件端子均遵循標準網格間距，水平連接時導線會呈現乾淨的水平直線。",
+
+    "tutorial.pc.step7.title": "第 5 步：切換運行模式並啟動仿真",
+    "tutorial.pc.step7.desc": "點擊頂部工具列的「RUN」切換為運行模式。首先點擊合上主隔離開關 (Main Disconnect Breaker)，接著點擊常開起動按鈕「Start (SB2)」，觀察接觸器吸合、自鎖維持，三相馬達高速旋轉！",
+    "tutorial.pc.step7.tip": "交互操作：點擊「Stop」按鈕可隨時切斷迴路停機；右側 Inspector 面板可即時監控馬達轉速與工藝變量。",
+
+    "tutorial.pc.step8.title": "🎉 恭喜！你已掌握三相馬達控制電路",
+    "tutorial.pc.step8.desc": "你已經學會了電源配置、控制變壓器降壓、按鈕自鎖與電機驅動！你可以自由修改電路、添加故障注入、使用 File 選單列印或存檔。隨時可點擊 Examples 左側的「✨ 新手指引」按鈕重新演練。",
+    "tutorial.pc.step8.tip": "進階提示：使用頂部的縮放滑動條或「適應屏幕 (Zoom Fit)」可讓電路完美契合你的螢幕！",
+
+    "tutorial.mobile.step1.title": "歡迎使用 E-LAB 移動端！",
+    "tutorial.mobile.step1.desc": "本指引將帶你在手機/平板觸控設備上，透過觸控手勢、抽屜面板與底部快捷欄，完成「三相馬達自鎖控制電路」的搭建與仿真！",
+    "tutorial.mobile.step1.tip": "手勢操作：單指拖動畫布平移，雙指捏合縮放 (Pinch-to-zoom)。",
+
+    "tutorial.mobile.step2.title": "頂部按鈕與滑動抽屜",
+    "tutorial.mobile.step2.desc": "點擊頂部「[☰]」可展開左側元件庫抽屜選取器件；點擊「[⚙]」可打開右側屬性與工作台；點擊「[⋯]」可開啟功能選單進行存檔、切換範例與列印。",
+    "tutorial.mobile.step2.tip": "抽屜操作：點擊遮罩或右上角 ✕ 即可快速收起抽屜。",
+
+    "tutorial.mobile.step3.title": "元件放置與觸控接線",
+    "tutorial.mobile.step3.desc": "從元件庫點選器件後在畫布上輕觸即可放置。端子擁有大尺寸透明觸控熱區，手指輕觸端子即可拉出導線並自動吸附目標端子！",
+    "tutorial.mobile.step3.tip": "快捷操作：長按元件 500ms 喚出快捷選單，或使用畫布底部浮動工具欄進行旋轉、翻轉與刪除。",
+
+    "tutorial.mobile.step4.title": "三相馬達控制電路核心結構",
+    "tutorial.mobile.step4.desc": "電路包含：① 三相電源與隔離開關 ② 控制變壓器降壓保護 ③ 常閉停止按鈕 Stop ④ 常開起動按鈕 Start 與接觸器輔助觸點並聯自鎖 ⑤ 三相馬達與熱過載保護。",
+    "tutorial.mobile.step4.tip": "點擊下方「⚡ 載入/演示本步電路」可立即在圖紙上生成標準工藝接線。",
+
+    "tutorial.mobile.step5.title": "切換 RUN 模式進行觸控仿真",
+    "tutorial.mobile.step5.desc": "點擊頂部「[RUN]」按鈕切換為運行模式。在畫布上輕觸點擊合上主隔離開關 (Main Disconnect Breaker)，導線將立即亮起動態電流指示！",
+    "tutorial.mobile.step5.tip": "觸覺反饋：在支援的手機上，操作工控開關與按鈕時享有真實震動回饋！",
+
+    "tutorial.mobile.step6.title": "輕觸 Start 按鈕，啟動馬達！",
+    "tutorial.mobile.step6.desc": "在畫布上點擊常開起動按鈕「Start (SB2)」。接觸器線圈 KM1 得電吸合，自鎖觸點閉合，三相馬達 M1 高速轉動！點擊「Stop (SB1)」可隨時切斷控制電路停止馬達。",
+    "tutorial.mobile.step6.tip": "一鍵適應：點擊底部工具列的「[⛶ 適應屏幕]」按鈕，可自動讓電路在手機螢幕中居中完整顯示！",
+
+    "tutorial.mobile.step7.title": "🎉 移動端指引完成！",
+    "tutorial.mobile.step7.desc": "你已經熟練掌握了移動設備上的觸控電路搭建與仿真！點擊頂部「[⋯]」選單可隨時存檔、匯出或列印圖紙。隨時可在頂部或選單中重新啟動本指引。",
+    "tutorial.mobile.step7.tip": "提示：切換至橫屏模式時，畫布可獲得更寬廣的繪圖與仿真視野！",
 
     // Menu items
     "menu.file": "檔案",

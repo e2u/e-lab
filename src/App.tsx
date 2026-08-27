@@ -12,6 +12,7 @@ import { TogglePanelButton } from "./ui/TogglePanelButton";
 import { FloatingActionBar } from "./ui/FloatingActionBar";
 import { MobileMenuModal } from "./ui/MobileMenuModal";
 import { PrintModal } from "./ui/PrintModal";
+import { TutorialOverlay } from "./tutorial/TutorialOverlay";
 
 
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
@@ -44,6 +45,8 @@ export function App() {
   const sideOpen = useLab((s) => s.sideOpen);
   const zoom = useLab((s) => s.zoom);
   const printOpen = useLab((s) => s.printOpen);
+  const tutorialOpen = useLab((s) => s.tutorialOpen);
+  const tutorialVersion = useLab((s) => s.tutorialVersion);
   const [examples, setExamples] = useState<Example[]>(EXAMPLES);
   const [selectedExample, setSelectedExample] = useState<string>("none");
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
@@ -204,6 +207,21 @@ export function App() {
       setSelectedExample("three-phase-motor");
       lab.loadExample("three-phase-motor");
     }
+
+    // Check if user is visiting for the first time, auto-launch tutorial
+    try {
+      if (typeof localStorage !== "undefined") {
+        const hasCompleted = localStorage.getItem("elab.tutorial_completed");
+        if (!hasCompleted) {
+          const isMobileDevice =
+            window.innerWidth <= 768 || (window.innerHeight <= 550 && window.innerWidth <= 1024);
+          const timer = setTimeout(() => {
+            useLab.getState().openTutorial(isMobileDevice ? "mobile" : "pc");
+          }, 450);
+          return () => clearTimeout(timer);
+        }
+      }
+    } catch {}
   }, []);
 
   // Mobile detection
@@ -344,9 +362,18 @@ export function App() {
             {t("toolbar.reset")}
           </button>
         </div>
-        {/* On Mobile: show clean, touch-friendly action buttons (Palette drawer, Side panel drawer, Mobile Menu sheet) */}
+        {/* On Mobile: show clean, touch-friendly action buttons (Tutorial, Palette drawer, Side panel drawer, Mobile Menu sheet) */}
         {isMobile ? (
           <div className="mobile-header-actions">
+            <button
+              type="button"
+              className="btn-tutorial-mobile-highlight"
+              onClick={() => useLab.getState().openTutorial("mobile")}
+              title={t("tutorial.buttonTooltip") || "Start Guide"}
+              aria-label={t("tutorial.button") || "Guide"}
+            >
+              ✨ {t("tutorial.button") || "指引"}
+            </button>
             <button
               type="button"
               className={`btn-icon mobile-header-btn ${mobilePaletteOpen ? "active" : ""}`}
@@ -383,6 +410,15 @@ export function App() {
           </div>
         ) : (
           <div className="top-actions">
+            <button
+              type="button"
+              className="btn-tutorial-highlight"
+              onClick={() => useLab.getState().openTutorial("pc")}
+              title={t("tutorial.buttonTooltip") || "Start Interactive Tutorial"}
+            >
+              <span className="btn-tutorial-icon">✨</span>
+              <span>{t("tutorial.button") || "新手指引"}</span>
+            </button>
             <label className="action-label">{t("lib.example")}:</label>
             <select 
               value={selectedExample}
@@ -493,6 +529,13 @@ export function App() {
       <PrintModal
         isOpen={printOpen}
         onClose={() => useLab.getState().closePrint()}
+      />
+
+      {/* Tutorial Overlay */}
+      <TutorialOverlay
+        isOpen={tutorialOpen}
+        onClose={() => useLab.getState().closeTutorial()}
+        defaultVersion={tutorialVersion}
       />
 
       {/* Mobile drawer backdrop */}

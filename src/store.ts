@@ -91,6 +91,9 @@ export interface LabState {
   sideOpen: boolean;
   zoom: number;
   printOpen: boolean;
+  tutorialOpen: boolean;
+  tutorialStepIndex: number;
+  tutorialVersion: "pc" | "mobile";
 
   setMode: (mode: Mode) => void;
   setRunning: (running: boolean) => void;
@@ -189,6 +192,13 @@ export interface LabState {
   zoomFit: () => void;
   openPrint: () => void;
   closePrint: () => void;
+  openTutorial: (version?: "pc" | "mobile") => void;
+  closeTutorial: () => void;
+  setTutorialStep: (index: number) => void;
+  nextTutorialStep: () => void;
+  prevTutorialStep: () => void;
+  restartTutorial: () => void;
+  setTutorialVersion: (version: "pc" | "mobile") => void;
 }
 
 const defaultProcess = (): ProcessVars => ({
@@ -266,6 +276,9 @@ export const useLab = create<LabState>((set, get) => ({
   sideOpen: sidebarBoot.sideOpen,
   zoom: readZoom(),
   printOpen: false,
+  tutorialOpen: false,
+  tutorialStepIndex: 0,
+  tutorialVersion: "pc",
 
   pushHistory: () => {
     const { history, circuit } = get();
@@ -1322,6 +1335,59 @@ export const useLab = create<LabState>((set, get) => ({
 
   openPrint: () => set({ printOpen: true }),
   closePrint: () => set({ printOpen: false }),
+
+  openTutorial: (version?: "pc" | "mobile") => {
+    const isMobile = version
+      ? version === "mobile"
+      : typeof window !== "undefined" &&
+        (window.innerWidth <= 768 || (window.innerHeight <= 550 && window.innerWidth <= 1024));
+    set({
+      tutorialOpen: true,
+      tutorialStepIndex: 0,
+      tutorialVersion: version || (isMobile ? "mobile" : "pc"),
+    });
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("elab.tutorial_completed", "true");
+      }
+    } catch {}
+  },
+
+  closeTutorial: () => {
+    set({ tutorialOpen: false });
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("elab.tutorial_completed", "true");
+      }
+    } catch {}
+  },
+
+  setTutorialStep: (index: number) => set({ tutorialStepIndex: Math.max(0, index) }),
+
+  nextTutorialStep: () => {
+    const { tutorialStepIndex, tutorialVersion } = get();
+    const max = tutorialVersion === "mobile" ? 6 : 7;
+    if (tutorialStepIndex < max) {
+      set({ tutorialStepIndex: tutorialStepIndex + 1 });
+    } else {
+      get().closeTutorial();
+    }
+  },
+
+  prevTutorialStep: () => {
+    const { tutorialStepIndex } = get();
+    if (tutorialStepIndex > 0) {
+      set({ tutorialStepIndex: tutorialStepIndex - 1 });
+    }
+  },
+
+  restartTutorial: () => {
+    set({ tutorialStepIndex: 0 });
+  },
+
+  setTutorialVersion: (version: "pc" | "mobile") => {
+    set({ tutorialVersion: version, tutorialStepIndex: 0 });
+  },
 
 }));
 

@@ -77,6 +77,7 @@ export function Schematic() {
     mode,
     placing,
     routes,
+    containerRef: wrapRef,
   });
 
   return (

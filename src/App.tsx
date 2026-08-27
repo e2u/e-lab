@@ -9,6 +9,7 @@ import { Palette } from "./ui/Palette";
 import { Schematic } from "./ui/Schematic";
 import { DiscardModal } from "./ui/DiscardModal";
 import { TogglePanelButton } from "./ui/TogglePanelButton";
+import { FloatingActionBar } from "./ui/FloatingActionBar";
 
 
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
@@ -461,6 +462,7 @@ export function App() {
         )}
 
         <Schematic />
+        <FloatingActionBar />
 
         {/* Side panel - desktop: inline, mobile: drawer */}
         {isMobile ? (

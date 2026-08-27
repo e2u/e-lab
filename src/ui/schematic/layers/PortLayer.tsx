@@ -37,14 +37,24 @@ export function PortLayer({
             (hoverPort && hoverPort.symbolId === port.symbolId && hoverPort.term === port.term);
           return (
             <g key={`${sym.id}:${t.id}`}>
+              {/* Invisible larger hit target for touch & mouse ease */}
+              <circle
+                cx={world.x}
+                cy={world.y}
+                r="16"
+                fill="transparent"
+                stroke="transparent"
+                style={{ cursor: "crosshair", pointerEvents: "all" }}
+                onPointerDown={(e) => onPortPointerDown(e, port)}
+                onPointerEnter={() => onPortPointerEnter(port)}
+                onPointerLeave={onPortPointerLeave}
+              />
               <circle
                 cx={world.x}
                 cy={world.y}
                 r="6"
                 className={`port ${hot ? "hot" : ""}`}
-                onPointerDown={(e) => onPortPointerDown(e, port)}
-                onPointerEnter={() => onPortPointerEnter(port)}
-                onPointerLeave={onPortPointerLeave}
+                style={{ pointerEvents: "none" }}
               />
               <title>{`${dev.tag}:${t.label}`}</title>
             </g>

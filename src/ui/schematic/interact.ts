@@ -1,8 +1,21 @@
 import { useLab } from "../../store";
 
+export function triggerHaptic(duration = 15) {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    try {
+      navigator.vibrate(duration);
+    } catch {
+      // Ignore vibration errors on unsupported devices
+    }
+  }
+}
+
 export function interact(kind: string, id: string, down: boolean) {
   const lab = useLab.getState();
   if (lab.mode !== "run") return;
+  if (down) {
+    triggerHaptic(15);
+  }
   if (kind === "pb-no" || kind === "pb-nc" || kind === "foot" || kind === "foot-no" || kind === "foot-nc") {
     lab.pointerDevice(id, down);
     return;

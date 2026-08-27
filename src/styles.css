@@ -372,6 +372,8 @@ button, select, input {
   overflow: auto;
   background: #3a3428;
   position: relative;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 .paper {
@@ -384,6 +386,9 @@ button, select, input {
   margin: 18px;
   cursor: crosshair;
   display: block;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .paper.placing,
@@ -1262,5 +1267,99 @@ html, body {
   }
   .zoom-controls .btn-icon {
     padding: 6px 10px;
+  }
+}
+
+/* Floating Quick Action Bar */
+.floating-action-bar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(26, 32, 21, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #4a533e;
+  border-radius: 24px;
+  padding: 4px 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  z-index: 20;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.floating-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--nameplate);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.floating-btn:hover:not(:disabled) {
+  background: rgba(230, 193, 30, 0.15);
+  color: var(--stripe);
+  transform: scale(1.08);
+}
+
+.floating-btn:active:not(:disabled) {
+  transform: scale(0.95);
+  background: rgba(230, 193, 30, 0.25);
+}
+
+.floating-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.floating-btn.delete-btn:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.2);
+  color: #ff6b6b;
+}
+
+.floating-divider {
+  width: 1px;
+  height: 18px;
+  background: #3e4835;
+  margin: 0 2px;
+}
+
+@media (max-width: 768px) {
+  .floating-action-bar {
+    bottom: 10px;
+    padding: 3px 6px;
+    gap: 3px;
+    border-radius: 20px;
+  }
+  .floating-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .floating-action-bar {
+    bottom: 6px;
+    padding: 2px 4px;
+    gap: 2px;
+  }
+  .floating-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
   }
 }

@@ -1,16 +1,17 @@
-import { useRef, useState, type MouseEvent, type PointerEvent } from "react";
+import { useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from "react";
 import { hitWireSegment, wireRoute } from "../../geometry";
 import { normalizeRect, symbolsInRect } from "../../groups";
 import { useLab } from "../../store";
 import { GRID, type Circuit, type Device, type Mode, type PortRef, type SymbolInst, type Wire, type WireJog } from "../../types";
 import type { MenuPos } from "../ContextMenu";
-import { interact } from "./interact";
+import { interact, triggerHaptic } from "./interact";
 
 interface UseSchematicEventsParams {
   circuit: Circuit;
   mode: Mode;
   placing: string | null;
   routes: Map<string, { x: number; y: number }[]>;
+  containerRef?: RefObject<HTMLDivElement | null>;
 }
 
 export function useSchematicEvents({
@@ -18,6 +19,7 @@ export function useSchematicEvents({
   mode,
   placing,
   routes,
+  containerRef,
 }: UseSchematicEventsParams) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
@@ -35,6 +37,54 @@ export function useSchematicEvents({
   const marqueeRef = useRef<{ x0: number; y0: number; x1: number; y1: number; shift: boolean } | null>(null);
   const [marqueeView, setMarqueeView] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [wireCursor, setWireCursor] = useState<"ew-resize" | "ns-resize" | "grab" | null>(null);
+
+  // Multi-touch tracking for pinch-to-zoom and two-finger pan
+  const pointersRef = useRef<Map<number, { clientX: number; clientY: number }>>(new Map());
+  const pinchRef = useRef<{ initialDist: number; initialZoom: number; lastMid: { x: number; y: number } } | null>(null);
+  const paperTouchPanRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const startLongPress = (
+    e: PointerEvent,
+    callback: (pos: { clientX: number; clientY: number; preventDefault: () => void; stopPropagation: () => void }) => void
+  ) => {
+    if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
+    cancelLongPress();
+    longPressStartRef.current = { x: e.clientX, y: e.clientY };
+    longPressTimerRef.current = window.setTimeout(() => {
+      triggerHaptic(25);
+      callback({
+        clientX: e.clientX,
+        clientY: e.clientY,
+        preventDefault: () => {},
+        stopPropagation: () => {},
+      });
+      // Cancel active drag when menu appears
+      drag.current = null;
+      wireDrag.current = null;
+      marqueeRef.current = null;
+      setMarqueeView(null);
+      paperTouchPanRef.current = null;
+    }, 500);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressStartRef.current = null;
+  };
+
+  const checkLongPressMove = (e: PointerEvent) => {
+    if (longPressStartRef.current) {
+      const dist = Math.hypot(e.clientX - longPressStartRef.current.x, e.clientY - longPressStartRef.current.y);
+      if (dist > 8) {
+        cancelLongPress();
+      }
+    }
+  };
 
   const toGrid = (e: PointerEvent) => {
     const svg = svgRef.current;
@@ -92,6 +142,24 @@ export function useSchematicEvents({
   };
 
   const onPaperDown = (e: PointerEvent<SVGRectElement>) => {
+    // Record pointer
+    pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+
+    // If 2 or more touches, initiate pinch-to-zoom
+    if (pointersRef.current.size >= 2) {
+      cancelLongPress();
+      drag.current = null;
+      wireDrag.current = null;
+      marqueeRef.current = null;
+      setMarqueeView(null);
+      paperTouchPanRef.current = null;
+      const pts = Array.from(pointersRef.current.values());
+      const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+      const mid = { x: (pts[0].clientX + pts[1].clientX) / 2, y: (pts[0].clientY + pts[1].clientY) / 2 };
+      pinchRef.current = { initialDist: dist, initialZoom: useLab.getState().zoom, lastMid: mid };
+      return;
+    }
+
     if (e.button !== 0) return;
     if (mode === "edit" && placing) {
       e.stopPropagation();
@@ -106,8 +174,22 @@ export function useSchematicEvents({
     }
     if (mode !== "edit") {
       lab.select(null);
+      if (e.pointerType === "touch") {
+        paperTouchPanRef.current = { x: e.clientX, y: e.clientY, moved: false };
+      }
       return;
     }
+
+    // Touch device single-finger canvas pan handling on empty paper
+    if (e.pointerType === "touch" && !e.shiftKey) {
+      paperTouchPanRef.current = { x: e.clientX, y: e.clientY, moved: false };
+      startLongPress(e, (pos) => {
+        lab.select(null);
+        openMenu(pos);
+      });
+      return;
+    }
+
     const p = toGrid(e);
     marqueeRef.current = { x0: p.x, y0: p.y, x1: p.x, y1: p.y, shift: e.shiftKey };
     setMarqueeView({ x0: p.x, y0: p.y, x1: p.x, y1: p.y });
@@ -116,6 +198,49 @@ export function useSchematicEvents({
   };
 
   const onSvgMove = (e: PointerEvent<SVGSVGElement>) => {
+    checkLongPressMove(e);
+
+    // Update active pointer position
+    if (pointersRef.current.has(e.pointerId)) {
+      pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+    }
+
+    // Handle 2-finger pinch-to-zoom & pan
+    if (pointersRef.current.size >= 2 && pinchRef.current) {
+      const pts = Array.from(pointersRef.current.values());
+      const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+      const mid = { x: (pts[0].clientX + pts[1].clientX) / 2, y: (pts[0].clientY + pts[1].clientY) / 2 };
+
+      if (pinchRef.current.initialDist > 10) {
+        const scale = dist / pinchRef.current.initialDist;
+        const newZoom = Math.max(0.25, Math.min(1.5, Math.round(pinchRef.current.initialZoom * scale * 100) / 100));
+        useLab.getState().setZoom(newZoom);
+      }
+
+      if (containerRef?.current) {
+        containerRef.current.scrollLeft -= mid.x - pinchRef.current.lastMid.x;
+        containerRef.current.scrollTop -= mid.y - pinchRef.current.lastMid.y;
+      }
+      pinchRef.current.lastMid = mid;
+      return;
+    }
+
+    // Handle touch paper panning
+    if (paperTouchPanRef.current && e.pointerType === "touch") {
+      const dx = e.clientX - paperTouchPanRef.current.x;
+      const dy = e.clientY - paperTouchPanRef.current.y;
+      if (Math.hypot(dx, dy) > 3) {
+        paperTouchPanRef.current.moved = true;
+        cancelLongPress();
+      }
+      if (containerRef?.current) {
+        containerRef.current.scrollLeft -= dx;
+        containerRef.current.scrollTop -= dy;
+      }
+      paperTouchPanRef.current = { x: e.clientX, y: e.clientY, moved: true };
+      return;
+    }
+
     const p = toGrid(e);
     setCursor(p);
     const world = { x: p.x * GRID, y: p.y * GRID };
@@ -178,6 +303,21 @@ export function useSchematicEvents({
   };
 
   const onSvgPointerUp = (e: PointerEvent<SVGSVGElement>) => {
+    cancelLongPress();
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size < 2) {
+      pinchRef.current = null;
+    }
+
+    if (paperTouchPanRef.current) {
+      const moved = paperTouchPanRef.current.moved;
+      paperTouchPanRef.current = null;
+      if (!moved) {
+        useLab.getState().select(null);
+      }
+      return;
+    }
+
     if (marqueeRef.current) {
       finishMarquee();
       drag.current = null;
@@ -216,12 +356,19 @@ export function useSchematicEvents({
   };
 
   const onWirePointerDown = (e: PointerEvent<SVGElement>, wire: Wire, pts: { x: number; y: number }[]) => {
+    pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
     e.stopPropagation();
     if (placing) {
       placeAtEvent(e);
       return;
     }
     if (e.button !== 0) return;
+
+    startLongPress(e, (pos) => {
+      useLab.getState().select({ type: "wire", id: wire.id });
+      openMenu(pos);
+    });
+
     const lab = useLab.getState();
     if (lab.wiringFrom) {
       lab.connectToWire(wire.id, toWorld(e));
@@ -246,6 +393,7 @@ export function useSchematicEvents({
   };
 
   const onSymbolPointerDown = (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => {
+    pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
     e.stopPropagation();
     const lab = useLab.getState();
     if (lab.placing) {
@@ -253,6 +401,11 @@ export function useSchematicEvents({
       return;
     }
     if (lab.mode === "edit") {
+      startLongPress(e, (pos) => {
+        if (!lab.selectedIds.includes(sym.id)) lab.select({ type: "symbol", id: sym.id });
+        openMenu(pos);
+      });
+
       if (dev.kind === "junction" && lab.wiringFrom) {
         lab.clickPort({ symbolId: sym.id, term: "1" });
         return;
@@ -286,19 +439,23 @@ export function useSchematicEvents({
   };
 
   const onSymbolPointerUp = (dev: Device) => {
+    cancelLongPress();
     interact(dev.kind, dev.id, false);
   };
 
   const onSymbolPointerLeave = (dev: Device) => {
+    cancelLongPress();
     interact(dev.kind, dev.id, false);
   };
 
   const onPortPointerDown = (e: PointerEvent<SVGCircleElement>, port: PortRef) => {
+    pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
     e.stopPropagation();
     if (placing) {
       placeAtEvent(e);
       return;
     }
+    triggerHaptic(10);
     useLab.getState().clickPort(port);
   };
 

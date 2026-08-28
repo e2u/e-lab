@@ -13,6 +13,9 @@ export type Lang = "en" | "zh";
 /** UI Theme */
 export type Theme = "dark" | "light";
 
+/** Layout display mode: standard freeform schematic vs. industrial ladder logic */
+export type LayoutMode = "schematic" | "ladder";
+
 export type DeviceKind =
   | "mains-3ph"
   | "dc-supply"

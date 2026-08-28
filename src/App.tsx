@@ -7,6 +7,7 @@ import { FilesMenu } from "./ui/FilesMenu";
 import { Inspector } from "./ui/Inspector";
 import { Palette } from "./ui/Palette";
 import { Schematic } from "./ui/Schematic";
+import { LadderSchematic } from "./ui/LadderSchematic";
 import { DiscardModal } from "./ui/DiscardModal";
 import { TogglePanelButton } from "./ui/TogglePanelButton";
 import { FloatingActionBar } from "./ui/FloatingActionBar";
@@ -41,6 +42,7 @@ export function App() {
   const process = useLab((s) => s.process);
   const lang = useLab((s) => s.lang);
   const theme = useLab((s) => s.theme);
+  const layoutMode = useLab((s) => s.layoutMode);
   const isDirty = useLab((s) => s.isDirty);
   const paletteOpen = useLab((s) => s.paletteOpen);
   const sideOpen = useLab((s) => s.sideOpen);
@@ -355,195 +357,316 @@ export function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
-          <h1>E-LAB</h1>
-          <small>{t("brand.subtitle")}</small>
-        </div>
-        <div className="mode-switch">
-          <button className={`btn ${mode === "edit" ? "active" : ""}`} onClick={() => useLab.getState().setMode("edit")}>
-            {t("toolbar.edit")}
-          </button>
-          <button className={`btn ${mode === "run" ? "active" : ""}`} onClick={() => useLab.getState().setMode("run")}>
-            {t("toolbar.run")}
-          </button>
-          <button className="btn" onClick={() => useLab.getState().resetSim()}>
-            {t("toolbar.reset")}
-          </button>
-          {mode === "run" && (
-            <div className="run-probe-group" style={{ display: "flex", gap: "4px", marginLeft: "6px" }}>
-              <button
-                type="button"
-                className={`btn ${placing === "ammeter" ? "active" : ""}`}
-                style={{ fontSize: "12px", padding: "4px 8px" }}
-                onClick={() => useLab.getState().setPlacing(placing === "ammeter" ? null : "ammeter")}
-                title={t("meters.clampProbe")}
-              >
-                🧲 {t("meters.clampProbe")}
-              </button>
-              <button
-                type="button"
-                className={`btn ${placing === "voltmeter" ? "active" : ""}`}
-                style={{ fontSize: "12px", padding: "4px 8px" }}
-                onClick={() => useLab.getState().setPlacing(placing === "voltmeter" ? null : "voltmeter")}
-                title={t("meters.voltageProbe")}
-              >
-                ⚡ {t("meters.voltageProbe")}
-              </button>
-            </div>
-          )}
-        </div>
-        {/* On Mobile: show clean, touch-friendly action buttons (Tutorial, Palette drawer, Side panel drawer, Mobile Menu sheet) */}
         {isMobile ? (
-          <div className="mobile-header-actions">
-            <button
-              type="button"
-              className="btn-tutorial-mobile-highlight"
-              onClick={() => useLab.getState().openTutorial("mobile")}
-              title={t("tutorial.buttonTooltip") || "Start Guide"}
-              aria-label={t("tutorial.button") || "Guide"}
-            >
-              ✨ {t("tutorial.button") || "指引"}
-            </button>
-            <button
-              type="button"
-              className={`btn-icon mobile-header-btn ${mobilePaletteOpen ? "active" : ""}`}
-              onClick={() => {
-                setMobilePaletteOpen(!mobilePaletteOpen);
-                setMobileSideOpen(false);
-              }}
-              title={t("toolbar.palette")}
-              aria-label={t("toolbar.palette")}
-            >
-              ☰
-            </button>
-            <button
-              type="button"
-              className={`btn-icon mobile-header-btn ${mobileSideOpen ? "active" : ""}`}
-              onClick={() => {
-                setMobileSideOpen(!mobileSideOpen);
-                setMobilePaletteOpen(false);
-              }}
-              title={t("toolbar.sidePanel")}
-              aria-label={t("toolbar.sidePanel")}
-            >
-              ⚙
-            </button>
-            <button
-              type="button"
-              className={`btn-icon mobile-header-btn ${mobileMenuOpen ? "active" : ""}`}
-              onClick={() => setMobileMenuOpen(true)}
-              title={t("toolbar.menu") || "Menu"}
-              aria-label={t("toolbar.menu") || "Menu"}
-            >
-              ⋯
-            </button>
-          </div>
-        ) : (
-          <div className="top-actions">
-            <button
-              type="button"
-              className="btn-tutorial-highlight"
-              onClick={() => useLab.getState().openTutorial("pc")}
-              title={t("tutorial.buttonTooltip") || "Start Interactive Tutorial"}
-            >
-              <span className="btn-tutorial-icon">✨</span>
-              <span>{t("tutorial.button") || "新手指引"}</span>
-            </button>
-            <label className="action-label">{t("lib.example")}:</label>
-            <select 
-              value={selectedExample}
-              onChange={(e) => handleRequestSelectExample(e.target.value)}
-            >
-              {examples.map((ex) => (
-                <option key={ex.id} value={ex.id}>
-                  {tOr(`example.${ex.id}.title`, ex.title)}
-                </option>
-              ))}
-            </select>
-            <input
-              type="text"
-              className="diagram-name"
-              value={docName}
-              onChange={(e) => useLab.getState().setDocName(e.target.value)}
-              placeholder={t("lib.diagramNamePlaceholder") || "Enter diagram name..."}
-            />
-            <button className="btn" onClick={() => handleRequestNewDiagram()}>
-              {t("lib.newDiagram")}
-            </button>
-            <select
-              value={lang}
-              title={t("lib.language")}
-              onChange={(e) => useLab.getState().setLang(e.target.value as any)}
-            >
-              <option value="en">{t("lang.en")}</option>
-              <option value="zh">{t("lang.zh")}</option>
-            </select>
-            <button
-              type="button"
-              className="btn btn-theme-toggle"
-              onClick={() => useLab.getState().toggleTheme()}
-              title={theme === "dark" ? (t("theme.switchToLight") || "Switch to Light Theme") : (t("theme.switchToDark") || "Switch to Dark Theme")}
-              aria-label={t("theme.theme") || "Theme"}
-            >
-              {theme === "dark" ? `🌙 ${t("theme.dark") || "Dark"}` : `☀️ ${t("theme.light") || "Light"}`}
-            </button>
-            <FilesMenu />
-            <button className="btn" onClick={() => useLab.getState().undo()} title={t("toolbar.undo")}>
-              {t("toolbar.undo")}
-            </button>
-            <button className="btn" onClick={() => useLab.getState().redo()} title={t("toolbar.redo")}>
-              {t("toolbar.redo")}
-            </button>
-            <div className="zoom-controls">
-              <button
-                type="button"
-                className="btn-icon"
-                onClick={() => useLab.getState().zoomOut()}
-                title={t("toolbar.zoomOut")}
-                disabled={zoom <= 0.25}
-                aria-label={t("toolbar.zoomOut")}
-              >
-                −
+          <>
+            <div className="brand">
+              <h1>E-LAB</h1>
+              <small>{t("brand.subtitle")}</small>
+            </div>
+            <div className="mode-switch">
+              <button className={`btn ${mode === "edit" ? "active" : ""}`} onClick={() => useLab.getState().setMode("edit")}>
+                {t("toolbar.edit")}
               </button>
-              <input
-                type="range"
-                className="zoom-slider"
-                min="0.25"
-                max="1.5"
-                step="0.01"
-                value={zoom}
-                onChange={(e) => useLab.getState().setZoom(parseFloat(e.target.value))}
-                title={`${t("toolbar.zoom")}: ${Math.round(zoom * 100)}%`}
-                aria-label={t("toolbar.zoom")}
-              />
-              <span
-                className="zoom-val"
-                onClick={() => useLab.getState().resetZoom()}
-                title={t("toolbar.zoomReset")}
-              >
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                type="button"
-                className="btn-icon"
-                onClick={() => useLab.getState().zoomIn()}
-                title={t("toolbar.zoomIn")}
-                disabled={zoom >= 1.5}
-                aria-label={t("toolbar.zoomIn")}
-              >
-                +
+              <button className={`btn ${mode === "run" ? "active" : ""}`} onClick={() => useLab.getState().setMode("run")}>
+                {t("toolbar.run")}
               </button>
-              <button
-                type="button"
-                className="btn-icon zoom-fit-btn"
-                onClick={() => useLab.getState().zoomFit()}
-                title={t("toolbar.zoomFit")}
-                aria-label={t("toolbar.zoomFit")}
-              >
-                ⛶
+              <button className="btn" onClick={() => useLab.getState().resetSim()}>
+                {t("toolbar.reset")}
               </button>
             </div>
-          </div>
+            <div className="mobile-header-actions">
+              <button
+                type="button"
+                className="btn-tutorial-mobile-highlight"
+                onClick={() => useLab.getState().openTutorial("mobile")}
+                title={t("tutorial.buttonTooltip") || "Start Guide"}
+                aria-label={t("tutorial.button") || "Guide"}
+              >
+                ✨ {t("tutorial.button") || "指引"}
+              </button>
+              <button
+                type="button"
+                className={`btn-icon mobile-header-btn ${layoutMode === "ladder" ? "active" : ""}`}
+                onClick={() => useLab.getState().toggleLayoutMode()}
+                title={layoutMode === "schematic" ? (t("toolbar.switchToLadder") || "Switch to Ladder") : (t("toolbar.switchToSchematic") || "Switch to Schematic")}
+                aria-label={t("toolbar.layoutMode") || "Layout Mode"}
+              >
+                {layoutMode === "schematic" ? "🪜" : "📐"}
+              </button>
+              <button
+                type="button"
+                className={`btn-icon mobile-header-btn ${mobilePaletteOpen ? "active" : ""}`}
+                onClick={() => {
+                  setMobilePaletteOpen(!mobilePaletteOpen);
+                  setMobileSideOpen(false);
+                }}
+                title={t("toolbar.palette")}
+                aria-label={t("toolbar.palette")}
+              >
+                ☰
+              </button>
+              <button
+                type="button"
+                className={`btn-icon mobile-header-btn ${mobileSideOpen ? "active" : ""}`}
+                onClick={() => {
+                  setMobileSideOpen(!mobileSideOpen);
+                  setMobilePaletteOpen(false);
+                }}
+                title={t("toolbar.sidePanel")}
+                aria-label={t("toolbar.sidePanel")}
+              >
+                ⚙
+              </button>
+              <button
+                type="button"
+                className={`btn-icon mobile-header-btn ${mobileMenuOpen ? "active" : ""}`}
+                onClick={() => setMobileMenuOpen(true)}
+                title={t("toolbar.menu") || "Menu"}
+                aria-label={t("toolbar.menu") || "Menu"}
+              >
+                ⋯
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Left Section: Brand, File Menu, New Diagram, Title */}
+            <div className="topbar-left">
+              <div className="brand">
+                <h1>E-LAB</h1>
+                <small>{t("brand.subtitle")}</small>
+              </div>
+              <div className="topbar-divider" />
+              <FilesMenu />
+              <button
+                type="button"
+                className="btn btn-new-doc"
+                onClick={() => handleRequestNewDiagram()}
+                title={t("lib.newDiagram") || "New Diagram"}
+              >
+                <span className="btn-plus-icon">+</span>
+                <span>{t("lib.newDiagram") || "New"}</span>
+              </button>
+              <div className="doc-title-wrapper" title={t("files.docName") || "Diagram Title"}>
+                <input
+                  type="text"
+                  className="diagram-name"
+                  value={docName}
+                  onChange={(e) => useLab.getState().setDocName(e.target.value)}
+                  placeholder={t("lib.diagramNamePlaceholder") || "Enter diagram name..."}
+                />
+              </div>
+            </div>
+
+            {/* Center Section: Mode, Layout View, Probes, Guide, Examples */}
+            <div className="topbar-center">
+              {/* Simulation Mode Segmented Switch */}
+              <div className="segmented-group mode-switch">
+                <button
+                  type="button"
+                  className={`seg-btn ${mode === "edit" ? "active" : ""}`}
+                  onClick={() => useLab.getState().setMode("edit")}
+                >
+                  <span className="seg-icon">✏️</span>
+                  <span>{t("toolbar.edit")}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`seg-btn ${mode === "run" ? "active" : ""}`}
+                  onClick={() => useLab.getState().setMode("run")}
+                >
+                  <span className="seg-icon">▶</span>
+                  <span>{t("toolbar.run")}</span>
+                </button>
+                <button
+                  type="button"
+                  className="seg-btn btn-reset"
+                  onClick={() => useLab.getState().resetSim()}
+                  title={t("toolbar.reset")}
+                >
+                  <span className="seg-icon">↺</span>
+                  <span>{t("toolbar.reset")}</span>
+                </button>
+              </div>
+
+              {/* View Layout Mode Switch */}
+              <div className="segmented-group layout-mode-switch">
+                <button
+                  type="button"
+                  className={`seg-btn ${layoutMode === "schematic" ? "active" : ""}`}
+                  onClick={() => useLab.getState().setLayoutMode("schematic")}
+                  title={t("toolbar.schematic") || "Schematic Layout"}
+                >
+                  <span className="seg-icon">📐</span>
+                  <span className="seg-label">{t("toolbar.schematic") || "原理圖"}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`seg-btn ${layoutMode === "ladder" ? "active" : ""}`}
+                  onClick={() => useLab.getState().setLayoutMode("ladder")}
+                  title={t("toolbar.ladder") || "Ladder Diagram"}
+                >
+                  <span className="seg-icon">🪜</span>
+                  <span className="seg-label">{t("toolbar.ladder") || "梯形圖"}</span>
+                </button>
+              </div>
+
+              {/* Run Mode Probe Tools */}
+              {mode === "run" && (
+                <div className="probe-tools-group">
+                  <button
+                    type="button"
+                    className={`btn btn-probe ${placing === "ammeter" ? "active" : ""}`}
+                    onClick={() => useLab.getState().setPlacing(placing === "ammeter" ? null : "ammeter")}
+                    title={t("meters.clampProbe")}
+                  >
+                    🧲 {t("meters.clampProbe")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-probe ${placing === "voltmeter" ? "active" : ""}`}
+                    onClick={() => useLab.getState().setPlacing(placing === "voltmeter" ? null : "voltmeter")}
+                    title={t("meters.voltageProbe")}
+                  >
+                    ⚡ {t("meters.voltageProbe")}
+                  </button>
+                </div>
+              )}
+
+              <div className="topbar-divider" />
+
+              {/* Interactive Tutorial Button */}
+              <button
+                type="button"
+                className="btn-tutorial-highlight"
+                onClick={() => useLab.getState().openTutorial("pc")}
+                title={t("tutorial.buttonTooltip") || "Start Interactive Tutorial"}
+              >
+                <span className="btn-tutorial-icon">✨</span>
+                <span>{t("tutorial.button") || "新手指引"}</span>
+              </button>
+
+              {/* Example Selector */}
+              <div className="example-selector-wrapper">
+                <span className="example-icon">📚</span>
+                <select 
+                  value={selectedExample}
+                  onChange={(e) => handleRequestSelectExample(e.target.value)}
+                  className="example-select"
+                  title={t("lib.example")}
+                >
+                  {examples.map((ex) => (
+                    <option key={ex.id} value={ex.id}>
+                      {tOr(`example.${ex.id}.title`, ex.title)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Right Section: Undo/Redo, Zoom, Theme, Language */}
+            <div className="topbar-right">
+              {/* History Actions */}
+              <div className="history-btn-group">
+                <button
+                  type="button"
+                  className="btn-icon"
+                  onClick={() => useLab.getState().undo()}
+                  title={`${t("toolbar.undo")} (⌘Z)`}
+                  aria-label={t("toolbar.undo")}
+                >
+                  ↶
+                </button>
+                <button
+                  type="button"
+                  className="btn-icon"
+                  onClick={() => useLab.getState().redo()}
+                  title={`${t("toolbar.redo")} (⌘⇧Z)`}
+                  aria-label={t("toolbar.redo")}
+                >
+                  ↷
+                </button>
+              </div>
+
+              {/* Zoom Controls */}
+              <div className="zoom-controls">
+                <button
+                  type="button"
+                  className="btn-icon"
+                  onClick={() => useLab.getState().zoomOut()}
+                  title={t("toolbar.zoomOut")}
+                  disabled={zoom <= 0.25}
+                  aria-label={t("toolbar.zoomOut")}
+                >
+                  −
+                </button>
+                <input
+                  type="range"
+                  className="zoom-slider"
+                  min="0.25"
+                  max="1.5"
+                  step="0.01"
+                  value={zoom}
+                  onChange={(e) => useLab.getState().setZoom(parseFloat(e.target.value))}
+                  title={`${t("toolbar.zoom")}: ${Math.round(zoom * 100)}%`}
+                  aria-label={t("toolbar.zoom")}
+                />
+                <span
+                  className="zoom-val"
+                  onClick={() => useLab.getState().resetZoom()}
+                  title={t("toolbar.zoomReset")}
+                >
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  className="btn-icon"
+                  onClick={() => useLab.getState().zoomIn()}
+                  title={t("toolbar.zoomIn")}
+                  disabled={zoom >= 1.5}
+                  aria-label={t("toolbar.zoomIn")}
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  className="btn-icon zoom-fit-btn"
+                  onClick={() => useLab.getState().zoomFit()}
+                  title={t("toolbar.zoomFit")}
+                  aria-label={t("toolbar.zoomFit")}
+                >
+                  ⛶
+                </button>
+              </div>
+
+              <div className="topbar-divider" />
+
+              {/* Theme Switcher */}
+              <button
+                type="button"
+                className="btn-icon btn-theme-toggle"
+                onClick={() => useLab.getState().toggleTheme()}
+                title={theme === "dark" ? (t("theme.switchToLight") || "Switch to Light Theme") : (t("theme.switchToDark") || "Switch to Dark Theme")}
+                aria-label={t("theme.theme") || "Theme"}
+              >
+                {theme === "dark" ? "🌙" : "☀️"}
+              </button>
+
+              {/* Language Switcher */}
+              <div className="lang-select-wrapper">
+                <span className="lang-icon">🌐</span>
+                <select
+                  value={lang}
+                  title={t("lib.language")}
+                  className="lang-select"
+                  onChange={(e) => useLab.getState().setLang(e.target.value as any)}
+                >
+                  <option value="zh">繁中</option>
+                  <option value="en">EN</option>
+                </select>
+              </div>
+            </div>
+          </>
         )}
       </header>
       {notice && <div className="toast">{notice}</div>}
@@ -600,7 +723,7 @@ export function App() {
           paletteOpen && <Palette />
         )}
 
-        <Schematic />
+        {layoutMode === "schematic" ? <Schematic /> : <LadderSchematic />}
         <FloatingActionBar />
 
         {/* Side panel - desktop: inline, mobile: drawer */}

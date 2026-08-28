@@ -289,24 +289,24 @@
         "id": "s_3j_8df8bf30",
         "deviceId": "d_3i_c3bfc6d3",
         "variant": "body",
-        "x": 22.6875,
-        "y": 17.4375,
+        "x": 23.875,
+        "y": 19.875,
         "rot": 0
       },
       {
         "id": "s_3l_82c5a422",
         "deviceId": "d_3k_14c58d71",
         "variant": "body",
-        "x": 35.8125,
-        "y": 17.5,
+        "x": 37,
+        "y": 19.9375,
         "rot": 0
       },
       {
         "id": "s_3n_9da1fa27",
         "deviceId": "d_3m_c96efd27",
         "variant": "coil",
-        "x": 42,
-        "y": 17.5625,
+        "x": 43.1875,
+        "y": 20,
         "rot": 0
       },
       {
@@ -355,40 +355,40 @@
         "id": "s_47_dc9ae308",
         "deviceId": "d_46_ccbd7e56",
         "variant": "body",
-        "x": 52.1875,
-        "y": 18.3125,
+        "x": 53.375,
+        "y": 20.75,
         "rot": 0
       },
       {
         "id": "s_4a_15c3ad64",
         "deviceId": "d_3m_c96efd27",
         "variant": "aux-no",
-        "x": 36.1875,
-        "y": 21.4375,
+        "x": 37.375,
+        "y": 23.875,
         "rot": 0
       },
       {
         "id": "s_4c_79303d82",
         "deviceId": "d_4b_5e23f20b",
         "variant": "body",
-        "x": 34.875,
-        "y": 19.25,
+        "x": 36.0625,
+        "y": 21.6875,
         "rot": 0
       },
       {
         "id": "s_4g_78789ae1",
         "deviceId": "d_4f_3d65de59",
         "variant": "body",
-        "x": 39.875,
-        "y": 19.25,
+        "x": 41.0625,
+        "y": 21.6875,
         "rot": 0
       },
       {
         "id": "s_4j_02ea55dd",
         "deviceId": "d_3m_c96efd27",
         "variant": "main",
-        "x": 24.5,
-        "y": 4.375,
+        "x": 24.6875,
+        "y": 4.4375,
         "rot": 0,
         "flipX": false
       },
@@ -396,8 +396,8 @@
         "id": "s_4l_9ea30a4a",
         "deviceId": "d_4k_57e5c7ec",
         "variant": "body",
-        "x": 19.375,
-        "y": 4.375,
+        "x": 19.5625,
+        "y": 4.4375,
         "rot": 0,
         "flipX": true
       },
@@ -405,8 +405,8 @@
         "id": "s_4n_890c2401",
         "deviceId": "d_4m_158564a0",
         "variant": "body",
-        "x": 19.375,
-        "y": 6.375,
+        "x": 19.5625,
+        "y": 6.4375,
         "rot": 0,
         "flipX": true
       },
@@ -414,8 +414,8 @@
         "id": "s_4p_2daff102",
         "deviceId": "d_4o_18063307",
         "variant": "body",
-        "x": 19.375,
-        "y": 8.375,
+        "x": 19.5625,
+        "y": 8.4375,
         "rot": 0,
         "flipX": true
       },
@@ -423,8 +423,8 @@
         "id": "s_4u_a7c5fa57",
         "deviceId": "d_4t_3ce87b90",
         "variant": "body",
-        "x": 33.5,
-        "y": 4.375,
+        "x": 33.6875,
+        "y": 4.4375,
         "rot": 0,
         "flipX": false
       },
@@ -432,8 +432,8 @@
         "id": "s_4z_725f9f3e",
         "deviceId": "d_4y_5335245d",
         "variant": "body",
-        "x": 50.25,
-        "y": 5.1875,
+        "x": 50.4375,
+        "y": 5.25,
         "rot": 270,
         "flipY": false
       },
@@ -441,16 +441,16 @@
         "id": "s_5n_c8651002",
         "deviceId": "d_5m_dbaf78e4",
         "variant": "body",
-        "x": 19.8125,
-        "y": 17.4375,
+        "x": 21,
+        "y": 19.875,
         "rot": 0
       },
       {
         "id": "s_5q_5987809c",
         "deviceId": "d_5p_58c3c1c1",
         "variant": "body",
-        "x": 15.0625,
-        "y": 18.25,
+        "x": 16.25,
+        "y": 20.6875,
         "rot": 0,
         "flipX": true
       },
@@ -458,16 +458,16 @@
         "id": "s_75_aed25646",
         "deviceId": "d_74_aca81ad3",
         "variant": "body",
-        "x": 26.375,
-        "y": 18.375,
+        "x": 27.5625,
+        "y": 20.8125,
         "rot": 0
       },
       {
         "id": "s_78_d8255386",
         "deviceId": "d_77_8059f0c5",
         "variant": "body",
-        "x": 19.375,
-        "y": 10.625,
+        "x": 19.5625,
+        "y": 10.6875,
         "rot": 0,
         "flipX": true
       },
@@ -475,8 +475,8 @@
         "id": "s_7b_d7c69a66",
         "deviceId": "d_7a_fccf479c",
         "variant": "body",
-        "x": 41.0625,
-        "y": 10.5625,
+        "x": 41.25,
+        "y": 10.625,
         "rot": 0,
         "flipX": false
       },
@@ -484,8 +484,8 @@
         "id": "s_7e_4ae16ad3",
         "deviceId": "d_7d_a47b4fb5",
         "variant": "body",
-        "x": 29.8125,
-        "y": 18.375,
+        "x": 31,
+        "y": 20.8125,
         "rot": 0,
         "flipX": true
       },
@@ -493,8 +493,8 @@
         "id": "s_7h_963ac461",
         "deviceId": "d_7g_3f5e7314",
         "variant": "body",
-        "x": 19.375,
-        "y": 12.5625,
+        "x": 19.5625,
+        "y": 12.625,
         "rot": 0,
         "flipX": true
       },
@@ -502,8 +502,8 @@
         "id": "s_7k_ceb3e7b3",
         "deviceId": "d_7j_ff056a9d",
         "variant": "body",
-        "x": 41.0625,
-        "y": 11.875,
+        "x": 41.25,
+        "y": 11.9375,
         "rot": 90,
         "flipX": false
       },
@@ -511,8 +511,8 @@
         "id": "s_7n_d54e3cff",
         "deviceId": "d_7m_a39382dc",
         "variant": "body",
-        "x": 51.6875,
-        "y": 12.625,
+        "x": 51.875,
+        "y": 12.6875,
         "rot": 180,
         "flipX": true
       },
@@ -520,16 +520,16 @@
         "id": "s_7q_cbbfaa4b",
         "deviceId": "d_7p_9ab2aa43",
         "variant": "body",
-        "x": 42.6875,
-        "y": 26.9375,
+        "x": 43.875,
+        "y": 29.375,
         "rot": 90
       },
       {
         "id": "s_7s_70aedfc7",
         "deviceId": "d_7r_752e1e60",
         "variant": "body",
-        "x": 46.625,
-        "y": 11.875,
+        "x": 40.625,
+        "y": 14.75,
         "rot": 90,
         "flipX": false
       },
@@ -537,32 +537,32 @@
         "id": "s_85_4d68c551",
         "deviceId": "d_3m_c96efd27",
         "variant": "aux-no2",
-        "x": 36.1875,
-        "y": 23.875,
+        "x": 37.375,
+        "y": 26.3125,
         "rot": 0
       },
       {
         "id": "s_8d_3e61aceb",
         "deviceId": "d_8c_436efed2",
         "variant": "body",
-        "x": 42.6875,
-        "y": 23.375,
+        "x": 43.875,
+        "y": 25.8125,
         "rot": 90
       },
       {
         "id": "s_8p_22e8084d",
         "deviceId": "d_3m_c96efd27",
         "variant": "aux-nc2",
-        "x": 36.1875,
-        "y": 27.4375,
+        "x": 37.375,
+        "y": 29.875,
         "rot": 0
       },
       {
         "id": "s_aj_c05919a4",
         "deviceId": "d_ai_fb4598c2",
         "variant": "body",
-        "x": 52.1875,
-        "y": 24.75,
+        "x": 53.375,
+        "y": 27.1875,
         "rot": 0
       },
       {
@@ -749,7 +749,7 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 767.25
+          "pos": 793.375
         }
       },
       {
@@ -775,7 +775,7 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 877.25
+          "pos": 903.375
         }
       },
       {
@@ -867,7 +867,7 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 786.5
+          "pos": 790.625
         }
       },
       {
@@ -882,7 +882,7 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 977.625
+          "pos": 981.75
         }
       },
       {
@@ -908,7 +908,7 @@
         },
         "jog": {
           "axis": "y",
-          "pos": 420.75
+          "pos": 474.375
         }
       },
       {
@@ -989,7 +989,7 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 727.375
+          "pos": 753.5
         }
       },
       {
@@ -1015,7 +1015,7 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 401.5
+          "pos": 427.625
         }
       },
       {
@@ -1052,29 +1052,7 @@
         },
         "jog": {
           "axis": "y",
-          "pos": 545.875
-        }
-      },
-      {
-        "id": "w_ax_98a97577",
-        "a": {
-          "symbolId": "s_7k_ceb3e7b3",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_7s_70aedfc7",
-          "term": "2"
-        }
-      },
-      {
-        "id": "w_az_f1be6c8b",
-        "a": {
-          "symbolId": "s_7s_70aedfc7",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_7n_d54e3cff",
-          "term": "1"
+          "pos": 599.5
         }
       },
       {
@@ -1109,26 +1087,42 @@
           "symbolId": "s_3v_f267d514",
           "term": "1"
         }
+      },
+      {
+        "id": "w_bf_01ce0ec3",
+        "a": {
+          "symbolId": "s_7n_d54e3cff",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_7k_ceb3e7b3",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_bg_94144365",
+        "a": {
+          "symbolId": "s_7k_ceb3e7b3",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_7s_70aedfc7",
+          "term": "2"
+        }
+      },
+      {
+        "id": "w_bh_92a8a56f",
+        "a": {
+          "symbolId": "s_7k_ceb3e7b3",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_7s_70aedfc7",
+          "term": "1"
+        }
       }
     ],
     "groups": [
-      {
-        "id": "g_b1_de1db6a8",
-        "memberIds": [
-          "s_4j_02ea55dd",
-          "s_4l_9ea30a4a",
-          "s_4n_890c2401",
-          "s_4p_2daff102",
-          "s_4u_a7c5fa57",
-          "s_4z_725f9f3e",
-          "s_78_d8255386",
-          "s_7b_d7c69a66",
-          "s_7h_963ac461",
-          "s_7k_ceb3e7b3",
-          "s_7n_d54e3cff",
-          "s_7s_70aedfc7"
-        ]
-      },
       {
         "id": "g_b8_3e8c0d32",
         "memberIds": [
@@ -1171,6 +1165,23 @@
           "s_3z_cc078928",
           "s_41_56f022a1",
           "s_bb_0f0a151a"
+        ]
+      },
+      {
+        "id": "g_bi_3c82e085",
+        "memberIds": [
+          "s_4j_02ea55dd",
+          "s_4l_9ea30a4a",
+          "s_4n_890c2401",
+          "s_4p_2daff102",
+          "s_4u_a7c5fa57",
+          "s_4z_725f9f3e",
+          "s_78_d8255386",
+          "s_7b_d7c69a66",
+          "s_7h_963ac461",
+          "s_7k_ceb3e7b3",
+          "s_7n_d54e3cff",
+          "s_7s_70aedfc7"
         ]
       }
     ]

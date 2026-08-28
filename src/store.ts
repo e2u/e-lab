@@ -20,7 +20,7 @@ import {
   type SavedLab,
 } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
-import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type Lang, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type Theme, type WireJog } from "./types";
+import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type Theme, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
 function readLang(): Lang {
@@ -34,6 +34,15 @@ function readTheme(): Theme {
     if (val === "light" || val === "dark") return val;
   } catch {}
   return "light";
+}
+
+function readLayoutMode(): LayoutMode {
+  if (typeof localStorage === "undefined") return "schematic";
+  try {
+    const val = localStorage.getItem("elab.layoutMode");
+    if (val === "schematic" || val === "ladder") return val;
+  } catch {}
+  return "schematic";
 }
 
 function readZoom(): number {
@@ -96,6 +105,7 @@ export interface LabState {
   savesTick: number;
   lang: Lang;
   theme: Theme;
+  layoutMode: LayoutMode;
   isDirty: boolean;
   paletteOpen: boolean;
   sideOpen: boolean;
@@ -195,6 +205,8 @@ export interface LabState {
   setLang: (lang: Lang) => void;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  setLayoutMode: (layoutMode: LayoutMode) => void;
+  toggleLayoutMode: () => void;
   setPaletteOpen: (open: boolean) => void;
   setSideOpen: (open: boolean) => void;
   togglePalette: () => void;
@@ -287,6 +299,7 @@ export const useLab = create<LabState>((set, get) => ({
   savesTick: 0,
   lang: readLang(),
   theme: readTheme(),
+  layoutMode: readLayoutMode(),
   isDirty: false,
   paletteOpen: sidebarBoot.paletteOpen,
   sideOpen: sidebarBoot.sideOpen,
@@ -1310,6 +1323,20 @@ export const useLab = create<LabState>((set, get) => ({
   toggleTheme: () => {
     const next = get().theme === "dark" ? "light" : "dark";
     get().setTheme(next);
+  },
+
+  setLayoutMode: (layoutMode) => {
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("elab.layoutMode", layoutMode);
+      }
+    } catch {}
+    set({ layoutMode });
+  },
+
+  toggleLayoutMode: () => {
+    const next = get().layoutMode === "schematic" ? "ladder" : "schematic";
+    get().setLayoutMode(next);
   },
 
   setPaletteOpen: (open) => {

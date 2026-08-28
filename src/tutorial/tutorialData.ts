@@ -58,7 +58,7 @@ export const PC_TUTORIAL_STEPS: TutorialStep[] = [
     titleKey: "tutorial.pc.step4.title",
     titleFallback: "第 2 步：控制電源與變壓器",
     descKey: "tutorial.pc.step4.desc",
-    descFallback: "從主線引出 L1、L2 兩相至「控制變壓器 (Transformer)」高壓側 H1、H2，將 480V/380V 降壓為 120V 安全控制電壓。低壓側 X1 經熔斷器 FU1/FU2 引出 A1、A2 控制母線，X2 接地至 PE 形成標準保護回路。",
+    descFallback: "從主線引出 L1、L2 兩相至「控制變壓器 (Transformer)」高壓側 H1、H2，將 480V 降壓為 120V 安全控制電壓。低壓側 X1 經熔斷器 FU1/FU2 引出 A1、A2 控制母線，X2 接地至 PE 形成標準保護回路。",
     tipKey: "tutorial.pc.step4.tip",
     tipFallback: "端子標籤：變壓器左側標記 H1/H2，右側標記 X1/X2，接地 PE 與電源端共地不短路。",
     targetSelector: ".paper-wrap",

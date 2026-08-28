@@ -1,16 +1,18 @@
 import { KINDS } from "../catalog";
-import { nodeKey, portDevice } from "../geometry";
-import type {
-  Circuit,
-  Device,
-  DeviceKind,
-  DeviceRuntime,
-  Fault,
-  Potential,
-  PotentialKind,
-  ProcessVars,
-  SimSnapshot,
-  WireLive,
+import { nodeKey, portDevice, findWireAtPoint } from "../geometry";
+import {
+  GRID,
+  type Circuit,
+  type Device,
+  type DeviceKind,
+  type DeviceRuntime,
+  type Fault,
+  type Potential,
+  type PotentialKind,
+  type ProcessVars,
+  type SimSnapshot,
+  type Wire,
+  type WireLive,
 } from "../types";
 
 export const PHASE_COLOR: Record<PotentialKind, string> = {
@@ -47,6 +49,8 @@ export function defaultRuntime(kind: DeviceKind): DeviceRuntime {
     prevPulse: false,
     starDelta: null,
     short: false,
+    meterValue: 0,
+    meterUnit: kind === "ammeter" ? "A" : "V",
   };
 }
 
@@ -139,6 +143,83 @@ function hasVoltageBetween(potsA: Potential[], potsB: Potential[]): boolean {
     }
   }
   return false;
+}
+
+function lineToPhase(v: number): number {
+  if (v === 380) return 220;
+  if (v === 480) return 277;
+  if (v === 208) return 120;
+  if (v === 600) return 347;
+  return Math.round(v / Math.sqrt(3));
+}
+
+export function computeVoltage(
+  potsA: Potential[],
+  potsB: Potential[],
+  circuit?: Circuit,
+): number {
+  for (const pa of potsA) {
+    for (const pb of potsB) {
+      if (pa.sourceId === pb.sourceId) {
+        // Look up source device
+        const srcDev = circuit?.devices.find((d) => d.id === pa.sourceId);
+        const baseV = srcDev?.params?.voltage ?? 480;
+
+        // Line-to-Line (480V nominal AC or user defined)
+        if (
+          (pa.kind === "L1" && (pb.kind === "L2" || pb.kind === "L3")) ||
+          (pa.kind === "L2" && (pb.kind === "L1" || pb.kind === "L3")) ||
+          (pa.kind === "L3" && (pb.kind === "L1" || pb.kind === "L2"))
+        ) {
+          return baseV;
+        }
+        // Line-to-Neutral (277V for 480V 3-phase system or transformer secondary 120V)
+        if (
+          (isHotKind(pa.kind) && pb.kind === "N") ||
+          (pa.kind === "N" && isHotKind(pb.kind))
+        ) {
+          if (pa.sourceId.startsWith("xf-") || pb.sourceId.startsWith("xf-")) {
+            const xfId = (pa.sourceId.startsWith("xf-") ? pa.sourceId : pb.sourceId).replace("xf-", "");
+            const xfDev = circuit?.devices.find((d) => d.id === xfId);
+            return xfDev?.params?.secondaryVolts ? Number(xfDev.params.secondaryVolts) : 120;
+          }
+          return lineToPhase(baseV);
+        }
+        // DC+ to DC- (24V)
+        if (
+          (pa.kind === "DC+" && pb.kind === "DC-") ||
+          (pa.kind === "DC-" && pb.kind === "DC+")
+        ) {
+          return 24;
+        }
+      }
+      // Line to PE (Ground reference)
+      if (
+        (isHotKind(pa.kind) && pb.kind === "PE") ||
+        (pa.kind === "PE" && isHotKind(pb.kind))
+      ) {
+        if (pa.sourceId.startsWith("xf-") || pb.sourceId.startsWith("xf-")) {
+          const xfId = (pa.sourceId.startsWith("xf-") ? pa.sourceId : pb.sourceId).replace("xf-", "");
+          const xfDev = circuit?.devices.find((d) => d.id === xfId);
+          return xfDev?.params?.secondaryVolts ? Number(xfDev.params.secondaryVolts) : 120;
+        }
+        const srcId = isHotKind(pa.kind) ? pa.sourceId : pb.sourceId;
+        const srcDev = circuit?.devices.find((d) => d.id === srcId);
+        const baseV = srcDev?.params?.voltage ?? 480;
+        return lineToPhase(baseV);
+      }
+      // Transformer secondary cross-check
+      if (
+        (pa.sourceId.startsWith("xf-") && isHotKind(pa.kind) && pb.kind === "N") ||
+        (pb.sourceId.startsWith("xf-") && isHotKind(pb.kind) && pa.kind === "N")
+      ) {
+        const xfId = (pa.sourceId.startsWith("xf-") ? pa.sourceId : pb.sourceId).replace("xf-", "");
+        const xfDev = circuit?.devices.find((d) => d.id === xfId);
+        return xfDev?.params?.secondaryVolts ? Number(xfDev.params.secondaryVolts) : 120;
+      }
+    }
+  }
+  return 0;
 }
 
 function phaseIndex(p: Potential | null): number | null {
@@ -420,6 +501,9 @@ function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
       else out.push(["21", "22"]);
       if (e2) out.push(["13R", "14R"]);
       else out.push(["21R", "22R"]);
+      break;
+    case "ammeter":
+      out.push(["1", "2"]);
       break;
     default:
       break;
@@ -917,6 +1001,110 @@ export function tick(
     }
     if (isShort) {
       rt.short = true;
+    }
+
+    // Evaluate voltmeter
+    if (d.kind === "voltmeter") {
+      const potsA = nodePots(stamp, uf, nk(d.id, "1"));
+      const potsB = nodePots(stamp, uf, nk(d.id, "2"));
+      const v = computeVoltage(potsA, potsB, circuit);
+      rt.meterValue = v;
+      rt.meterUnit = "V";
+      rt.energized = v > 0;
+    }
+
+    // Evaluate ammeter (Clamp meter or in-line meter)
+    if (d.kind === "ammeter") {
+      let root1 = uf.find(nk(d.id, "1"));
+      let root2 = uf.find(nk(d.id, "2"));
+
+      // Check if clamped to a specific wire or placed over a wire
+      let clampedWire: Wire | null = null;
+      if (d.params.clampedWireId) {
+        clampedWire = circuit.wires.find((w) => w.id === d.params.clampedWireId) ?? null;
+      }
+      if (!clampedWire) {
+        const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+        if (sym) {
+          const v = KINDS[d.kind]?.variants[sym.variant] ?? { w: 4, h: 4 };
+          const cx = (sym.x + v.w / 2) * GRID;
+          const cy = (sym.y + v.h / 2) * GRID;
+          clampedWire = findWireAtPoint(circuit, cx, cy, Math.max(v.w, v.h) * GRID);
+        }
+      }
+
+      if (clampedWire && !clampedWire.broken) {
+        const a = portDevice(circuit, clampedWire.a);
+        const b = portDevice(circuit, clampedWire.b);
+        if (a && b) {
+          root1 = uf.find(nk(a.deviceId, a.term));
+          root2 = uf.find(nk(b.deviceId, b.term));
+        }
+      }
+
+      const shorted = shortRoots.has(root1) || shortRoots.has(root2) || rt.short;
+      if (shorted) {
+        rt.meterValue = 999.9;
+        rt.meterUnit = "A";
+        rt.energized = true;
+      } else if (currentRoots.has(root1) || currentRoots.has(root2)) {
+        let branchCurrent = 0;
+        for (const target of circuit.devices) {
+          const trt = runtime[target.id];
+          if (!trt.energized && !trt.lit && Math.abs(trt.rpm) <= 0.01) continue;
+
+          let sharesRoot = false;
+          for (const term of allTerminals(target.kind)) {
+            const tr = uf.find(nk(target.id, term));
+            if (tr === root1 || tr === root2) {
+              sharesRoot = true;
+              break;
+            }
+          }
+          if (sharesRoot) {
+            if (
+              target.kind === "motor-3ph" ||
+              target.kind === "starter-rev-combo" ||
+              target.kind.startsWith("starter-")
+            ) {
+              const kw = target.params.power ?? 5.5;
+              const baseI = (kw / 5.5) * 8.5;
+              branchCurrent += trt.starDelta === "star" ? baseI * 0.58 : baseI;
+            } else if (target.kind === "motor-1ph") {
+              const kw = target.params.power ?? 1.5;
+              branchCurrent += (kw / 1.5) * 4.2;
+            } else if (target.kind === "motor-dc") {
+              const kw = target.params.power ?? 0.75;
+              branchCurrent += (kw / 0.75) * 3.5;
+            } else if (target.kind === "heater") {
+              branchCurrent += 5.0;
+            } else if (target.kind === "fan") {
+              branchCurrent += 1.2;
+            } else if (target.kind === "solenoid") {
+              branchCurrent += 0.8;
+            } else if (target.kind === "lamp") {
+              branchCurrent += 0.05;
+            } else if (target.kind === "alarm" || target.kind === "horn") {
+              branchCurrent += 0.15;
+            } else if (
+              target.kind === "contactor" ||
+              target.kind === "relay" ||
+              target.kind.startsWith("timer-")
+            ) {
+              branchCurrent += 0.08;
+            } else if (target.kind === "transformer") {
+              branchCurrent += 0.25;
+            }
+          }
+        }
+        rt.meterValue = Math.round(branchCurrent * 100) / 100;
+        rt.meterUnit = "A";
+        rt.energized = branchCurrent > 0;
+      } else {
+        rt.meterValue = 0;
+        rt.meterUnit = "A";
+        rt.energized = false;
+      }
     }
   }
 

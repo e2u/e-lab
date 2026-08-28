@@ -1,5 +1,5 @@
 import { variantDef } from "./catalog";
-import { GRID, type Circuit, type PortRef, type Rot, type SymbolInst, type WireJog } from "./types";
+import { GRID, type Circuit, type PortRef, type Rot, type SymbolInst, type Wire, type WireJog } from "./types";
 
 export function rotatePoint(
   x: number,
@@ -576,6 +576,7 @@ export function snapOnSegment(
   return { x: Math.round(p.x / grid) * grid, y: Math.round(p.y / grid) * grid };
 }
 
+export { GRID };
 export function distToSegment(
   p: { x: number; y: number },
   a: { x: number; y: number },
@@ -616,6 +617,26 @@ export function hitWireSegment(
     if (d <= threshold && (!best || d < best.d)) best = { index: i, axis, d };
   }
   return best ? { index: best.index, axis: best.axis } : null;
+}
+
+/** Find the closest wire in the circuit within maxDist to a point (x, y) in world pixels. */
+export function findWireAtPoint(
+  circuit: Circuit,
+  x: number,
+  y: number,
+  maxDist = 36,
+): Wire | null {
+  let best: { wire: Wire; dist: number } | null = null;
+  for (const w of circuit.wires) {
+    const pts = wireRoute(circuit, w.a, w.b, w.jog);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const d = distToSegment({ x, y }, pts[i], pts[i + 1]);
+      if (d <= maxDist && (!best || d < best.dist)) {
+        best = { wire: w, dist: d };
+      }
+    }
+  }
+  return best ? best.wire : null;
 }
 
 function flipTransform(vw: number, vh: number, flipX?: boolean, flipY?: boolean): string {

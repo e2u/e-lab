@@ -369,6 +369,28 @@ export function App() {
           <button className="btn" onClick={() => useLab.getState().resetSim()}>
             {t("toolbar.reset")}
           </button>
+          {mode === "run" && (
+            <div className="run-probe-group" style={{ display: "flex", gap: "4px", marginLeft: "6px" }}>
+              <button
+                type="button"
+                className={`btn ${placing === "ammeter" ? "active" : ""}`}
+                style={{ fontSize: "12px", padding: "4px 8px" }}
+                onClick={() => useLab.getState().setPlacing(placing === "ammeter" ? null : "ammeter")}
+                title={t("meters.clampProbe")}
+              >
+                🧲 {t("meters.clampProbe")}
+              </button>
+              <button
+                type="button"
+                className={`btn ${placing === "voltmeter" ? "active" : ""}`}
+                style={{ fontSize: "12px", padding: "4px 8px" }}
+                onClick={() => useLab.getState().setPlacing(placing === "voltmeter" ? null : "voltmeter")}
+                title={t("meters.voltageProbe")}
+              >
+                ⚡ {t("meters.voltageProbe")}
+              </button>
+            </div>
+          )}
         </div>
         {/* On Mobile: show clean, touch-friendly action buttons (Tutorial, Palette drawer, Side panel drawer, Mobile Menu sheet) */}
         {isMobile ? (

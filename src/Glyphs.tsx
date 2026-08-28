@@ -1108,6 +1108,145 @@ function GlyphBody({
             </S>
         );
     }
+    if (kind === "voltmeter") {
+        const cx = (w * GRID) / 2;
+        const cy = (h * GRID) / 2;
+        const r = 24;
+        const isLive = Boolean(rt?.energized && (rt.meterValue ?? 0) > 0);
+        const val = rt?.meterValue ?? 0;
+        const displayVal = `${val}V`;
+        const accentCol = "#2563eb";
+        return (
+            <S w={w} h={h}>
+                <line x1={0} y1={cy} x2={cx - r} y2={cy} stroke={ink} strokeWidth="2" />
+                <line x1={cx + r} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2" />
+                <circle
+                    cx={cx}
+                    cy={cy}
+                    r={r}
+                    fill={isLive ? "#eff6ff" : "#efe6d0"}
+                    stroke={isLive ? accentCol : ink}
+                    strokeWidth="2"
+                    style={isLive ? { filter: `drop-shadow(0 0 6px ${accentCol}40)` } : undefined}
+                />
+                <circle cx={cx} cy={cy} r={r - 3} fill="none" stroke={ink} strokeWidth="0.8" strokeDasharray="2 3" opacity="0.6" />
+                <Txt x={cx} y={cy - 5} textAnchor="middle" fontSize="13" fontWeight="bold" fill={accentCol}>
+                    V
+                </Txt>
+                {/* LCD Digital Readout Box */}
+                <rect
+                    x={cx - 20}
+                    y={cy + 4}
+                    width="40"
+                    height="14"
+                    rx="2"
+                    fill="#18231a"
+                    stroke="#334d38"
+                    strokeWidth="1"
+                />
+                <Txt
+                    x={cx}
+                    y={cy + 14}
+                    textAnchor="middle"
+                    fontSize="9.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                    fill={isLive ? "#4ade80" : "#86efac"}
+                >
+                    {displayVal}
+                </Txt>
+            </S>
+        );
+    }
+    if (kind === "ammeter") {
+        const cx = (w * GRID) / 2;
+        const cy = (h * GRID) / 2;
+        const isLive = Boolean(rt?.energized && (rt.meterValue ?? 0) > 0);
+        const val = rt?.meterValue ?? 0;
+        const displayVal = val >= 900 ? "SHORT" : `${val.toFixed(2)}A`;
+        const accentCol = "#d97706";
+
+        return (
+            <S w={w} h={h}>
+                {/* In-line wire leads if connected via terminals */}
+                <line x1={0} y1={cy + 10} x2={cx - 26} y2={cy + 10} stroke={ink} strokeWidth="1.5" strokeDasharray="3 3" opacity="0.5" />
+                <line x1={cx + 26} y1={cy + 10} x2={w * GRID} y2={cy + 10} stroke={ink} strokeWidth="1.5" strokeDasharray="3 3" opacity="0.5" />
+
+                {/* Clamp Jaw (Top section encircling the wire) */}
+                <path
+                    d={`M ${cx - 18} ${cy - 8} C ${cx - 24} ${cy - 22}, ${cx - 16} ${cy - 34}, ${cx} ${cy - 34} C ${cx + 16} ${cy - 34}, ${cx + 24} ${cy - 22}, ${cx + 18} ${cy - 8} Z`}
+                    fill={isLive ? "#fef3c7" : "#fef9c3"}
+                    stroke={isLive ? accentCol : ink}
+                    strokeWidth="2.2"
+                />
+                {/* Clamp Jaw inner hole (aperture for wire to pass through) */}
+                <ellipse
+                    cx={cx}
+                    cy={cy - 21}
+                    rx="9"
+                    ry="8"
+                    fill={isLive ? "#fde68a" : "#efe6d0"}
+                    stroke={isLive ? accentCol : ink}
+                    strokeWidth="1.5"
+                />
+                {/* Induction markings / conductor indicator */}
+                <circle cx={cx} cy={cy - 21} r="3" fill={isLive ? "#ef4444" : "#94a3b8"} />
+
+                {/* Clamp Meter Body Housing */}
+                <rect
+                    x={cx - 24}
+                    y={cy - 8}
+                    width="48"
+                    height="42"
+                    rx="6"
+                    fill={isLive ? "#fffbeb" : "#f8fafc"}
+                    stroke={isLive ? accentCol : ink}
+                    strokeWidth="2"
+                    style={isLive ? { filter: `drop-shadow(0 0 6px ${accentCol}40)` } : undefined}
+                />
+
+                {/* Rotary Dial / Function Selector */}
+                <circle cx={cx - 12} cy={cy + 5} r="6" fill="#cbd5e1" stroke={ink} strokeWidth="1.2" />
+                <line x1={cx - 12} y1={cy + 5} x2={cx - 12} y2={cy + 1} stroke="#1e293b" strokeWidth="1.5" />
+
+                {/* Clamp trigger lever on side */}
+                <path
+                    d={`M ${cx - 24} ${cy + 12} L ${cx - 30} ${cy + 17} L ${cx - 24} ${cy + 22} Z`}
+                    fill="#f59e0b"
+                    stroke={ink}
+                    strokeWidth="1.2"
+                />
+
+                {/* Unit label */}
+                <Txt x={cx + 10} y={cy + 9} textAnchor="middle" fontSize="10" fontWeight="bold" fill={accentCol}>
+                    ~A
+                </Txt>
+
+                {/* LCD Digital Readout Screen */}
+                <rect
+                    x={cx - 20}
+                    y={cy + 16}
+                    width="40"
+                    height="14"
+                    rx="2"
+                    fill="#18231a"
+                    stroke="#334d38"
+                    strokeWidth="1"
+                />
+                <Txt
+                    x={cx}
+                    y={cy + 26.5}
+                    textAnchor="middle"
+                    fontSize="9.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                    fill={isLive ? (val >= 900 ? "#ef4444" : "#4ade80") : "#86efac"}
+                >
+                    {displayVal}
+                </Txt>
+            </S>
+        );
+    }
     if (kind === "title-block") {
         const scale = device.params.scale ?? 1;
         const p = device.params;
@@ -1504,6 +1643,7 @@ function GlyphBody({
         const yTop = 0;
         const yJoin = cy - rO;
         const fill = hot ? "#d9c48a" : "#efe6d0";
+        const powerText = device.params.power !== undefined ? `${device.params.power}kW` : "5.5kW";
         return (
             <S w={w} h={h}>
                 {leadXs.map((x, i) => (
@@ -1511,10 +1651,12 @@ function GlyphBody({
                 ))}
                 <circle cx={cx} cy={cy} r={rO} fill={fill} stroke={ink} strokeWidth="2.4"/>
                 <circle cx={cx} cy={cy} r={rI} fill={fill} stroke={ink} strokeWidth="2.2"/>
-                <Txt x={cx} y={cy + 8} textAnchor="middle" fontSize="28" fill={ink} fontWeight="700">
+                <Txt x={cx} y={cy - 2} textAnchor="middle" fontSize="24" fill={ink} fontWeight="700">
                     M
                 </Txt>
-
+                <Txt x={cx} y={cy + 16} textAnchor="middle" fontSize="10.5" fill={ink} fontWeight="600" opacity="0.9">
+                    3~ {powerText}
+                </Txt>
             </S>
         );
     }
@@ -1527,24 +1669,25 @@ function GlyphBody({
         const x1 = 1.7 * GRID;
         const x2 = 3.3 * GRID;
         const fill = hot ? "#d9c48a" : "#efe6d0";
+        const powerText = device.params.power !== undefined ? `${device.params.power}kW` : "1.5kW";
         return (
             <S w={w} h={h}>
                 <line x1={x1} y1={yTop} x2={x1} y2={yJoin} stroke={ink} strokeWidth="2.2"/>
                 <line x1={x2} y1={yTop} x2={x2} y2={yJoin} stroke={ink} strokeWidth="2.2"/>
                 <circle cx={cx} cy={cy} r={r} fill={fill} stroke={ink} strokeWidth="2.4"/>
-                <Txt x={cx} y={cy - 4} textAnchor="middle" fontSize="26" fill={ink} fontWeight="700">
+                <Txt x={cx} y={cy - 4} textAnchor="middle" fontSize="24" fill={ink} fontWeight="700">
                     M
                 </Txt>
-                <Txt x={cx} y={cy + 18} textAnchor="middle" fontSize="16" fill={ink}>
-                    1~
+                <Txt x={cx} y={cy + 16} textAnchor="middle" fontSize="10.5" fill={ink} fontWeight="600" opacity="0.9">
+                    1~ {powerText}
                 </Txt>
-
             </S>
         );
     }
     if (kind === "motor-dc") {
         const cx = (w * GRID) / 2 + 8;
         const cy = (h * GRID) / 2;
+        const powerText = device.params.power !== undefined ? `${device.params.power}kW` : "0.75kW";
         return (
             <S w={w} h={h}>
                 <circle
@@ -1557,7 +1700,7 @@ function GlyphBody({
                 />
                 <circle cx={cx} cy={cy} r="8" fill="#1b1a16"/>
                 <Txt x={cx} y={cy + 36} textAnchor="middle" className="sym-tag">
-                    M DC
+                    M DC {powerText}
                 </Txt>
             </S>
         );

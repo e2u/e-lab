@@ -4,6 +4,7 @@ import { triggerHaptic } from "./schematic/interact";
 
 export function FloatingActionBar() {
   const mode = useLab((s) => s.mode);
+  const placing = useLab((s) => s.placing);
   const selected = useLab((s) => s.selected);
   const selectedIds = useLab((s) => s.selectedIds);
   const historyLen = useLab((s) => s.history.length);
@@ -52,27 +53,61 @@ export function FloatingActionBar() {
 
       <div className="floating-divider" />
 
-      <button
-        type="button"
-        className="floating-btn"
-        onClick={() => handleAction(() => rotateSelected())}
-        disabled={!hasSymbolSelected}
-        title={t("toolbar.rotate")}
-        aria-label={t("toolbar.rotate")}
-      >
-        <span className="floating-btn-icon">↻</span>
-      </button>
+      {mode === "run" ? (
+        <>
+          <button
+            type="button"
+            className={`floating-btn ${placing === "ammeter" ? "active" : ""}`}
+            onClick={() =>
+              handleAction(() =>
+                useLab.getState().setPlacing(placing === "ammeter" ? null : "ammeter")
+              )
+            }
+            title={t("meters.clampProbe")}
+            aria-label={t("meters.clampProbe")}
+          >
+            <span className="floating-btn-icon">🧲</span>
+          </button>
 
-      <button
-        type="button"
-        className="floating-btn"
-        onClick={() => handleAction(() => useLab.getState().flipSelected("h"))}
-        disabled={!hasSymbolSelected || isGroupSelected}
-        title={t("toolbar.flipH")}
-        aria-label={t("toolbar.flipH")}
-      >
-        <span className="floating-btn-icon">⇄</span>
-      </button>
+          <button
+            type="button"
+            className={`floating-btn ${placing === "voltmeter" ? "active" : ""}`}
+            onClick={() =>
+              handleAction(() =>
+                useLab.getState().setPlacing(placing === "voltmeter" ? null : "voltmeter")
+              )
+            }
+            title={t("meters.voltageProbe")}
+            aria-label={t("meters.voltageProbe")}
+          >
+            <span className="floating-btn-icon">⚡</span>
+          </button>
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="floating-btn"
+            onClick={() => handleAction(() => rotateSelected())}
+            disabled={!hasSymbolSelected}
+            title={t("toolbar.rotate")}
+            aria-label={t("toolbar.rotate")}
+          >
+            <span className="floating-btn-icon">↻</span>
+          </button>
+
+          <button
+            type="button"
+            className="floating-btn"
+            onClick={() => handleAction(() => useLab.getState().flipSelected("h"))}
+            disabled={!hasSymbolSelected || isGroupSelected}
+            title={t("toolbar.flipH")}
+            aria-label={t("toolbar.flipH")}
+          >
+            <span className="floating-btn-icon">⇄</span>
+          </button>
+        </>
+      )}
 
       <div className="floating-divider" />
 
@@ -90,7 +125,7 @@ export function FloatingActionBar() {
         type="button"
         className="floating-btn delete-btn"
         onClick={() => handleAction(() => useLab.getState().deleteSelected())}
-        disabled={!hasSelection || mode !== "edit"}
+        disabled={!hasSelection}
         title={t("toolbar.delete")}
         aria-label={t("toolbar.delete")}
       >

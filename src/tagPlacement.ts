@@ -126,6 +126,8 @@ export function getSymbolTagPlacement(
     "starter-fwd",
     "starter-rev",
     "starter-rev-combo",
+    "voltmeter",
+    "ammeter",
     "dc-supply",
     "horn",
     "ground",

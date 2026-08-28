@@ -145,11 +145,12 @@ export function useSchematicEvents({
     return { x: g.x * GRID, y: g.y * GRID };
   };
 
-  const placeAtEvent = (e: PointerEvent) => {
+  const placeAtEvent = (e: PointerEvent, wireId?: string) => {
     if (e.button !== 0) return;
-    if (mode !== "edit" || !placing) return;
+    if (!placing) return;
     const p = toGrid(e);
-    useLab.getState().placeAt(Math.round(p.x), Math.round(p.y));
+    const extraParams = wireId ? { clampedWireId: wireId } : undefined;
+    useLab.getState().placeAt(Math.round(p.x), Math.round(p.y), extraParams);
   };
 
   const cancelPlace = () => {
@@ -170,7 +171,6 @@ export function useSchematicEvents({
     marqueeRef.current = null;
     setMarqueeView(null);
     paperTouchPanRef.current = null;
-    if (mode !== "edit") return;
     if (placing) {
       cancelPlace();
       return;
@@ -209,7 +209,7 @@ export function useSchematicEvents({
     }
 
     if (e.button !== 0) return;
-    if (mode === "edit" && placing) {
+    if (placing) {
       e.stopPropagation();
       placeAtEvent(e);
       return;
@@ -424,7 +424,7 @@ export function useSchematicEvents({
     pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
     e.stopPropagation();
     if (placing) {
-      placeAtEvent(e);
+      placeAtEvent(e, placing === "ammeter" ? wire.id : undefined);
       return;
     }
     if (e.button !== 0) return;

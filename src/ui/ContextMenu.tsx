@@ -114,6 +114,9 @@ export function ContextMenu({
         )}
         {hasWire && (
           <>
+            <button type="button" onClick={() => run(() => useLab.getState().quickAttachClampMeter(selected.id))}>
+              🧲 {t("meters.probeWire")}
+            </button>
             <button type="button" onClick={() => run(() => useLab.getState().toggleWireBroken(selected.id))}>
               {t("ctx.brokenWire")}
             </button>

@@ -56,7 +56,7 @@ export function selfHoldMotor(): Circuit {
   const kmNo = addSymbol(c, km.device.id, "aux-no", 22, 13);
   const fr = addDevice(c, "overload", "FR1", "body", 24, 2);
   const m = addDevice(c, "motor-3ph", "M1", "body", 34, 2);
-  const tc = addDevice(c, "transformer", "TC1", "body", 1, 13, { ratio: "380/220" });
+  const tc = addDevice(c, "transformer", "TC1", "body", 1, 13, { ratio: "480/120" });
   const stop = addDevice(c, "pb-nc", "SB1", "body", 10, 13);
   const start = addDevice(c, "pb-no", "SB2", "body", 16, 13);
   const hl = addDevice(c, "lamp", "HL1", "body", 30, 19, { color: "green" });
@@ -165,7 +165,7 @@ export function starDeltaStart(): Circuit {
   const kmDNc = addSymbol(c, kmD.device.id, "aux-nc", 32, 22);
   const fr = addDevice(c, "overload", "FR1", "body", 24, 2);
   const m = addDevice(c, "motor-3ph", "M1", "body", 32, 1);
-  const tc = addDevice(c, "transformer", "TC1", "body", 1, 16, { ratio: "380/220" });
+  const tc = addDevice(c, "transformer", "TC1", "body", 1, 16, { ratio: "480/120" });
   const stop = addDevice(c, "pb-nc", "SB1", "body", 9, 16);
   const start = addDevice(c, "pb-no", "SB2", "body", 14, 16);
   const kt = addDevice(c, "timer-on", "KT1", "coil", 32, 16, { delayMs: 2000 });

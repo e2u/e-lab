@@ -68,12 +68,15 @@ export function Bench() {
             );
           }
           if (d.kind === "motor-3ph" || d.kind === "motor-1ph" || d.kind === "motor-dc" || d.kind === "fan" || d.kind === "gen-ac" || d.kind === "gen-dc") {
+            const powerStr = (d.kind === "motor-3ph" || d.kind === "motor-1ph" || d.kind === "motor-dc")
+              ? ` [${d.params.power ?? (d.kind === "motor-1ph" ? 1.5 : d.kind === "motor-dc" ? 0.75 : 5.5)}kW]`
+              : "";
             return (
               <div className="widget" key={d.id}>
                 <div className={`machine ${Math.abs(rt.rpm) > 0.2 ? "spin" : ""}`}>
                   <div className="hub" />
                 </div>
-                {d.tag}{rt.direction < 0 ? ` ${t("bench.rev")}` : rt.direction > 0 ? ` ${t("bench.fwd")}` : ""}
+                {d.tag}{powerStr}{rt.direction < 0 ? ` ${t("bench.rev")}` : rt.direction > 0 ? ` ${t("bench.fwd")}` : ""}
                 {rt.starDelta === "star" ? t("bench.starDeltaStar") : rt.starDelta === "delta" ? t("bench.starDeltaDelta") : ""}
               </div>
             );
@@ -111,6 +114,31 @@ export function Bench() {
               <div className="widget" key={d.id}>
                 <div className="pilot" style={{ background: rt.lit ? "#e23d2b" : "#2a241c" }} />
                 {d.tag} {rt.lit ? t("bench.alarmSound") : ""}
+              </div>
+            );
+          }
+          if (d.kind === "voltmeter" || d.kind === "ammeter") {
+            const isV = d.kind === "voltmeter";
+            const val = rt.meterValue ?? 0;
+            const text = isV ? `${val.toFixed(1)} V` : `${val.toFixed(2)} A`;
+            const color = isV ? "#3b82f6" : "#f59e0b";
+            return (
+              <div
+                className="widget meter-widget"
+                key={d.id}
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+                  if (sym) useLab.getState().select({ type: "symbol", id: sym.id }, true);
+                }}
+                title={t("meters.clickToInspect")}
+              >
+                <span className="meter-badge" style={{ borderColor: color, color }}>
+                  {isV ? "V" : "A"}
+                </span>
+                <span style={{ fontWeight: 600, fontFamily: "monospace", color: rt.energized ? "#4ade80" : "inherit" }}>
+                  {d.tag}: {text}
+                </span>
               </div>
             );
           }

@@ -70,6 +70,8 @@ export type DeviceKind =
   | "starter-fwd"
   | "starter-rev"
   | "starter-rev-combo"
+  | "voltmeter"
+  | "ammeter"
   | "ground"
   | "net-label"
   | "title-block"
@@ -100,6 +102,10 @@ export interface DeviceParams {
   primaryConn?: "delta" | "wye";
   secondaryConn?: "delta" | "wye";
   supplyType?: "wye" | "delta";
+  voltage?: number;
+  maxCurrent?: number;
+  power?: number;
+  clampedWireId?: string;
   primeMover?: boolean;
   shaftWith?: string;
   welded?: boolean;
@@ -195,6 +201,8 @@ export interface DeviceRuntime {
   prevPulse: boolean;
   starDelta: "star" | "delta" | null;
   short?: boolean;
+  meterValue?: number;
+  meterUnit?: "V" | "A";
 }
 
 export interface WireLive {
@@ -202,6 +210,11 @@ export interface WireLive {
   kind: PotentialKind | null;
   dir: 1 | -1 | 0;
   short?: boolean;
+}
+
+export interface MeterDataPoint {
+  time: number;
+  value: number;
 }
 
 export interface Fault {

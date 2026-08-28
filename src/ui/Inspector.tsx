@@ -3,6 +3,7 @@ import { selectionHasGroup, selectionIsGroup } from "../groups";
 import { catalogCompKey, t, tOr } from "../i18n";
 import { useLab } from "../store";
 import type { Circuit, DeviceKind } from "../types";
+import { MeterHistoryChart } from "./MeterHistoryChart";
 
 function NetLabelHint({
   circuit,
@@ -80,6 +81,7 @@ export function Inspector() {
   const selectedIds = useLab((s) => s.selectedIds);
   const circuit = useLab((s) => s.circuit);
   const runtime = useLab((s) => s.snapshot.runtime);
+  const meterHistory = useLab((s) => s.meterHistory);
 
   const injected = [
     ...circuit.wires.filter((w) => w.broken).map((w) => ({ id: w.id, type: "wire" as const, label: t("inspector.broken") })),
@@ -345,19 +347,120 @@ export function Inspector() {
           )}
         </>
       )}
+      {(dev.kind === "voltmeter" || dev.kind === "ammeter") && (
+        <MeterHistoryChart
+          deviceId={dev.id}
+          tag={dev.tag}
+          kind={dev.kind}
+          liveValue={rt?.meterValue ?? 0}
+          unit={dev.kind === "voltmeter" ? "V" : "A"}
+          history={meterHistory[dev.id] ?? []}
+          onClear={() => useLab.getState().clearMeterHistory(dev.id)}
+        />
+      )}
       {dev.kind === "mains-3ph" && (
+        <>
+          <label>
+            {t("inspector.supplyType")}
+            <select
+              value={dev.params.supplyType ?? (sym.variant === "delta" ? "delta" : "wye")}
+              onChange={(e) => {
+                const val = e.target.value as "wye" | "delta";
+                useLab.getState().updateDevice(dev.id, { params: { ...dev.params, supplyType: val } });
+              }}
+            >
+              <option value="wye">{t("inspector.wye")}</option>
+              <option value="delta">{t("inspector.delta")}</option>
+            </select>
+          </label>
+          <label>
+            <span>{t("inspector.voltageSetting")} ({dev.params.voltage ?? 480}V)</span>
+            <div style={{ display: "flex", gap: "4px", margin: "4px 0", flexWrap: "wrap" }}>
+              {[208, 240, 380, 480, 600].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`btn ${(dev.params.voltage ?? 480) === v ? "primary" : ""}`}
+                  style={{ padding: "3px 7px", fontSize: "11px" }}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, voltage: v } })}
+                >
+                  {v}V
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min="100"
+              max="1000"
+              step="10"
+              value={dev.params.voltage ?? 480}
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, voltage: Number(e.target.value) || 480 } })}
+            />
+          </label>
+          <label>
+            <span>{t("inspector.maxCurrentSetting")} ({dev.params.maxCurrent ?? 400}A)</span>
+            <div style={{ display: "flex", gap: "4px", margin: "4px 0", flexWrap: "wrap" }}>
+              {[50, 100, 200, 400, 600, 800].map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  className={`btn ${(dev.params.maxCurrent ?? 400) === a ? "primary" : ""}`}
+                  style={{ padding: "3px 7px", fontSize: "11px" }}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, maxCurrent: a } })}
+                >
+                  {a}A
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min="5"
+              max="2000"
+              step="5"
+              value={dev.params.maxCurrent ?? 400}
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, maxCurrent: Number(e.target.value) || 400 } })}
+            />
+          </label>
+        </>
+      )}
+      {dev.kind === "ammeter" && (
         <label>
-          {t("inspector.supplyType")}
+          <span>{t("inspector.clampedWire")}</span>
           <select
-            value={dev.params.supplyType ?? (sym.variant === "delta" ? "delta" : "wye")}
+            value={dev.params.clampedWireId ?? ""}
             onChange={(e) => {
-              const val = e.target.value as "wye" | "delta";
-              useLab.getState().updateDevice(dev.id, { supplyType: val });
+              const wireId = e.target.value || undefined;
+              useLab.getState().updateDevice(dev.id, { params: { ...dev.params, clampedWireId: wireId } });
             }}
           >
-            <option value="wye">{t("inspector.wye")}</option>
-            <option value="delta">{t("inspector.delta")}</option>
+            <option value="">{t("meters.notClamped")}</option>
+            {circuit.wires.map((w) => {
+              const aDev = circuit.devices.find((d) => {
+                const s = circuit.symbols.find((s) => s.id === w.a.symbolId);
+                return s?.deviceId === d.id;
+              });
+              const bDev = circuit.devices.find((d) => {
+                const s = circuit.symbols.find((s) => s.id === w.b.symbolId);
+                return s?.deviceId === d.id;
+              });
+              const desc = `${w.label ? `[${w.label}] ` : ""}${aDev?.tag || "?"}.${w.a.term} ➔ ${bDev?.tag || "?"}.${w.b.term}`;
+              return (
+                <option key={w.id} value={w.id}>
+                  {desc}
+                </option>
+              );
+            })}
           </select>
+          {dev.params.clampedWireId && (
+            <button
+              type="button"
+              className="btn"
+              style={{ marginTop: "4px", fontSize: "11px", padding: "3px 8px" }}
+              onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, clampedWireId: undefined } })}
+            >
+              ✕ {t("meters.clear")}
+            </button>
+          )}
         </label>
       )}
       {dev.kind === "lamp" && (
@@ -423,6 +526,78 @@ export function Inspector() {
             value={dev.params.ratio ?? "480/120"}
             onChange={(e) => useLab.getState().updateDevice(dev.id, { ratio: e.target.value })}
           />
+        </label>
+      )}
+      {(dev.kind === "motor-3ph" ||
+        dev.kind === "motor-1ph" ||
+        dev.kind === "motor-dc" ||
+        dev.kind === "starter-dol" ||
+        dev.kind === "starter-fwd" ||
+        dev.kind === "starter-rev" ||
+        dev.kind === "starter-rev-combo") && (
+        <label>
+          <span>
+            {t("inspector.motorPower")} ({dev.params.power ?? (dev.kind === "motor-1ph" ? 1.5 : dev.kind === "motor-dc" ? 0.75 : 5.5)} kW / {((dev.params.power ?? (dev.kind === "motor-1ph" ? 1.5 : dev.kind === "motor-dc" ? 0.75 : 5.5)) * 1.341).toFixed(1)} HP)
+          </span>
+          <div style={{ display: "flex", gap: "4px", margin: "4px 0", flexWrap: "wrap" }}>
+            {dev.kind === "motor-1ph" ? (
+              [0.37, 0.75, 1.1, 1.5, 2.2, 3.0].map((kw) => (
+                <button
+                  key={kw}
+                  type="button"
+                  className={`btn ${(dev.params.power ?? 1.5) === kw ? "primary" : ""}`}
+                  style={{ padding: "3px 7px", fontSize: "11px" }}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, power: kw } })}
+                >
+                  {kw}kW ({kw === 0.37 ? "0.5" : kw === 0.75 ? "1" : kw === 1.1 ? "1.5" : kw === 1.5 ? "2" : kw === 2.2 ? "3" : kw === 3.0 ? "4" : (kw * 1.341).toFixed(1)}HP)
+                </button>
+              ))
+            ) : dev.kind === "motor-dc" ? (
+              [0.37, 0.75, 1.5, 2.2, 3.7, 5.5].map((kw) => (
+                <button
+                  key={kw}
+                  type="button"
+                  className={`btn ${(dev.params.power ?? 0.75) === kw ? "primary" : ""}`}
+                  style={{ padding: "3px 7px", fontSize: "11px" }}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, power: kw } })}
+                >
+                  {kw}kW ({kw === 0.37 ? "0.5" : kw === 0.75 ? "1" : kw === 1.5 ? "2" : kw === 2.2 ? "3" : kw === 3.7 ? "5" : kw === 5.5 ? "7.5" : (kw * 1.341).toFixed(1)}HP)
+                </button>
+              ))
+            ) : (
+              [0.75, 1.5, 2.2, 3.7, 5.5, 7.5, 11, 15, 22, 30].map((kw) => (
+                <button
+                  key={kw}
+                  type="button"
+                  className={`btn ${(dev.params.power ?? 5.5) === kw ? "primary" : ""}`}
+                  style={{ padding: "3px 7px", fontSize: "11px" }}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, power: kw } })}
+                >
+                  {kw}kW ({kw === 0.75 ? "1" : kw === 1.5 ? "2" : kw === 2.2 ? "3" : kw === 3.7 ? "5" : kw === 5.5 ? "7.5" : kw === 7.5 ? "10" : kw === 11 ? "15" : kw === 15 ? "20" : kw === 22 ? "30" : kw === 30 ? "40" : (kw * 1.341).toFixed(1)}HP)
+                </button>
+              ))
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <input
+              type="number"
+              min="0.1"
+              max="1000"
+              step="0.1"
+              style={{ flex: 1 }}
+              value={dev.params.power ?? (dev.kind === "motor-1ph" ? 1.5 : dev.kind === "motor-dc" ? 0.75 : 5.5)}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                useLab.getState().updateDevice(dev.id, {
+                  params: {
+                    ...dev.params,
+                    power: !isNaN(val) && val > 0 ? val : (dev.kind === "motor-1ph" ? 1.5 : dev.kind === "motor-dc" ? 0.75 : 5.5),
+                  },
+                });
+              }}
+            />
+            <span style={{ fontSize: "12px", color: "var(--text-dim, #7d8973)" }}>kW</span>
+          </div>
         </label>
       )}
       {(dev.kind === "gen-ac" || dev.kind === "gen-dc") && (

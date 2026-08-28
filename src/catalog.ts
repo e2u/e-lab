@@ -55,6 +55,12 @@ const coilBody: VariantDef = {
   terminals: [t("A1", 0, 1.5), t("A2", 4, 1.5)],
 };
 
+const meterBody: VariantDef = {
+  w: 4,
+  h: 3,
+  terminals: [t("1", 0, 1.5, "+"), t("2", 4, 1.5, "-")],
+};
+
 const timerVariants: KindMeta["variants"] = {
   coil: coilBody,
   "delayed-nc": {
@@ -721,6 +727,20 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       },
     },
   },
+  voltmeter: {
+    prefix: "VM",
+    label: "電壓表",
+    variants: {
+      body: meterBody,
+    },
+  },
+  ammeter: {
+    prefix: "CM",
+    label: "鉗形電流表",
+    variants: {
+      body: meterBody,
+    },
+  },
 };
 
 export const CATALOG: CatalogItem[] = [
@@ -790,12 +810,16 @@ export const CATALOG: CatalogItem[] = [
   { id: "motor-3ph", kind: "motor-3ph", variant: "body", group: "電機", label: "三相電機", labelEn: "Motor 3Φ", prefix: "M", creates: "device" },
   { id: "motor-1ph", kind: "motor-1ph", variant: "body", group: "電機", label: "單相電機", labelEn: "Motor 1Φ", prefix: "M", creates: "device" },
 
+  { id: "voltmeter", kind: "voltmeter", variant: "body", group: "儀表與測量", label: "電壓表", labelEn: "Voltmeter", prefix: "VM", creates: "device" },
+  { id: "ammeter", kind: "ammeter", variant: "body", group: "儀表與測量", label: "鉗形電流表", labelEn: "Clamp Meter", prefix: "CM", creates: "device" },
+
   { id: "starter-rev-combo", kind: "starter-rev-combo", variant: "body", group: "起動器", label: "正反轉組合起動器", labelEn: "Reversing Starter", prefix: "KMR", creates: "device" },
   { id: "title-block", kind: "title-block", variant: "body", group: "圖紙標註", label: "圖紙標題欄", labelEn: "Title Block", prefix: "TB", creates: "device" },
 ];
 
 export const GROUPS = [
   { id: "Power_Protection", label: "電源與保護", labelEn: "Power & Protection" },
+  { id: "Meters", label: "儀表與測量", labelEn: "Meters & Probes" },
   { id: "Terminals", label: "接線", labelEn: "Terminals" },
   { id: "Controls", label: "開關", labelEn: "Controls" },
   { id: "Sensors", label: "感測器", labelEn: "Sensors" },

@@ -5,7 +5,7 @@ import { loadExampleJson } from "./examples/index";
 import templateData from "./examples/blank-template.json";
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols } from "./groups";
 import { EXAMPLES } from "./examples";
-import { allWireRoutes, nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { allWireRoutes, findWireAtPoint, nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   downloadJson,
@@ -20,7 +20,7 @@ import {
   type SavedLab,
 } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
-import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type Lang, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type Theme, type WireJog } from "./types";
+import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type Lang, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type Theme, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
 function readLang(): Lang {
@@ -104,6 +104,7 @@ export interface LabState {
   tutorialOpen: boolean;
   tutorialStepIndex: number;
   tutorialVersion: "pc" | "mobile";
+  meterHistory: Record<string, MeterDataPoint[]>;
 
   setMode: (mode: Mode) => void;
   setRunning: (running: boolean) => void;
@@ -126,7 +127,8 @@ export interface LabState {
   duplicateSelected: () => void;
   copySelected: () => void;
   pasteClipboard: () => void;
-  placeAt: (x: number, y: number) => void;
+  placeAt: (x: number, y: number, extraParams?: Partial<DeviceParams>) => void;
+  quickAttachClampMeter: (wireId: string) => void;
   moveSymbol: (id: string, x: number, y: number) => void;
   moveGroup: (
     updates: { id: string; x: number; y: number }[],
@@ -209,6 +211,7 @@ export interface LabState {
   setTutorialStep: (index: number) => void;
   nextTutorialStep: () => void;
   prevTutorialStep: () => void;
+  clearMeterHistory: (deviceId?: string) => void;
   restartTutorial: () => void;
   setTutorialVersion: (version: "pc" | "mobile") => void;
 }
@@ -292,6 +295,7 @@ export const useLab = create<LabState>((set, get) => ({
   tutorialOpen: false,
   tutorialStepIndex: 0,
   tutorialVersion: "pc",
+  meterHistory: {},
 
   pushHistory: () => {
     const { history, circuit } = get();
@@ -308,19 +312,40 @@ export const useLab = create<LabState>((set, get) => ({
       snapshot: emptySnapshot(circuit),
       timeMs: 0,
       held: [],
+      meterHistory: {},
     });
   },
   setRunning: (running) => set({ running }),
   step: () => {
     const s = get();
+    const nextTimeMs = s.timeMs + 50;
     const snap = tick(
       s.circuit,
       s.snapshot.runtime,
       { held: new Set(s.held), process: s.process },
       50,
-      s.timeMs + 50,
+      nextTimeMs,
     );
-    set({ snapshot: snap, timeMs: s.timeMs + 50 });
+
+    // Record historical data points for all voltmeter and ammeter devices
+    const nextHistory = { ...s.meterHistory };
+    const currentTimeSec = Math.round((nextTimeMs / 1000) * 10) / 10;
+    let hasMeters = false;
+    for (const d of s.circuit.devices) {
+      if (d.kind === "voltmeter" || d.kind === "ammeter") {
+        hasMeters = true;
+        const val = snap.runtime[d.id]?.meterValue ?? 0;
+        const prev = nextHistory[d.id] ?? [];
+        // Keep up to 300 data points (e.g. 15 seconds at 50ms interval)
+        nextHistory[d.id] = [...prev.slice(-299), { time: currentTimeSec, value: val }];
+      }
+    }
+
+    set({
+      snapshot: snap,
+      timeMs: nextTimeMs,
+      meterHistory: hasMeters ? nextHistory : s.meterHistory,
+    });
   },
   resetSim: () => {
     const { circuit } = get();
@@ -328,7 +353,17 @@ export const useLab = create<LabState>((set, get) => ({
       snapshot: emptySnapshot(circuit),
       timeMs: 0,
       held: [],
+      meterHistory: {},
     });
+  },
+  clearMeterHistory: (deviceId) => {
+    if (deviceId) {
+      const next = { ...get().meterHistory };
+      delete next[deviceId];
+      set({ meterHistory: next });
+    } else {
+      set({ meterHistory: {} });
+    }
   },
   setProcess: (patch) => set({ process: { ...get().process, ...patch } }),
   setPlacing: (id) => set({ placing: id, wiringFrom: null, selected: null, selectedIds: [] }),
@@ -406,7 +441,7 @@ export const useLab = create<LabState>((set, get) => ({
     });
   },
 
-  placeAt: (x, y) => {
+  placeAt: (x, y, extraParams) => {
     const { placing, circuit, selected } = get();
     if (!placing) return;
     const item = catalogItem(placing);
@@ -424,7 +459,7 @@ export const useLab = create<LabState>((set, get) => ({
           item.variant,
           gx,
           gy,
-          {},
+          extraParams ?? {},
           item.defaultRot ?? 0,
         );
         host = created.device.id;
@@ -443,15 +478,7 @@ export const useLab = create<LabState>((set, get) => ({
       });
       return;
     }
-    const created = addDevice(
-      next,
-      item.kind,
-      item.kind === "net-label"
-        ? suggestNetLabelTag(next, selected?.type === "symbol" ? selected.id : null)
-        : nextTag(next.devices.map((d) => d.tag), item.prefix),
-      item.variant,
-      gx,
-      gy,
+    const defaultParams: DeviceParams =
       item.kind === "lamp"
         ? { color: "green" }
         : item.kind === "timer-on" || item.kind === "timer-off"
@@ -461,20 +488,48 @@ export const useLab = create<LabState>((set, get) => ({
             : item.kind === "transformer"
               ? { ratio: "480/120" }
               : item.kind === "mains-3ph"
-                ? { supplyType: item.variant === "delta" ? "delta" : "wye" }
-                : item.kind === "title-block"
-                  ? {
-                      projectName: "MOTOR CONTROL CIRCUIT",
-                      projectNo: "DWG-001",
-                      rev: "A",
-                      sheetNum: "1",
-                      sheetTotal: "1",
-                      description: "SCHEMATIC DIAGRAM",
-                      designedBy: "ENGINEER",
-                      date: formatMMDDYYYY(),
-                      scale: 1,
-                    }
-                  : {},
+                ? { supplyType: item.variant === "delta" ? "delta" : "wye", voltage: 480, maxCurrent: 400 }
+                : item.kind === "motor-3ph" ||
+                  item.kind === "starter-dol" ||
+                  item.kind === "starter-fwd" ||
+                  item.kind === "starter-rev" ||
+                  item.kind === "starter-rev-combo"
+                  ? { power: 5.5 }
+                  : item.kind === "motor-1ph"
+                    ? { power: 1.5 }
+                    : item.kind === "motor-dc"
+                      ? { power: 0.75 }
+                      : item.kind === "title-block"
+                        ? {
+                            projectName: "MOTOR CONTROL CIRCUIT",
+                            projectNo: "DWG-001",
+                            rev: "A",
+                            sheetNum: "1",
+                            sheetTotal: "1",
+                            description: "SCHEMATIC DIAGRAM",
+                            designedBy: "ENGINEER",
+                            date: formatMMDDYYYY(),
+                            scale: 1,
+                          }
+                        : {};
+
+    if (item.kind === "ammeter" && !extraParams?.clampedWireId) {
+      const detected = findWireAtPoint(next, (gx + 2) * GRID, (gy + 2) * GRID, GRID * 2.5);
+      if (detected) {
+        defaultParams.clampedWireId = detected.id;
+      }
+    }
+
+    const created = addDevice(
+      next,
+      item.kind,
+      item.kind === "net-label"
+        ? suggestNetLabelTag(next, selected?.type === "symbol" ? selected.id : null)
+        : nextTag(next.devices.map((d) => d.tag), item.prefix),
+      item.variant,
+      gx,
+      gy,
+      { ...defaultParams, ...extraParams },
       item.defaultRot ?? 0,
     );
     set({
@@ -488,12 +543,55 @@ export const useLab = create<LabState>((set, get) => ({
     });
   },
 
+  quickAttachClampMeter: (wireId: string) => {
+    const { circuit } = get();
+    const wire = circuit.wires.find((w) => w.id === wireId);
+    if (!wire) return;
+    get().pushHistory();
+    const next = clone(circuit);
+    const aSym = next.symbols.find((s) => s.id === wire.a.symbolId);
+    const bSym = next.symbols.find((s) => s.id === wire.b.symbolId);
+    let gx = 10;
+    let gy = 10;
+    if (aSym && bSym) {
+      gx = Math.round((aSym.x + bSym.x) / 2);
+      gy = Math.round((aSym.y + bSym.y) / 2);
+    } else if (aSym) {
+      gx = aSym.x + 3;
+      gy = aSym.y;
+    }
+    const created = addDevice(
+      next,
+      "ammeter",
+      nextTag(next.devices.map((d) => d.tag), "CM"),
+      "body",
+      gx,
+      gy,
+      { clampedWireId: wireId },
+      0,
+    );
+    set({
+      circuit: next,
+      selected: { type: "symbol", id: created.symbol.id },
+      selectedIds: [created.symbol.id],
+      placing: null,
+      wiringFrom: null,
+      snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
+      isDirty: true,
+    });
+  },
+
   moveSymbol: (id, x, y) => {
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === id);
     if (!sym) return;
     sym.x = x;
     sym.y = y;
+    const dev = next.devices.find((d) => d.id === sym.deviceId);
+    if (dev && dev.kind === "ammeter") {
+      const detected = findWireAtPoint(next, (x + 2) * GRID, (y + 2) * GRID, GRID * 2.5);
+      dev.params = { ...dev.params, clampedWireId: detected?.id };
+    }
     set({ circuit: next, isDirty: true });
   },
   moveGroup: (updates, wireUpdates) => {
@@ -506,6 +604,11 @@ export const useLab = create<LabState>((set, get) => ({
         deltas.set(u.id, { dx: u.x - sym.x, dy: u.y - sym.y });
         sym.x = u.x;
         sym.y = u.y;
+        const dev = next.devices.find((d) => d.id === sym.deviceId);
+        if (dev && dev.kind === "ammeter") {
+          const detected = findWireAtPoint(next, (u.x + 2) * GRID, (u.y + 2) * GRID, GRID * 2.5);
+          dev.params = { ...dev.params, clampedWireId: detected?.id };
+        }
       }
     }
     if (wireUpdates && wireUpdates.length > 0) {

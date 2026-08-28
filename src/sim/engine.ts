@@ -153,6 +153,23 @@ function lineToPhase(v: number): number {
   return Math.round(v / Math.sqrt(3));
 }
 
+function getTransformerSecondaryVoltage(xfDev?: Device): number {
+  if (!xfDev) return 120;
+  if (xfDev.params.secondaryVoltage !== undefined) return xfDev.params.secondaryVoltage;
+  if (xfDev.params.secondaryVolts) {
+    const v = Number(xfDev.params.secondaryVolts);
+    if (!isNaN(v) && v > 0) return v;
+  }
+  if (xfDev.params.ratio) {
+    const parts = xfDev.params.ratio.split("/");
+    if (parts.length >= 2) {
+      const v = Number(parts[1]);
+      if (!isNaN(v) && v > 0) return v;
+    }
+  }
+  return 120;
+}
+
 export function computeVoltage(
   potsA: Potential[],
   potsB: Potential[],
@@ -173,7 +190,7 @@ export function computeVoltage(
         ) {
           return baseV;
         }
-        // Line-to-Neutral (277V for 480V 3-phase system or transformer secondary 120V)
+        // Line-to-Neutral (277V for 480V 3-phase system or transformer secondary)
         if (
           (isHotKind(pa.kind) && pb.kind === "N") ||
           (pa.kind === "N" && isHotKind(pb.kind))
@@ -181,7 +198,7 @@ export function computeVoltage(
           if (pa.sourceId.startsWith("xf-") || pb.sourceId.startsWith("xf-")) {
             const xfId = (pa.sourceId.startsWith("xf-") ? pa.sourceId : pb.sourceId).replace("xf-", "");
             const xfDev = circuit?.devices.find((d) => d.id === xfId);
-            return xfDev?.params?.secondaryVolts ? Number(xfDev.params.secondaryVolts) : 120;
+            return getTransformerSecondaryVoltage(xfDev);
           }
           return lineToPhase(baseV);
         }
@@ -201,7 +218,7 @@ export function computeVoltage(
         if (pa.sourceId.startsWith("xf-") || pb.sourceId.startsWith("xf-")) {
           const xfId = (pa.sourceId.startsWith("xf-") ? pa.sourceId : pb.sourceId).replace("xf-", "");
           const xfDev = circuit?.devices.find((d) => d.id === xfId);
-          return xfDev?.params?.secondaryVolts ? Number(xfDev.params.secondaryVolts) : 120;
+          return getTransformerSecondaryVoltage(xfDev);
         }
         const srcId = isHotKind(pa.kind) ? pa.sourceId : pb.sourceId;
         const srcDev = circuit?.devices.find((d) => d.id === srcId);
@@ -215,7 +232,7 @@ export function computeVoltage(
       ) {
         const xfId = (pa.sourceId.startsWith("xf-") ? pa.sourceId : pb.sourceId).replace("xf-", "");
         const xfDev = circuit?.devices.find((d) => d.id === xfId);
-        return xfDev?.params?.secondaryVolts ? Number(xfDev.params.secondaryVolts) : 120;
+        return getTransformerSecondaryVoltage(xfDev);
       }
     }
   }

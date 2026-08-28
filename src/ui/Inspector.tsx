@@ -519,14 +519,100 @@ export function Inspector() {
         </label>
       )}
       {dev.kind === "transformer" && (
-        <label>
-          {t("inspector.ratio")}
-          <input
-            type="text"
-            value={dev.params.ratio ?? "480/120"}
-            onChange={(e) => useLab.getState().updateDevice(dev.id, { ratio: e.target.value })}
-          />
-        </label>
+        <>
+          <label>
+            <span>{t("inspector.primaryVolts")} ({dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480)}V)</span>
+            <div style={{ display: "flex", gap: "4px", margin: "4px 0", flexWrap: "wrap" }}>
+              {[120, 208, 240, 380, 480, 600].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`btn ${(dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480)) === v ? "primary" : ""}`}
+                  style={{ padding: "3px 7px", fontSize: "11px" }}
+                  onClick={() => {
+                    const sec = dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120);
+                    useLab.getState().updateDevice(dev.id, {
+                      params: {
+                        ...dev.params,
+                        primaryVoltage: v,
+                        primaryVolts: String(v),
+                        ratio: `${v}/${sec}`,
+                      },
+                    });
+                  }}
+                >
+                  {v}V
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min="10"
+              max="10000"
+              step="10"
+              value={dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480)}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                const v = !isNaN(val) && val > 0 ? val : 480;
+                const sec = dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120);
+                useLab.getState().updateDevice(dev.id, {
+                  params: {
+                    ...dev.params,
+                    primaryVoltage: v,
+                    primaryVolts: String(v),
+                    ratio: `${v}/${sec}`,
+                  },
+                });
+              }}
+            />
+          </label>
+          <label>
+            <span>{t("inspector.secondaryVolts")} ({dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120)}V)</span>
+            <div style={{ display: "flex", gap: "4px", margin: "4px 0", flexWrap: "wrap" }}>
+              {[12, 24, 48, 120, 208, 220, 240].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`btn ${(dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120)) === v ? "primary" : ""}`}
+                  style={{ padding: "3px 7px", fontSize: "11px" }}
+                  onClick={() => {
+                    const pri = dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480);
+                    useLab.getState().updateDevice(dev.id, {
+                      params: {
+                        ...dev.params,
+                        secondaryVoltage: v,
+                        secondaryVolts: String(v),
+                        ratio: `${pri}/${v}`,
+                      },
+                    });
+                  }}
+                >
+                  {v}V
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min="1"
+              max="10000"
+              step="1"
+              value={dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120)}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                const v = !isNaN(val) && val > 0 ? val : 120;
+                const pri = dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480);
+                useLab.getState().updateDevice(dev.id, {
+                  params: {
+                    ...dev.params,
+                    secondaryVoltage: v,
+                    secondaryVolts: String(v),
+                    ratio: `${pri}/${v}`,
+                  },
+                });
+              }}
+            />
+          </label>
+        </>
       )}
       {(dev.kind === "motor-3ph" ||
         dev.kind === "motor-1ph" ||

@@ -397,8 +397,10 @@ export function App() {
                 type="button"
                 className={`btn-icon mobile-header-btn ${mobilePaletteOpen ? "active" : ""}`}
                 onClick={() => {
-                  setMobilePaletteOpen(!mobilePaletteOpen);
+                  const next = !mobilePaletteOpen;
+                  setMobilePaletteOpen(next);
                   setMobileSideOpen(false);
+                  useLab.getState().setPaletteOpen(next);
                 }}
                 title={t("toolbar.palette")}
                 aria-label={t("toolbar.palette")}
@@ -409,8 +411,10 @@ export function App() {
                 type="button"
                 className={`btn-icon mobile-header-btn ${mobileSideOpen ? "active" : ""}`}
                 onClick={() => {
-                  setMobileSideOpen(!mobileSideOpen);
+                  const next = !mobileSideOpen;
+                  setMobileSideOpen(next);
                   setMobilePaletteOpen(false);
+                  useLab.getState().setSideOpen(next);
                 }}
                 title={t("toolbar.sidePanel")}
                 aria-label={t("toolbar.sidePanel")}
@@ -707,6 +711,8 @@ export function App() {
           onClick={() => {
             setMobilePaletteOpen(false);
             setMobileSideOpen(false);
+            useLab.getState().setPaletteOpen(false);
+            useLab.getState().setSideOpen(false);
           }}
           aria-hidden="true"
         />
@@ -717,7 +723,10 @@ export function App() {
         {isMobile ? (
           <Palette
             className={mobilePaletteOpen ? "open" : ""}
-            onClose={() => setMobilePaletteOpen(false)}
+            onClose={() => {
+              setMobilePaletteOpen(false);
+              useLab.getState().setPaletteOpen(false);
+            }}
           />
         ) : (
           paletteOpen && <Palette />
@@ -737,7 +746,10 @@ export function App() {
               <button
                 type="button"
                 className="panel-close-btn"
-                onClick={() => setMobileSideOpen(false)}
+                onClick={() => {
+                  setMobileSideOpen(false);
+                  useLab.getState().setSideOpen(false);
+                }}
                 title={t("toolbar.collapseRight")}
                 aria-label={t("toolbar.collapseRight")}
               >
@@ -770,16 +782,34 @@ export function App() {
           )
         )}
 
-        {/* Desktop panel toggles (hidden on mobile via CSS) */}
+        {/* Panel toggles for both desktop and small screens */}
         <TogglePanelButton
           direction="left"
-          isOpen={paletteOpen}
-          onClick={() => useLab.getState().togglePalette()}
+          isOpen={isMobile ? mobilePaletteOpen : paletteOpen}
+          onClick={() => {
+            if (isMobile) {
+              const next = !mobilePaletteOpen;
+              setMobilePaletteOpen(next);
+              if (next) setMobileSideOpen(false);
+              useLab.getState().setPaletteOpen(next);
+            } else {
+              useLab.getState().togglePalette();
+            }
+          }}
         />
         <TogglePanelButton
           direction="right"
-          isOpen={sideOpen}
-          onClick={() => useLab.getState().toggleSide()}
+          isOpen={isMobile ? mobileSideOpen : sideOpen}
+          onClick={() => {
+            if (isMobile) {
+              const next = !mobileSideOpen;
+              setMobileSideOpen(next);
+              if (next) setMobilePaletteOpen(false);
+              useLab.getState().setSideOpen(next);
+            } else {
+              useLab.getState().toggleSide();
+            }
+          }}
         />
       </div>
 

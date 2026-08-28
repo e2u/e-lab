@@ -1542,9 +1542,16 @@ function GlyphBody({
                     X2
                 </Txt>
 
-                <Txt x={cx} y={h * GRID - 4} textAnchor="middle" fontSize="16">
-                    {device.params.ratio ?? "480/120"}
-                </Txt>
+                {(() => {
+                    const priV = device.params.primaryVoltage ?? (device.params.primaryVolts ? Number(device.params.primaryVolts) : 480);
+                    const secV = device.params.secondaryVoltage ?? (device.params.secondaryVolts ? Number(device.params.secondaryVolts) : 120);
+                    const ratioText = device.params.ratio ?? `${priV}/${secV}`;
+                    return (
+                        <Txt x={cx} y={h * GRID - 4} textAnchor="middle" fontSize="16">
+                            {ratioText}
+                        </Txt>
+                    );
+                })()}
             </S>
         );
     }

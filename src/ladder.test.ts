@@ -1,5 +1,12 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { buildLadderDiagram, isContactClosed } from "./ladder/ladderLayout";
+import {
+  synthesizeAddParallelBranch,
+  synthesizeAddRung,
+  synthesizeDeleteElement,
+  synthesizeInsertContact,
+  synthesizeToggleContactVariant,
+} from "./ladder/ladderSynthesis";
 import { useLab } from "./store";
 import { emptySnapshot } from "./sim/engine";
 import type { Circuit } from "./types";
@@ -364,6 +371,207 @@ describe("Ladder Diagram System", () => {
       expect(t("ladder.leftRail")).toBeDefined();
       expect(t("ladder.rightRail")).toBeDefined();
       expect(t("ladder.rung")).toBeDefined();
+      expect(t("ladder.addRung")).toBeDefined();
+      expect(t("ladder.clickToAddRung")).toBeDefined();
+      expect(t("ladder.deleteRung")).toBeDefined();
+      expect(t("ladder.toggleVariant")).toBeDefined();
+      expect(t("ladder.addParallel")).toBeDefined();
+      expect(t("ladder.insertContact")).toBeDefined();
+      expect(t("ladder.deleteContact")).toBeDefined();
+      expect(t("ladder.deleteCoil")).toBeDefined();
+      expect(t("ladder.picker.addRungTitle")).toBeDefined();
+      expect(t("ladder.picker.inputSection")).toBeDefined();
+      expect(t("ladder.picker.outputSection")).toBeDefined();
+      expect(t("ladder.picker.cancel")).toBeDefined();
+      expect(t("ladder.picker.confirm")).toBeDefined();
+    });
+
+    it("should ensure English ladder translations contain no Chinese characters", () => {
+      useLab.setState({ lang: "en" });
+      const englishLadderKeys = [
+        "ladder.title",
+        "ladder.leftRail",
+        "ladder.rightRail",
+        "ladder.rung",
+        "ladder.addRung",
+        "ladder.clickToAddRung",
+        "ladder.deleteRung",
+        "ladder.toggleVariant",
+        "ladder.addParallel",
+        "ladder.insertContact",
+        "ladder.deleteContact",
+        "ladder.deleteCoil",
+        "ladder.picker.addRungTitle",
+        "ladder.picker.addParallelTitle",
+        "ladder.picker.insertContactTitle",
+        "ladder.picker.insertCoilTitle",
+        "ladder.picker.inputSection",
+        "ladder.picker.newContact",
+        "ladder.picker.existingContact",
+        "ladder.picker.contactKind",
+        "ladder.picker.selectDevice",
+        "ladder.picker.contactVariant",
+        "ladder.picker.auxNo",
+        "ladder.picker.auxNc",
+        "ladder.picker.overloadTrip",
+        "ladder.picker.outputSection",
+        "ladder.picker.newCoil",
+        "ladder.picker.existingCoil",
+        "ladder.picker.coilKind",
+        "ladder.picker.lampColor",
+        "ladder.picker.presetDelay",
+        "ladder.picker.selectCoilDevice",
+        "ladder.picker.cancel",
+        "ladder.picker.confirm",
+        "ladder.opt.pbNo",
+        "ladder.opt.pbNc",
+        "ladder.opt.estop",
+        "ladder.opt.toggle",
+        "ladder.opt.limitNo",
+        "ladder.opt.limitNc",
+        "ladder.opt.tempNo",
+        "ladder.opt.pressureNo",
+        "ladder.opt.float",
+        "ladder.opt.prox",
+        "ladder.opt.photo",
+        "ladder.opt.lamp",
+        "ladder.opt.contactor",
+        "ladder.opt.relay",
+        "ladder.opt.timerOn",
+        "ladder.opt.timerOff",
+        "ladder.opt.solenoid",
+        "ladder.opt.heater",
+        "ladder.opt.alarm",
+        "ladder.color.green",
+        "ladder.color.red",
+        "ladder.color.yellow",
+        "ladder.color.blue",
+        "ladder.color.white",
+        "ladder.color.amber",
+      ];
+
+      const chineseRegex = /[\u4e00-\u9fff]/;
+      for (const key of englishLadderKeys) {
+        const text = t(key);
+        expect(text, `Expected key '${key}' to be translated in English`).toBeDefined();
+        expect(chineseRegex.test(text), `Expected '${key}' ("${text}") not to contain Chinese characters in English`).toBe(false);
+      }
+    });
+  });
+
+  describe("Bidirectional Ladder Synthesis & Editing", () => {
+    it("should synthesize adding a new ladder rung with contact and coil", () => {
+      const baseCircuit: Circuit = {
+        devices: [
+          { id: "tc1", kind: "transformer", tag: "TC1", params: {} },
+        ],
+        symbols: [
+          { id: "s_tc1", deviceId: "tc1", variant: "body", x: 10, y: 10, rot: 0 },
+        ],
+        wires: [],
+      };
+
+      const { circuit: next, newSymbolIds } = synthesizeAddRung(baseCircuit, {
+        contact: { kind: "pb-no", tag: "SB_START" },
+        coil: { kind: "lamp", color: "green", tag: "HL_RUN" },
+      });
+
+      expect(newSymbolIds.length).toBe(2);
+      expect(next.symbols.length).toBe(3);
+      expect(next.devices.some((d) => d.tag === "SB_START")).toBe(true);
+      expect(next.devices.some((d) => d.tag === "HL_RUN")).toBe(true);
+      expect(next.wires.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("should synthesize inserting a series contact into an existing rung", () => {
+      const baseCircuit: Circuit = {
+        devices: [
+          { id: "sb1", kind: "pb-no", tag: "SB1", params: {} },
+          { id: "hl1", kind: "lamp", tag: "HL1", params: {} },
+        ],
+        symbols: [
+          { id: "s1", deviceId: "sb1", variant: "body", x: 10, y: 10, rot: 0 },
+          { id: "s2", deviceId: "hl1", variant: "body", x: 10, y: 16, rot: 0 },
+        ],
+        wires: [
+          { id: "w1", a: { symbolId: "s1", term: "2" }, b: { symbolId: "s2", term: "1" } },
+        ],
+      };
+
+      const { circuit: next, newSymbolId } = synthesizeInsertContact(baseCircuit, "s1", {
+        kind: "pb-nc",
+        tag: "SB_STOP",
+      });
+
+      expect(newSymbolId).toBeDefined();
+      expect(next.symbols.length).toBe(3);
+      expect(next.devices.some((d) => d.tag === "SB_STOP")).toBe(true);
+      expect(next.wires.length).toBe(2);
+    });
+
+    it("should synthesize adding a parallel seal-in contact branch across a target contact", () => {
+      const baseCircuit: Circuit = {
+        devices: [
+          { id: "sb1", kind: "pb-no", tag: "SB1", params: {} },
+          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
+        ],
+        symbols: [
+          { id: "s1", deviceId: "sb1", variant: "body", x: 10, y: 10, rot: 0 },
+          { id: "s2", deviceId: "km1", variant: "coil", x: 10, y: 16, rot: 0 },
+        ],
+        wires: [
+          { id: "w1", a: { symbolId: "s1", term: "2" }, b: { symbolId: "s2", term: "A1" } },
+        ],
+      };
+
+      const { circuit: next, newSymbolId } = synthesizeAddParallelBranch(baseCircuit, "s1", {
+        existingDeviceId: "km1",
+        variant: "aux-no",
+      });
+
+      expect(newSymbolId).toBeDefined();
+      expect(next.symbols.length).toBe(3);
+      expect(next.symbols.some((s) => s.deviceId === "km1" && s.variant === "aux-no")).toBe(true);
+      expect(next.wires.length).toBe(3);
+    });
+
+    it("should toggle contact variant between NO and NC correctly", () => {
+      const baseCircuit: Circuit = {
+        devices: [
+          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
+        ],
+        symbols: [
+          { id: "s1", deviceId: "km1", variant: "aux-no", x: 10, y: 10, rot: 0 },
+        ],
+        wires: [],
+      };
+
+      const toggled = synthesizeToggleContactVariant(baseCircuit, "s1");
+      expect(toggled.symbols[0].variant).toBe("aux-nc");
+
+      const toggledBack = synthesizeToggleContactVariant(toggled, "s1");
+      expect(toggledBack.symbols[0].variant).toBe("aux-no");
+    });
+
+    it("should delete an element cleanly and prune its wires", () => {
+      const baseCircuit: Circuit = {
+        devices: [
+          { id: "sb1", kind: "pb-no", tag: "SB1", params: {} },
+          { id: "hl1", kind: "lamp", tag: "HL1", params: {} },
+        ],
+        symbols: [
+          { id: "s1", deviceId: "sb1", variant: "body", x: 10, y: 10, rot: 0 },
+          { id: "s2", deviceId: "hl1", variant: "body", x: 10, y: 16, rot: 0 },
+        ],
+        wires: [
+          { id: "w1", a: { symbolId: "s1", term: "2" }, b: { symbolId: "s2", term: "1" } },
+        ],
+      };
+
+      const next = synthesizeDeleteElement(baseCircuit, "s1");
+      expect(next.symbols.length).toBe(1);
+      expect(next.devices.length).toBe(1);
+      expect(next.wires.length).toBe(0);
     });
   });
 });

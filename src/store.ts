@@ -499,7 +499,7 @@ export const useLab = create<LabState>((set, get) => ({
           : item.kind === "temp-no" || item.kind === "temp-nc"
             ? { setpoint: 60 }
             : item.kind === "transformer"
-              ? { ratio: "480/120" }
+              ? { primaryVoltage: 480, secondaryVoltage: 120, ratio: "480/120" }
               : item.kind === "mains-3ph"
                 ? { supplyType: item.variant === "delta" ? "delta" : "wye", voltage: 480, maxCurrent: 400 }
                 : item.kind === "motor-3ph" ||

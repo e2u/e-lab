@@ -295,13 +295,20 @@ export function buildLadderDiagram(
   // 2.5 Build Independent Control Power Transformer Branch (if present)
   let transformerBranch: LadderTransformerBranch | undefined = undefined;
   if (transformer) {
+    const priV = transformer.params.primaryVoltage ??
+      (transformer.params.primaryVolts ? Number(transformer.params.primaryVolts) :
+        (transformer.params.ratio ? Number(transformer.params.ratio.split("/")[0]) : (mains?.params.voltage ?? 480)));
+    const secV = transformer.params.secondaryVoltage ??
+      (transformer.params.secondaryVolts ? Number(transformer.params.secondaryVolts) :
+        (transformer.params.ratio ? Number(transformer.params.ratio.split("/")[1]) : 120));
+
     transformerBranch = {
       id: "cpt_branch",
       title: "CONTROL POWER TRANSFORMER (CPT) - STEP-DOWN SUPPLY",
       transformer,
       mains,
-      primaryVoltage: mains?.params.voltage ?? 480,
-      secondaryVoltage: 120,
+      primaryVoltage: isNaN(priV) ? 480 : priV,
+      secondaryVoltage: isNaN(secV) ? 120 : secV,
       fuses,
       ground,
       isEnergized: snapshot.runtime[transformer.id]?.energized ?? true,

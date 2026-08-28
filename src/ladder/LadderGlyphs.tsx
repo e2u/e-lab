@@ -1,6 +1,7 @@
 import React from "react";
 import type { LadderCoilElement, LadderContactElement, LadderPowerBranch, LadderTransformerBranch } from "./ladderTypes";
 import { interact } from "../ui/schematic/interact";
+import { t } from "../i18n";
 
 interface ContactGlyphProps {
   element: LadderContactElement;
@@ -9,7 +10,13 @@ interface ContactGlyphProps {
   width?: number;
   isRungLive?: boolean;
   mode?: "edit" | "run";
+  isSelected?: boolean;
   onInteract?: (deviceKind: string, deviceId: string, down: boolean) => void;
+  onSelect?: (symbolId: string, deviceId: string) => void;
+  onToggleVariant?: (symbolId: string) => void;
+  onInsertContact?: (symbolId: string) => void;
+  onAddParallel?: (symbolId: string) => void;
+  onDelete?: (symbolId: string) => void;
 }
 
 export function LadderContactGlyph({
@@ -19,7 +26,13 @@ export function LadderContactGlyph({
   width = 90,
   isRungLive = false,
   mode = "edit",
+  isSelected = false,
   onInteract,
+  onSelect,
+  onToggleVariant,
+  onInsertContact,
+  onAddParallel,
+  onDelete,
 }: ContactGlyphProps) {
   const { device, contactType, label, address, isClosed } = element;
   const isInteractive =
@@ -693,16 +706,112 @@ export function LadderContactGlyph({
 
   const tagY = isPb || isEstop ? y - 24 : isPressure || isLevel || isTemp || isFlow ? y - 22 : isLimit || isToggle ? y - 22 : y - 20;
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (mode === "edit") {
+      e.stopPropagation();
+      onSelect?.(element.symbolId || "", element.deviceId);
+    }
+  };
+
   return (
     <g
-      className={`ladder-contact ${isInteractive ? "interactive" : ""}`}
+      className={`ladder-contact ${isInteractive ? "interactive" : ""} ${isSelected ? "selected" : ""}`}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
-      style={{ cursor: isInteractive ? "pointer" : "default" }}
+      onClick={handleClick}
+      style={{ cursor: mode === "edit" || isInteractive ? "pointer" : "default" }}
     >
+      {/* Selection Halo in Edit Mode */}
+      {isSelected && mode === "edit" && (
+        <rect
+          x={cx - 28}
+          y={y - 28}
+          width={56}
+          height={56}
+          rx={6}
+          fill="rgba(245, 158, 11, 0.12)"
+          stroke="#f59e0b"
+          strokeWidth="2"
+          strokeDasharray="4 2"
+        />
+      )}
+
+      {/* Quick Action Floating Bar above Contact in Edit Mode when selected */}
+      {isSelected && mode === "edit" && (
+        <g className="ladder-quick-actions" transform={`translate(${cx}, ${y - 48})`}>
+          <rect
+            x="-56"
+            y="-12"
+            width="112"
+            height="24"
+            rx="12"
+            fill="#0f172a"
+            stroke="#f59e0b"
+            strokeWidth="1.5"
+            filter="drop-shadow(0 2px 8px rgba(0,0,0,0.4))"
+          />
+          {/* Toggle NO/NC */}
+          <g
+            style={{ cursor: "pointer" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleVariant?.(element.symbolId || "");
+            }}
+          >
+            <title>{t("ladder.toggleVariant")}</title>
+            <circle cx="-38" cy="0" r="8.5" fill="#1e293b" stroke="#64748b" strokeWidth="1" />
+            <text x="-38" y="3.5" textAnchor="middle" fontSize="10" fontWeight="800" fill="#f59e0b">
+              ⇄
+            </text>
+          </g>
+          {/* Add Parallel Branch */}
+          <g
+            style={{ cursor: "pointer" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddParallel?.(element.symbolId || "");
+            }}
+          >
+            <title>{t("ladder.addParallel")}</title>
+            <circle cx="-13" cy="0" r="8.5" fill="#1e293b" stroke="#64748b" strokeWidth="1" />
+            <text x="-13" y="3.5" textAnchor="middle" fontSize="10" fontWeight="800" fill="#10b981">
+              ⤹
+            </text>
+          </g>
+          {/* Insert Contact */}
+          <g
+            style={{ cursor: "pointer" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onInsertContact?.(element.symbolId || "");
+            }}
+          >
+            <title>{t("ladder.insertContact")}</title>
+            <circle cx="12" cy="0" r="8.5" fill="#1e293b" stroke="#64748b" strokeWidth="1" />
+            <text x="12" y="3.5" textAnchor="middle" fontSize="10" fontWeight="800" fill="#3b82f6">
+              ➕
+            </text>
+          </g>
+          {/* Delete Element */}
+          <g
+            style={{ cursor: "pointer" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(element.symbolId || "");
+            }}
+          >
+            <title>{t("ladder.deleteContact")}</title>
+            <circle cx="37" cy="0" r="8.5" fill="#1e293b" stroke="#ef4444" strokeWidth="1" />
+            <text x="37" y="3.5" textAnchor="middle" fontSize="10" fontWeight="800" fill="#ef4444">
+              🗑
+            </text>
+          </g>
+        </g>
+      )}
+
       {/* Invisible hit area for easier clicking on mobile/touch */}
-      {isInteractive && (
+      {(mode === "edit" || isInteractive) && (
         <rect
           x={x}
           y={y - 25}
@@ -741,8 +850,8 @@ export function LadderContactGlyph({
         y={tagY}
         textAnchor="middle"
         fontSize="11.5"
-        fontWeight="700"
-        fill="var(--ladder-tag, #0f172a)"
+        fontWeight={isSelected ? "800" : "700"}
+        fill={isSelected ? "#b45309" : "var(--ladder-tag, #0f172a)"}
       >
         {label}
       </text>
@@ -770,6 +879,10 @@ interface CoilGlyphProps {
   y: number;
   width?: number;
   isRungLive?: boolean;
+  mode?: "edit" | "run";
+  isSelected?: boolean;
+  onSelect?: (symbolId: string, deviceId: string) => void;
+  onDelete?: (symbolId: string) => void;
 }
 
 export function LadderCoilGlyph({
@@ -778,6 +891,10 @@ export function LadderCoilGlyph({
   y,
   width = 110,
   isRungLive = false,
+  mode = "edit",
+  isSelected = false,
+  onSelect,
+  onDelete,
 }: CoilGlyphProps) {
   const { label, address, isClosed, coilType, crossRefs, device } = element;
   const isEnergized = isClosed || isRungLive;
@@ -857,8 +974,65 @@ export function LadderCoilGlyph({
     }
   }
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (mode === "edit") {
+      e.stopPropagation();
+      onSelect?.(element.symbolId || "", element.deviceId);
+    }
+  };
+
   return (
-    <g className="ladder-coil" style={{ filter: glowShadow }}>
+    <g
+      className={`ladder-coil ${isSelected ? "selected" : ""}`}
+      style={{ filter: glowShadow, cursor: mode === "edit" ? "pointer" : "default" }}
+      onClick={handleClick}
+    >
+      {/* Selection Halo in Edit Mode */}
+      {isSelected && mode === "edit" && (
+        <rect
+          x={cx - 26}
+          y={y - 26}
+          width={52}
+          height={52}
+          rx={8}
+          fill="rgba(245, 158, 11, 0.12)"
+          stroke="#f59e0b"
+          strokeWidth="2"
+          strokeDasharray="4 2"
+        />
+      )}
+
+      {/* Quick Action Floating Bar for Coil */}
+      {isSelected && mode === "edit" && (
+        <g className="ladder-quick-actions" transform={`translate(${cx}, ${y - 40})`}>
+          <rect
+            x="-20"
+            y="-10"
+            width="40"
+            height="20"
+            rx="10"
+            fill="#0f172a"
+            stroke="#f59e0b"
+            strokeWidth="1.5"
+            filter="drop-shadow(0 2px 8px rgba(0,0,0,0.4))"
+          />
+          {/* Delete Button */}
+          <g
+            style={{ cursor: "pointer" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(element.symbolId || "");
+            }}
+          >
+            <title>{t("ladder.deleteCoil")}</title>
+            <circle cx="0" cy="0" r="7.5" fill="#1e293b" stroke="#ef4444" strokeWidth="1" />
+            <text x="0" y="3.5" textAnchor="middle" fontSize="9.5" fontWeight="800" fill="#ef4444">
+              🗑
+            </text>
+          </g>
+        </g>
+      )}
+
       {/* Left Infeed Line */}
       <line
         x1={x}
@@ -1079,6 +1253,8 @@ interface PowerSectionProps {
   y: number;
   width: number;
   mode?: "edit" | "run";
+  selectedDeviceId?: string;
+  onSelectDevice?: (deviceId: string) => void;
 }
 
 export function LadderPowerSection({
@@ -1087,6 +1263,8 @@ export function LadderPowerSection({
   y,
   width,
   mode = "edit",
+  selectedDeviceId,
+  onSelectDevice,
 }: PowerSectionProps) {
   const {
     title,
@@ -1215,9 +1393,31 @@ export function LadderPowerSection({
       {disconnect && (
         <g
           transform={`translate(${disconnectX}, ${busY1})`}
-          onClick={handleDisconnectToggle}
-          style={{ cursor: mode === "run" ? "pointer" : "default" }}
+          onClick={(e) => {
+            if (mode === "edit") {
+              e.stopPropagation();
+              onSelectDevice?.(disconnect.id);
+            } else {
+              handleDisconnectToggle(e);
+            }
+          }}
+          style={{ cursor: "pointer" }}
         >
+          {/* Selection Halo in Edit Mode */}
+          {mode === "edit" && selectedDeviceId === disconnect.id && (
+            <rect
+              x="-8"
+              y="-28"
+              width="40"
+              height={lineSpacing * 2 + 40}
+              rx="6"
+              fill="rgba(245, 158, 11, 0.12)"
+              stroke="#f59e0b"
+              strokeWidth="2"
+              strokeDasharray="4 2"
+            />
+          )}
+
           {/* L1 Knife Switch */}
           <circle cx="0" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
           <line x1="0" y1="0" x2="18" y2="-10" stroke="var(--ladder-ink, #334155)" strokeWidth="2.6" strokeLinecap="round" />
@@ -1238,7 +1438,14 @@ export function LadderPowerSection({
           <rect x="5" y="-17" width="8" height="6" rx="1.5" fill="#3b82f6" />
 
           {/* Tag */}
-          <text x="12" y="-14" textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--ladder-tag, #0f172a)">
+          <text
+            x="12"
+            y="-14"
+            textAnchor="middle"
+            fontSize="10"
+            fontWeight={mode === "edit" && selectedDeviceId === disconnect.id ? "800" : "700"}
+            fill={mode === "edit" && selectedDeviceId === disconnect.id ? "#b45309" : "var(--ladder-tag, #0f172a)"}
+          >
             {disconnect.tag && disconnect.tag.length > 14 ? "Disconnect" : disconnect.tag || "Disconnect"}
           </text>
         </g>
@@ -1248,9 +1455,31 @@ export function LadderPowerSection({
       {breaker && (
         <g
           transform={`translate(${breakerX}, ${busY1})`}
-          onClick={handleBreakerToggle}
-          style={{ cursor: mode === "run" ? "pointer" : "default" }}
+          onClick={(e) => {
+            if (mode === "edit") {
+              e.stopPropagation();
+              onSelectDevice?.(breaker.id);
+            } else {
+              handleBreakerToggle(e);
+            }
+          }}
+          style={{ cursor: "pointer" }}
         >
+          {/* Selection Halo in Edit Mode */}
+          {mode === "edit" && selectedDeviceId === breaker.id && (
+            <rect
+              x="-8"
+              y="-28"
+              width="62"
+              height={lineSpacing * 2 + 40}
+              rx="6"
+              fill="rgba(245, 158, 11, 0.12)"
+              stroke="#f59e0b"
+              strokeWidth="2"
+              strokeDasharray="4 2"
+            />
+          )}
+
           {/* L1 Breaker Contact + Thermal Curve + Magnetic Notch */}
           <circle cx="0" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
           <line x1="0" y1="0" x2="16" y2="-9" stroke="var(--ladder-ink, #334155)" strokeWidth="2.6" strokeLinecap="round" />
@@ -1278,7 +1507,14 @@ export function LadderPowerSection({
           <line x1="8" y1="-12" x2="8" y2={lineSpacing * 2} stroke="#3b82f6" strokeWidth="1.6" strokeDasharray="3 2" />
 
           {/* Tag */}
-          <text x="23" y="-14" textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--ladder-tag, #0f172a)">
+          <text
+            x="23"
+            y="-14"
+            textAnchor="middle"
+            fontSize="10"
+            fontWeight={mode === "edit" && selectedDeviceId === breaker.id ? "800" : "700"}
+            fill={mode === "edit" && selectedDeviceId === breaker.id ? "#b45309" : "var(--ladder-tag, #0f172a)"}
+          >
             {breaker.tag && breaker.tag.length > 14 ? "CB1" : breaker.tag || "CB1"}
           </text>
         </g>
@@ -1286,7 +1522,31 @@ export function LadderPowerSection({
 
       {/* 3. 3-Phase Fuses (if present) */}
       {fuses && (
-        <g transform={`translate(${fusesX}, ${busY1})`}>
+        <g
+          transform={`translate(${fusesX}, ${busY1})`}
+          onClick={(e) => {
+            if (mode === "edit") {
+              e.stopPropagation();
+              onSelectDevice?.(fuses.id);
+            }
+          }}
+          style={{ cursor: mode === "edit" ? "pointer" : "default" }}
+        >
+          {/* Selection Halo in Edit Mode */}
+          {mode === "edit" && selectedDeviceId === fuses.id && (
+            <rect
+              x="-6"
+              y="-26"
+              width="34"
+              height={lineSpacing * 2 + 38}
+              rx="6"
+              fill="rgba(245, 158, 11, 0.12)"
+              stroke="#f59e0b"
+              strokeWidth="2"
+              strokeDasharray="4 2"
+            />
+          )}
+
           <rect x="0" y="-6" width="22" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="1.8" />
           <line x1="11" y1="-6" x2="11" y2="6" stroke="var(--ladder-ink, #334155)" strokeWidth="1.5" />
 
@@ -1296,14 +1556,45 @@ export function LadderPowerSection({
           <rect x="0" y={lineSpacing * 2 - 6} width="22" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="1.8" />
           <line x1="11" y1={lineSpacing * 2 - 6} x2="11" y2={lineSpacing * 2 + 6} stroke="var(--ladder-ink, #334155)" strokeWidth="1.5" />
 
-          <text x="11" y="-14" textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--ladder-tag, #0f172a)">
+          <text
+            x="11"
+            y="-14"
+            textAnchor="middle"
+            fontSize="10"
+            fontWeight={mode === "edit" && selectedDeviceId === fuses.id ? "800" : "700"}
+            fill={mode === "edit" && selectedDeviceId === fuses.id ? "#b45309" : "var(--ladder-tag, #0f172a)"}
+          >
             {fuses.tag || "FU1"}
           </text>
         </g>
       )}
 
       {/* 4. Contactor Main Contacts (3-Pole) */}
-      <g transform={`translate(${contactorX}, ${busY1})`}>
+      <g
+        transform={`translate(${contactorX}, ${busY1})`}
+        onClick={(e) => {
+          if (mode === "edit" && contactor) {
+            e.stopPropagation();
+            onSelectDevice?.(contactor.id);
+          }
+        }}
+        style={{ cursor: mode === "edit" ? "pointer" : "default" }}
+      >
+        {/* Selection Halo in Edit Mode */}
+        {mode === "edit" && contactor && selectedDeviceId === contactor.id && (
+          <rect
+            x="-8"
+            y="-28"
+            width="38"
+            height={lineSpacing * 2 + 40}
+            rx="6"
+            fill="rgba(245, 158, 11, 0.12)"
+            stroke="#f59e0b"
+            strokeWidth="2"
+            strokeDasharray="4 2"
+          />
+        )}
+
         {/* L1 Contact */}
         <circle cx="0" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
         <line
@@ -1347,7 +1638,14 @@ export function LadderPowerSection({
         <line x1="8" y1="-12" x2="8" y2={lineSpacing * 2} stroke="#3b82f6" strokeWidth="1.6" strokeDasharray="3 2" />
 
         {/* Tag */}
-        <text x="11" y="-14" textAnchor="middle" fontSize="10.5" fontWeight="800" fill="var(--ladder-tag, #0f172a)">
+        <text
+          x="11"
+          y="-14"
+          textAnchor="middle"
+          fontSize="10.5"
+          fontWeight={mode === "edit" && contactor && selectedDeviceId === contactor.id ? "800" : "700"}
+          fill={mode === "edit" && contactor && selectedDeviceId === contactor.id ? "#b45309" : "var(--ladder-tag, #0f172a)"}
+        >
           {contactor?.tag || "KM1"} (Main)
         </text>
       </g>
@@ -1355,9 +1653,31 @@ export function LadderPowerSection({
       {/* 6. Thermal Overload Relay Element (NEMA Large Interlocking S-curves) */}
       <g
         transform={`translate(${overloadX}, ${busY1})`}
-        onClick={handleOverloadToggle}
-        style={{ cursor: mode === "run" ? "pointer" : "default" }}
+        onClick={(e) => {
+          if (mode === "edit" && overload) {
+            e.stopPropagation();
+            onSelectDevice?.(overload.id);
+          } else {
+            handleOverloadToggle(e);
+          }
+        }}
+        style={{ cursor: "pointer" }}
       >
+        {/* Selection Halo in Edit Mode */}
+        {mode === "edit" && overload && selectedDeviceId === overload.id && (
+          <rect
+            x="-8"
+            y="-28"
+            width="52"
+            height={lineSpacing * 2 + 58}
+            rx="6"
+            fill="rgba(245, 158, 11, 0.12)"
+            stroke="#f59e0b"
+            strokeWidth="2"
+            strokeDasharray="4 2"
+          />
+        )}
+
         {/* L1 Overload Interlocking S-curves */}
         <path d="M 0 0 C 6 -8, 12 -8, 18 0 C 24 8, 30 8, 36 0" fill="none" stroke="#dc2626" strokeWidth="2.8" strokeLinecap="round" />
         <path d="M 9 0 C 15 8, 21 8, 27 0" fill="none" stroke="#dc2626" strokeWidth="2.8" strokeLinecap="round" />
@@ -1377,13 +1697,41 @@ export function LadderPowerSection({
         </text>
 
         {/* Tag */}
-        <text x="18" y="-14" textAnchor="middle" fontSize="10.5" fontWeight="800" fill="#dc2626">
+        <text
+          x="18"
+          y="-14"
+          textAnchor="middle"
+          fontSize="10.5"
+          fontWeight={mode === "edit" && overload && selectedDeviceId === overload.id ? "800" : "700"}
+          fill={mode === "edit" && overload && selectedDeviceId === overload.id ? "#b45309" : "#dc2626"}
+        >
           {overload?.tag || "FR1"} (O.L.)
         </text>
       </g>
 
       {/* 7. 3-Phase Induction Motor (Large Industrial Standard) */}
-      <g transform={`translate(${motorCx}, ${motorCy})`}>
+      <g
+        transform={`translate(${motorCx}, ${motorCy})`}
+        onClick={(e) => {
+          if (mode === "edit" && motor) {
+            e.stopPropagation();
+            onSelectDevice?.(motor.id);
+          }
+        }}
+        style={{ cursor: mode === "edit" ? "pointer" : "default" }}
+      >
+        {/* Selection Halo in Edit Mode */}
+        {mode === "edit" && motor && selectedDeviceId === motor.id && (
+          <circle
+            cx="0"
+            cy="0"
+            r="38"
+            fill="rgba(245, 158, 11, 0.12)"
+            stroke="#f59e0b"
+            strokeWidth="2"
+            strokeDasharray="4 2"
+          />
+        )}
         {/* Terminal Lead Connections */}
         <line x1="-32" y1={-lineSpacing} x2="-22" y2={-lineSpacing + 8} stroke={busColor1} strokeWidth="2.4" />
         <text x="-36" y={-lineSpacing + 4} textAnchor="end" fontSize="8.5" fontWeight="700" fill="#dc2626">T1</text>
@@ -1453,6 +1801,9 @@ interface TransformerSectionProps {
   x: number;
   y: number;
   width: number;
+  mode?: "edit" | "run";
+  selectedDeviceId?: string;
+  onSelectDevice?: (deviceId: string) => void;
 }
 
 export function LadderTransformerSection({
@@ -1460,6 +1811,9 @@ export function LadderTransformerSection({
   x,
   y,
   width,
+  mode = "edit",
+  selectedDeviceId,
+  onSelectDevice,
 }: TransformerSectionProps) {
   const {
     title,
@@ -1543,7 +1897,31 @@ export function LadderTransformerSection({
       </g>
 
       {/* Transformer Dual Circles & Core (TC1) */}
-      <g transform={`translate(${xformCx}, ${xformCy})`}>
+      <g
+        transform={`translate(${xformCx}, ${xformCy})`}
+        onClick={(e) => {
+          if (mode === "edit" && transformer) {
+            e.stopPropagation();
+            onSelectDevice?.(transformer.id);
+          }
+        }}
+        style={{ cursor: mode === "edit" ? "pointer" : "default" }}
+      >
+        {/* Selection Halo in Edit Mode */}
+        {mode === "edit" && transformer && selectedDeviceId === transformer.id && (
+          <rect
+            x="-52"
+            y="-42"
+            width="104"
+            height="84"
+            rx="8"
+            fill="rgba(245, 158, 11, 0.12)"
+            stroke="#f59e0b"
+            strokeWidth="2"
+            strokeDasharray="4 2"
+          />
+        )}
+
         {/* Primary Coils (Left) */}
         <circle cx="-13" cy="0" r="15" fill="none" stroke="var(--ladder-ink, #334155)" strokeWidth="2.4" />
         {/* Secondary Coils (Right) */}
@@ -1571,8 +1949,24 @@ export function LadderTransformerSection({
         <text x="26" y={lineY2 - xformCy + 14} textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#1e40af">X2</text>
 
         {/* Transformer Tag & Info Badge */}
-        <rect x="-45" y="-35" width="90" height="17" rx="3.5" fill="var(--ladder-paper, #ffffff)" stroke="#b45309" strokeWidth="1" />
-        <text x="0" y="-23" textAnchor="middle" fontSize="9.5" fontWeight="800" fill="#b45309">
+        <rect
+          x="-45"
+          y="-35"
+          width="90"
+          height="17"
+          rx="3.5"
+          fill="var(--ladder-paper, #ffffff)"
+          stroke={mode === "edit" && selectedDeviceId === transformer.id ? "#f59e0b" : "#b45309"}
+          strokeWidth={mode === "edit" && selectedDeviceId === transformer.id ? "2" : "1"}
+        />
+        <text
+          x="0"
+          y="-23"
+          textAnchor="middle"
+          fontSize="9.5"
+          fontWeight="800"
+          fill={mode === "edit" && selectedDeviceId === transformer.id ? "#b45309" : "#b45309"}
+        >
           {transformer.tag || "TC1"} ({primaryVoltage}/{secondaryVoltage}V)
         </text>
       </g>

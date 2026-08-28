@@ -100,6 +100,8 @@ export interface DeviceParams {
   preset?: number;
   setpoint?: number;
   ratio?: string;
+  primaryVoltage?: number;
+  secondaryVoltage?: number;
   primaryVolts?: string;
   secondaryVolts?: string;
   primaryConn?: "delta" | "wye";

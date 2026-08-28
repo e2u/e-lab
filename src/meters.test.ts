@@ -77,6 +77,25 @@ describe("Meters & Historical Curves", () => {
       expect(computeVoltage(potsA, potsB)).toBe(120);
     });
 
+    it("should calculate custom secondary voltage (e.g. 24V, 220V) for transformer", () => {
+      const circuit: Circuit = {
+        devices: [
+          { id: "tr24", kind: "transformer", tag: "TC1", params: { primaryVoltage: 480, secondaryVoltage: 24 } },
+          { id: "tr220", kind: "transformer", tag: "TC2", params: { primaryVoltage: 380, secondaryVoltage: 220 } },
+        ],
+        symbols: [],
+        wires: [],
+      };
+
+      const pots24A: Potential[] = [{ kind: "L1", sourceId: "xf-tr24" }];
+      const pots24B: Potential[] = [{ kind: "N", sourceId: "xf-tr24" }];
+      expect(computeVoltage(pots24A, pots24B, circuit)).toBe(24);
+
+      const pots220A: Potential[] = [{ kind: "L1", sourceId: "xf-tr220" }];
+      const pots220B: Potential[] = [{ kind: "N", sourceId: "xf-tr220" }];
+      expect(computeVoltage(pots220A, pots220B, circuit)).toBe(220);
+    });
+
     it("should simulate a live voltmeter in a circuit", () => {
       const circuit: Circuit = {
         devices: [

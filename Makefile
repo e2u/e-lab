@@ -44,28 +44,9 @@ test:
 	@yarn test
 
 deploy: build
-	@echo "Deploying to GitHub Pages..."
-	@if [ -z "$(GITHUB_REPOSITORY)" ]; then \
-		echo "Error: GITHUB_REPOSITORY must be set"; \
-		echo "Example: make deploy GITHUB_REPOSITORY=e2u/e-lab"; \
-		exit 1; \
-	fi
-	@REPO_NAME=$$(echo $(GITHUB_REPOSITORY) | cut -d'/' -f2); \
-	BASE_PATH="/$${REPO_NAME}/"; \
-	echo "Building with base path: $$BASE_PATH..."; \
-	GITHUB_REPOSITORY=$$(echo $(GITHUB_REPOSITORY)) NODE_ENV=production npm run build; \
-	echo "Deployment configuration:"; \
-	echo "  Repository: $(GITHUB_REPOSITORY)"; \
-	echo "  Base Path: $$BASE_PATH"; \
-	echo ""; \
-	echo "Next steps:"; \
-	echo "1. Go to https://github.com/$(GITHUB_REPOSITORY)/settings/pages"; \
-	echo "2. Under 'Source', select 'Deploy from a branch'"; \
-	echo "3. Select branch: gh-pages, folder: / (root)"; \
-	echo "4. Click Save"; \
-	echo ""; \
-	echo "After saving, your site will be available at:"; \
-	echo "  https://$(GITHUB_USER).github.io/$${REPO_NAME}/"
+	@echo "Deployment to GitHub Pages is automated via GitHub Actions."
+	@echo "Simply push or merge your changes to the 'main' branch:"
+	@echo "  git checkout main && git merge dev && git push origin main"
 
 clean:
 	@echo "Cleaning build artifacts..."

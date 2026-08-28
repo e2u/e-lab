@@ -157,42 +157,77 @@ make test
 ```plain text
 src/
   ├── sim/                  # Simulation engine / 仿真引擎 (Union-Find, potential, dynamic states)
+  │   ├── engine.ts         # Electrical graph solver & meter calculations / 節點求解與物理量測計算
+  │   └── engine.test.ts    # Simulation engine unit tests / 仿真引擎單元測試
+  ├── ladder/               # Industrial Ladder diagram engine / 工控梯形圖模組
+  │   ├── ladderTypes.ts    # Ladder data model / 梯形圖數據模型
+  │   ├── ladderLayout.ts   # DFS netlist graph pathfinder & rung layout / 網絡圖拓撲分析與階梯行生成
+  │   ├── LadderGlyphs.tsx  # NEMA/JIC industrial standard ladder glyphs / 標準梯形圖圖元
+  │   ├── LadderItemPickerModal.tsx # Component insertion modal / 接點與線圈插入彈窗
+  │   └── ladderSynthesis.ts # Bidirectional circuit synthesis / 雙向電路合成與佈線
+  ├── tutorial/             # Interactive onboarding tutorial / 互動新手指引系統
+  │   ├── types.ts          # Step & circuit definitions / 引導步驟與階段型別
+  │   ├── tutorialData.ts   # PC & Mobile step data & dictionary / PC 與移動端引導數據
+  │   ├── stageCircuits.ts  # Demo circuits for each step / 各階段電路演示數據
+  │   └── TutorialOverlay.tsx # Spotlight highlight & guide cards / 聚焦點遮罩與步驟卡片
+  ├── examples/             # Built-in examples / 內建工控範例 (JSON circuits & loaders)
+  │   ├── list.json         # Example metadata list / 範例清單配置
+  │   ├── index.ts          # Dynamic example loader / 動態範例載入器
+  │   └── *.json            # Circuit JSON files (Blank, Transformer, 3Φ Motor) / 範例電路檔
   ├── ui/                   # UI components & Layered canvas / UI 組件與分層畫布
-  │   ├── schematic/        # Layered canvas / 分層畫布 (WireLayer, SymbolLayer, PortLayer, Ruler)
-  │   ├── Palette.tsx       # Component palette / 左側元件庫
+  │   ├── schematic/        # Layered schematic canvas / 原理圖分層畫布架構
+  │   │   ├── layers/       # Rendering layers / 獨立渲染圖層 (WireLayer, SymbolLayer, PortLayer, etc.)
+  │   │   ├── useSchematicEvents.ts # Pointer events, gestures & rAF throttling / 指針事件與手勢
+  │   │   ├── interact.ts   # Runtime device interaction & haptics / 運行模式互動與觸覺回饋
+  │   │   └── Ruler.tsx     # Precision canvas edge rulers / 畫布邊緣工規標尺
+  │   ├── Schematic.tsx     # Schematic canvas root container / 原理圖主容器
+  │   ├── LadderSchematic.tsx # Ladder diagram canvas & rung drag-drop / 梯形圖畫布與拖曳重排
+  │   ├── Palette.tsx       # Component palette drawer / 左側元件庫
   │   ├── Inspector.tsx     # Property inspector / 右側屬性檢查器
   │   ├── Bench.tsx         # Motor & meter workbench / 運行工作台
-  │   ├── FloatingActionBar.tsx # Mobile quick action bar / 行動端浮動工具列
-  │   ├── PrintModal.tsx    # Print preview modal / 列印預覽彈窗
-  │   └── MeterHistoryChart.tsx # Waveform chart / 儀表歷史趨勢圖
-  ├── tutorial/             # Interactive onboarding tutorial / 互動新手指引系統
-  ├── catalog.ts            # Component catalog & terminal definitions / 元件目錄與端子定義
-  ├── geometry.ts           # Orthogonal routing & collision detection / 正交佈線與幾何計算
+  │   ├── FloatingActionBar.tsx # Mobile quick action bar / 行動端浮動快捷工具列
+  │   ├── PrintModal.tsx    # Print options & preview modal / 列印選項與預覽彈窗
+  │   ├── MeterHistoryChart.tsx # Waveform trend chart & stats / 儀表歷史波形趨勢圖
+  │   ├── MobileMenuModal.tsx # Mobile full-feature menu sheet / 行動端功能選單抽屜
+  │   ├── FilesMenu.tsx     # Topbar files dropdown menu / 檔案管理下拉選單
+  │   ├── DiscardModal.tsx  # Unsaved changes confirmation / 未保存變更確認彈窗
+  │   └── TogglePanelButton.tsx # Collapsible sidebar toggle button / 側邊欄展開收起按鈕
+  ├── catalog.ts            # Component catalog & 2-grid terminal standards / 元件目錄與端子定義
+  ├── Glyphs.tsx            # Schematic SVG component glyphs / 原理圖 SVG 元件圖形繪製
+  ├── geometry.ts           # Orthogonal routing, lane allocation & hops / 正交佈線、空間分軌與跨線檢測
   ├── tagPlacement.ts       # Symbol tag positioning calculations / 元件標籤位置計算
   ├── groups.ts             # Group alignment, distribution & colors / 群組對齊與等間距分佈
-  ├── print.ts              # Auto-crop bounds calculation / 列印包圍盒計算
-  ├── store.ts              # Zustand global state center / 全局狀態中心
+  ├── print.ts              # Auto-crop content bounds algorithm / 列印內容包圍盒自動裁剪算法
+  ├── persist.ts            # Local storage, validation & URL hash / 本地持久化、結構校驗與 URL 分享
+  ├── store.ts              # Zustand state center (isDirty, zoom, undo stack) / 全局狀態中心
   ├── types.ts              # Global TypeScript interfaces / 全局型別定義
-  ├── i18n.ts               # Internationalization catalog (ZH/EN) / 雙語國際化字典
-  ├── App.tsx               # App shell & top navigation / 應用主殼層與頂部導航
-  └── styles.css            # Responsive layout & theme styles / 響應式佈局與主題樣式
+  ├── i18n.ts               # Bilingual dictionary (ZH/EN 100% coverage) / 雙語國際化字典
+  ├── App.tsx               # App shell, responsive layout & hotkeys / 應用主殼層與頂部導航
+  └── styles.css            # Responsive styles & light/dark themes / 響應式佈局與深淺雙主題
 ```
 
 ---
 
 ## 🌐 Deployment / 部署到 GitHub Pages
 
-1. **Configure GitHub Pages / 配置 GitHub Pages**:
-   - Navigate to repository `Settings > Pages`
-   - Source: `Deploy from a branch`
-   - Branch: `gh-pages`, Folder: `/ (root)`
-   - Click **Save**
+This project is automatically built and deployed to GitHub Pages via **GitHub Actions** (`.github/workflows/deploy.yml`) upon pushing or merging into the `main` branch.  
+本項目使用 **GitHub Actions** (`.github/workflows/deploy.yml`) 實現自動化部署，當代碼提交（Push）或合併至 `main` 分支時，會自動觸發構建並發布至 GitHub Pages。
 
-2. **Deploy / 構建並發布**:
-   ```bash
-   make build
-   git subtree push --prefix dist origin gh-pages
-   ```
+### Setup Steps / 配置步驟
+
+1. **Enable GitHub Actions Source / 配置 GitHub Pages 來源**:
+   - Navigate to repository **`Settings > Pages`** / 進入倉庫設定。
+   - Under **Build and deployment > Source**, select **`GitHub Actions`** / 在「Build and deployment」下的 Source 選擇 **`GitHub Actions`**。
+
+2. **Automatic Deployment / 自動構建與部署**:
+   - Push or merge changes into the `main` branch / 提交或合併代碼至 `main` 分支：
+     ```bash
+     git checkout main
+     git merge dev
+     git push origin main
+     ```
+   - GitHub Actions will automatically build and publish the latest build to GitHub Pages.  
+     GitHub Actions 將會自動執行構建並發布至 GitHub Pages 站點。
 
 ---
 

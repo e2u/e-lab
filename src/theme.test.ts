@@ -59,4 +59,17 @@ describe("Theme Switcher (Dark / Light Theme)", () => {
     expect(t("theme.switchToLight")).toBe("切換為淺色外觀");
     expect(t("theme.switchToDark")).toBe("切換為深色外觀");
   });
+
+  it("should keep light theme active when print modal is opened and closed", () => {
+    const lab = useLab.getState();
+    expect(lab.theme).toBe("light");
+
+    lab.openPrint();
+    expect(useLab.getState().printOpen).toBe(true);
+    expect(useLab.getState().theme).toBe("light");
+
+    lab.closePrint();
+    expect(useLab.getState().printOpen).toBe(false);
+    expect(useLab.getState().theme).toBe("light");
+  });
 });

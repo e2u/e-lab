@@ -35,11 +35,18 @@ export function LadderContactGlyph({
   onDelete,
 }: ContactGlyphProps) {
   const { device, contactType, label, address, isClosed } = element;
+  const isMomentary =
+    device.kind === "pb-no" ||
+    device.kind === "pb-nc" ||
+    device.kind === "foot" ||
+    device.kind === "foot-no" ||
+    device.kind === "foot-nc";
+
   const isInteractive =
     mode === "run" &&
-    (device.kind === "pb-no" ||
-      device.kind === "pb-nc" ||
+    (isMomentary ||
       device.kind === "estop" ||
+      device.kind === "estop-no" ||
       device.kind === "estop-nc" ||
       device.kind === "toggle" ||
       device.kind.startsWith("toggle-") ||
@@ -54,10 +61,14 @@ export function LadderContactGlyph({
       device.kind === "flow-no" ||
       device.kind === "flow-nc" ||
       device.kind === "float" ||
-      device.kind === "foot" ||
-      device.kind === "foot-no" ||
-      device.kind === "foot-nc" ||
-      device.kind === "overload");
+      device.kind === "breaker-1p" ||
+      device.kind === "breaker-3p" ||
+      device.kind === "isolator" ||
+      device.kind === "rcd" ||
+      device.kind === "fuse" ||
+      device.kind === "overload" ||
+      device.kind === "prox" ||
+      device.kind === "photo");
 
   const wireColor = isRungLive ? "#f59e0b" : "var(--ladder-wire, #64748b)";
   const conductingColor = isClosed && isRungLive ? "#10b981" : isClosed ? "#3b82f6" : "#ef4444";
@@ -85,6 +96,9 @@ export function LadderContactGlyph({
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!isInteractive) return;
     e.stopPropagation();
+    try {
+      (e.currentTarget as Element)?.setPointerCapture?.(e.pointerId);
+    } catch {}
     if (onInteract) {
       onInteract(device.kind, device.id, true);
     } else {
@@ -95,6 +109,22 @@ export function LadderContactGlyph({
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!isInteractive) return;
     e.stopPropagation();
+    try {
+      (e.currentTarget as Element)?.releasePointerCapture?.(e.pointerId);
+    } catch {}
+    if (onInteract) {
+      onInteract(device.kind, device.id, false);
+    } else {
+      interact(device.kind, device.id, false);
+    }
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent) => {
+    if (!isInteractive || !isMomentary) return;
+    e.stopPropagation();
+    try {
+      (e.currentTarget as Element)?.releasePointerCapture?.(e.pointerId);
+    } catch {}
     if (onInteract) {
       onInteract(device.kind, device.id, false);
     } else {
@@ -718,10 +748,21 @@ export function LadderContactGlyph({
       className={`ladder-contact ${isInteractive ? "interactive" : ""} ${isSelected ? "selected" : ""}`}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       onClick={handleClick}
       style={{ cursor: mode === "edit" || isInteractive ? "pointer" : "default" }}
     >
+      {/* Invisible hit area for easier clicking on mobile/touch & desktop */}
+      <rect
+        className="ladder-hit-area"
+        x={x}
+        y={y - 32}
+        width={width}
+        height={64}
+        fill="transparent"
+        style={{ pointerEvents: "all" }}
+      />
+
       {/* Selection Halo in Edit Mode */}
       {isSelected && mode === "edit" && (
         <rect
@@ -734,6 +775,7 @@ export function LadderContactGlyph({
           stroke="#f59e0b"
           strokeWidth="2"
           strokeDasharray="4 2"
+          pointerEvents="none"
         />
       )}
 
@@ -808,17 +850,6 @@ export function LadderContactGlyph({
             </text>
           </g>
         </g>
-      )}
-
-      {/* Invisible hit area for easier clicking on mobile/touch */}
-      {(mode === "edit" || isInteractive) && (
-        <rect
-          x={x}
-          y={y - 25}
-          width={width}
-          height={50}
-          fill="transparent"
-        />
       )}
 
       {/* Render Specific Contact Type Symbol */}
@@ -987,6 +1018,17 @@ export function LadderCoilGlyph({
       style={{ filter: glowShadow, cursor: mode === "edit" ? "pointer" : "default" }}
       onClick={handleClick}
     >
+      {/* Invisible hit area for easier clicking on mobile/touch & desktop */}
+      <rect
+        className="ladder-hit-area"
+        x={x}
+        y={y - 32}
+        width={width}
+        height={64}
+        fill="transparent"
+        style={{ pointerEvents: "all" }}
+      />
+
       {/* Selection Halo in Edit Mode */}
       {isSelected && mode === "edit" && (
         <rect
@@ -999,6 +1041,7 @@ export function LadderCoilGlyph({
           stroke="#f59e0b"
           strokeWidth="2"
           strokeDasharray="4 2"
+          pointerEvents="none"
         />
       )}
 
@@ -1276,27 +1319,37 @@ export function LadderPowerSection({
     motor,
     isRunning,
     isEnergized,
+    isDisconnectClosed = true,
+    isBreakerClosed = true,
+    isFusesIntact = true,
+    isOverloadTripped = false,
     voltage = 480,
     power = 5.5,
     speedRpm,
   } = branch;
 
-  const handleDisconnectToggle = (e: React.MouseEvent) => {
+  const handleDisconnectToggle = (e: React.SyntheticEvent) => {
     if (mode !== "run" || !disconnect) return;
     e.stopPropagation();
     interact(disconnect.kind, disconnect.id, true);
   };
 
-  const handleBreakerToggle = (e: React.MouseEvent) => {
+  const handleBreakerToggle = (e: React.SyntheticEvent) => {
     if (mode !== "run" || !breaker) return;
     e.stopPropagation();
     interact(breaker.kind, breaker.id, true);
   };
 
-  const handleOverloadToggle = (e: React.MouseEvent) => {
+  const handleOverloadToggle = (e: React.SyntheticEvent) => {
     if (mode !== "run" || !overload) return;
     e.stopPropagation();
     interact(overload.kind, overload.id, true);
+  };
+
+  const handleFusesToggle = (e: React.SyntheticEvent) => {
+    if (mode !== "run" || !fuses) return;
+    e.stopPropagation();
+    interact(fuses.kind, fuses.id, true);
   };
 
   const lineSpacing = 28;
@@ -1392,17 +1445,33 @@ export function LadderPowerSection({
       {/* 1. Main Disconnect / Isolator Switch (if present) */}
       {disconnect && (
         <g
+          className={`ladder-power-item ${mode === "run" ? "interactive" : ""}`}
           transform={`translate(${disconnectX}, ${busY1})`}
+          onPointerDown={(e) => {
+            if (mode === "run") {
+              handleDisconnectToggle(e);
+            }
+          }}
           onClick={(e) => {
             if (mode === "edit") {
               e.stopPropagation();
               onSelectDevice?.(disconnect.id);
-            } else {
-              handleDisconnectToggle(e);
             }
           }}
           style={{ cursor: "pointer" }}
         >
+          {/* Hit box overlay */}
+          <rect
+            className="ladder-power-hit"
+            x="-16"
+            y="-34"
+            width="58"
+            height={lineSpacing * 2 + 52}
+            rx="6"
+            fill="transparent"
+            style={{ pointerEvents: "all" }}
+          />
+
           {/* Selection Halo in Edit Mode */}
           {mode === "edit" && selectedDeviceId === disconnect.id && (
             <rect
@@ -1415,27 +1484,77 @@ export function LadderPowerSection({
               stroke="#f59e0b"
               strokeWidth="2"
               strokeDasharray="4 2"
+              pointerEvents="none"
             />
           )}
 
           {/* L1 Knife Switch */}
-          <circle cx="0" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
-          <line x1="0" y1="0" x2="18" y2="-10" stroke="var(--ladder-ink, #334155)" strokeWidth="2.6" strokeLinecap="round" />
-          <circle cx="24" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
+          <circle cx="0" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isDisconnectClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
+          <line
+            className="ladder-knife-blade"
+            x1="0"
+            y1="0"
+            x2={isDisconnectClosed ? "24" : "18"}
+            y2={isDisconnectClosed ? "0" : "-11"}
+            stroke={isDisconnectClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"}
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            style={{ transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+          />
+          <circle cx="24" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isDisconnectClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
 
           {/* L2 Knife Switch */}
-          <circle cx="0" cy={lineSpacing} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
-          <line x1="0" y1={lineSpacing} x2="18" y2={lineSpacing - 10} stroke="var(--ladder-ink, #334155)" strokeWidth="2.6" strokeLinecap="round" />
-          <circle cx="24" cy={lineSpacing} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
+          <circle cx="0" cy={lineSpacing} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isDisconnectClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
+          <line
+            className="ladder-knife-blade"
+            x1="0"
+            y1={lineSpacing}
+            x2={isDisconnectClosed ? "24" : "18"}
+            y2={isDisconnectClosed ? lineSpacing : lineSpacing - 11}
+            stroke={isDisconnectClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"}
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            style={{ transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+          />
+          <circle cx="24" cy={lineSpacing} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isDisconnectClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
 
           {/* L3 Knife Switch */}
-          <circle cx="0" cy={lineSpacing * 2} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
-          <line x1="0" y1={lineSpacing * 2} x2="18" y2={lineSpacing * 2 - 10} stroke="var(--ladder-ink, #334155)" strokeWidth="2.6" strokeLinecap="round" />
-          <circle cx="24" cy={lineSpacing * 2} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
+          <circle cx="0" cy={lineSpacing * 2} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isDisconnectClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
+          <line
+            className="ladder-knife-blade"
+            x1="0"
+            y1={lineSpacing * 2}
+            x2={isDisconnectClosed ? "24" : "18"}
+            y2={isDisconnectClosed ? lineSpacing * 2 : lineSpacing * 2 - 11}
+            stroke={isDisconnectClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"}
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            style={{ transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+          />
+          <circle cx="24" cy={lineSpacing * 2} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isDisconnectClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
 
           {/* Mechanical Tie-Bar with Handle */}
-          <line x1="9" y1="-12" x2="9" y2={lineSpacing * 2} stroke="#3b82f6" strokeWidth="1.6" strokeDasharray="3 2" />
-          <rect x="5" y="-17" width="8" height="6" rx="1.5" fill="#3b82f6" />
+          <line
+            className="ladder-knife-tiebar"
+            x1={isDisconnectClosed ? "12" : "9"}
+            y1={isDisconnectClosed ? "-12" : "-17"}
+            x2={isDisconnectClosed ? "12" : "9"}
+            y2={isDisconnectClosed ? lineSpacing * 2 : lineSpacing * 2 - 5}
+            stroke="#3b82f6"
+            strokeWidth="1.6"
+            strokeDasharray="3 2"
+            style={{ transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+          />
+          <rect
+            className="ladder-knife-handle"
+            x={isDisconnectClosed ? "8" : "5"}
+            y={isDisconnectClosed ? "-17" : "-22"}
+            width="8"
+            height="6"
+            rx="1.5"
+            fill="#3b82f6"
+            style={{ transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+          />
 
           {/* Tag */}
           <text
@@ -1444,7 +1563,7 @@ export function LadderPowerSection({
             textAnchor="middle"
             fontSize="10"
             fontWeight={mode === "edit" && selectedDeviceId === disconnect.id ? "800" : "700"}
-            fill={mode === "edit" && selectedDeviceId === disconnect.id ? "#b45309" : "var(--ladder-tag, #0f172a)"}
+            fill={mode === "edit" && selectedDeviceId === disconnect.id ? "#b45309" : isDisconnectClosed ? "var(--ladder-tag, #0f172a)" : "#dc2626"}
           >
             {disconnect.tag && disconnect.tag.length > 14 ? "Disconnect" : disconnect.tag || "Disconnect"}
           </text>
@@ -1454,17 +1573,33 @@ export function LadderPowerSection({
       {/* 2. Main 3-Pole Thermal-Magnetic Circuit Breaker (if present) */}
       {breaker && (
         <g
+          className={`ladder-power-item ${mode === "run" ? "interactive" : ""}`}
           transform={`translate(${breakerX}, ${busY1})`}
+          onPointerDown={(e) => {
+            if (mode === "run") {
+              handleBreakerToggle(e);
+            }
+          }}
           onClick={(e) => {
             if (mode === "edit") {
               e.stopPropagation();
               onSelectDevice?.(breaker.id);
-            } else {
-              handleBreakerToggle(e);
             }
           }}
           style={{ cursor: "pointer" }}
         >
+          {/* Hit box overlay */}
+          <rect
+            className="ladder-power-hit"
+            x="-16"
+            y="-34"
+            width="80"
+            height={lineSpacing * 2 + 52}
+            rx="6"
+            fill="transparent"
+            style={{ pointerEvents: "all" }}
+          />
+
           {/* Selection Halo in Edit Mode */}
           {mode === "edit" && selectedDeviceId === breaker.id && (
             <rect
@@ -1477,34 +1612,75 @@ export function LadderPowerSection({
               stroke="#f59e0b"
               strokeWidth="2"
               strokeDasharray="4 2"
+              pointerEvents="none"
             />
           )}
 
           {/* L1 Breaker Contact + Thermal Curve + Magnetic Notch */}
-          <circle cx="0" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
-          <line x1="0" y1="0" x2="16" y2="-9" stroke="var(--ladder-ink, #334155)" strokeWidth="2.6" strokeLinecap="round" />
-          <circle cx="22" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
+          <circle cx="0" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isBreakerClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
+          <line
+            className="ladder-breaker-blade"
+            x1="0"
+            y1="0"
+            x2={isBreakerClosed ? "22" : "16"}
+            y2={isBreakerClosed ? "0" : "-9"}
+            stroke={isBreakerClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"}
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            style={{ transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+          />
+          <circle cx="22" cy="0" r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isBreakerClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
           {/* Thermal S-curve */}
           <path d="M 24 0 C 28 -7, 32 -7, 36 0" fill="none" stroke="var(--ladder-ink, #334155)" strokeWidth="2.2" strokeLinecap="round" />
           {/* Magnetic step */}
           <path d="M 38 0 L 42 -7 L 46 0" fill="none" stroke="var(--ladder-ink, #334155)" strokeWidth="2.2" strokeLinejoin="miter" strokeLinecap="round" />
 
           {/* L2 Breaker */}
-          <circle cx="0" cy={lineSpacing} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
-          <line x1="0" y1={lineSpacing} x2="16" y2={lineSpacing - 9} stroke="var(--ladder-ink, #334155)" strokeWidth="2.6" strokeLinecap="round" />
-          <circle cx="22" cy={lineSpacing} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
+          <circle cx="0" cy={lineSpacing} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isBreakerClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
+          <line
+            className="ladder-breaker-blade"
+            x1="0"
+            y1={lineSpacing}
+            x2={isBreakerClosed ? "22" : "16"}
+            y2={isBreakerClosed ? lineSpacing : lineSpacing - 9}
+            stroke={isBreakerClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"}
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            style={{ transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+          />
+          <circle cx="22" cy={lineSpacing} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isBreakerClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
           <path d={`M 24 ${lineSpacing} C 28 ${lineSpacing - 7}, 32 ${lineSpacing - 7}, 36 ${lineSpacing}`} fill="none" stroke="var(--ladder-ink, #334155)" strokeWidth="2.2" strokeLinecap="round" />
           <path d={`M 38 ${lineSpacing} L 42 ${lineSpacing - 7} L 46 ${lineSpacing}`} fill="none" stroke="var(--ladder-ink, #334155)" strokeWidth="2.2" strokeLinejoin="miter" strokeLinecap="round" />
 
           {/* L3 Breaker */}
-          <circle cx="0" cy={lineSpacing * 2} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
-          <line x1="0" y1={lineSpacing * 2} x2="16" y2={lineSpacing * 2 - 9} stroke="var(--ladder-ink, #334155)" strokeWidth="2.6" strokeLinecap="round" />
-          <circle cx="22" cy={lineSpacing * 2} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
+          <circle cx="0" cy={lineSpacing * 2} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isBreakerClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
+          <line
+            className="ladder-breaker-blade"
+            x1="0"
+            y1={lineSpacing * 2}
+            x2={isBreakerClosed ? "22" : "16"}
+            y2={isBreakerClosed ? lineSpacing * 2 : lineSpacing * 2 - 9}
+            stroke={isBreakerClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"}
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            style={{ transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+          />
+          <circle cx="22" cy={lineSpacing * 2} r="3.5" fill="var(--ladder-paper, #ffffff)" stroke={isBreakerClosed ? (isLive ? "#10b981" : "var(--ladder-ink, #334155)") : "#dc2626"} strokeWidth="2" />
           <path d={`M 24 ${lineSpacing * 2} C 28 ${lineSpacing * 2 - 7}, 32 ${lineSpacing * 2 - 7}, 36 ${lineSpacing * 2}`} fill="none" stroke="var(--ladder-ink, #334155)" strokeWidth="2.2" strokeLinecap="round" />
           <path d={`M 38 ${lineSpacing * 2} L 42 ${lineSpacing * 2 - 7} L 46 ${lineSpacing * 2}`} fill="none" stroke="var(--ladder-ink, #334155)" strokeWidth="2.2" strokeLinejoin="miter" strokeLinecap="round" />
 
           {/* Mechanical Tie-Bar */}
-          <line x1="8" y1="-12" x2="8" y2={lineSpacing * 2} stroke="#3b82f6" strokeWidth="1.6" strokeDasharray="3 2" />
+          <line
+            className="ladder-breaker-tiebar"
+            x1={isBreakerClosed ? "11" : "8"}
+            y1={isBreakerClosed ? "-12" : "-17"}
+            x2={isBreakerClosed ? "11" : "8"}
+            y2={isBreakerClosed ? lineSpacing * 2 : lineSpacing * 2 - 5}
+            stroke="#3b82f6"
+            strokeWidth="1.6"
+            strokeDasharray="3 2"
+            style={{ transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+          />
 
           {/* Tag */}
           <text
@@ -1513,7 +1689,7 @@ export function LadderPowerSection({
             textAnchor="middle"
             fontSize="10"
             fontWeight={mode === "edit" && selectedDeviceId === breaker.id ? "800" : "700"}
-            fill={mode === "edit" && selectedDeviceId === breaker.id ? "#b45309" : "var(--ladder-tag, #0f172a)"}
+            fill={mode === "edit" && selectedDeviceId === breaker.id ? "#b45309" : isBreakerClosed ? "var(--ladder-tag, #0f172a)" : "#dc2626"}
           >
             {breaker.tag && breaker.tag.length > 14 ? "CB1" : breaker.tag || "CB1"}
           </text>
@@ -1523,15 +1699,33 @@ export function LadderPowerSection({
       {/* 3. 3-Phase Fuses (if present) */}
       {fuses && (
         <g
+          className={`ladder-power-item ${mode === "run" ? "interactive" : ""}`}
           transform={`translate(${fusesX}, ${busY1})`}
+          onPointerDown={(e) => {
+            if (mode === "run") {
+              handleFusesToggle(e);
+            }
+          }}
           onClick={(e) => {
             if (mode === "edit") {
               e.stopPropagation();
               onSelectDevice?.(fuses.id);
             }
           }}
-          style={{ cursor: mode === "edit" ? "pointer" : "default" }}
+          style={{ cursor: "pointer" }}
         >
+          {/* Hit box overlay */}
+          <rect
+            className="ladder-power-hit"
+            x="-14"
+            y="-34"
+            width="52"
+            height={lineSpacing * 2 + 52}
+            rx="6"
+            fill="transparent"
+            style={{ pointerEvents: "all" }}
+          />
+
           {/* Selection Halo in Edit Mode */}
           {mode === "edit" && selectedDeviceId === fuses.id && (
             <rect
@@ -1544,17 +1738,18 @@ export function LadderPowerSection({
               stroke="#f59e0b"
               strokeWidth="2"
               strokeDasharray="4 2"
+              pointerEvents="none"
             />
           )}
 
-          <rect x="0" y="-6" width="22" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="1.8" />
-          <line x1="11" y1="-6" x2="11" y2="6" stroke="var(--ladder-ink, #334155)" strokeWidth="1.5" />
+          <rect x="0" y="-6" width="22" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke={isFusesIntact ? "var(--ladder-ink, #334155)" : "#dc2626"} strokeWidth="1.8" />
+          <line x1="11" y1="-6" x2="11" y2="6" stroke={isFusesIntact ? "var(--ladder-ink, #334155)" : "#dc2626"} strokeWidth="1.5" strokeDasharray={isFusesIntact ? undefined : "2 2"} />
 
-          <rect x="0" y={lineSpacing - 6} width="22" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="1.8" />
-          <line x1="11" y1={lineSpacing - 6} x2="11" y2={lineSpacing + 6} stroke="var(--ladder-ink, #334155)" strokeWidth="1.5" />
+          <rect x="0" y={lineSpacing - 6} width="22" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke={isFusesIntact ? "var(--ladder-ink, #334155)" : "#dc2626"} strokeWidth="1.8" />
+          <line x1="11" y1={lineSpacing - 6} x2="11" y2={lineSpacing + 6} stroke={isFusesIntact ? "var(--ladder-ink, #334155)" : "#dc2626"} strokeWidth="1.5" strokeDasharray={isFusesIntact ? undefined : "2 2"} />
 
-          <rect x="0" y={lineSpacing * 2 - 6} width="22" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="1.8" />
-          <line x1="11" y1={lineSpacing * 2 - 6} x2="11" y2={lineSpacing * 2 + 6} stroke="var(--ladder-ink, #334155)" strokeWidth="1.5" />
+          <rect x="0" y={lineSpacing * 2 - 6} width="22" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke={isFusesIntact ? "var(--ladder-ink, #334155)" : "#dc2626"} strokeWidth="1.8" />
+          <line x1="11" y1={lineSpacing * 2 - 6} x2="11" y2={lineSpacing * 2 + 6} stroke={isFusesIntact ? "var(--ladder-ink, #334155)" : "#dc2626"} strokeWidth="1.5" strokeDasharray={isFusesIntact ? undefined : "2 2"} />
 
           <text
             x="11"
@@ -1562,15 +1757,16 @@ export function LadderPowerSection({
             textAnchor="middle"
             fontSize="10"
             fontWeight={mode === "edit" && selectedDeviceId === fuses.id ? "800" : "700"}
-            fill={mode === "edit" && selectedDeviceId === fuses.id ? "#b45309" : "var(--ladder-tag, #0f172a)"}
+            fill={mode === "edit" && selectedDeviceId === fuses.id ? "#b45309" : isFusesIntact ? "var(--ladder-tag, #0f172a)" : "#dc2626"}
           >
-            {fuses.tag || "FU1"}
+            {fuses.tag || "FU1"} {isFusesIntact ? "" : "(BLOWN)"}
           </text>
         </g>
       )}
 
       {/* 4. Contactor Main Contacts (3-Pole) */}
       <g
+        className="ladder-power-item"
         transform={`translate(${contactorX}, ${busY1})`}
         onClick={(e) => {
           if (mode === "edit" && contactor) {
@@ -1580,6 +1776,18 @@ export function LadderPowerSection({
         }}
         style={{ cursor: mode === "edit" ? "pointer" : "default" }}
       >
+        {/* Hit box overlay */}
+        <rect
+          className="ladder-power-hit"
+          x="-16"
+          y="-34"
+          width="54"
+          height={lineSpacing * 2 + 52}
+          rx="6"
+          fill="transparent"
+          style={{ pointerEvents: "all" }}
+        />
+
         {/* Selection Halo in Edit Mode */}
         {mode === "edit" && contactor && selectedDeviceId === contactor.id && (
           <rect
@@ -1592,6 +1800,7 @@ export function LadderPowerSection({
             stroke="#f59e0b"
             strokeWidth="2"
             strokeDasharray="4 2"
+            pointerEvents="none"
           />
         )}
 
@@ -1652,17 +1861,33 @@ export function LadderPowerSection({
 
       {/* 6. Thermal Overload Relay Element (NEMA Large Interlocking S-curves) */}
       <g
+        className={`ladder-power-item ${mode === "run" ? "interactive" : ""}`}
         transform={`translate(${overloadX}, ${busY1})`}
+        onPointerDown={(e) => {
+          if (mode === "run") {
+            handleOverloadToggle(e);
+          }
+        }}
         onClick={(e) => {
           if (mode === "edit" && overload) {
             e.stopPropagation();
             onSelectDevice?.(overload.id);
-          } else {
-            handleOverloadToggle(e);
           }
         }}
         style={{ cursor: "pointer" }}
       >
+        {/* Hit box overlay */}
+        <rect
+          className="ladder-power-hit"
+          x="-16"
+          y="-34"
+          width="74"
+          height={lineSpacing * 2 + 70}
+          rx="6"
+          fill="transparent"
+          style={{ pointerEvents: "all" }}
+        />
+
         {/* Selection Halo in Edit Mode */}
         {mode === "edit" && overload && selectedDeviceId === overload.id && (
           <rect
@@ -1675,25 +1900,34 @@ export function LadderPowerSection({
             stroke="#f59e0b"
             strokeWidth="2"
             strokeDasharray="4 2"
+            pointerEvents="none"
           />
         )}
 
         {/* L1 Overload Interlocking S-curves */}
-        <path d="M 0 0 C 6 -8, 12 -8, 18 0 C 24 8, 30 8, 36 0" fill="none" stroke="#dc2626" strokeWidth="2.8" strokeLinecap="round" />
-        <path d="M 9 0 C 15 8, 21 8, 27 0" fill="none" stroke="#dc2626" strokeWidth="2.8" strokeLinecap="round" />
+        <path d="M 0 0 C 6 -8, 12 -8, 18 0 C 24 8, 30 8, 36 0" fill="none" stroke={isOverloadTripped ? "#ef4444" : "#dc2626"} strokeWidth="2.8" strokeLinecap="round" />
+        <path d="M 9 0 C 15 8, 21 8, 27 0" fill="none" stroke={isOverloadTripped ? "#ef4444" : "#dc2626"} strokeWidth="2.8" strokeLinecap="round" />
 
         {/* L2 Overload Interlocking S-curves */}
-        <path d={`M 0 ${lineSpacing} C 6 ${lineSpacing - 8}, 12 ${lineSpacing - 8}, 18 ${lineSpacing} C 24 ${lineSpacing + 8}, 30 ${lineSpacing + 8}, 36 ${lineSpacing}`} fill="none" stroke="#dc2626" strokeWidth="2.8" strokeLinecap="round" />
-        <path d={`M 9 ${lineSpacing} C 15 ${lineSpacing + 8}, 21 ${lineSpacing + 8}, 27 ${lineSpacing}`} fill="none" stroke="#dc2626" strokeWidth="2.8" strokeLinecap="round" />
+        <path d={`M 0 ${lineSpacing} C 6 ${lineSpacing - 8}, 12 ${lineSpacing - 8}, 18 ${lineSpacing} C 24 ${lineSpacing + 8}, 30 ${lineSpacing + 8}, 36 ${lineSpacing}`} fill="none" stroke={isOverloadTripped ? "#ef4444" : "#dc2626"} strokeWidth="2.8" strokeLinecap="round" />
+        <path d={`M 9 ${lineSpacing} C 15 ${lineSpacing + 8}, 21 ${lineSpacing + 8}, 27 ${lineSpacing}`} fill="none" stroke={isOverloadTripped ? "#ef4444" : "#dc2626"} strokeWidth="2.8" strokeLinecap="round" />
 
         {/* L3 Overload Interlocking S-curves */}
-        <path d={`M 0 ${lineSpacing * 2} C 6 ${lineSpacing * 2 - 8}, 12 ${lineSpacing * 2 - 8}, 18 ${lineSpacing * 2} C 24 ${lineSpacing * 2 + 8}, 30 ${lineSpacing * 2 + 8}, 36 ${lineSpacing * 2}`} fill="none" stroke="#dc2626" strokeWidth="2.8" strokeLinecap="round" />
-        <path d={`M 9 ${lineSpacing * 2} C 15 ${lineSpacing * 2 + 8}, 21 ${lineSpacing * 2 + 8}, 27 ${lineSpacing * 2}`} fill="none" stroke="#dc2626" strokeWidth="2.8" strokeLinecap="round" />
+        <path d={`M 0 ${lineSpacing * 2} C 6 ${lineSpacing * 2 - 8}, 12 ${lineSpacing * 2 - 8}, 18 ${lineSpacing * 2} C 24 ${lineSpacing * 2 + 8}, 30 ${lineSpacing * 2 + 8}, 36 ${lineSpacing * 2}`} fill="none" stroke={isOverloadTripped ? "#ef4444" : "#dc2626"} strokeWidth="2.8" strokeLinecap="round" />
+        <path d={`M 9 ${lineSpacing * 2} C 15 ${lineSpacing * 2 + 8}, 21 ${lineSpacing * 2 + 8}, 27 ${lineSpacing * 2}`} fill="none" stroke={isOverloadTripped ? "#ef4444" : "#dc2626"} strokeWidth="2.8" strokeLinecap="round" />
 
         {/* Trip Linkage Dashed Line */}
-        <line x1="18" y1="-8" x2="18" y2={lineSpacing * 2 + 14} stroke="#dc2626" strokeWidth="1.5" strokeDasharray="3 2" />
-        <text x="18" y={lineSpacing * 2 + 25} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#dc2626">
-          [95-96 TRIP]
+        <line x1="18" y1="-8" x2="18" y2={lineSpacing * 2 + 14} stroke={isOverloadTripped ? "#ef4444" : "#dc2626"} strokeWidth="1.5" strokeDasharray="3 2" />
+        <text
+          x="18"
+          y={lineSpacing * 2 + 25}
+          textAnchor="middle"
+          fontSize="7.5"
+          fontWeight="800"
+          fill={isOverloadTripped ? "#ef4444" : "#dc2626"}
+          className={isOverloadTripped ? "contact-broken" : ""}
+        >
+          {isOverloadTripped ? "[TRIPPED]" : "[95-96 TRIP]"}
         </text>
 
         {/* Tag */}
@@ -1711,6 +1945,7 @@ export function LadderPowerSection({
 
       {/* 7. 3-Phase Induction Motor (Large Industrial Standard) */}
       <g
+        className="ladder-power-item"
         transform={`translate(${motorCx}, ${motorCy})`}
         onClick={(e) => {
           if (mode === "edit" && motor) {
@@ -1720,6 +1955,9 @@ export function LadderPowerSection({
         }}
         style={{ cursor: mode === "edit" ? "pointer" : "default" }}
       >
+        {/* Hit box overlay */}
+        <circle cx="0" cy="0" r="44" fill="transparent" style={{ pointerEvents: "all" }} />
+
         {/* Selection Halo in Edit Mode */}
         {mode === "edit" && motor && selectedDeviceId === motor.id && (
           <circle
@@ -1730,6 +1968,7 @@ export function LadderPowerSection({
             stroke="#f59e0b"
             strokeWidth="2"
             strokeDasharray="4 2"
+            pointerEvents="none"
           />
         )}
         {/* Terminal Lead Connections */}
@@ -1898,6 +2137,7 @@ export function LadderTransformerSection({
 
       {/* Transformer Dual Circles & Core (TC1) */}
       <g
+        className="ladder-cpt-item"
         transform={`translate(${xformCx}, ${xformCy})`}
         onClick={(e) => {
           if (mode === "edit" && transformer) {
@@ -1907,6 +2147,17 @@ export function LadderTransformerSection({
         }}
         style={{ cursor: mode === "edit" ? "pointer" : "default" }}
       >
+        {/* Hit box overlay */}
+        <rect
+          x="-58"
+          y="-48"
+          width="116"
+          height="96"
+          rx="8"
+          fill="transparent"
+          style={{ pointerEvents: "all" }}
+        />
+
         {/* Selection Halo in Edit Mode */}
         {mode === "edit" && transformer && selectedDeviceId === transformer.id && (
           <rect
@@ -1919,6 +2170,7 @@ export function LadderTransformerSection({
             stroke="#f59e0b"
             strokeWidth="2"
             strokeDasharray="4 2"
+            pointerEvents="none"
           />
         )}
 

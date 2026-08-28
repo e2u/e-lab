@@ -7,7 +7,6 @@ import { FilesMenu } from "./ui/FilesMenu";
 import { Inspector } from "./ui/Inspector";
 import { Palette } from "./ui/Palette";
 import { Schematic } from "./ui/Schematic";
-import { LadderSchematic } from "./ui/LadderSchematic";
 import { DiscardModal } from "./ui/DiscardModal";
 import { TogglePanelButton } from "./ui/TogglePanelButton";
 import { FloatingActionBar } from "./ui/FloatingActionBar";
@@ -42,7 +41,6 @@ export function App() {
   const process = useLab((s) => s.process);
   const lang = useLab((s) => s.lang);
   const theme = useLab((s) => s.theme);
-  const layoutMode = useLab((s) => s.layoutMode);
   const isDirty = useLab((s) => s.isDirty);
   const paletteOpen = useLab((s) => s.paletteOpen);
   const sideOpen = useLab((s) => s.sideOpen);
@@ -386,15 +384,6 @@ export function App() {
               </button>
               <button
                 type="button"
-                className={`btn-icon mobile-header-btn ${layoutMode === "ladder" ? "active" : ""}`}
-                onClick={() => useLab.getState().toggleLayoutMode()}
-                title={layoutMode === "schematic" ? (t("toolbar.switchToLadder") || "Switch to Ladder") : (t("toolbar.switchToSchematic") || "Switch to Schematic")}
-                aria-label={t("toolbar.layoutMode") || "Layout Mode"}
-              >
-                {layoutMode === "schematic" ? "🪜" : "📐"}
-              </button>
-              <button
-                type="button"
                 className={`btn-icon mobile-header-btn ${mobilePaletteOpen ? "active" : ""}`}
                 onClick={() => {
                   const next = !mobilePaletteOpen;
@@ -493,28 +482,6 @@ export function App() {
                 </button>
               </div>
 
-              {/* View Layout Mode Switch */}
-              <div className="segmented-group layout-mode-switch">
-                <button
-                  type="button"
-                  className={`seg-btn ${layoutMode === "schematic" ? "active" : ""}`}
-                  onClick={() => useLab.getState().setLayoutMode("schematic")}
-                  title={t("toolbar.schematic") || "Schematic Layout"}
-                >
-                  <span className="seg-icon">📐</span>
-                  <span className="seg-label">{t("toolbar.schematic") || "原理圖"}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`seg-btn ${layoutMode === "ladder" ? "active" : ""}`}
-                  onClick={() => useLab.getState().setLayoutMode("ladder")}
-                  title={t("toolbar.ladder") || "Ladder Diagram"}
-                >
-                  <span className="seg-icon">🪜</span>
-                  <span className="seg-label">{t("toolbar.ladder") || "梯形圖"}</span>
-                </button>
-              </div>
-
               {/* Run Mode Probe Tools */}
               {mode === "run" && (
                 <div className="probe-tools-group">
@@ -568,83 +535,8 @@ export function App() {
               </div>
             </div>
 
-            {/* Right Section: Undo/Redo, Zoom, Theme, Language */}
+            {/* Right Section: Theme & Language */}
             <div className="topbar-right">
-              {/* History Actions */}
-              <div className="history-btn-group">
-                <button
-                  type="button"
-                  className="btn-icon"
-                  onClick={() => useLab.getState().undo()}
-                  title={`${t("toolbar.undo")} (⌘Z)`}
-                  aria-label={t("toolbar.undo")}
-                >
-                  ↶
-                </button>
-                <button
-                  type="button"
-                  className="btn-icon"
-                  onClick={() => useLab.getState().redo()}
-                  title={`${t("toolbar.redo")} (⌘⇧Z)`}
-                  aria-label={t("toolbar.redo")}
-                >
-                  ↷
-                </button>
-              </div>
-
-              {/* Zoom Controls */}
-              <div className="zoom-controls">
-                <button
-                  type="button"
-                  className="btn-icon"
-                  onClick={() => useLab.getState().zoomOut()}
-                  title={t("toolbar.zoomOut")}
-                  disabled={zoom <= 0.25}
-                  aria-label={t("toolbar.zoomOut")}
-                >
-                  −
-                </button>
-                <input
-                  type="range"
-                  className="zoom-slider"
-                  min="0.25"
-                  max="1.5"
-                  step="0.01"
-                  value={zoom}
-                  onChange={(e) => useLab.getState().setZoom(parseFloat(e.target.value))}
-                  title={`${t("toolbar.zoom")}: ${Math.round(zoom * 100)}%`}
-                  aria-label={t("toolbar.zoom")}
-                />
-                <span
-                  className="zoom-val"
-                  onClick={() => useLab.getState().resetZoom()}
-                  title={t("toolbar.zoomReset")}
-                >
-                  {Math.round(zoom * 100)}%
-                </span>
-                <button
-                  type="button"
-                  className="btn-icon"
-                  onClick={() => useLab.getState().zoomIn()}
-                  title={t("toolbar.zoomIn")}
-                  disabled={zoom >= 1.5}
-                  aria-label={t("toolbar.zoomIn")}
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  className="btn-icon zoom-fit-btn"
-                  onClick={() => useLab.getState().zoomFit()}
-                  title={t("toolbar.zoomFit")}
-                  aria-label={t("toolbar.zoomFit")}
-                >
-                  ⛶
-                </button>
-              </div>
-
-              <div className="topbar-divider" />
-
               {/* Theme Switcher */}
               <button
                 type="button"
@@ -732,7 +624,7 @@ export function App() {
           paletteOpen && <Palette />
         )}
 
-        {layoutMode === "schematic" ? <Schematic /> : <LadderSchematic />}
+        <Schematic />
         <FloatingActionBar />
 
         {/* Side panel - desktop: inline, mobile: drawer */}
@@ -823,6 +715,58 @@ export function App() {
         {circuit.wires.some((w) => w.broken) || circuit.devices.some((d) => d.params.welded) ? (
           <span className="fault">{t("runtime.faultInjection")}</span>
         ) : null}
+
+        {/* Zoom Controls */}
+        <div className="zoom-controls">
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={() => useLab.getState().zoomOut()}
+            title={t("toolbar.zoomOut")}
+            disabled={zoom <= 0.25}
+            aria-label={t("toolbar.zoomOut")}
+          >
+            −
+          </button>
+          <input
+            type="range"
+            className="zoom-slider"
+            min="0.25"
+            max="1.5"
+            step="0.01"
+            value={zoom}
+            onChange={(e) => useLab.getState().setZoom(parseFloat(e.target.value))}
+            title={`${t("toolbar.zoom")}: ${Math.round(zoom * 100)}%`}
+            aria-label={t("toolbar.zoom")}
+          />
+          <span
+            className="zoom-val"
+            onClick={() => useLab.getState().resetZoom()}
+            title={t("toolbar.zoomReset")}
+          >
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={() => useLab.getState().zoomIn()}
+            title={t("toolbar.zoomIn")}
+            disabled={zoom >= 1.5}
+            aria-label={t("toolbar.zoomIn")}
+          >
+            +
+          </button>
+          <button
+            type="button"
+            className="btn-icon zoom-fit-btn"
+            onClick={() => useLab.getState().zoomFit()}
+            title={t("toolbar.zoomFit")}
+            aria-label={t("toolbar.zoomFit")}
+          >
+            ⛶
+          </button>
+        </div>
+
         <span className="statusbar-copyright">@2026 DW. All rights reserved.</span>
       </footer>
     </div>

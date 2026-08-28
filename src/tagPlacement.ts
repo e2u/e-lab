@@ -84,6 +84,14 @@ export function getSymbolTagPlacement(
     };
   }
 
+  if (kind === "alarm") {
+    return {
+      tagX: (sym.x + v.w / 2) * GRID,
+      tagY: (sym.y + v.h - 3.7) * GRID,
+      textAnchor: "middle",
+    };
+  }
+
   // Bottom-placed devices (default for most actuators, coils, indicators, motors)
   const bottomPlacedKinds: readonly DeviceKind[] = [
     "estop",
@@ -113,7 +121,6 @@ export function getSymbolTagPlacement(
     "timer-off",
     "counter",
     "lamp",
-    "alarm",
     "fan",
     "heater",
     "solenoid",

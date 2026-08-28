@@ -20,6 +20,7 @@ import {
   type SavedLab,
 } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
+import { buildLadderDiagram } from "./ladder/ladderLayout";
 import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type Theme, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
@@ -37,11 +38,6 @@ function readTheme(): Theme {
 }
 
 function readLayoutMode(): LayoutMode {
-  if (typeof localStorage === "undefined") return "schematic";
-  try {
-    const val = localStorage.getItem("elab.layoutMode");
-    if (val === "schematic" || val === "ladder") return val;
-  } catch {}
   return "schematic";
 }
 
@@ -207,6 +203,7 @@ export interface LabState {
   toggleTheme: () => void;
   setLayoutMode: (layoutMode: LayoutMode) => void;
   toggleLayoutMode: () => void;
+  reorderLadderRungs: (fromIndex: number, toIndex: number) => void;
   setPaletteOpen: (open: boolean) => void;
   setSideOpen: (open: boolean) => void;
   togglePalette: () => void;
@@ -1337,6 +1334,27 @@ export const useLab = create<LabState>((set, get) => ({
   toggleLayoutMode: () => {
     const next = get().layoutMode === "schematic" ? "ladder" : "schematic";
     get().setLayoutMode(next);
+  },
+
+  reorderLadderRungs: (fromIndex, toIndex) => {
+    const { circuit, snapshot, held, process, docName } = get();
+    const model = buildLadderDiagram(circuit, snapshot, held, process, docName);
+    const rungs = model.rungs;
+    if (fromIndex < 0 || fromIndex >= rungs.length || toIndex < 0 || toIndex >= rungs.length) return;
+    if (fromIndex === toIndex) return;
+
+    get().pushHistory();
+
+    const order = rungs.map((r) => r.id);
+    const [movedId] = order.splice(fromIndex, 1);
+    order.splice(toIndex, 0, movedId);
+
+    const nextCircuit: Circuit = {
+      ...circuit,
+      ladderRungOrder: order,
+    };
+
+    set({ circuit: nextCircuit, isDirty: true });
   },
 
   setPaletteOpen: (open) => {

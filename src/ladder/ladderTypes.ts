@@ -104,6 +104,11 @@ export interface LadderPowerBranch {
   motor?: Device;
   transformer?: Device;
   ground?: Device;
+  isDisconnectClosed?: boolean;
+  isBreakerClosed?: boolean;
+  isFusesIntact?: boolean;
+  isOverloadTripped?: boolean;
+  isContactorClosed?: boolean;
   isRunning: boolean;
   isEnergized: boolean;
   speedRpm?: number;

@@ -41,7 +41,7 @@ export function FilesMenu() {
   };
 
   return (
-    <details ref={menuRef} className="menu" open={isOpen}>
+    <details ref={menuRef} className="menu files-menu" open={isOpen}>
       <summary
         className="btn"
         onClick={(e) => {

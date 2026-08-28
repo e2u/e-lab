@@ -177,6 +177,7 @@ export interface Circuit {
   symbols: SymbolInst[];
   wires: Wire[];
   groups?: SymbolGroup[];
+  ladderRungOrder?: string[];
 }
 
 export interface ProcessVars {

@@ -29,7 +29,6 @@ export function MobileMenuModal({
   const docName = useLab((s) => s.docName);
   const lang = useLab((s) => s.lang);
   const theme = useLab((s) => s.theme);
-  const layoutMode = useLab((s) => s.layoutMode);
   const zoom = useLab((s) => s.zoom);
   const savesTick = useLab((s) => s.savesTick);
   const circuit = useLab((s) => s.circuit);
@@ -239,27 +238,6 @@ export function MobileMenuModal({
           {/* Section 3: Preferences & Zoom */}
           <section className="mobile-menu-section">
             <div className="mobile-menu-section-title">{t("mobileMenu.preferences") || "Preferences & View"}</div>
-
-            {/* Layout Mode Switch */}
-            <div className="mobile-pref-row">
-              <span className="mobile-pref-label">{t("toolbar.layoutMode") || "Layout"}</span>
-              <div className="mobile-segmented-control">
-                <button
-                  type="button"
-                  className={`mobile-segment-btn ${layoutMode === "schematic" ? "active" : ""}`}
-                  onClick={() => useLab.getState().setLayoutMode("schematic")}
-                >
-                  📐 {t("toolbar.schematic") || "原理圖"}
-                </button>
-                <button
-                  type="button"
-                  className={`mobile-segment-btn ${layoutMode === "ladder" ? "active" : ""}`}
-                  onClick={() => useLab.getState().setLayoutMode("ladder")}
-                >
-                  🪜 {t("toolbar.ladder") || "梯形圖"}
-                </button>
-              </div>
-            </div>
 
             {/* Language Switch */}
             <div className="mobile-pref-row">

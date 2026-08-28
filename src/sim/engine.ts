@@ -29,6 +29,7 @@ export function defaultRuntime(kind: DeviceKind): DeviceRuntime {
   const closedHandle =
     kind === "breaker-1p" ||
     kind === "breaker-3p" ||
+    kind === "isolator" ||
     kind === "rcd" ||
     kind === "dc-supply" ||
     kind === "fuse";

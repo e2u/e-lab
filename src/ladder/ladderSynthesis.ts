@@ -104,6 +104,7 @@ export function synthesizeAddRung(
     symbols: [...circuit.symbols],
     wires: [...circuit.wires],
     groups: circuit.groups ? [...circuit.groups] : [],
+    ladderRungOrder: circuit.ladderRungOrder ? [...circuit.ladderRungOrder] : undefined,
   };
 
   const newSymbolIds: string[] = [];
@@ -253,6 +254,7 @@ export function synthesizeInsertContact(
     symbols: [...circuit.symbols],
     wires: [...circuit.wires],
     groups: circuit.groups ? [...circuit.groups] : [],
+    ladderRungOrder: circuit.ladderRungOrder ? [...circuit.ladderRungOrder] : undefined,
   };
 
   const targetSym = next.symbols.find((s) => s.id === targetSymbolId);
@@ -348,6 +350,7 @@ export function synthesizeAddParallelBranch(
     symbols: [...circuit.symbols],
     wires: [...circuit.wires],
     groups: circuit.groups ? [...circuit.groups] : [],
+    ladderRungOrder: circuit.ladderRungOrder ? [...circuit.ladderRungOrder] : undefined,
   };
 
   const targetSym = next.symbols.find((s) => s.id === targetSymbolId);
@@ -430,6 +433,7 @@ export function synthesizeToggleContactVariant(
     symbols: [...circuit.symbols],
     wires: [...circuit.wires],
     groups: circuit.groups ? [...circuit.groups] : [],
+    ladderRungOrder: circuit.ladderRungOrder ? [...circuit.ladderRungOrder] : undefined,
   };
 
   const sym = next.symbols.find((s) => s.id === symbolId);
@@ -484,6 +488,7 @@ export function synthesizeDeleteElement(
     symbols: circuit.symbols.filter((s) => s.id !== symbolId),
     wires: circuit.wires.filter((w) => w.a.symbolId !== symbolId && w.b.symbolId !== symbolId),
     groups: circuit.groups ? [...circuit.groups] : [],
+    ladderRungOrder: circuit.ladderRungOrder ? [...circuit.ladderRungOrder] : undefined,
   };
 
   const sym = circuit.symbols.find((s) => s.id === symbolId);
@@ -491,6 +496,9 @@ export function synthesizeDeleteElement(
     const hasOtherSymbols = next.symbols.some((s) => s.deviceId === sym.deviceId);
     if (!hasOtherSymbols) {
       next.devices = next.devices.filter((d) => d.id !== sym.deviceId);
+      if (next.ladderRungOrder) {
+        next.ladderRungOrder = next.ladderRungOrder.filter((id) => id !== `rung_${sym.deviceId}`);
+      }
     }
   }
 

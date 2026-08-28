@@ -360,6 +360,145 @@ describe("Ladder Diagram System", () => {
       expect(model.rungs[1].coils[0].label).toBe("KM_REV");
       expect(model.rungs[2].coils[0].label).toBe("KA1");
     });
+
+    it("should accurately identify Overload FR1 NO contact for Overload lamp and M1 contacts for status lamps", () => {
+      // Circuit with Overload FR1 (NO 97-98 -> Trip Lamp), M1 (NC 31-32 -> Stop Lamp), M1 (NO 43-44 -> Run Lamp)
+      const circuit: Circuit = {
+        devices: [
+          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
+          { id: "nl_hot", kind: "net-label", tag: "A1", params: {} },
+          { id: "nl_ret", kind: "net-label", tag: "A2", params: {} },
+          { id: "ol1", kind: "overload", tag: "FR1", params: {} },
+          { id: "km1", kind: "contactor", tag: "M1", params: {} },
+          { id: "hl_trip", kind: "lamp", tag: "Overload", params: { color: "red" } },
+          { id: "hl_stop", kind: "lamp", tag: "Stop", params: { color: "red" } },
+          { id: "hl_run", kind: "lamp", tag: "Running", params: { color: "green" } },
+        ],
+        symbols: [
+          { id: "s_tc1", deviceId: "tc1", variant: "body", x: 0, y: 0, rot: 0 },
+          { id: "s_nl_hot", deviceId: "nl_hot", variant: "body", x: 2, y: 0, rot: 0 },
+          { id: "s_nl_ret", deviceId: "nl_ret", variant: "body", x: 2, y: 4, rot: 0 },
+          { id: "s_ol", deviceId: "ol1", variant: "body", x: 6, y: 0, rot: 0 },
+          { id: "s_km_nc2", deviceId: "km1", variant: "aux-nc2", x: 6, y: 4, rot: 0 },
+          { id: "s_km_no2", deviceId: "km1", variant: "aux-no2", x: 6, y: 8, rot: 0 },
+          { id: "s_hl_trip", deviceId: "hl_trip", variant: "body", x: 12, y: 0, rot: 0 },
+          { id: "s_hl_stop", deviceId: "hl_stop", variant: "body", x: 12, y: 4, rot: 0 },
+          { id: "s_hl_run", deviceId: "hl_run", variant: "body", x: 12, y: 8, rot: 0 },
+        ],
+        wires: [
+          // Transformer to Net Labels
+          { id: "w1", a: { symbolId: "s_tc1", term: "X1" }, b: { symbolId: "s_nl_hot", term: "1" } },
+          { id: "w2", a: { symbolId: "s_tc1", term: "X2" }, b: { symbolId: "s_nl_ret", term: "1" } },
+
+          // Hot Rail -> Overload 97 -> Overload 98 -> Overload Lamp -> Ret Rail
+          { id: "w3", a: { symbolId: "s_nl_hot", term: "1" }, b: { symbolId: "s_ol", term: "97" } },
+          { id: "w4", a: { symbolId: "s_ol", term: "98" }, b: { symbolId: "s_hl_trip", term: "2" } },
+          { id: "w5", a: { symbolId: "s_hl_trip", term: "1" }, b: { symbolId: "s_nl_ret", term: "1" } },
+
+          // Hot Rail -> M1 31 -> M1 32 -> Stop Lamp -> Ret Rail
+          { id: "w6", a: { symbolId: "s_nl_hot", term: "1" }, b: { symbolId: "s_km_nc2", term: "31" } },
+          { id: "w7", a: { symbolId: "s_km_nc2", term: "32" }, b: { symbolId: "s_hl_stop", term: "2" } },
+          { id: "w8", a: { symbolId: "s_hl_stop", term: "1" }, b: { symbolId: "s_nl_ret", term: "1" } },
+
+          // Hot Rail -> M1 43 -> M1 44 -> Running Lamp -> Ret Rail
+          { id: "w9", a: { symbolId: "s_nl_hot", term: "1" }, b: { symbolId: "s_km_no2", term: "43" } },
+          { id: "w10", a: { symbolId: "s_km_no2", term: "44" }, b: { symbolId: "s_hl_run", term: "2" } },
+          { id: "w11", a: { symbolId: "s_hl_run", term: "1" }, b: { symbolId: "s_nl_ret", term: "1" } },
+        ],
+      };
+
+      const snap = emptySnapshot(circuit);
+      const model = buildLadderDiagram(circuit, snap, [], {
+        temperature: 25,
+        pressure: 0,
+        level: 0,
+        flow: 0,
+        limitHit: false,
+        proxHit: false,
+        photoHit: false,
+      });
+
+      // Find the rungs for each lamp
+      const tripRung = model.rungs.find((r) => r.coils[0]?.device.id === "hl_trip");
+      const stopRung = model.rungs.find((r) => r.coils[0]?.device.id === "hl_stop");
+      const runRung = model.rungs.find((r) => r.coils[0]?.device.id === "hl_run");
+
+      expect(tripRung).toBeDefined();
+      expect(stopRung).toBeDefined();
+      expect(runRung).toBeDefined();
+
+      // Trip Rung must have FR1 NO contact (address 97-98), NOT M1 NO
+      const tripContact = tripRung?.items[0]?.type === "contact" ? tripRung.items[0].element : null;
+      expect(tripContact).toBeDefined();
+      expect(tripContact?.deviceId).toBe("ol1");
+      expect(tripContact?.address).toBe("97-98");
+      expect(tripContact?.contactType).toBe("no");
+      expect(tripContact?.label).toContain("FR1");
+
+      // Stop Rung must have M1 NC contact (address 31-32)
+      const stopContact = stopRung?.items[0]?.type === "contact" ? stopRung.items[0].element : null;
+      expect(stopContact).toBeDefined();
+      expect(stopContact?.deviceId).toBe("km1");
+      expect(stopContact?.address).toBe("31-32");
+      expect(stopContact?.contactType).toBe("nc");
+
+      // Run Rung must have M1 NO contact (address 43-44)
+      const runContact = runRung?.items[0]?.type === "contact" ? runRung.items[0].element : null;
+      expect(runContact).toBeDefined();
+      expect(runContact?.deviceId).toBe("km1");
+      expect(runContact?.address).toBe("43-44");
+      expect(runContact?.contactType).toBe("no");
+    });
+
+    it("should correctly generate ladder diagram from full three-phase-motor example", async () => {
+      const motorExampleModule = await import("./examples/three-phase-motor.json");
+      const exampleCircuit = (motorExampleModule.default || motorExampleModule).circuit as Circuit;
+      const snap = emptySnapshot(exampleCircuit);
+
+      const model = buildLadderDiagram(exampleCircuit, snap, [], {
+        temperature: 25,
+        pressure: 0,
+        level: 0,
+        flow: 0,
+        limitHit: false,
+        proxHit: false,
+        photoHit: false,
+      });
+
+      // Motor starter rung
+      const m1Rung = model.rungs.find((r) => r.coils[0]?.device.tag === "M1");
+      expect(m1Rung).toBeDefined();
+
+      // Overload trip lamp rung (tag: "Overload")
+      const olLampRung = model.rungs.find((r) => r.coils[0]?.device.tag === "Overload");
+      expect(olLampRung).toBeDefined();
+      const olContact = olLampRung?.items[0]?.type === "contact" ? olLampRung.items[0].element : null;
+      expect(olContact).toBeDefined();
+      expect(olContact?.label).toContain("FR1");
+      expect(olContact?.address).toBe("97-98");
+
+      // Stop indicator lamp rung (tag: "Stop")
+      const stopLampRung = model.rungs.find((r) => r.coils[0]?.device.tag === "Stop");
+      expect(stopLampRung).toBeDefined();
+      // Contains M1 NC contact (address 31-32)
+      const stopM1Contact = stopLampRung?.items.find((it) => it.type === "contact" && it.element.address === "31-32");
+      expect(stopM1Contact).toBeDefined();
+      if (stopM1Contact && stopM1Contact.type === "contact") {
+        expect(stopM1Contact.element.label).toBe("M1");
+        expect(stopM1Contact.element.contactType).toBe("nc");
+      }
+
+      // Running indicator lamp rung (tag: "Running")
+      const runLampRung = model.rungs.find((r) => r.coils[0]?.device.tag === "Running");
+      expect(runLampRung).toBeDefined();
+      // Contains M1 NO contact (address 43-44)
+      const runM1Contact = runLampRung?.items.find((it) => it.type === "contact" && it.element.address === "43-44");
+      expect(runM1Contact).toBeDefined();
+      if (runM1Contact && runM1Contact.type === "contact") {
+        expect(runM1Contact.element.label).toBe("M1");
+        expect(runM1Contact.element.contactType).toBe("no");
+      }
+    });
   });
 
   describe("Internationalization & Dictionary Keys", () => {
@@ -572,6 +711,143 @@ describe("Ladder Diagram System", () => {
       expect(next.symbols.length).toBe(1);
       expect(next.devices.length).toBe(1);
       expect(next.wires.length).toBe(0);
+    });
+
+    it("should support interacting with devices in Run mode", () => {
+      const lab = useLab.getState();
+      lab.setMode("run");
+
+      const circuit: Circuit = {
+        devices: [
+          { id: "d_iso", kind: "isolator", tag: "Main Switch", params: {} },
+          { id: "d_cb", kind: "breaker-3p", tag: "CB1", params: {} },
+          { id: "d_ol", kind: "overload", tag: "FR1", params: {} },
+          { id: "d_pb", kind: "pb-no", tag: "Start PB", params: {} },
+        ],
+        symbols: [
+          { id: "s_iso", deviceId: "d_iso", variant: "body", x: 0, y: 0, rot: 0 },
+          { id: "s_cb", deviceId: "d_cb", variant: "body", x: 4, y: 0, rot: 0 },
+          { id: "s_ol", deviceId: "d_ol", variant: "body", x: 8, y: 0, rot: 0 },
+          { id: "s_pb", deviceId: "d_pb", variant: "body", x: 12, y: 0, rot: 0 },
+        ],
+        wires: [],
+      };
+
+      useLab.setState({ circuit, mode: "run" });
+      lab.resetSim();
+
+      // Test momentary pushbutton down and up
+      lab.pointerDevice("d_pb", true);
+      expect(useLab.getState().held).toContain("d_pb");
+
+      lab.pointerDevice("d_pb", false);
+      expect(useLab.getState().held).not.toContain("d_pb");
+
+      // Test isolator toggle (defaults to on -> toggles to off -> toggles to on)
+      expect(useLab.getState().snapshot.runtime.d_iso?.on).toBe(true);
+      lab.toggleIo("d_iso", "on");
+      expect(useLab.getState().snapshot.runtime.d_iso?.on).toBe(false);
+      lab.toggleIo("d_iso", "on");
+      expect(useLab.getState().snapshot.runtime.d_iso?.on).toBe(true);
+
+      // Test breaker toggle (defaults to on -> toggles to off)
+      lab.toggleIo("d_cb", "on");
+      expect(useLab.getState().snapshot.runtime.d_cb?.on).toBe(false);
+
+      // Test overload trip toggle (defaults to false -> toggles to true)
+      lab.toggleIo("d_ol", "tripped");
+      expect(useLab.getState().snapshot.runtime.d_ol?.tripped).toBe(true);
+    });
+
+    it("should support reordering ladder rungs and updating rung numbers and coil cross references", () => {
+      const circuit: Circuit = {
+        devices: [
+          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye", voltage: 480 } },
+          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
+          { id: "sb1", kind: "pb-no", tag: "Start", params: {} },
+          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
+          { id: "hl1", kind: "lamp", tag: "HL1", params: {} },
+          { id: "ka1", kind: "relay", tag: "KA1", params: {} },
+        ],
+        symbols: [
+          { id: "s_tc1", deviceId: "tc1", variant: "body", x: 0, y: 0, rot: 0 },
+          { id: "s_sb1", deviceId: "sb1", variant: "body", x: 8, y: 0, rot: 0 },
+          { id: "s_km1", deviceId: "km1", variant: "coil", x: 16, y: 0, rot: 0 },
+          { id: "s_hl1", deviceId: "hl1", variant: "body", x: 16, y: 8, rot: 0 },
+          { id: "s_ka1", deviceId: "ka1", variant: "coil", x: 16, y: 16, rot: 0 },
+          { id: "s_km1_aux", deviceId: "km1", variant: "aux-no", x: 8, y: 8, rot: 0 },
+        ],
+        wires: [
+          { id: "w0", a: { symbolId: "s_tc1", term: "X1" }, b: { symbolId: "s_sb1", term: "3" } },
+          { id: "w1", a: { symbolId: "s_sb1", term: "4" }, b: { symbolId: "s_km1", term: "A1" } },
+          { id: "w2", a: { symbolId: "s_tc1", term: "X1" }, b: { symbolId: "s_km1_aux", term: "13" } },
+          { id: "w3", a: { symbolId: "s_km1_aux", term: "14" }, b: { symbolId: "s_hl1", term: "1" } },
+        ],
+      };
+
+      const snap = emptySnapshot(circuit);
+      useLab.setState({ circuit, snapshot: snap, isDirty: false, history: [] });
+
+      const initialModel = buildLadderDiagram(circuit, snap, [], {
+        temperature: 25,
+        pressure: 0,
+        level: 0,
+        flow: 0,
+        limitHit: false,
+        proxHit: false,
+        photoHit: false,
+      });
+
+      // console.log(initialModel.rungs.map((r) => ({ id: r.id, title: r.title })));
+      expect(initialModel.rungs.map((r) => r.id)).toEqual(["rung_km1", "rung_hl1", "rung_ka1"]);
+      const initialRung1 = initialModel.rungs[0];
+      const initialRung2 = initialModel.rungs[1];
+      const initialRung3 = initialModel.rungs[2];
+
+      // Reorder: move rung 0 to rung 2 (KM1 output moved to bottom)
+      useLab.getState().reorderLadderRungs(0, 2);
+
+      const reorderedCircuit = useLab.getState().circuit;
+      expect(useLab.getState().isDirty).toBe(true);
+      expect(useLab.getState().history.length).toBe(1);
+      expect(reorderedCircuit.ladderRungOrder).toBeDefined();
+
+      const reorderedModel = buildLadderDiagram(reorderedCircuit, snap, [], {
+        temperature: 25,
+        pressure: 0,
+        level: 0,
+        flow: 0,
+        limitHit: false,
+        proxHit: false,
+        photoHit: false,
+      });
+
+      // Verify rungs reordered
+      expect(reorderedModel.rungs[0].id).toBe(initialRung2.id);
+      expect(reorderedModel.rungs[1].id).toBe(initialRung3.id);
+      expect(reorderedModel.rungs[2].id).toBe(initialRung1.id);
+
+      // Verify sequential rung numbering
+      expect(reorderedModel.rungs[0].rungNumber).toBe(1);
+      expect(reorderedModel.rungs[1].rungNumber).toBe(2);
+      expect(reorderedModel.rungs[2].rungNumber).toBe(3);
+
+      // Verify undo restores previous order
+      useLab.getState().undo();
+      const undoneCircuit = useLab.getState().circuit;
+      const undoneModel = buildLadderDiagram(undoneCircuit, snap, [], {
+        temperature: 25,
+        pressure: 0,
+        level: 0,
+        flow: 0,
+        limitHit: false,
+        proxHit: false,
+        photoHit: false,
+      });
+
+      expect(undoneModel.rungs[0].id).toBe(initialRung1.id);
+      expect(undoneModel.rungs[1].id).toBe(initialRung2.id);
+      expect(undoneModel.rungs[2].id).toBe(initialRung3.id);
     });
   });
 });

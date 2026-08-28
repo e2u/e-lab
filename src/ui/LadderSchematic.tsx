@@ -31,11 +31,20 @@ export function LadderSchematic() {
   const docName = useLab((s) => s.docName);
   const selected = useLab((s) => s.selected);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   // Picker Modal State
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerAction, setPickerAction] = useState<PickerActionType>("add-rung");
   const [pickerTargetSymId, setPickerTargetSymId] = useState<string | undefined>();
+
+  // Drag-and-drop Rung Reordering State
+  const [dragRung, setDragRung] = useState<{
+    fromIndex: number;
+    targetIndex: number;
+    startClientY: number;
+    currentClientY: number;
+  } | null>(null);
 
   const model = useMemo(() => {
     return buildLadderDiagram(circuit, snapshot, held, process, docName);
@@ -111,6 +120,64 @@ export function LadderSchematic() {
     setPickerAction("add-parallel");
     setPickerTargetSymId(targetSymId);
     setPickerOpen(true);
+  };
+
+  // Drag-and-drop Rung Reordering Handlers
+  const handleRungHandlePointerDown = (e: React.PointerEvent, rIdx: number) => {
+    if (mode !== "edit" || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    } catch {}
+    setDragRung({
+      fromIndex: rIdx,
+      targetIndex: rIdx,
+      startClientY: e.clientY,
+      currentClientY: e.clientY,
+    });
+  };
+
+  const handleRungHandlePointerMove = (e: React.PointerEvent) => {
+    if (!dragRung) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!svgRef.current) return;
+    const svgRect = svgRef.current.getBoundingClientRect();
+    const scale = svgRect.height / totalHeight;
+    const svgY = (e.clientY - svgRect.top) / scale;
+
+    // Determine target rung index based on Y coordinate in SVG space
+    const relY = svgY - startY;
+    const rawTarget = Math.round(relY / rungHeight);
+    const targetIdx = Math.max(0, Math.min(model.rungs.length - 1, rawTarget));
+
+    if (targetIdx !== dragRung.targetIndex || e.clientY !== dragRung.currentClientY) {
+      setDragRung({
+        ...dragRung,
+        targetIndex: targetIdx,
+        currentClientY: e.clientY,
+      });
+    }
+  };
+
+  const handleRungHandlePointerUp = (e: React.PointerEvent) => {
+    if (!dragRung) return;
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+    } catch {}
+
+    if (dragRung.fromIndex !== dragRung.targetIndex) {
+      useLab.getState().reorderLadderRungs(dragRung.fromIndex, dragRung.targetIndex);
+    }
+    setDragRung(null);
+  };
+
+  const handleRungHandlePointerCancel = () => {
+    setDragRung(null);
   };
 
   const handlePickerSubmit = (data: {
@@ -198,6 +265,7 @@ export function LadderSchematic() {
 
       <div className="schematic-container ladder-container">
         <svg
+          ref={svgRef}
           className={`paper ladder-paper ${mode === "run" ? "run" : ""}`}
           width={totalWidth * zoom}
           height={totalHeight * zoom}
@@ -205,6 +273,8 @@ export function LadderSchematic() {
           style={{
             backgroundSize: `${GRID * zoom}px ${GRID * zoom}px`,
           }}
+          onPointerMove={dragRung ? handleRungHandlePointerMove : undefined}
+          onPointerUp={dragRung ? handleRungHandlePointerUp : undefined}
         >
           {/* Header Title Block */}
           <g transform="translate(40, 25)">
@@ -382,17 +452,71 @@ export function LadderSchematic() {
 
             return (
               <g key={rung.id} className={`ladder-rung ${isRungLive ? "live" : ""}`}>
-                {/* Rung Number Label (Left of Left Rail) */}
-                <text
-                  x={railLeftX - 15}
-                  y={rungY + 5}
-                  textAnchor="end"
-                  fontSize="12.5"
-                  fontWeight="800"
-                  fill="var(--ladder-rung-num, #0f172a)"
+                {/* Rung Drag Handle & Number Badge (Left of Left Rail) */}
+                <g
+                  className={`ladder-rung-handle ${mode === "edit" ? "editable" : ""} ${dragRung?.fromIndex === rIdx ? "dragging" : ""}`}
+                  transform={`translate(${railLeftX - 44}, ${rungY - 13})`}
+                  onPointerDown={(e) => handleRungHandlePointerDown(e, rIdx)}
+                  onPointerMove={handleRungHandlePointerMove}
+                  onPointerUp={handleRungHandlePointerUp}
+                  onPointerCancel={handleRungHandlePointerCancel}
+                  style={{
+                    cursor: mode === "edit" ? (dragRung?.fromIndex === rIdx ? "grabbing" : "grab") : "default",
+                    touchAction: "none",
+                  }}
                 >
-                  {rung.rungNumber}
-                </text>
+                  <title>{mode === "edit" ? t("ladder.dragToReorder") : `${t("ladder.rung")} ${rung.rungNumber}`}</title>
+                  <rect
+                    x="0"
+                    y="0"
+                    width="36"
+                    height="26"
+                    rx="6"
+                    className="ladder-rung-handle-bg"
+                    fill={dragRung?.fromIndex === rIdx ? "#f59e0b" : "var(--ladder-paper, #ffffff)"}
+                    stroke={dragRung?.fromIndex === rIdx ? "#d97706" : "var(--ladder-wire, #94a3b8)"}
+                    strokeWidth={dragRung?.fromIndex === rIdx ? "2" : "1.2"}
+                    filter={dragRung?.fromIndex === rIdx ? "drop-shadow(0 2px 6px rgba(245, 158, 11, 0.5))" : undefined}
+                  />
+                  {mode === "edit" && (
+                    <text
+                      x="7"
+                      y="17"
+                      fontSize="10"
+                      fontWeight="800"
+                      fill={dragRung?.fromIndex === rIdx ? "#ffffff" : "var(--ladder-text-dim, #94a3b8)"}
+                      className="ladder-grip-icon"
+                    >
+                      ⠿
+                    </text>
+                  )}
+                  <text
+                    x={mode === "edit" ? "22" : "18"}
+                    y="17"
+                    textAnchor="middle"
+                    fontSize="12.5"
+                    fontWeight="800"
+                    fill={dragRung?.fromIndex === rIdx ? "#ffffff" : "var(--ladder-rung-num, #0f172a)"}
+                  >
+                    {rung.rungNumber}
+                  </text>
+                </g>
+
+                {/* Highlight outline around rung being dragged */}
+                {dragRung?.fromIndex === rIdx && (
+                  <rect
+                    x={railLeftX - 50}
+                    y={rungY - 38}
+                    width={rungWidth + 125}
+                    height={rungHeight - 8}
+                    rx="8"
+                    fill="rgba(245, 158, 11, 0.05)"
+                    stroke="#f59e0b"
+                    strokeWidth="1.8"
+                    strokeDasharray="6 4"
+                    pointerEvents="none"
+                  />
+                )}
 
                 {/* Rung Title / Comment Banner */}
                 {rung.title && (
@@ -580,6 +704,50 @@ export function LadderSchematic() {
               </g>
             );
           })}
+
+          {/* Drop Target Indicator Line while dragging */}
+          {dragRung && dragRung.fromIndex !== dragRung.targetIndex && (
+            (() => {
+              const targetRungY = startY + dragRung.targetIndex * rungHeight + 25;
+              const dropY = dragRung.targetIndex > dragRung.fromIndex
+                ? targetRungY + rungHeight / 2 - 10
+                : targetRungY - rungHeight / 2 + 10;
+
+              return (
+                <g className="ladder-drop-indicator" pointerEvents="none">
+                  <line
+                    x1={railLeftX - 50}
+                    y1={dropY}
+                    x2={railRightX + 50}
+                    y2={dropY}
+                    stroke="#3b82f6"
+                    strokeWidth="3"
+                    strokeDasharray="6 4"
+                    filter="drop-shadow(0 0 6px rgba(59, 130, 246, 0.8))"
+                  />
+                  <rect
+                    x={railLeftX + rungWidth / 2 - 70}
+                    y={dropY - 11}
+                    width="140"
+                    height="22"
+                    rx="5"
+                    fill="#3b82f6"
+                    filter="drop-shadow(0 2px 6px rgba(59, 130, 246, 0.4))"
+                  />
+                  <text
+                    x={railLeftX + rungWidth / 2}
+                    y={dropY + 4}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontWeight="800"
+                    fill="#ffffff"
+                  >
+                    ⬇ {t("ladder.reorderTarget")}
+                  </text>
+                </g>
+              );
+            })()
+          )}
 
           {/* Bottom Add Rung Button Placeholder in Edit Mode */}
           {mode === "edit" && (

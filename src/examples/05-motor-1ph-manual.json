@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "name": "05-motor-1ph-manual",
+  "circuit": {
+    "devices": [
+      {
+        "id": "d_27_87d0c80e",
+        "kind": "mains-3ph",
+        "tag": "G1",
+        "params": {
+          "supplyType": "wye",
+          "voltage": 208
+        }
+      },
+      {
+        "id": "d_29_a18bf073",
+        "kind": "breaker-1p",
+        "tag": "QF1",
+        "params": {}
+      },
+      {
+        "id": "d_2b_53f0670a",
+        "kind": "toggle-spst",
+        "tag": "SA1",
+        "params": {}
+      },
+      {
+        "id": "d_2d_635c778e",
+        "kind": "ammeter",
+        "tag": "AM1",
+        "params": {}
+      },
+      {
+        "id": "d_2f_af4676cc",
+        "kind": "motor-1ph",
+        "tag": "M1",
+        "params": {
+          "power": 1.5
+        }
+      },
+      {
+        "id": "d_2h_bc05ef67",
+        "kind": "voltmeter",
+        "tag": "VM1",
+        "params": {}
+      },
+      {
+        "id": "d_2j_b65bb732",
+        "kind": "ground",
+        "tag": "PE1",
+        "params": {}
+      }
+    ],
+    "symbols": [
+      {
+        "id": "s_28_9aaa6b2c",
+        "deviceId": "d_27_87d0c80e",
+        "variant": "wye",
+        "x": 4,
+        "y": 4,
+        "rot": 0
+      },
+      {
+        "id": "s_2a_87b70426",
+        "deviceId": "d_29_a18bf073",
+        "variant": "body",
+        "x": 14,
+        "y": 4,
+        "rot": 0
+      },
+      {
+        "id": "s_2c_724a1601",
+        "deviceId": "d_2b_53f0670a",
+        "variant": "body",
+        "x": 20,
+        "y": 4,
+        "rot": 0
+      },
+      {
+        "id": "s_2e_68bc291c",
+        "deviceId": "d_2d_635c778e",
+        "variant": "body",
+        "x": 26,
+        "y": 3.5,
+        "rot": 0
+      },
+      {
+        "id": "s_2g_d4f3f8a6",
+        "deviceId": "d_2f_af4676cc",
+        "variant": "body",
+        "x": 36,
+        "y": 3.5,
+        "rot": 0
+      },
+      {
+        "id": "s_2i_12a58e33",
+        "deviceId": "d_2h_bc05ef67",
+        "variant": "body",
+        "x": 26,
+        "y": 9.5,
+        "rot": 0
+      },
+      {
+        "id": "s_2k_bfb4d5fc",
+        "deviceId": "d_2j_b65bb732",
+        "variant": "body",
+        "x": 36,
+        "y": 11,
+        "rot": 0
+      }
+    ],
+    "wires": [
+      {
+        "id": "w_2l_eeaa4ddf",
+        "a": {
+          "symbolId": "s_28_9aaa6b2c",
+          "term": "L1"
+        },
+        "b": {
+          "symbolId": "s_2a_87b70426",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_2m_3d3e7c09",
+        "a": {
+          "symbolId": "s_2a_87b70426",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_2c_724a1601",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_2n_63167079",
+        "a": {
+          "symbolId": "s_2c_724a1601",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_2e_68bc291c",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_2o_8ea0c160",
+        "a": {
+          "symbolId": "s_2e_68bc291c",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_2g_d4f3f8a6",
+          "term": "U1"
+        }
+      },
+      {
+        "id": "w_2p_42db04f5",
+        "a": {
+          "symbolId": "s_28_9aaa6b2c",
+          "term": "N"
+        },
+        "b": {
+          "symbolId": "s_2g_d4f3f8a6",
+          "term": "U2"
+        }
+      },
+      {
+        "id": "w_2q_ff2ae3f3",
+        "a": {
+          "symbolId": "s_2c_724a1601",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_2i_12a58e33",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_2r_f1b527a0",
+        "a": {
+          "symbolId": "s_28_9aaa6b2c",
+          "term": "N"
+        },
+        "b": {
+          "symbolId": "s_2i_12a58e33",
+          "term": "2"
+        }
+      },
+      {
+        "id": "w_2s_c4a7635b",
+        "a": {
+          "symbolId": "s_28_9aaa6b2c",
+          "term": "PE"
+        },
+        "b": {
+          "symbolId": "s_2k_bfb4d5fc",
+          "term": "1"
+        }
+      }
+    ],
+    "groups": []
+  }
+}

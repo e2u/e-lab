@@ -38,7 +38,12 @@ function readTheme(): Theme {
 }
 
 function readLayoutMode(): LayoutMode {
-  return "schematic";
+  if (typeof localStorage === "undefined") return "schematic";
+  try {
+    const val = localStorage.getItem("elab.layoutMode");
+    if (val === "ladder" || val === "schematic") return val;
+  } catch {}
+  return "schematic";  // 默認返回 schematic
 }
 
 function readZoom(): number {
@@ -75,6 +80,18 @@ function readSidebarState(): { paletteOpen: boolean; sideOpen: boolean } {
   }
 }
 
+// ✅ 新增：檢查是否顯示梯形圖菜單的設置
+function readShowLadderMenu(): boolean {
+  if (typeof localStorage === "undefined") return true;
+  try {
+    const val = localStorage.getItem("elab.showLadderMenu");
+    // 預設顯示（true），只有明確設定為 false 才隱藏
+    return val === null ? true : val === "true";
+  } catch {
+    return true;
+  }
+}
+
 export interface Selection {
   type: "symbol" | "wire";
   id: string;
@@ -102,6 +119,7 @@ export interface LabState {
   lang: Lang;
   theme: Theme;
   layoutMode: LayoutMode;
+  showLadderMenu: boolean;  // ✅ 新增：控制是否顯示梯形圖菜單
   isDirty: boolean;
   paletteOpen: boolean;
   sideOpen: boolean;
@@ -208,6 +226,8 @@ export interface LabState {
   setSideOpen: (open: boolean) => void;
   togglePalette: () => void;
   toggleSide: () => void;
+  setShowLadderMenu: (show: boolean) => void;
+  toggleShowLadderMenu: () => void;
   setZoom: (zoom: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
@@ -275,11 +295,13 @@ const boot = startupDoc(createBlankTemplateCircuit, t("doc.untitled"));
 sanitizeCircuitIds(boot.circuit);
 const sidebarBoot = readSidebarState();
 
+const initialLayoutMode = readLayoutMode();
+
 export const useLab = create<LabState>((set, get) => ({
   circuit: boot.circuit,
   snapshot: emptySnapshot(boot.circuit),
-  mode: "edit",
-  running: false,
+  mode: initialLayoutMode === "ladder" ? "run" : "edit",
+  running: initialLayoutMode === "ladder",
   held: [],
   process: boot.process ?? defaultProcess(),
   selected: null,
@@ -296,7 +318,8 @@ export const useLab = create<LabState>((set, get) => ({
   savesTick: 0,
   lang: readLang(),
   theme: readTheme(),
-  layoutMode: readLayoutMode(),
+  layoutMode: initialLayoutMode,
+  showLadderMenu: readShowLadderMenu(),  // ✅ 新增：控制是否顯示梯形圖菜單
   isDirty: false,
   paletteOpen: sidebarBoot.paletteOpen,
   sideOpen: sidebarBoot.sideOpen,
@@ -309,7 +332,29 @@ export const useLab = create<LabState>((set, get) => ({
 
   pushHistory: () => {
     const { history, circuit } = get();
-    set({ history: [...history.slice(-40), clone(circuit)], future: [] });
+    
+    // 當切換布局模式或執行某些操作時，確保 ladderRungOrder 與 rung ID 同步
+    const normalizedCircuit = { ...circuit };
+    if (normalizedCircuit.ladderRungOrder && Array.isArray(normalizedCircuit.ladderRungOrder)) {
+      // 過濾掉不存在於 circuit 中的 rung IDs（防止舊 ID 殘留）
+      const existingDeviceIds = new Set([
+        ...circuit.symbols.map(s => s.deviceId),
+        ...circuit.devices.map(d => d.id)
+      ]);
+      
+      normalizedCircuit.ladderRungOrder = normalizedCircuit.ladderRungOrder.filter(id => {
+        if (!id.startsWith("rung_")) return false;
+        
+        // 提取 device id 從 rung_id
+        const parts = id.split("_");
+        if (parts.length < 2) return true;  // 保留未知格式
+        
+        const deviceId = parts[1];
+        return existingDeviceIds.has(deviceId);
+      });
+    }
+    
+    set({ history: [...history.slice(-40), clone(normalizedCircuit)], future: [] });
   },
 
   setMode: (mode) => {
@@ -1328,12 +1373,30 @@ export const useLab = create<LabState>((set, get) => ({
         localStorage.setItem("elab.layoutMode", layoutMode);
       }
     } catch {}
+    if (layoutMode === "ladder") {
+      get().setMode("run");
+    }
     set({ layoutMode });
   },
 
   toggleLayoutMode: () => {
     const next = get().layoutMode === "schematic" ? "ladder" : "schematic";
     get().setLayoutMode(next);
+    
+    // ✅ 切換到 schematic 模式時自動清理 ladderRungOrder（因為 schematic mode 不需要它）
+    if (next === "schematic") {
+      const current = get().circuit;
+      if (current.ladderRungOrder && Array.isArray(current.ladderRungOrder)) {
+        get().pushHistory();
+        set({
+          circuit: {
+            ...clone(current),
+            ladderRungOrder: undefined  // 清除 ladderRungOrder 在 schematic mode
+          },
+          isDirty: true
+        });
+      }
+    }
   },
 
   reorderLadderRungs: (fromIndex, toIndex) => {
@@ -1369,6 +1432,27 @@ export const useLab = create<LabState>((set, get) => ({
       localStorage.setItem("elab.sidebar.sideOpen", String(open));
     } catch {}
     set({ sideOpen: open });
+  },
+
+  // ✅ 新增：設置是否顯示梯形圖菜單
+  setShowLadderMenu: (show: boolean) => {
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("elab.showLadderMenu", String(show));
+      }
+    } catch {}
+    set({ showLadderMenu: show });
+  },
+
+  toggleShowLadderMenu: () => {
+    const current = get().showLadderMenu;
+    const next = !current;
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("elab.showLadderMenu", String(next));
+      }
+    } catch {}
+    set({ showLadderMenu: next });
   },
 
   togglePalette: () => {

@@ -217,6 +217,24 @@ export function MobileMenuModal({
             <div className="mobile-examples-list">
               {examples.map((ex) => {
                 const isSelected = selectedExample === ex.id;
+                const getExampleIcon = (id: string) => {
+                  if (id === "none") return "📄";
+                  if (id.includes("lamp")) return "💡";
+                  if (id.includes("fuse") || id.includes("transformer") || id.includes("ats")) return "⚡";
+                  if (id.includes("relay")) return "🧲";
+                  if (id.includes("motor") || id.includes("starter") || id.includes("interlock") || id.includes("station")) return "⚙️";
+                  if (id.includes("overload") || id.includes("alarm")) return "🚨";
+                  if (id.includes("estop") || id.includes("safety")) return "🛑";
+                  if (id.includes("hoa") || id.includes("selector")) return "🎛️";
+                  if (id.includes("limit") || id.includes("reciprocating")) return "↔️";
+                  if (id.includes("timer")) return "⏱️";
+                  if (id.includes("pump") || id.includes("tank")) return "💧";
+                  if (id.includes("temp") || id.includes("pressure") || id.includes("heater")) return "🔥";
+                  if (id.includes("conveyor") || id.includes("counter")) return "📦";
+                  if (id.includes("cell") || id.includes("automated")) return "🏭";
+                  return "⚙️";
+                };
+
                 return (
                   <button
                     key={ex.id}
@@ -224,9 +242,7 @@ export function MobileMenuModal({
                     className={`mobile-example-card ${isSelected ? "selected" : ""}`}
                     onClick={() => handleSelectExample(ex.id)}
                   >
-                    <span className="mobile-example-icon">
-                      {ex.id === "none" ? "📄" : ex.id === "transformer" ? "⚡" : "⚙️"}
-                    </span>
+                    <span className="mobile-example-icon">{getExampleIcon(ex.id)}</span>
                     <span className="mobile-example-name">{tOr(`example.${ex.id}.title`, ex.title)}</span>
                     {isSelected && <span className="mobile-example-badge">✓</span>}
                   </button>

@@ -123,6 +123,10 @@ export interface LadderTransformerBranch {
   mains?: Device;
   primaryVoltage?: number;
   secondaryVoltage?: number;
+  primaryFuse1?: Device;
+  primaryFuse2?: Device;
+  secondaryFuse?: Device;
+  isGrounded?: boolean;
   fuses?: Device;
   ground?: Device;
   isEnergized: boolean;

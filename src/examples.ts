@@ -313,11 +313,6 @@ export function selectorReversing(): Circuit {
   return c;
 }
 
-export const EXAMPLES: Example[] = [
-  {
-    id: "transformer",
-    title: "Transformer",
-    blurb: "三相電源經變壓器降壓，驅動綠色指示燈。",
-    build: transformer,
-  },
-];
+import { ALL_20_EXAMPLES } from "./examplesBuilder";
+
+export const EXAMPLES: Example[] = ALL_20_EXAMPLES;

@@ -80,6 +80,8 @@ export interface NewContactOptions {
   contactType?: string;
 }
 
+// ✅ TERMINAL_MAP 已移除 - 使用硬編碼值代替
+
 export interface NewCoilOptions {
   existingDeviceId?: string;
   kind?: DeviceKind;
@@ -87,6 +89,8 @@ export interface NewCoilOptions {
   color?: string;
   delay?: number;
 }
+
+// ✅ 保留 TERMINAL_MAP 以備未來使用（目前未調用 getTerminalForRole）
 
 /**
  * Add a new Rung to the circuit with optional initial contact and output coil.
@@ -212,27 +216,65 @@ export function synthesizeAddRung(
 
   // 3. Connect Control Wires: Source -> Contact (IN->OUT) -> Coil (A1->A2) -> Return
   if (contactSym && coilSym) {
-    // Wire: Contact Out (2) -> Coil In (A1 / 1)
+    const devKind = coilOpt?.kind || "lamp";
+    
+    // 獲取終端名稱（支援多種命名慣例）
+    const getCoilTerm = (variant?: string): string => {
+      if (variant === "coil") return "A1";  // Contactor/Relay coil
+      // Light/Horn/Solenoid etc.
+      switch (devKind) {
+        case "lamp": return "X1";
+        case "horn":
+        case "alarm": return "+";
+        case "heater": return "1";
+        default: return "1";
+      }
+    };
+
+    const getReturnTerm = (variant?: string): string => {
+      if (variant === "coil") return "A2";
+      switch (devKind) {
+        case "lamp": return "X2";
+        case "horn":
+        case "alarm": return "-";
+        case "heater": return "2";
+        default: return "2";
+      }
+    };
+    
+    const getContactInTerm = (variant?: string): string => {
+      if (variant === "aux-no" || variant === "aux-nc") return "13";
+      if (variant === "aux-no2" || variant === "aux-nc2") return "43";
+      return "1";
+    };
+
+    const getContactOutTerm = (variant?: string): string => {
+      if (variant === "aux-no" || variant === "aux-nc") return "14";
+      if (variant === "aux-no2" || variant === "aux-nc2") return "44";
+      return "2";
+    };
+
+    // Wire: Contact Out -> Coil In
     next.wires.push({
       id: uid("w"),
-      a: { symbolId: contactSym.id, term: contactSym.variant === "aux-no" || contactSym.variant === "aux-nc" ? "14" : "2" },
-      b: { symbolId: coilSym.id, term: coilSym.variant === "coil" ? "A1" : "1" },
+      a: { symbolId: contactSym.id, term: getContactOutTerm(contactSym.variant) },
+      b: { symbolId: coilSym.id, term: getCoilTerm(coilSym.variant) },
     });
 
     if (supply.source) {
-      // Wire: Source -> Contact In (1)
+      // Wire: Source -> Contact In
       next.wires.push({
         id: uid("w"),
         a: { symbolId: supply.source.symbolId, term: supply.source.term },
-        b: { symbolId: contactSym.id, term: contactSym.variant === "aux-no" || contactSym.variant === "aux-nc" ? "13" : "1" },
+        b: { symbolId: contactSym.id, term: getContactInTerm(contactSym.variant) },
       });
     }
 
     if (supply.returnTerm) {
-      // Wire: Coil Out (A2 / 2) -> Return
+      // Wire: Coil Out -> Return
       next.wires.push({
         id: uid("w"),
-        a: { symbolId: coilSym.id, term: coilSym.variant === "coil" ? "A2" : "2" },
+        a: { symbolId: coilSym.id, term: getReturnTerm(coilSym.variant) },
         b: { symbolId: supply.returnTerm.symbolId, term: supply.returnTerm.term },
       });
     }
@@ -476,6 +518,39 @@ export function synthesizeToggleContactVariant(
   return next;
 }
 
+// ✅ 支援的 rung ID 前綴列表（用於清理）
+const RUNG_ID_PREFIXES = ["rung_", "rung_aux_"];
+
+/**
+ * Check if an ID is a valid rung ID that should be tracked in ladderRungOrder
+ */
+function isValidRungId(id: string): boolean {
+  return RUNG_ID_PREFIXES.some(prefix => id.startsWith(prefix));
+}
+
+/**
+ * Extract device kind and coordinates from rung ID (for stable identification)
+ */
+function parseRungId(rungId: string): { kind?: string; x?: number; y?: number } | null {
+  // Format: rung_<kind>_<x>_<y>
+  if (!rungId.startsWith("rung_")) return null;
+  
+  const parts = rungId.split("_");
+  if (parts.length < 4) return null;
+  
+  try {
+    const kind = parts[1];
+    const x = parseInt(parts[2], 10);
+    const y = parseInt(parts[3], 10);
+    
+    if (isNaN(x) || isNaN(y)) return null;
+    
+    return { kind, x, y };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Delete a symbol/device from the circuit by symbolId.
  */
@@ -496,8 +571,38 @@ export function synthesizeDeleteElement(
     const hasOtherSymbols = next.symbols.some((s) => s.deviceId === sym.deviceId);
     if (!hasOtherSymbols) {
       next.devices = next.devices.filter((d) => d.id !== sym.deviceId);
+      
+      // ✅ 改進：清理所有與此裝置相關的 rung IDs（包括 aux contacts 和 coil rungs）
       if (next.ladderRungOrder) {
-        next.ladderRungOrder = next.ladderRungOrder.filter((id) => id !== `rung_${sym.deviceId}`);
+        const deviceIdPrefix = `rung_${sym.deviceId}`;
+        
+        // 刪除主 coil rung
+        next.ladderRungOrder = next.ladderRungOrder.filter(id => 
+          !isValidRungId(id) || 
+          !id.startsWith(deviceIdPrefix)
+        );
+      }
+    } else if (next.ladderRungOrder) {
+      // 即使有其他符號，也可能需要清理 auxiliary contact rungs
+      // 檢查是否刪除了 auxiliary contact
+      if (sym.variant?.includes("aux") || sym.variant === "no" || sym.variant === "nc") {
+        const deviceId = sym.deviceId;
+        next.ladderRungOrder = next.ladderRungOrder.filter(id => {
+          if (!isValidRungId(id)) return true;
+          
+          // 解析 rung ID 並檢查是否匹配裝置
+          const parsed = parseRungId(id);
+          if (parsed && parsed.kind) {
+            // 查找是否有相同裝置在相同位置的符號
+            const hasMatchingSym = next.symbols.some(s => 
+              s.deviceId === deviceId &&
+              Math.abs(s.x - parsed!.x!) < 1 &&
+              Math.abs(s.y - parsed!.y!) < 1
+            );
+            return hasMatchingSym;
+          }
+          return true;
+        });
       }
     }
   }

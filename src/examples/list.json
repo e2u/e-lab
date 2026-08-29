@@ -6,6 +6,106 @@
       "blurb": "空白圖紙與基礎電源分配"
     },
     {
+      "id": "01-basic-lamp",
+      "title": "01# Basic Lamp Circuit",
+      "blurb": "直流電源驅動常開按鈕與綠色指示燈基礎電路。"
+    },
+    {
+      "id": "02-start-stop-lamp",
+      "title": "02# Start-Stop Dual Indicators",
+      "blurb": "啟動/停止雙按鈕與紅綠雙色狀態指示電路。"
+    },
+    {
+      "id": "03-transformer-fuse",
+      "title": "03# Control Transformer & Fuses",
+      "blurb": "控制變壓器降壓 480V/120V、一次側二次側熔斷保護與電壓表監測。"
+    },
+    {
+      "id": "04-relay-self-holding",
+      "title": "04# Relay Self-Holding Circuit",
+      "blurb": "中間繼電器經典啟停自鎖自保電路與運行/停止雙燈指示。"
+    },
+    {
+      "id": "05-motor-1ph-manual",
+      "title": "05# Single-Phase Motor Manual Control",
+      "blurb": "單相交流馬達單極斷路器、開關控制、電壓表與鉗形電流表監測。"
+    },
+    {
+      "id": "06-motor-3ph-dol",
+      "title": "06# 3-Phase Motor DOL Starter",
+      "blurb": "三相馬達直接起動 (DOL) 隔離刀閘、三極斷路器、接觸器自鎖控制迴路。"
+    },
+    {
+      "id": "07-overload-alarm",
+      "title": "07# Motor Overload Protection & Alarm",
+      "blurb": "三相馬達熱過載繼電器脫扣保護與 97-98 故障聲光警報迴路。"
+    },
+    {
+      "id": "08-estop-safety",
+      "title": "08# Emergency Stop Safety Interlock",
+      "blurb": "急停安全主繼電器迴路，拍下急停即時切斷全系統並觸發紅燈警報。"
+    },
+    {
+      "id": "09-hoa-selector",
+      "title": "09# Hand-Off-Auto Selector & Pump",
+      "blurb": "三檔選擇開關 (HOA) 手動點動/自動浮球控制抽水泵與排污電磁閥。"
+    },
+    {
+      "id": "10-dual-station",
+      "title": "10# Dual-Station Remote Motor Control",
+      "blurb": "兩地異地控制電路：雙按鈕串聯停止與並聯啟動三相馬達。"
+    },
+    {
+      "id": "11-fwd-rev-interlock",
+      "title": "11# Forward / Reverse Interlock Starter",
+      "blurb": "三相馬達正反轉雙接觸器電氣互鎖與相序切換控制迴路。"
+    },
+    {
+      "id": "12-limit-reciprocating",
+      "title": "12# Limit Switch Auto-Cycle Travel",
+      "blurb": "雙行程開關端點碰撞自動反轉往返工作台運動控制系統。"
+    },
+    {
+      "id": "13-timer-on-sequence",
+      "title": "13# On-Delay Timer Sequential Start",
+      "blurb": "通電延時繼電器 (TON) 主輸送帶與進料馬達延時順序起動控制。"
+    },
+    {
+      "id": "14-timer-off-cooling",
+      "title": "14# Off-Delay Timer Fan Cooling Cycle",
+      "blurb": "斷電延時繼電器 (TOF) 電熱爐停機後冷卻風扇延時自動散熱排風。"
+    },
+    {
+      "id": "15-star-delta-starter",
+      "title": "15# Star-Delta (Y-Δ) Reduced Starter",
+      "blurb": "三相馬達星三角降壓起動：星形起動延時自動切換角形全壓運轉。"
+    },
+    {
+      "id": "16-tank-level-pump",
+      "title": "16# Water Tank Automatic Pump & Horn",
+      "blurb": "水箱高低雙浮球自動抽水泵自鎖排水與極限溢流電笛警報系統。"
+    },
+    {
+      "id": "17-temp-pressure-heater",
+      "title": "17# Temp & Pressure Interlock Chamber",
+      "blurb": "冷卻水流量、溫度與壓力三重安全閉環聯鎖工業加熱爐控制系統。"
+    },
+    {
+      "id": "18-conveyor-counter-sorter",
+      "title": "18# Conveyor Counter & Sorting Solenoid",
+      "blurb": "接近開關與光電感測器輸送帶自動計數、批量完成氣動分揀推料。"
+    },
+    {
+      "id": "19-ats-dual-power",
+      "title": "19# Automatic Transfer Switch (ATS)",
+      "blurb": "市電與柴油發電機雙電源自動切換 ATS 系統，即時電壓與負載監測。"
+    },
+    {
+      "id": "20-automated-cell",
+      "title": "20# Automated Manufacturing Machine Cell",
+      "blurb": "全功能工業自動化多工位加工單元：工程圖框、雙電壓、安全光柵、雙馬達與液壓夾緊。"
+    },
+    {
       "id": "transformer",
       "title": "Transformer",
       "blurb": "三相電源經變壓器降壓，驅動綠色指示燈。"

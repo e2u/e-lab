@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "name": "01-basic-lamp",
+  "circuit": {
+    "devices": [
+      {
+        "id": "d_2_543e6d6a",
+        "kind": "dc-supply",
+        "tag": "G1",
+        "params": {}
+      },
+      {
+        "id": "d_4_9cc2ad0e",
+        "kind": "pb-no",
+        "tag": "SB1",
+        "params": {}
+      },
+      {
+        "id": "d_6_3e011398",
+        "kind": "lamp",
+        "tag": "HL1",
+        "params": {
+          "color": "green"
+        }
+      }
+    ],
+    "symbols": [
+      {
+        "id": "s_3_31e849c9",
+        "deviceId": "d_2_543e6d6a",
+        "variant": "body",
+        "x": 4,
+        "y": 4,
+        "rot": 0
+      },
+      {
+        "id": "s_5_0a190063",
+        "deviceId": "d_4_9cc2ad0e",
+        "variant": "body",
+        "x": 14,
+        "y": 4,
+        "rot": 0
+      },
+      {
+        "id": "s_7_c3c641d3",
+        "deviceId": "d_6_3e011398",
+        "variant": "body",
+        "x": 22,
+        "y": 3.5,
+        "rot": 0
+      }
+    ],
+    "wires": [
+      {
+        "id": "w_8_6c1a2212",
+        "a": {
+          "symbolId": "s_3_31e849c9",
+          "term": "+"
+        },
+        "b": {
+          "symbolId": "s_5_0a190063",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_9_ef219510",
+        "a": {
+          "symbolId": "s_5_0a190063",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_7_c3c641d3",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_a_6740a6ed",
+        "a": {
+          "symbolId": "s_7_c3c641d3",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_3_31e849c9",
+          "term": "-"
+        }
+      }
+    ],
+    "groups": []
+  }
+}

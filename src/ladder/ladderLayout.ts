@@ -310,28 +310,8 @@ export function buildLadderDiagram(
     });
   }
 
-  // 2.5 Build Independent Control Power Transformer Branch (if present)
+  // 2.5 Transformer branch declaration
   let transformerBranch: LadderTransformerBranch | undefined = undefined;
-  if (transformer) {
-    const priV = transformer.params.primaryVoltage ??
-      (transformer.params.primaryVolts ? Number(transformer.params.primaryVolts) :
-        (transformer.params.ratio ? Number(transformer.params.ratio.split("/")[0]) : (mains?.params.voltage ?? 480)));
-    const secV = transformer.params.secondaryVoltage ??
-      (transformer.params.secondaryVolts ? Number(transformer.params.secondaryVolts) :
-        (transformer.params.ratio ? Number(transformer.params.ratio.split("/")[1]) : 120));
-
-    transformerBranch = {
-      id: "cpt_branch",
-      title: "CONTROL POWER TRANSFORMER (CPT) - STEP-DOWN SUPPLY",
-      transformer,
-      mains,
-      primaryVoltage: isNaN(priV) ? 480 : priV,
-      secondaryVoltage: isNaN(secV) ? 120 : secV,
-      fuses,
-      ground,
-      isEnergized: snapshot.runtime[transformer.id]?.energized ?? true,
-    };
-  }
 
   // 3. Collect Output Coils & Loads and Contact Units
   const outputDevices: { device: Device; symbol?: SymbolInst }[] = [];
@@ -431,7 +411,7 @@ export function buildLadderDiagram(
     device: Device;
     symbol?: SymbolInst;
     variant?: string;
-    address: string;
+    address?: string;  // ✅ 改為可選，在必要時提供默認值
     contactType: LadderContactType;
     termA: string;
     termB: string;
@@ -499,7 +479,6 @@ export function buildLadderDiagram(
       }
     } else if (
       dev.kind === "contactor" ||
-      dev.kind === "relay" ||
       dev.kind.startsWith("starter-")
     ) {
       if (sym.variant === "aux-no" || sym.variant === "no") {
@@ -555,8 +534,114 @@ export function buildLadderDiagram(
           termB: "32",
         });
       }
+    } else if (dev.kind === "relay") {
+      if (sym.variant === "aux-no" || sym.variant === "no") {
+        contactUnits.push({
+          id: sym.id,
+          deviceId: dev.id,
+          symbolId: sym.id,
+          device: dev,
+          symbol: sym,
+          variant: "aux-no",
+          address: "13-14",
+          contactType: "no",
+          termA: "1",
+          termB: "2",
+        });
+      } else if (sym.variant === "aux-nc" || sym.variant === "nc") {
+        contactUnits.push({
+          id: sym.id,
+          deviceId: dev.id,
+          symbolId: sym.id,
+          device: dev,
+          symbol: sym,
+          variant: "aux-nc",
+          address: "21-22",
+          contactType: "nc",
+          termA: "3",
+          termB: "4",
+        });
+      } else if (sym.variant === "aux-no2") {
+        contactUnits.push({
+          id: sym.id,
+          deviceId: dev.id,
+          symbolId: sym.id,
+          device: dev,
+          symbol: sym,
+          variant: "aux-no2",
+          address: "43-44",
+          contactType: "no",
+          termA: "5",
+          termB: "6",
+        });
+      } else if (sym.variant === "aux-nc2") {
+        contactUnits.push({
+          id: sym.id,
+          deviceId: dev.id,
+          symbolId: sym.id,
+          device: dev,
+          symbol: sym,
+          variant: "aux-nc2",
+          address: "31-32",
+          contactType: "nc",
+          termA: "7",
+          termB: "8",
+        });
+      }
     } else if (dev.kind === "timer-on" || dev.kind === "timer-off" || dev.kind === "counter") {
-      if (sym.variant === "aux-nc" || sym.variant === "nc") {
+      if (sym.variant === "delayed-nc") {
+        contactUnits.push({
+          id: sym.id,
+          deviceId: dev.id,
+          symbolId: sym.id,
+          device: dev,
+          symbol: sym,
+          variant: "delayed-nc",
+          address: "15-16",
+          contactType: "timer-nc",
+          termA: "15",
+          termB: "16",
+        });
+      } else if (sym.variant === "delayed-no") {
+        contactUnits.push({
+          id: sym.id,
+          deviceId: dev.id,
+          symbolId: sym.id,
+          device: dev,
+          symbol: sym,
+          variant: "delayed-no",
+          address: "15-18",
+          contactType: "timer-no",
+          termA: "15",
+          termB: "18",
+        });
+      } else if (sym.variant === "inst-nc") {
+        contactUnits.push({
+          id: sym.id,
+          deviceId: dev.id,
+          symbolId: sym.id,
+          device: dev,
+          symbol: sym,
+          variant: "inst-nc",
+          address: "21-22",
+          contactType: "nc",
+          termA: "21",
+          termB: "22",
+        });
+      } else if (sym.variant === "inst-no") {
+        contactUnits.push({
+          id: sym.id,
+          deviceId: dev.id,
+          symbolId: sym.id,
+          device: dev,
+          symbol: sym,
+          variant: "inst-no",
+          address: "21-24",
+          contactType: "no",
+          termA: "21",
+          termB: "24",
+        });
+      } else if (sym.variant === "aux-nc" || sym.variant === "nc") {
         contactUnits.push({
           id: sym.id,
           deviceId: dev.id,
@@ -566,8 +651,8 @@ export function buildLadderDiagram(
           variant: "aux-nc",
           address: "21-22",
           contactType: "timer-nc",
-          termA: "3",
-          termB: "4",
+          termA: "1",
+          termB: "2",
         });
       } else if (sym.variant === "aux-no" || sym.variant === "no") {
         contactUnits.push({
@@ -593,8 +678,8 @@ export function buildLadderDiagram(
         variant: "body",
         address: "3-4",
         contactType: dev.kind as LadderContactType,
-        termA: "3",
-        termB: "4",
+        termA: "1",
+        termB: "2",
       });
     } else if (dev.kind === "pb-nc" || dev.kind === "foot-nc" || dev.kind === "foot") {
       contactUnits.push({
@@ -619,8 +704,8 @@ export function buildLadderDiagram(
         variant: "body",
         address: "1-2",
         contactType: "estop",
-        termA: "11",
-        termB: "12",
+        termA: "1",
+        termB: "2",
       });
     } else if (dev.kind === "estop-no") {
       contactUnits.push({
@@ -630,10 +715,10 @@ export function buildLadderDiagram(
         device: dev,
         symbol: sym,
         variant: "body",
-        address: "13-14",
+        address: "3-4",
         contactType: "estop-no",
-        termA: "13",
-        termB: "14",
+        termA: "1",
+        termB: "2",
       });
     } else if (dev.kind === "selector-2") {
       contactUnits.push({
@@ -789,19 +874,47 @@ export function buildLadderDiagram(
     ["1", "2", "3", "4", "5", "6", "11", "12", "13", "14", "21", "22", "31", "32", "43", "44", "95", "96", "97", "98", "A1", "A2", "X1", "X2", "U", "V", "W", "L1", "L2", "L3", "T1", "T2", "T3", "COM", "FWD", "REV", "PLUS", "MINUS", "+", "-"].forEach((term) => {
       unionNode(`${s.id}:${term}`, `${d.id}:${term}`);
     });
+
+    // Terminal alias unification (so wires using 1/2, 11/12, 3/4, 13/14, X1/X2, A1/A2 resolve consistently)
+    if (d.kind === "estop" || d.kind === "estop-nc" || d.kind === "pb-nc") {
+      unionNode(`${s.id}:1`, `${s.id}:11`);
+      unionNode(`${s.id}:2`, `${s.id}:12`);
+      unionNode(`${d.id}:1`, `${d.id}:11`);
+      unionNode(`${d.id}:2`, `${d.id}:12`);
+    } else if (d.kind === "pb-no" || d.kind === "estop-no") {
+      unionNode(`${s.id}:1`, `${s.id}:3`);
+      unionNode(`${s.id}:2`, `${s.id}:4`);
+      unionNode(`${s.id}:1`, `${s.id}:13`);
+      unionNode(`${s.id}:2`, `${s.id}:14`);
+      unionNode(`${d.id}:1`, `${d.id}:3`);
+      unionNode(`${d.id}:2`, `${d.id}:4`);
+      unionNode(`${d.id}:1`, `${d.id}:13`);
+      unionNode(`${d.id}:2`, `${d.id}:14`);
+    } else if (d.kind === "lamp") {
+      unionNode(`${s.id}:1`, `${s.id}:X1`);
+      unionNode(`${s.id}:2`, `${s.id}:X2`);
+      unionNode(`${d.id}:1`, `${d.id}:X1`);
+      unionNode(`${d.id}:2`, `${d.id}:X2`);
+    } else if (d.kind === "contactor" || d.kind === "relay" || d.kind.startsWith("starter-")) {
+      unionNode(`${s.id}:1`, `${s.id}:A1`);
+      unionNode(`${s.id}:2`, `${s.id}:A2`);
+      unionNode(`${d.id}:1`, `${d.id}:A1`);
+      unionNode(`${d.id}:2`, `${d.id}:A2`);
+    }
   }
 
-  // Connect schematic wires
+  // Connect schematic wires - ✅ 改進：使用 Union-Find 正確處理所有終端連接
+  // Connect symbol terminals via wires - ✅ 改進：只連接指定的終端，不連接所有可能組合
   for (const w of circuit.wires) {
     if (w.broken) continue;
-    const keyA = `${w.a.symbolId}:${w.a.term}`;
-    const keyB = `${w.b.symbolId}:${w.b.term}`;
-    unionNode(keyA, keyB);
-
-    const devA = symToDev.get(w.a.symbolId);
-    const devB = symToDev.get(w.b.symbolId);
-    if (devA) unionNode(`${devA.id}:${w.a.term}`, keyA);
-    if (devB) unionNode(`${devB.id}:${w.b.term}`, keyB);
+    
+    const symA = allSymbols.find(s => s.id === w.a.symbolId);
+    const symB = allSymbols.find(s => s.id === w.b.symbolId);
+    
+    if (!symA || !symB) continue;
+    
+    // 只連接指定的終端（通過 wire）
+    unionNode(`${symA.id}:${w.a.term}`, `${symB.id}:${w.b.term}`);
   }
 
   // Connect junctions (all terminals of a junction belong to the same net)
@@ -827,6 +940,7 @@ export function buildLadderDiagram(
       }
     }
   }
+  
   for (const group of netLabelGroups.values()) {
     for (let i = 1; i < group.length; i++) {
       unionNode(group[0], group[i]);
@@ -842,14 +956,12 @@ export function buildLadderDiagram(
     leftRailNets.add(findNode(`${transformer.id}:S1`));
     rightRailNets.add(findNode(`${transformer.id}:X2`));
     rightRailNets.add(findNode(`${transformer.id}:S2`));
-  }
-  if (dcSupply) {
+  } else if (dcSupply) {
     leftRailNets.add(findNode(`${dcSupply.id}:+`));
     leftRailNets.add(findNode(`${dcSupply.id}:PLUS`));
     rightRailNets.add(findNode(`${dcSupply.id}:-`));
     rightRailNets.add(findNode(`${dcSupply.id}:MINUS`));
-  }
-  if (mains) {
+  } else if (mains) {
     leftRailNets.add(findNode(`${mains.id}:L1`));
     rightRailNets.add(findNode(`${mains.id}:N`));
     rightRailNets.add(findNode(`${mains.id}:L2`));
@@ -866,6 +978,57 @@ export function buildLadderDiagram(
     }
   }
 
+  // 6.5 Build Independent Control Power Transformer Branch (if present)
+  if (transformer) {
+    const priV = transformer.params.primaryVoltage ??
+      (transformer.params.primaryVolts ? Number(transformer.params.primaryVolts) :
+        (transformer.params.ratio ? Number(transformer.params.ratio.split("/")[0]) : (mains?.params.voltage ?? 480)));
+    const secV = transformer.params.secondaryVoltage ??
+      (transformer.params.secondaryVolts ? Number(transformer.params.secondaryVolts) :
+        (transformer.params.ratio ? Number(transformer.params.ratio.split("/")[1]) : 120));
+
+    const h1Net = findNode(`${transformer.id}:H1`);
+    const h2Net = findNode(`${transformer.id}:H2`);
+    const x1Net = findNode(`${transformer.id}:X1`);
+    const x2Net = findNode(`${transformer.id}:X2`);
+
+    // Detect actual fuses connected to primary or secondary
+    const priFuse1 = devices.find(
+      (d) => (d.kind === "fuse" || d.kind === "breaker-1p") &&
+        (findNode(`${d.id}:1`) === h1Net || findNode(`${d.id}:2`) === h1Net)
+    );
+    const priFuse2 = devices.find(
+      (d) => (d.kind === "fuse" || d.kind === "breaker-1p") &&
+        d.id !== priFuse1?.id &&
+        (findNode(`${d.id}:1`) === h2Net || findNode(`${d.id}:2`) === h2Net)
+    );
+    const secFuse = devices.find(
+      (d) => (d.kind === "fuse" || d.kind === "breaker-1p") &&
+        (findNode(`${d.id}:1`) === x1Net || findNode(`${d.id}:2`) === x1Net)
+    );
+
+    // Detect if X2 is grounded to PE or a ground device
+    const isX2Grounded = rightRailNets.has(x2Net) && (
+      Boolean(ground) ||
+      (mains ? x2Net === findNode(`${mains.id}:PE`) : false)
+    );
+
+    transformerBranch = {
+      id: "cpt_branch",
+      title: "CONTROL POWER TRANSFORMER (CPT) - STEP-DOWN SUPPLY",
+      transformer,
+      mains,
+      primaryVoltage: isNaN(priV) ? 480 : priV,
+      secondaryVoltage: isNaN(secV) ? 120 : secV,
+      primaryFuse1: priFuse1,
+      primaryFuse2: priFuse2,
+      secondaryFuse: secFuse,
+      isGrounded: isX2Grounded,
+      ground: isX2Grounded ? ground : undefined,
+      isEnergized: snapshot.runtime[transformer.id]?.energized ?? true,
+    };
+  }
+
   // 7. Graph Pathfinder: Trace Control Paths from Left Rail to Output Loads
   interface ContactEdge {
     contact: DiscoveredContact;
@@ -880,23 +1043,9 @@ export function buildLadderDiagram(
     const netA = findNode(keyA);
     const netB = findNode(keyB);
 
-    // Also check alternative terminal names
-    let altNetA = netA;
-    let altNetB = netB;
-    if (cu.termA === "3" && cu.termB === "4") {
-      altNetA = findNode(`${cu.symbolId || cu.deviceId}:1`);
-      altNetB = findNode(`${cu.symbolId || cu.deviceId}:2`);
-    } else if (cu.termA === "13" && cu.termB === "14") {
-      altNetA = findNode(`${cu.symbolId || cu.deviceId}:1`);
-      altNetB = findNode(`${cu.symbolId || cu.deviceId}:2`);
-    }
-
-    const finalNetA = netA !== netB ? netA : altNetA;
-    const finalNetB = netA !== netB ? netB : altNetB;
-
-    if (finalNetA !== finalNetB) {
-      contactEdges.push({ contact: cu, fromNet: finalNetA, toNet: finalNetB });
-      contactEdges.push({ contact: cu, fromNet: finalNetB, toNet: finalNetA });
+    if (netA !== netB) {
+      contactEdges.push({ contact: cu, fromNet: netA, toNet: netB });
+      contactEdges.push({ contact: cu, fromNet: netB, toNet: netA });
     }
   }
 
@@ -934,15 +1083,59 @@ export function buildLadderDiagram(
     return results;
   };
 
+  // Helper to convert DiscoveredContact to LadderRungItem with safe address handling
+  const contactToElem = (c: DiscoveredContact): LadderRungItem => ({
+    type: "contact",
+    element: makeContactElement(c.device, c.symbol, c.variant, c.address || "1-2", c.contactType),
+  });
+
+  // Helper to get address with fallback for undefined cases
+  const getAddressOrDefault = (cu: DiscoveredContact): string => {
+    if (cu.address) return cu.address;
+    
+    // 根據 contactType 提供默認值
+    switch (cu.contactType) {
+      case "no":
+      case "timer-no":
+      case "pb-no":
+      case "limit-no":
+      case "temp-no":
+      case "pressure-no":
+      case "flow-no":
+      case "float":
+      case "foot-no":
+      case "prox":
+      case "photo":
+        return "13-14";
+      case "nc":
+      case "timer-nc":
+      case "pb-nc":
+      case "estop":
+      case "overload":
+      case "limit-nc":
+      case "temp-nc":
+      case "pressure-nc":
+      case "flow-nc":
+      case "float-nc":
+      case "foot-nc":
+        return "21-22";
+      default:
+        return "1-2";
+    }
+  };
+
   // Helper to convert traced paths into structured LadderRungItems (series + parallel)
   const pathsToRungItems = (paths: DiscoveredContact[][]): LadderRungItem[] => {
     if (paths.length === 0) return [];
 
-    const contactToElem = (c: DiscoveredContact) =>
-      makeContactElement(c.device, c.symbol, c.variant, c.address, c.contactType);
+    // Convert all paths to rung items for single-path case
+    const itemsMap: Record<number, LadderRungItem[]> = {};
+    paths.forEach((p, _idx) => {
+      itemsMap[_idx] = p.map(contactToElem);
+    });
 
     if (paths.length === 1) {
-      return paths[0].map((c) => ({ type: "contact", element: contactToElem(c) }));
+      return itemsMap[0];
     }
 
     // Multiple paths: find common prefix and suffix
@@ -965,30 +1158,40 @@ export function buildLadderDiagram(
       else break;
     }
 
-    const prefixContacts = first.slice(0, prefixLen).map(contactToElem);
-    const suffixContacts = first.slice(first.length - suffixLen).map(contactToElem);
+    // Get prefix and suffix contacts (as LadderContactElement arrays)
+    const prefixContactsRaw = first.slice(0, prefixLen).map(contactToElem);
+    const suffixContactsRaw = first.slice(first.length - suffixLen).map(contactToElem);
 
-    // Extract middle parallel branches
+    // Extract middle parallel branches - directly create LadderBranch objects
     const branchMap = new Map<string, LadderBranch>();
-    paths.forEach((p, idx) => {
+    paths.forEach((p) => {
       const middle = p.slice(prefixLen, p.length - suffixLen);
       if (middle.length > 0) {
         const branchContacts = middle.map(contactToElem);
-        const branchKey = branchContacts.map((c) => `${c.id}:${c.address}`).join(",");
-        if (!branchMap.has(branchKey)) {
+        const contactsAsElements = branchContacts
+          .map((item) => (item.type === "contact" ? item.element : null))
+          .filter((c): c is LadderContactElement => c !== null);
+
+        const branchKey = contactsAsElements.map((c) => c.id).join(",");
+
+        if (!branchMap.has(branchKey) && contactsAsElements.length > 0) {
           branchMap.set(branchKey, {
-            id: `br_${idx}_${branchKey}`,
-            contacts: branchContacts,
-            isConducting: branchContacts.every((c) => c.isClosed),
+            id: `br_${contactsAsElements[0].deviceId}_${branchKey.substring(0, 16)}`,
+            contacts: contactsAsElements,
+            isConducting: contactsAsElements.every((c) => c.isClosed),
           });
         }
       }
     });
 
     const branches = Array.from(branchMap.values());
+
     const items: LadderRungItem[] = [];
 
-    prefixContacts.forEach((c) => items.push({ type: "contact", element: c }));
+    // Add prefix contacts
+    prefixContactsRaw.forEach((item) => items.push(item));
+
+    // Add parallel group or single branches
     if (branches.length > 1) {
       items.push({
         type: "parallel",
@@ -999,9 +1202,13 @@ export function buildLadderDiagram(
         },
       });
     } else if (branches.length === 1) {
-      branches[0].contacts.forEach((c) => items.push({ type: "contact", element: c }));
+      branches[0].contacts.forEach((c) => {
+        items.push({ type: "contact", element: c });
+      });
     }
-    suffixContacts.forEach((c) => items.push({ type: "contact", element: c }));
+
+    // Add suffix contacts
+    suffixContactsRaw.forEach((item) => items.push(item));
 
     return items;
   };
@@ -1035,64 +1242,43 @@ export function buildLadderDiagram(
     }
 
     if (paths.length > 0) {
-      rungItems = pathsToRungItems(paths);
-      paths.forEach((p) => p.forEach((c) => usedContactIds.add(c.id)));
-    } else {
-      // Fallback: Use heuristic default for unwired devices
-      if (device.kind === "contactor" || device.kind.startsWith("starter-")) {
-        const ol = contactUnits.find((c) => c.device.kind === "overload" && (c.address === "95-96" || c.variant === "aux-nc"));
-        const sp = contactUnits.find((c) => c.device.kind === "pb-nc" || c.device.kind === "estop" || c.device.kind === "estop-nc");
-        const st = contactUnits.find((c) => c.device.kind === "pb-no");
-        const seal = contactUnits.find((c) => c.deviceId === device.id && (c.variant === "aux-no" || c.address === "13-14")) || {
-          id: `seal_${device.id}`,
-          deviceId: device.id,
-          device,
-          variant: "aux-no",
-          address: "13-14",
-          contactType: "no" as const,
-          termA: "13",
-          termB: "14",
-        };
-
-        if (ol) rungItems.push({ type: "contact", element: makeContactElement(ol.device, ol.symbol, ol.variant, ol.address, ol.contactType) });
-        if (sp) rungItems.push({ type: "contact", element: makeContactElement(sp.device, sp.symbol, sp.variant, sp.address, sp.contactType) });
-
-        const branches: LadderBranch[] = [];
-        if (st) {
-          const stElem = makeContactElement(st.device, st.symbol, st.variant, st.address, st.contactType);
-          branches.push({ id: `br_st_${device.id}`, contacts: [stElem], isConducting: stElem.isClosed });
-        }
-        const sealElem = makeContactElement(seal.device, seal.symbol, seal.variant, seal.address, seal.contactType);
-        branches.push({ id: `br_seal_${device.id}`, contacts: [sealElem], isConducting: sealElem.isClosed });
-
-        if (branches.length > 1) {
-          rungItems.push({
-            type: "parallel",
-            group: {
-              id: `par_${device.id}`,
-              branches,
-              isConducting: branches.some((b) => b.isConducting),
-            },
-          });
-        } else if (branches.length === 1) {
-          branches[0].contacts.forEach((c) => rungItems.push({ type: "contact", element: c }));
-        }
-      } else if (device.kind === "lamp") {
-        const tagLower = (device.tag || "").toLowerCase();
-        const colorLower = (device.params.color || "").toLowerCase();
-        const isFault = tagLower.includes("trip") || tagLower.includes("fault") || tagLower.includes("overload") || colorLower.includes("red");
-        const matchingOlNo = contactUnits.find((c) => c.device.kind === "overload" && (c.address === "97-98" || c.variant === "aux-no"));
-
-        if (isFault && matchingOlNo) {
-          rungItems.push({ type: "contact", element: makeContactElement(matchingOlNo.device, matchingOlNo.symbol, "aux-no", "97-98", "no") });
-        } else {
-          const matchingContact = contactUnits.find((c) => !usedContactIds.has(c.id));
-          if (matchingContact) {
-            rungItems.push({ type: "contact", element: makeContactElement(matchingContact.device, matchingContact.symbol, matchingContact.variant, matchingContact.address, matchingContact.contactType) });
-            usedContactIds.add(matchingContact.id);
+      // For indicator lamps, alarms, and annunciators:
+      // If the path passes through a dedicated auxiliary or switching contact (e.g. M1 aux-no, M1 aux-nc, FR1 97-98),
+      // the dedicated rung should focus on the controlling contact rather than duplicating the upstream power circuit.
+      if (device.kind === "lamp" || device.kind === "alarm" || device.kind === "horn") {
+        const simplifiedPaths: DiscoveredContact[][] = [];
+        for (const p of paths) {
+          const lastAuxIdx = p.findLastIndex((c) =>
+            c.variant === "aux-no" ||
+            c.variant === "aux-nc" ||
+            c.variant === "aux-no2" ||
+            c.variant === "aux-nc2" ||
+            c.variant === "delayed-no" ||
+            c.variant === "delayed-nc" ||
+            c.variant === "inst-no" ||
+            c.variant === "inst-nc" ||
+            c.address === "97-98" ||
+            c.address === "43-44" ||
+            c.address === "31-32" ||
+            c.address === "13-14" ||
+            c.address === "21-22" ||
+            c.device.kind === "contactor" ||
+            c.device.kind === "relay"
+          );
+          if (lastAuxIdx >= 0) {
+            simplifiedPaths.push([p[lastAuxIdx]]);
+          } else {
+            simplifiedPaths.push(p);
           }
         }
+        rungItems = pathsToRungItems(simplifiedPaths);
+      } else {
+        rungItems = pathsToRungItems(paths);
       }
+      paths.forEach((p) => p.forEach((c) => usedContactIds.add(c.id)));
+    } else {
+      // Unwired or not connected to power rails: strictly no artificial contacts
+      rungItems = [];
     }
 
     const isConducted = isLeftRailLive && (rungItems.length === 0 || rungItems.every((item) => {
@@ -1115,7 +1301,8 @@ export function buildLadderDiagram(
     }
 
     rungs.push({
-      id: `rung_${device.id}`,
+      // ✅ 使用簡單且穩定的 ID 格式: 基於裝置標籤
+      id: `rung_${device.tag.replace(/[^a-zA-Z0-9]/g, "_")}`,
       rungNumber: 0,
       title: rungTitle,
       comment: `Controls ${device.tag || device.kind} operation based on schematic interlocks.`,
@@ -1128,14 +1315,21 @@ export function buildLadderDiagram(
   });
 
   // 9. Auxiliary / Unassigned Sensor & Switch Contacts Rungs
-  const remainingContacts = contactUnits.filter((c) => !usedContactIds.has(c.id) && c.address !== "95-96");
+  const remainingContacts = contactUnits.filter((c) => 
+    !usedContactIds.has(c.id) && 
+    c.address !== "95-96" &&
+    c.address !== "97-98" &&
+    c.device.kind !== "overload" &&
+    c.device.kind !== "contactor"
+  );
   if (remainingContacts.length > 0) {
     let auxIdx = 1;
     while (remainingContacts.length > 0) {
       const batch = remainingContacts.splice(0, 4);
+      // ✅ 使用 getAddressOrDefault 防止 address 為 undefined 的情況
       const rungItems: LadderRungItem[] = batch.map((cu) => ({
         type: "contact",
-        element: makeContactElement(cu.device, cu.symbol, cu.variant, cu.address, cu.contactType),
+        element: makeContactElement(cu.device, cu.symbol, cu.variant, getAddressOrDefault(cu), cu.contactType),
       }));
       const isConducted = isLeftRailLive && rungItems.every((it) => (it.type === "contact" ? it.element.isClosed : true));
 

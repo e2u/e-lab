@@ -408,17 +408,19 @@ function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
     case "flow-nc":
     case "prox":
     case "photo":
-      if (closedSwitch(device, rt)) out.push(["1", "2"]);
+      if (closedSwitch(device, rt)) {
+        out.push(["1", "2"], ["3", "4"], ["11", "12"], ["13", "14"]);
+      }
       break;
     case "estop":
-      if (!rt.actuated) out.push(["1", "2"]);
-      else out.push(["3", "4"]);
+      if (!rt.actuated) out.push(["1", "2"], ["11", "12"]);
+      else out.push(["3", "4"], ["13", "14"]);
       break;
     case "estop-nc":
-      if (!rt.actuated) out.push(["11", "12"]);
+      if (!rt.actuated) out.push(["1", "2"], ["11", "12"]);
       break;
     case "estop-no":
-      if (rt.actuated) out.push(["13", "14"]);
+      if (rt.actuated) out.push(["1", "2"], ["3", "4"], ["13", "14"]);
       break;
     case "toggle":
     case "foot":

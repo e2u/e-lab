@@ -8,6 +8,8 @@ const lampHex: Record<string, string> = {
   yellow: "#f0c42e",
   white: "#f4f0e1",
   blue: "#3b7de0",
+  amber: "#f59e0b",
+  orange: "#f97316",
 };
 
 export function Bench() {
@@ -16,136 +18,275 @@ export function Bench() {
   const held = useLab((s) => s.held);
   const mode = useLab((s) => s.mode);
 
+  // Filter and collect all interactive devices with runtime state
+  const activeDevices = circuit.devices.filter((d) => {
+    const rt = runtime[d.id];
+    if (!rt) return false;
+    return (
+      d.kind === "estop" ||
+      d.kind === "estop-nc" ||
+      d.kind === "estop-no" ||
+      d.kind === "pb-no" ||
+      d.kind === "pb-nc" ||
+      d.kind === "lamp" ||
+      d.kind === "motor-3ph" ||
+      d.kind === "motor-1ph" ||
+      d.kind === "motor-dc" ||
+      d.kind === "fan" ||
+      d.kind === "gen-ac" ||
+      d.kind === "gen-dc" ||
+      d.kind === "breaker-3p" ||
+      d.kind === "breaker-1p" ||
+      d.kind === "isolator" ||
+      d.kind === "rcd" ||
+      d.kind === "overload" ||
+      d.kind === "alarm" ||
+      d.kind === "horn" ||
+      d.kind === "voltmeter" ||
+      d.kind === "ammeter" ||
+      d.kind === "selector-2" ||
+      d.kind === "selector-3" ||
+      d.kind === "toggle" ||
+      d.kind.startsWith("toggle-") ||
+      d.kind.startsWith("limit") ||
+      d.kind.startsWith("foot")
+    );
+  });
+
   return (
     <div className="bench">
-      <h3>{t("lib.title")}</h3>
-      <div className="bench-grid">
-        {circuit.devices.map((d) => {
-          const rt = runtime[d.id];
-          if (!rt) return null;
-          if (d.kind === "estop" || d.kind === "estop-nc" || d.kind === "estop-no") {
-            const extra = d.kind === "estop-no" ? " NO" : d.kind === "estop-nc" ? " NC" : "";
-            return (
-              <div className="widget" key={d.id}>
-                <button
-                  className="bakelite estop"
-                  disabled={mode !== "run"}
-                  onClick={() => useLab.getState().toggleIo(d.id, "actuated")}
-                />
-                {d.tag} {t("bench.estop")}{extra}
-              </div>
-            );
-          }
-          if (d.kind === "pb-no" || d.kind === "pb-nc") {
-            const color = d.kind === "pb-nc" ? "red" : "green";
-            return (
-              <div className="widget" key={d.id}>
-                <button
-                  className={`bakelite ${color}`}
-                  disabled={mode !== "run"}
-                  onPointerDown={() => useLab.getState().pointerDevice(d.id, true)}
-                  onPointerUp={() => useLab.getState().pointerDevice(d.id, false)}
-                  onPointerLeave={() => useLab.getState().pointerDevice(d.id, false)}
-                  style={held.includes(d.id) ? { transform: "translateY(3px)" } : undefined}
-                />
-                {d.tag}
-              </div>
-            );
-          }
-          if (d.kind === "lamp") {
-            const col = lampHex[d.params.color ?? "green"] ?? lampHex.green;
-            return (
-              <div className="widget" key={d.id}>
-                <div
-                  className="pilot"
-                  style={{
-                    background: rt.lit ? col : "#2a241c",
-                    boxShadow: rt.lit ? `0 0 16px ${col}` : undefined,
-                  }}
-                />
-                {d.tag}
-              </div>
-            );
-          }
-          if (d.kind === "motor-3ph" || d.kind === "motor-1ph" || d.kind === "motor-dc" || d.kind === "fan" || d.kind === "gen-ac" || d.kind === "gen-dc") {
-            const powerStr = (d.kind === "motor-3ph" || d.kind === "motor-1ph" || d.kind === "motor-dc")
-              ? ` [${d.params.power ?? (d.kind === "motor-1ph" ? 1.5 : d.kind === "motor-dc" ? 0.75 : 5.5)}kW]`
-              : "";
-            return (
-              <div className="widget" key={d.id}>
-                <div className={`machine ${Math.abs(rt.rpm) > 0.2 ? "spin" : ""}`}>
-                  <div className="hub" />
-                </div>
-                {d.tag}{powerStr}{rt.direction < 0 ? ` ${t("bench.rev")}` : rt.direction > 0 ? ` ${t("bench.fwd")}` : ""}
-                {rt.starDelta === "star" ? t("bench.starDeltaStar") : rt.starDelta === "delta" ? t("bench.starDeltaDelta") : ""}
-              </div>
-            );
-          }
-          if (d.kind === "breaker-3p" || d.kind === "breaker-1p" || d.kind === "isolator" || d.kind === "rcd") {
-            return (
-              <div className="widget" key={d.id}>
-                <button
-                  className="btn"
-                  disabled={mode !== "run"}
-                  onClick={() => useLab.getState().toggleIo(d.id, "on")}
-                >
-                  {rt.on && !rt.tripped ? t("bench.on") : t("bench.off")}
-                </button>
-                {d.tag}
-              </div>
-            );
-          }
-          if (d.kind === "overload") {
-            return (
-              <div className="widget" key={d.id}>
-                <button
-                  className="btn danger"
-                  disabled={mode !== "run"}
-                  onClick={() => useLab.getState().toggleIo(d.id, "tripped")}
-                >
-                  {rt.tripped ? t("bench.overloadTrip") : t("bench.overloadReset")}
-                </button>
-                {d.tag}
-              </div>
-            );
-          }
-          if (d.kind === "alarm" || d.kind === "horn") {
-            return (
-              <div className="widget" key={d.id}>
-                <div className="pilot" style={{ background: rt.lit ? "#e23d2b" : "#2a241c" }} />
-                {d.tag} {rt.lit ? t("bench.alarmSound") : ""}
-              </div>
-            );
-          }
-          if (d.kind === "voltmeter" || d.kind === "ammeter") {
-            const isV = d.kind === "voltmeter";
-            const val = rt.meterValue ?? 0;
-            const text = isV ? `${val.toFixed(1)} V` : `${val.toFixed(2)} A`;
-            const color = isV ? "#3b82f6" : "#f59e0b";
-            return (
-              <div
-                className="widget meter-widget"
-                key={d.id}
-                style={{ cursor: "pointer" }}
-                onClick={() => {
-                  const sym = circuit.symbols.find((s) => s.deviceId === d.id);
-                  if (sym) useLab.getState().select({ type: "symbol", id: sym.id }, true);
-                }}
-                title={t("meters.clickToInspect")}
-              >
-                <span className="meter-badge" style={{ borderColor: color, color }}>
-                  {isV ? "V" : "A"}
-                </span>
-                <span style={{ fontWeight: 600, fontFamily: "monospace", color: rt.energized ? "#4ade80" : "inherit" }}>
-                  {d.tag}: {text}
-                </span>
-              </div>
-            );
-          }
-          return null;
-        })}
+      <div className="bench-header">
+        <div className="bench-title-wrap">
+          <h3>{t("bench.title") || t("lib.title")}</h3>
+          {activeDevices.length > 0 && (
+            <span className="bench-count-badge">
+              {activeDevices.length} {t("bench.items") || "items"}
+            </span>
+          )}
+        </div>
       </div>
-      <p className="hint" style={{ marginTop: 8 }}>
+
+      {activeDevices.length === 0 ? (
+        <p className="hint bench-empty-hint">{t("bench.empty") || "No interactive components in circuit."}</p>
+      ) : (
+        <div className="bench-grid">
+          {activeDevices.map((d) => {
+            const rt = runtime[d.id];
+            if (!rt) return null;
+
+            // E-Stop Buttons
+            if (d.kind === "estop" || d.kind === "estop-nc" || d.kind === "estop-no") {
+              const extra = d.kind === "estop-no" ? " NO" : d.kind === "estop-nc" ? " NC" : "";
+              return (
+                <div className="widget" key={d.id} title={`${d.tag} (${t("bench.estop")}${extra})`}>
+                  <button
+                    className={`bakelite estop ${rt.actuated ? "actuated" : ""}`}
+                    disabled={mode !== "run"}
+                    onClick={() => useLab.getState().toggleIo(d.id, "actuated")}
+                  />
+                  <span className="widget-label">{d.tag}{extra}</span>
+                </div>
+              );
+            }
+
+            // Push Buttons (NO / NC)
+            if (d.kind === "pb-no" || d.kind === "pb-nc") {
+              const color = d.kind === "pb-nc" ? "red" : "green";
+              return (
+                <div className="widget" key={d.id} title={`${d.tag} (${d.kind === "pb-nc" ? t("bench.pbNc") : t("bench.pbNo")})`}>
+                  <button
+                    className={`bakelite ${color}`}
+                    disabled={mode !== "run"}
+                    onPointerDown={() => useLab.getState().pointerDevice(d.id, true)}
+                    onPointerUp={() => useLab.getState().pointerDevice(d.id, false)}
+                    onPointerLeave={() => useLab.getState().pointerDevice(d.id, false)}
+                    style={held.includes(d.id) ? { transform: "translateY(3px)" } : undefined}
+                  />
+                  <span className="widget-label">{d.tag}</span>
+                </div>
+              );
+            }
+
+            // Pilot Lamps
+            if (d.kind === "lamp") {
+              const col = lampHex[d.params.color ?? "green"] ?? lampHex.green;
+              return (
+                <div className="widget" key={d.id} title={`${d.tag} (Lamp ${d.params.color || "green"})`}>
+                  <div
+                    className="pilot"
+                    style={{
+                      background: rt.lit ? col : "#2a241c",
+                      boxShadow: rt.lit ? `0 0 16px ${col}` : undefined,
+                    }}
+                  />
+                  <span className="widget-label">{d.tag}</span>
+                </div>
+              );
+            }
+
+            // Motors & Fans & Generators
+            if (
+              d.kind === "motor-3ph" ||
+              d.kind === "motor-1ph" ||
+              d.kind === "motor-dc" ||
+              d.kind === "fan" ||
+              d.kind === "gen-ac" ||
+              d.kind === "gen-dc"
+            ) {
+              const powerVal = d.params.power ?? (d.kind === "motor-1ph" ? 1.5 : d.kind === "motor-dc" ? 0.75 : 5.5);
+              const powerStr = (d.kind === "motor-3ph" || d.kind === "motor-1ph" || d.kind === "motor-dc")
+                ? `${powerVal}kW`
+                : "";
+              return (
+                <div className="widget motor-widget" key={d.id} title={`${d.tag} [${powerStr}]`}>
+                  <div className={`machine ${Math.abs(rt.rpm) > 0.2 ? "spin" : ""}`}>
+                    <div className="hub" />
+                  </div>
+                  <span className="widget-label">{d.tag}</span>
+                  {powerStr && <span className="widget-sublabel">{powerStr}</span>}
+                  {rt.direction !== 0 && (
+                    <span className={`widget-dir-badge ${rt.direction > 0 ? "fwd" : "rev"}`}>
+                      {rt.direction < 0 ? t("bench.rev") : t("bench.fwd")}
+                    </span>
+                  )}
+                  {rt.starDelta && (
+                    <span className="widget-stardelta-badge">
+                      {rt.starDelta === "star" ? t("bench.starDeltaStar") : t("bench.starDeltaDelta")}
+                    </span>
+                  )}
+                </div>
+              );
+            }
+
+            // Breakers, Isolators, Disconnects
+            if (d.kind === "breaker-3p" || d.kind === "breaker-1p" || d.kind === "isolator" || d.kind === "rcd") {
+              const isOn = rt.on && !rt.tripped;
+              return (
+                <div className="widget" key={d.id} title={`${d.tag} (${isOn ? t("bench.on") : t("bench.off")})`}>
+                  <button
+                    className={`btn btn-toggle-switch ${isOn ? "on" : "off"}`}
+                    disabled={mode !== "run"}
+                    onClick={() => useLab.getState().toggleIo(d.id, "on")}
+                  >
+                    {isOn ? t("bench.on") : t("bench.off")}
+                  </button>
+                  <span className="widget-label">{d.tag}</span>
+                </div>
+              );
+            }
+
+            // Overload Relays
+            if (d.kind === "overload") {
+              return (
+                <div className="widget" key={d.id} title={`${d.tag} (${rt.tripped ? t("bench.overloadTrip") : t("bench.overloadReset")})`}>
+                  <button
+                    className={`btn danger ${rt.tripped ? "tripped" : ""}`}
+                    disabled={mode !== "run"}
+                    onClick={() => useLab.getState().toggleIo(d.id, "tripped")}
+                  >
+                    {rt.tripped ? t("bench.overloadTrip") : t("bench.overloadReset")}
+                  </button>
+                  <span className="widget-label">{d.tag}</span>
+                </div>
+              );
+            }
+
+            // Alarms & Horns
+            if (d.kind === "alarm" || d.kind === "horn") {
+              return (
+                <div className="widget" key={d.id} title={`${d.tag}`}>
+                  <div className={`pilot alarm-pilot ${rt.lit ? "active" : ""}`} style={{ background: rt.lit ? "#e23d2b" : "#2a241c" }} />
+                  <span className="widget-label">{d.tag}</span>
+                  {rt.lit && <span className="widget-alarm-badge">{t("bench.alarmSound")}</span>}
+                </div>
+              );
+            }
+
+            // Selector Switches
+            if (d.kind === "selector-2" || d.kind === "selector-3") {
+              const pos = rt.position || 1;
+              return (
+                <div className="widget" key={d.id} title={`${d.tag} (POS ${pos})`}>
+                  <button
+                    className="btn btn-selector"
+                    disabled={mode !== "run"}
+                    onClick={() => useLab.getState().cyclePosition(d.id)}
+                  >
+                    POS {pos}
+                  </button>
+                  <span className="widget-label">{d.tag}</span>
+                </div>
+              );
+            }
+
+            // Toggle Switches
+            if (d.kind === "toggle" || d.kind.startsWith("toggle-")) {
+              const isClosed = !!rt.actuated;
+              return (
+                <div className="widget" key={d.id} title={`${d.tag} (${isClosed ? t("bench.on") : t("bench.off")})`}>
+                  <button
+                    className={`btn btn-toggle-switch ${isClosed ? "on" : "off"}`}
+                    disabled={mode !== "run"}
+                    onClick={() => useLab.getState().toggleIo(d.id, "actuated")}
+                  >
+                    {isClosed ? t("bench.on") : t("bench.off")}
+                  </button>
+                  <span className="widget-label">{d.tag}</span>
+                </div>
+              );
+            }
+
+            // Limit & Foot Switches
+            if (d.kind.startsWith("limit") || d.kind.startsWith("foot")) {
+              const isHeld = held.includes(d.id);
+              return (
+                <div className="widget" key={d.id} title={`${d.tag}`}>
+                  <button
+                    className={`btn btn-momentary ${isHeld ? "active" : ""}`}
+                    disabled={mode !== "run"}
+                    onPointerDown={() => useLab.getState().pointerDevice(d.id, true)}
+                    onPointerUp={() => useLab.getState().pointerDevice(d.id, false)}
+                    onPointerLeave={() => useLab.getState().pointerDevice(d.id, false)}
+                  >
+                    {isHeld ? "ACT" : "NORM"}
+                  </button>
+                  <span className="widget-label">{d.tag}</span>
+                </div>
+              );
+            }
+
+            // Voltmeters & Clamp Ammeters
+            if (d.kind === "voltmeter" || d.kind === "ammeter") {
+              const isV = d.kind === "voltmeter";
+              const val = rt.meterValue ?? 0;
+              const text = isV ? `${val.toFixed(1)} V` : `${val.toFixed(2)} A`;
+              const color = isV ? "#3b82f6" : "#f59e0b";
+              return (
+                <div
+                  className="widget meter-widget"
+                  key={d.id}
+                  onClick={() => {
+                    const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+                    if (sym) useLab.getState().select({ type: "symbol", id: sym.id }, true);
+                  }}
+                  title={t("meters.clickToInspect")}
+                >
+                  <span className="meter-badge" style={{ borderColor: color, color }}>
+                    {isV ? "V" : "A"}
+                  </span>
+                  <span className="meter-reading" style={{ color: rt.energized ? "#4ade80" : "inherit" }}>
+                    {d.tag}: {text}
+                  </span>
+                </div>
+              );
+            }
+
+            return null;
+          })}
+        </div>
+      )}
+
+      <p className="hint bench-footer-hint">
         {t("bench.hint")}{LAMP_COLORS.length ? "" : ""}
       </p>
     </div>

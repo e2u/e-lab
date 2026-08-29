@@ -1,0 +1,238 @@
+{
+  "version": 1,
+  "name": "04-relay-self-holding",
+  "circuit": {
+    "devices": [
+      {
+        "id": "d_1i_8a07e35e",
+        "kind": "dc-supply",
+        "tag": "G1",
+        "params": {}
+      },
+      {
+        "id": "d_1k_35a685d6",
+        "kind": "pb-nc",
+        "tag": "SB1",
+        "params": {}
+      },
+      {
+        "id": "d_1m_20600518",
+        "kind": "pb-no",
+        "tag": "SB2",
+        "params": {}
+      },
+      {
+        "id": "d_1o_025d5496",
+        "kind": "relay",
+        "tag": "KA1",
+        "params": {}
+      },
+      {
+        "id": "d_1s_8cdbf28a",
+        "kind": "lamp",
+        "tag": "HL1",
+        "params": {
+          "color": "green"
+        }
+      },
+      {
+        "id": "d_1u_6b10ea50",
+        "kind": "lamp",
+        "tag": "HL2",
+        "params": {
+          "color": "red"
+        }
+      }
+    ],
+    "symbols": [
+      {
+        "id": "s_1j_1ebb0e91",
+        "deviceId": "d_1i_8a07e35e",
+        "variant": "body",
+        "x": 4,
+        "y": 4,
+        "rot": 0
+      },
+      {
+        "id": "s_1l_e113ed81",
+        "deviceId": "d_1k_35a685d6",
+        "variant": "body",
+        "x": 14,
+        "y": 4,
+        "rot": 0
+      },
+      {
+        "id": "s_1n_16a06468",
+        "deviceId": "d_1m_20600518",
+        "variant": "body",
+        "x": 20,
+        "y": 4,
+        "rot": 0
+      },
+      {
+        "id": "s_1p_1a55eda4",
+        "deviceId": "d_1o_025d5496",
+        "variant": "coil",
+        "x": 30,
+        "y": 3.5,
+        "rot": 0
+      },
+      {
+        "id": "s_1q_c89d1cd1",
+        "deviceId": "d_1o_025d5496",
+        "variant": "aux-no",
+        "x": 20,
+        "y": 8,
+        "rot": 0
+      },
+      {
+        "id": "s_1r_023ca532",
+        "deviceId": "d_1o_025d5496",
+        "variant": "aux-nc",
+        "x": 20,
+        "y": 13,
+        "rot": 0
+      },
+      {
+        "id": "s_1t_b206b2b5",
+        "deviceId": "d_1s_8cdbf28a",
+        "variant": "body",
+        "x": 30,
+        "y": 7.5,
+        "rot": 0
+      },
+      {
+        "id": "s_1v_ff74f208",
+        "deviceId": "d_1u_6b10ea50",
+        "variant": "body",
+        "x": 30,
+        "y": 12.5,
+        "rot": 0
+      }
+    ],
+    "wires": [
+      {
+        "id": "w_1w_4544ac7e",
+        "a": {
+          "symbolId": "s_1j_1ebb0e91",
+          "term": "+"
+        },
+        "b": {
+          "symbolId": "s_1l_e113ed81",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_1x_71c1b46e",
+        "a": {
+          "symbolId": "s_1l_e113ed81",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_1n_16a06468",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_1y_86dc225e",
+        "a": {
+          "symbolId": "s_1l_e113ed81",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_1q_c89d1cd1",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_1z_c385ccd0",
+        "a": {
+          "symbolId": "s_1n_16a06468",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_1p_1a55eda4",
+          "term": "A1"
+        }
+      },
+      {
+        "id": "w_20_b03d7ae0",
+        "a": {
+          "symbolId": "s_1q_c89d1cd1",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_1p_1a55eda4",
+          "term": "A1"
+        }
+      },
+      {
+        "id": "w_21_452ca14c",
+        "a": {
+          "symbolId": "s_1p_1a55eda4",
+          "term": "A2"
+        },
+        "b": {
+          "symbolId": "s_1j_1ebb0e91",
+          "term": "-"
+        }
+      },
+      {
+        "id": "w_22_b13d15ef",
+        "a": {
+          "symbolId": "s_1p_1a55eda4",
+          "term": "A1"
+        },
+        "b": {
+          "symbolId": "s_1t_b206b2b5",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_23_c20ad5a8",
+        "a": {
+          "symbolId": "s_1t_b206b2b5",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_1j_1ebb0e91",
+          "term": "-"
+        }
+      },
+      {
+        "id": "w_24_dd50e7fe",
+        "a": {
+          "symbolId": "s_1j_1ebb0e91",
+          "term": "+"
+        },
+        "b": {
+          "symbolId": "s_1r_023ca532",
+          "term": "3"
+        }
+      },
+      {
+        "id": "w_25_9fdd7c90",
+        "a": {
+          "symbolId": "s_1r_023ca532",
+          "term": "4"
+        },
+        "b": {
+          "symbolId": "s_1v_ff74f208",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_26_6da22c1e",
+        "a": {
+          "symbolId": "s_1v_ff74f208",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_1j_1ebb0e91",
+          "term": "-"
+        }
+      }
+    ],
+    "groups": []
+  }
+}

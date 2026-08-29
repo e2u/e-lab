@@ -7,6 +7,7 @@ import { FilesMenu } from "./ui/FilesMenu";
 import { Inspector } from "./ui/Inspector";
 import { Palette } from "./ui/Palette";
 import { Schematic } from "./ui/Schematic";
+import { LadderSchematic } from "./ui/LadderSchematic";  // ✅ 新增：引入梯形圖組件
 import { DiscardModal } from "./ui/DiscardModal";
 import { TogglePanelButton } from "./ui/TogglePanelButton";
 import { FloatingActionBar } from "./ui/FloatingActionBar";
@@ -44,6 +45,8 @@ export function App() {
   const isDirty = useLab((s) => s.isDirty);
   const paletteOpen = useLab((s) => s.paletteOpen);
   const sideOpen = useLab((s) => s.sideOpen);
+  const layoutMode = useLab((s) => s.layoutMode);
+  const showLadderMenu = useLab((s) => s.showLadderMenu);
   const zoom = useLab((s) => s.zoom);
   const printOpen = useLab((s) => s.printOpen);
   const tutorialOpen = useLab((s) => s.tutorialOpen);
@@ -169,6 +172,14 @@ export function App() {
         else lab.groupSelected();
         return;
       }
+      
+      // ✅ 新增：切換布局模式（Schematic / Ladder）
+      if (e.key.toLowerCase() === "l" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        lab.toggleLayoutMode();
+        return;
+      }
+      
       if (e.key === " ") {
         e.preventDefault();
         if (lab.mode === "run") lab.setRunning(!lab.running);
@@ -362,9 +373,11 @@ export function App() {
               <small>{t("brand.subtitle")}</small>
             </div>
             <div className="mode-switch">
-              <button className={`btn ${mode === "edit" ? "active" : ""}`} onClick={() => useLab.getState().setMode("edit")}>
-                {t("toolbar.edit")}
-              </button>
+              {layoutMode !== "ladder" && (
+                <button className={`btn ${mode === "edit" ? "active" : ""}`} onClick={() => useLab.getState().setMode("edit")}>
+                  {t("toolbar.edit")}
+                </button>
+              )}
               <button className={`btn ${mode === "run" ? "active" : ""}`} onClick={() => useLab.getState().setMode("run")}>
                 {t("toolbar.run")}
               </button>
@@ -455,14 +468,16 @@ export function App() {
             <div className="topbar-center">
               {/* Simulation Mode Segmented Switch */}
               <div className="segmented-group mode-switch">
-                <button
-                  type="button"
-                  className={`seg-btn ${mode === "edit" ? "active" : ""}`}
-                  onClick={() => useLab.getState().setMode("edit")}
-                >
-                  <span className="seg-icon">✏️</span>
-                  <span>{t("toolbar.edit")}</span>
-                </button>
+                {layoutMode !== "ladder" && (
+                  <button
+                    type="button"
+                    className={`seg-btn ${mode === "edit" ? "active" : ""}`}
+                    onClick={() => useLab.getState().setMode("edit")}
+                  >
+                    <span className="seg-icon">✏️</span>
+                    <span>{t("toolbar.edit")}</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`seg-btn ${mode === "run" ? "active" : ""}`}
@@ -505,6 +520,35 @@ export function App() {
               )}
 
               <div className="topbar-divider" />
+
+              {/* ✅ 只有當 showLadderMenu 為 true 時才顯示 Layout Mode 切換按鈕 */}
+              {showLadderMenu && (
+                <>
+                  {/* Layout Mode Toggle - Schematic / Ladder */}
+                  <div className="segmented-group layout-mode-switch">
+                    <button
+                      type="button"
+                      className={`seg-btn ${layoutMode === "schematic" ? "active" : ""}`}
+                      onClick={() => useLab.getState().setLayoutMode("schematic")}
+                      title={t("toolbar.schematic") || "Schematic View"}
+                    >
+                      <span className="seg-icon">📐</span>
+                      <span>{t("toolbar.schematic") || "原理圖"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`seg-btn ${layoutMode === "ladder" ? "active" : ""}`}
+                      onClick={() => useLab.getState().setLayoutMode("ladder")}
+                      title={t("toolbar.ladder") || "Ladder Diagram View"}
+                    >
+                      <span className="seg-icon">🪜</span>
+                      <span>{t("toolbar.ladder") || "梯形圖"}</span>
+                    </button>
+                  </div>
+
+                  <div className="topbar-divider" />
+                </>
+              )}
 
               {/* Interactive Tutorial Button */}
               <button
@@ -561,6 +605,17 @@ export function App() {
                   <option value="en">EN</option>
                 </select>
               </div>
+
+              {/* ✅ 新增：梯形圖菜單開關 */}
+              <button
+                type="button"
+                className={`btn-icon ${showLadderMenu ? "active" : ""}`}
+                onClick={() => useLab.getState().toggleShowLadderMenu()}
+                title={showLadderMenu ? t("toolbar.hideLadder") || "隱藏梯形圖菜單" : t("toolbar.showLadder") || "顯示梯形圖菜單"}
+                aria-label={t("toolbar.ladderToggle") || "T ladder menu toggle"}
+              >
+                🪜
+              </button>
             </div>
           </>
         )}
@@ -610,7 +665,11 @@ export function App() {
         />
       )}
 
-      <div className={`workspace ${!paletteOpen ? "palette-collapsed" : ""} ${!sideOpen ? "side-collapsed" : ""}`}>
+      {/* ✅ 添加 data-layout-mode 屬性到 workspace div 以支援 ladder mode 的 CSS 布局 */}
+      <div 
+        className={`workspace ${!paletteOpen ? "palette-collapsed" : ""} ${!sideOpen ? "side-collapsed" : ""}`} 
+        data-layout-mode={layoutMode}
+      >
         {/* Palette - desktop: inline, mobile: drawer */}
         {isMobile ? (
           <Palette
@@ -624,54 +683,63 @@ export function App() {
           paletteOpen && <Palette />
         )}
 
-        <Schematic />
-        <FloatingActionBar />
+        {/* ✅ 梯形圖條件渲染：根據 layoutMode 切換畫布類型 */}
+        {layoutMode === "ladder" ? (
+          <LadderSchematic />
+        ) : (
+          <>
+            <Schematic />
+            <FloatingActionBar />
+          </>
+        )}
 
         {/* Side panel - desktop: inline, mobile: drawer */}
-        {isMobile ? (
-          <aside
-            className={`side ${mobileSideOpen ? "open" : ""}`}
-            style={{ zIndex: mobileSideOpen ? 30 : 20 }}
-          >
-            <div className="side-header">
-              <span className="side-title">{t("toolbar.sidePanel")}</span>
-              <button
-                type="button"
-                className="panel-close-btn"
-                onClick={() => {
-                  setMobileSideOpen(false);
-                  useLab.getState().setSideOpen(false);
-                }}
-                title={t("toolbar.collapseRight")}
-                aria-label={t("toolbar.collapseRight")}
+        {sideOpen && (
+          <>
+            {isMobile ? (
+              <aside
+                className={`side ${mobileSideOpen ? "open" : ""}`}
+                style={{ zIndex: mobileSideOpen ? 30 : 20 }}
               >
-                ✕
-              </button>
-            </div>
-            <Bench />
-            <ProcessRack />
-            <Inspector />
-          </aside>
-        ) : (
-          sideOpen && (
-            <aside className="side">
-              <div className="side-header">
-                <span className="side-title">{t("toolbar.sidePanel")}</span>
-                <button
-                  type="button"
-                  className="panel-close-btn"
-                  onClick={() => useLab.getState().setSideOpen(false)}
-                  title={t("toolbar.collapseRight")}
-                  aria-label={t("toolbar.collapseRight")}
-                >
-                  ✕
-                </button>
-              </div>
-              <Bench />
-              <ProcessRack />
-              <Inspector />
-            </aside>
-          )
+                <div className="side-header">
+                  <span className="side-title">{t("toolbar.sidePanel")}</span>
+                  <button
+                    type="button"
+                    className="panel-close-btn"
+                    onClick={() => {
+                      setMobileSideOpen(false);
+                      useLab.getState().setSideOpen(false);
+                    }}
+                    title={t("toolbar.collapseRight")}
+                    aria-label={t("toolbar.collapseRight")}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <Bench />
+                <ProcessRack />
+                <Inspector />
+              </aside>
+            ) : (
+              <aside className="side">
+                <div className="side-header">
+                  <span className="side-title">{t("toolbar.sidePanel")}</span>
+                  <button
+                    type="button"
+                    className="panel-close-btn"
+                    onClick={() => useLab.getState().setSideOpen(false)}
+                    title={t("toolbar.collapseRight")}
+                    aria-label={t("toolbar.collapseRight")}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <Bench />
+                <ProcessRack />
+                <Inspector />
+              </aside>
+            )}
+          </>
         )}
 
         {/* Panel toggles for both desktop and small screens */}

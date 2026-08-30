@@ -28,7 +28,9 @@
         "id": "d_2d_635c778e",
         "kind": "ammeter",
         "tag": "AM1",
-        "params": {}
+        "params": {
+          "clampedWireId": "w_2n_63167079"
+        }
       },
       {
         "id": "d_2f_af4676cc",
@@ -49,6 +51,18 @@
         "kind": "ground",
         "tag": "PE1",
         "params": {}
+      },
+      {
+        "id": "d_4t_019e51e9",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
+      },
+      {
+        "id": "d_4x_8d4739e2",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
       }
     ],
     "symbols": [
@@ -64,9 +78,9 @@
         "id": "s_2a_87b70426",
         "deviceId": "d_29_a18bf073",
         "variant": "body",
-        "x": 14,
-        "y": 4,
-        "rot": 0
+        "x": 13.1875,
+        "y": 3.5,
+        "rot": 270
       },
       {
         "id": "s_2c_724a1601",
@@ -80,7 +94,7 @@
         "id": "s_2e_68bc291c",
         "deviceId": "d_2d_635c778e",
         "variant": "body",
-        "x": 26,
+        "x": 28.1875,
         "y": 3.5,
         "rot": 0
       },
@@ -88,23 +102,41 @@
         "id": "s_2g_d4f3f8a6",
         "deviceId": "d_2f_af4676cc",
         "variant": "body",
-        "x": 36,
-        "y": 3.5,
-        "rot": 0
+        "x": 43.625,
+        "y": 3.3125,
+        "rot": 270,
+        "flipY": false,
+        "flipX": true
       },
       {
         "id": "s_2i_12a58e33",
         "deviceId": "d_2h_bc05ef67",
         "variant": "body",
-        "x": 26,
-        "y": 9.5,
+        "x": 28.4375,
+        "y": 7.375,
         "rot": 0
       },
       {
         "id": "s_2k_bfb4d5fc",
         "deviceId": "d_2j_b65bb732",
         "variant": "body",
-        "x": 36,
+        "x": 7.6875,
+        "y": 15.375,
+        "rot": 0
+      },
+      {
+        "id": "s_4u_42508ef7",
+        "deviceId": "d_4t_019e51e9",
+        "variant": "body",
+        "x": 26,
+        "y": 5,
+        "rot": 0
+      },
+      {
+        "id": "s_4y_eb478770",
+        "deviceId": "d_4x_8d4739e2",
+        "variant": "body",
+        "x": 35,
         "y": 11,
         "rot": 0
       }
@@ -139,7 +171,7 @@
           "term": "2"
         },
         "b": {
-          "symbolId": "s_2e_68bc291c",
+          "symbolId": "s_4u_42508ef7",
           "term": "1"
         }
       },
@@ -161,30 +193,8 @@
           "term": "N"
         },
         "b": {
-          "symbolId": "s_2g_d4f3f8a6",
-          "term": "U2"
-        }
-      },
-      {
-        "id": "w_2q_ff2ae3f3",
-        "a": {
-          "symbolId": "s_2c_724a1601",
-          "term": "2"
-        },
-        "b": {
-          "symbolId": "s_2i_12a58e33",
+          "symbolId": "s_4y_eb478770",
           "term": "1"
-        }
-      },
-      {
-        "id": "w_2r_f1b527a0",
-        "a": {
-          "symbolId": "s_28_9aaa6b2c",
-          "term": "N"
-        },
-        "b": {
-          "symbolId": "s_2i_12a58e33",
-          "term": "2"
         }
       },
       {
@@ -197,8 +207,65 @@
           "symbolId": "s_2k_bfb4d5fc",
           "term": "1"
         }
+      },
+      {
+        "id": "w_4v_ac82c789",
+        "a": {
+          "symbolId": "s_4u_42508ef7",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_2e_68bc291c",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_4w_1f0b8166",
+        "a": {
+          "symbolId": "s_2i_12a58e33",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_4u_42508ef7",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_4z_2b71d6da",
+        "a": {
+          "symbolId": "s_4y_eb478770",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_2g_d4f3f8a6",
+          "term": "U2"
+        },
+        "jog": {
+          "axis": "y",
+          "pos": 242
+        }
+      },
+      {
+        "id": "w_50_183166ce",
+        "a": {
+          "symbolId": "s_2i_12a58e33",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_4y_eb478770",
+          "term": "1"
+        }
       }
     ],
     "groups": []
+  },
+  "process": {
+    "temperature": 34,
+    "pressure": 0,
+    "level": 0,
+    "flow": 0,
+    "limitHit": false,
+    "proxHit": false,
+    "photoHit": false
   }
 }

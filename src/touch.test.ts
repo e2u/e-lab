@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { wireRoute } from "./geometry";
 import { triggerHaptic } from "./ui/schematic/interact";
 import { useLab } from "./store";
 import { TRANSLATIONS } from "./i18n";
@@ -82,6 +83,282 @@ describe("touch & mobile adaptation", () => {
     // Redo via store
     useLab.getState().redo();
     expect(useLab.getState().circuit.symbols.length).toBe(initialSymbolCount + 1);
+  });
+
+  it("straightens a jogged wire via useLab store action", () => {
+    const s = useLab.getState();
+    s.loadBlankTemplate(true);
+    s.setPlacing("lamp");
+    s.placeAt(5, 5);
+    s.setPlacing("lamp");
+    s.placeAt(15, 15);
+
+    const [symA, symB] = useLab.getState().circuit.symbols;
+    s.clickPort({ symbolId: symA.id, term: "1" });
+    s.clickPort({ symbolId: symB.id, term: "1" });
+
+    const wire = useLab.getState().circuit.wires[0];
+    expect(wire).toBeDefined();
+
+    // Set jog
+    useLab.setState((state) => ({
+      circuit: {
+        ...state.circuit,
+        wires: state.circuit.wires.map((w) => (w.id === wire.id ? { ...w, jog: { axis: "x", pos: 200 } } : w)),
+      },
+    }));
+
+    expect(useLab.getState().circuit.wires[0].jog).toEqual({ axis: "x", pos: 200 });
+
+    // Straighten wire
+    useLab.getState().straightenWire(wire.id);
+    expect(useLab.getState().circuit.wires[0].jog).toBeUndefined();
+
+    // Undo should restore jog
+    useLab.getState().undo();
+    expect(useLab.getState().circuit.wires[0].jog).toEqual({ axis: "x", pos: 200 });
+
+    // Redo should remove jog
+    useLab.getState().redo();
+    expect(useLab.getState().circuit.wires[0].jog).toBeUndefined();
+  });
+
+  it("adds junction on wire via addJunctionOnWire with undo/redo support", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+    s.setPlacing("lamp");
+    s.placeAt(5, 5);
+    s.setPlacing("lamp");
+    s.placeAt(15, 5);
+
+    const [symA, symB] = useLab.getState().circuit.symbols;
+    s.clickPort({ symbolId: symA.id, term: "1" });
+    s.clickPort({ symbolId: symB.id, term: "1" });
+
+    expect(useLab.getState().circuit.wires.length).toBe(1);
+    const wire = useLab.getState().circuit.wires[0];
+
+    // Add junction to wire at midpoint
+    s.addJunctionOnWire(wire.id);
+
+    const circuitAfter = useLab.getState().circuit;
+    // Wire should be split into 2 wires
+    expect(circuitAfter.wires.length).toBe(2);
+
+    // A junction device and symbol should be created
+    const junctionSym = circuitAfter.symbols.find((sym) => {
+      const dev = circuitAfter.devices.find((d) => d.id === sym.deviceId);
+      return dev?.kind === "junction";
+    });
+    expect(junctionSym).toBeDefined();
+
+    // Newly added junction should be selected
+    expect(useLab.getState().selected).toEqual({ type: "symbol", id: junctionSym!.id });
+
+    // Both wires should connect to the junction's terminal "1"
+    const legs = circuitAfter.wires.filter(
+      (w) => w.a.symbolId === junctionSym!.id || w.b.symbolId === junctionSym!.id
+    );
+    expect(legs.length).toBe(2);
+
+    // Test Undo
+    useLab.getState().undo();
+    expect(useLab.getState().circuit.wires.length).toBe(1);
+    expect(
+      useLab.getState().circuit.devices.some((d) => d.kind === "junction")
+    ).toBe(false);
+
+    // Test Redo
+    useLab.getState().redo();
+    expect(useLab.getState().circuit.wires.length).toBe(2);
+    expect(
+      useLab.getState().circuit.devices.some((d) => d.kind === "junction")
+    ).toBe(true);
+  });
+
+  it("automatically creates a junction when pulling a wire endpoint onto another wire", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+    s.setPlacing("lamp");
+    s.placeAt(5, 5);
+    s.setPlacing("lamp");
+    s.placeAt(15, 5);
+    s.setPlacing("lamp");
+    s.placeAt(10, 15);
+
+    const [symA, symB, symC] = useLab.getState().circuit.symbols;
+    // First wire: from symA to symB
+    s.clickPort({ symbolId: symA.id, term: "1" });
+    s.clickPort({ symbolId: symB.id, term: "1" });
+
+    const firstWire = useLab.getState().circuit.wires[0];
+    expect(firstWire).toBeDefined();
+
+    // Start drawing a new wire from symC
+    s.clickPort({ symbolId: symC.id, term: "1" });
+    expect(useLab.getState().wiringFrom).toEqual({ symbolId: symC.id, term: "1" });
+
+    // Connect to first wire at point along its horizontal run (x: 200, y: 92)
+    s.connectToWire(firstWire.id, { x: 200, y: 92 });
+
+    // wiringFrom should be reset
+    expect(useLab.getState().wiringFrom).toBeNull();
+
+    const currentCircuit = useLab.getState().circuit;
+    // Total wires should be 3 (first wire split into 2 + new incoming wire)
+    expect(currentCircuit.wires.length).toBe(3);
+
+    // Junction should exist at intersection
+    const junctionSym = currentCircuit.symbols.find((sym) => {
+      const dev = currentCircuit.devices.find((d) => d.id === sym.deviceId);
+      return dev?.kind === "junction";
+    });
+    expect(junctionSym).toBeDefined();
+
+    // All 3 wires should connect to this junction
+    const connectedWires = currentCircuit.wires.filter(
+      (w) => w.a.symbolId === junctionSym!.id || w.b.symbolId === junctionSym!.id
+    );
+    expect(connectedWires.length).toBe(3);
+  });
+
+  it("supports dragging junction points in multiple directions with connected wires following", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+    s.setPlacing("lamp");
+    s.placeAt(4, 4);
+    s.setPlacing("lamp");
+    s.placeAt(16, 4);
+    s.setPlacing("lamp");
+    s.placeAt(10, 16);
+
+    const [symA, symB, symC] = useLab.getState().circuit.symbols;
+    // Connect symA to symB
+    s.clickPort({ symbolId: symA.id, term: "1" });
+    s.clickPort({ symbolId: symB.id, term: "1" });
+    const wire1 = useLab.getState().circuit.wires[0];
+
+    // Add junction on wire1
+    s.addJunctionOnWire(wire1.id);
+    const junctionSym = useLab.getState().circuit.symbols.find((sym) => {
+      const dev = useLab.getState().circuit.devices.find((d) => d.id === sym.deviceId);
+      return dev?.kind === "junction";
+    })!;
+    expect(junctionSym).toBeDefined();
+    const initialPos = { x: junctionSym.x, y: junctionSym.y };
+
+    // Connect third lamp (symC) to the junction
+    s.clickPort({ symbolId: symC.id, term: "1" });
+    s.clickPort({ symbolId: junctionSym.id, term: "1" });
+    expect(useLab.getState().circuit.wires.length).toBe(3);
+
+    // 1. Drag junction downwards (+Y direction)
+    s.moveGroup([{ id: junctionSym.id, x: initialPos.x, y: initialPos.y + 4 }]);
+    let symAfterY = useLab.getState().circuit.symbols.find((sym) => sym.id === junctionSym.id)!;
+    expect(symAfterY.y).toBe(initialPos.y + 4);
+    expect(symAfterY.x).toBe(initialPos.x);
+
+    // 2. Drag junction to the right (+X direction)
+    s.moveGroup([{ id: junctionSym.id, x: initialPos.x + 3, y: initialPos.y + 4 }]);
+    let symAfterX = useLab.getState().circuit.symbols.find((sym) => sym.id === junctionSym.id)!;
+    expect(symAfterX.x).toBe(initialPos.x + 3);
+    expect(symAfterX.y).toBe(initialPos.y + 4);
+
+    // 3. Drag junction diagonally (-X, -Y direction)
+    s.moveGroup([{ id: junctionSym.id, x: initialPos.x - 2, y: initialPos.y - 2 }]);
+    let symAfterDiag = useLab.getState().circuit.symbols.find((sym) => sym.id === junctionSym.id)!;
+    expect(symAfterDiag.x).toBe(initialPos.x - 2);
+    expect(symAfterDiag.y).toBe(initialPos.y - 2);
+
+    // 4. Verify all connected wires route cleanly to the new multi-directional junction position
+    const c = useLab.getState().circuit;
+    for (const w of c.wires) {
+      const route = wireRoute(c, w.a, w.b, w.jog);
+      expect(route.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("allows dragging wires anytime and adjusting jog offset", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+    s.setPlacing("lamp");
+    s.placeAt(4, 4);
+    s.setPlacing("lamp");
+    s.placeAt(16, 4);
+
+    const [symA, symB] = useLab.getState().circuit.symbols;
+    s.clickPort({ symbolId: symA.id, term: "1" });
+    s.clickPort({ symbolId: symB.id, term: "1" });
+
+    const wire = useLab.getState().circuit.wires[0];
+    expect(wire).toBeDefined();
+
+    // Select the wire
+    s.select({ type: "wire", id: wire.id });
+    expect(useLab.getState().selected).toEqual({ type: "wire", id: wire.id });
+
+    // Drag wire along Y axis
+    s.setWireJog(wire.id, { axis: "y", pos: 8 * 22 });
+    let updatedWire = useLab.getState().circuit.wires.find((w) => w.id === wire.id)!;
+    expect(updatedWire.jog).toEqual({ axis: "y", pos: 176 });
+
+    // Straighten wire
+    s.straightenWire(wire.id);
+    updatedWire = useLab.getState().circuit.wires.find((w) => w.id === wire.id)!;
+    expect(updatedWire.jog).toBeUndefined();
+  });
+
+  it("creates a junction point when clicking on blank paper during wiring and allows flexible routing", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+    s.setPlacing("lamp");
+    s.placeAt(4, 4);
+    s.setPlacing("lamp");
+    s.placeAt(20, 16);
+
+    const [symA, symB] = useLab.getState().circuit.symbols;
+
+    // Start wiring from symA
+    s.clickPort({ symbolId: symA.id, term: "1" });
+    expect(useLab.getState().wiringFrom).toEqual({ symbolId: symA.id, term: "1" });
+
+    // Click on blank paper at grid (12, 4) -> creates junction point and connects
+    s.addJunctionAndConnect(12, 4);
+    expect(useLab.getState().circuit.wires.length).toBe(1);
+    const jSym1 = useLab.getState().circuit.symbols.find((sym) => {
+      const dev = useLab.getState().circuit.devices.find((d) => d.id === sym.deviceId);
+      return dev?.kind === "junction";
+    })!;
+    expect(jSym1).toBeDefined();
+    expect(jSym1.x).toBe(12);
+    expect(jSym1.y).toBe(4);
+    // wiringFrom continues from the new junction point
+    expect(useLab.getState().wiringFrom).toEqual({ symbolId: jSym1.id, term: "1" });
+
+    // Click on another blank space at grid (12, 16) -> creates second junction point
+    s.addJunctionAndConnect(12, 16);
+    expect(useLab.getState().circuit.wires.length).toBe(2);
+    const jSymbols = useLab.getState().circuit.symbols.filter((sym) => {
+      const dev = useLab.getState().circuit.devices.find((d) => d.id === sym.deviceId);
+      return dev?.kind === "junction";
+    });
+    expect(jSymbols.length).toBe(2);
+
+    // Finally click on symB to complete wiring
+    s.clickPort({ symbolId: symB.id, term: "1" });
+    expect(useLab.getState().wiringFrom).toBeNull();
+    expect(useLab.getState().circuit.wires.length).toBe(3);
+
+    // Undo should step back through each junction connection
+    s.undo();
+    expect(useLab.getState().circuit.wires.length).toBe(2);
+    s.undo();
+    expect(useLab.getState().circuit.wires.length).toBe(1);
   });
 
   it("identifies mobile landscape and touch device conditions correctly", () => {

@@ -12,6 +12,7 @@ interface WireLayerProps {
   crossovers: WireCrossover[];
   onWireContextMenu: (e: MouseEvent<SVGElement>, wireId: string) => void;
   onWirePointerDown: (e: PointerEvent<SVGElement>, wire: Wire, pts: { x: number; y: number }[]) => void;
+  onWireDoubleClick?: (e: MouseEvent<SVGElement>, wire: Wire) => void;
 }
 
 export const WireLayer = memo(function WireLayer({
@@ -22,6 +23,7 @@ export const WireLayer = memo(function WireLayer({
   crossovers,
   onWireContextMenu,
   onWirePointerDown,
+  onWireDoubleClick,
 }: WireLayerProps) {
   return (
     <>
@@ -45,6 +47,7 @@ export const WireLayer = memo(function WireLayer({
             key={w.id}
             onContextMenu={(e) => onWireContextMenu(e, w.id)}
             onPointerDown={(e) => onWirePointerDown(e, w, pts)}
+            onDoubleClick={(e) => onWireDoubleClick?.(e, w)}
           >
             <path
               d={d}
@@ -72,6 +75,7 @@ export const WireLayer = memo(function WireLayer({
                   strokeDasharray="8 4"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  pointerEvents="none"
                 />
                 {(() => {
                   let minX = a.x, minY = a.y, maxX = a.x, maxY = a.y;
@@ -94,6 +98,7 @@ export const WireLayer = memo(function WireLayer({
                       stroke="#0066cc"
                       strokeWidth="1.5"
                       strokeDasharray="6 4"
+                      pointerEvents="none"
                     />
                   );
                 })()}

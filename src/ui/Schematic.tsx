@@ -78,6 +78,7 @@ export function Schematic() {
     onSvgContextMenu,
     onWireContextMenu,
     onWirePointerDown,
+    onWireDoubleClick,
     onSymbolContextMenu,
     onSymbolPointerDown,
     onSymbolDoubleClick,
@@ -142,6 +143,7 @@ export function Schematic() {
             crossovers={crossovers}
             onWireContextMenu={onWireContextMenu}
             onWirePointerDown={onWirePointerDown}
+            onWireDoubleClick={onWireDoubleClick}
           />
 
           <SymbolLayer

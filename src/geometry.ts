@@ -602,19 +602,23 @@ export function segmentAxis(
   return null;
 }
 
-/** Hit a draggable middle segment (skips terminal stubs). */
+/** Hit a draggable segment of the wire polyline. */
 export function hitWireSegment(
   pts: { x: number; y: number }[],
   p: { x: number; y: number },
-  threshold = 14,
+  threshold = 16,
 ): { index: number; axis: "x" | "y" } | null {
-  if (pts.length < 4) return null;
+  if (pts.length < 2) return null;
   let best: { index: number; axis: "x" | "y"; d: number } | null = null;
-  for (let i = 1; i < pts.length - 2; i += 1) {
-    const axis = segmentAxis(pts[i], pts[i + 1]);
-    if (!axis) continue;
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    const segAxis = segmentAxis(pts[i], pts[i + 1]);
+    const dx = Math.abs(pts[i].x - pts[i + 1].x);
+    const dy = Math.abs(pts[i].y - pts[i + 1].y);
+    const axis: "x" | "y" = segAxis ?? (dx >= dy ? "y" : "x");
     const d = distToSegment(p, pts[i], pts[i + 1]);
-    if (d <= threshold && (!best || d < best.d)) best = { index: i, axis, d };
+    if (d <= threshold && (!best || d < best.d)) {
+      best = { index: i, axis, d };
+    }
   }
   return best ? { index: best.index, axis: best.axis } : null;
 }
@@ -637,6 +641,85 @@ export function findWireAtPoint(
     }
   }
   return best ? best.wire : null;
+}
+
+/** Find the closest port/terminal in the circuit within maxDist to a point (x, y) in world pixels. */
+export function findPortAtPoint(
+  circuit: Circuit,
+  x: number,
+  y: number,
+  maxDist = 20,
+): PortRef | null {
+  let best: { port: PortRef; dist: number } | null = null;
+  for (const sym of circuit.symbols) {
+    const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev) continue;
+    const v = variantDef(dev.kind, sym.variant);
+    for (const t of v.terminals) {
+      const world = terminalWorld(circuit, { symbolId: sym.id, term: t.id });
+      if (!world) continue;
+      const d = Math.hypot(world.x - x, world.y - y);
+      if (d <= maxDist && (!best || d < best.dist)) {
+        best = { port: { symbolId: sym.id, term: t.id }, dist: d };
+      }
+    }
+  }
+  return best ? best.port : null;
+}
+
+/** Pick the best grid coordinates (gx, gy) on a wire to insert a junction. */
+export function pickJunctionPositionOnWire(
+  circuit: Circuit,
+  wireId: string,
+  worldPos?: { x: number; y: number },
+): { x: number; y: number } | null {
+  const w = circuit.wires.find((item) => item.id === wireId);
+  if (!w) return null;
+  const pts = wireRoute(circuit, w.a, w.b, w.jog);
+  if (pts.length < 2) return null;
+
+  const a = terminalWorld(circuit, w.a);
+  const b = terminalWorld(circuit, w.b);
+  const tol = GRID * 0.45;
+
+  if (worldPos) {
+    const near = nearestOnPolyline(pts, worldPos);
+    if (near) {
+      const snapped = snapOnSegment(pts[near.index], pts[near.index + 1], { x: near.x, y: near.y });
+      const gx = Math.round(snapped.x / GRID);
+      const gy = Math.round(snapped.y / GRID);
+      const isNearA = a && Math.hypot(a.x - gx * GRID, a.y - gy * GRID) <= tol;
+      const isNearB = b && Math.hypot(b.x - gx * GRID, b.y - gy * GRID) <= tol;
+      if (!isNearA && !isNearB) {
+        return { x: gx, y: gy };
+      }
+    }
+  }
+
+  // Calculate midpoint along total polyline length
+  let totalLen = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    totalLen += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+  }
+  const half = totalLen / 2;
+  let curr = 0;
+  let midPt = pts[0];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const segLen = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+    if (curr + segLen >= half || i === pts.length - 2) {
+      const t = segLen > 0 ? (half - curr) / segLen : 0.5;
+      midPt = {
+        x: pts[i].x + Math.max(0, Math.min(1, t)) * (pts[i + 1].x - pts[i].x),
+        y: pts[i].y + Math.max(0, Math.min(1, t)) * (pts[i + 1].y - pts[i].y),
+      };
+      const snapped = snapOnSegment(pts[i], pts[i + 1], midPt);
+      const gx = Math.round(snapped.x / GRID);
+      const gy = Math.round(snapped.y / GRID);
+      return { x: gx, y: gy };
+    }
+    curr += segLen;
+  }
+  return { x: Math.round(midPt.x / GRID), y: Math.round(midPt.y / GRID) };
 }
 
 function flipTransform(vw: number, vh: number, flipX?: boolean, flipY?: boolean): string {

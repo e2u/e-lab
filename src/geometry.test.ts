@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit } from "./circuitBuilder";
 import { GRID } from "./types";
-import { allWireRoutes, cleanPolyline, HOP_R, STUB, WIRE_LANE, findWireCrossovers, hopArcD, nearestOnPolyline, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute } from "./geometry";
+import { allWireRoutes, cleanPolyline, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute } from "./geometry";
 
 describe("wire routing stubs", () => {
   it("leaves a coil terminal in a straight stub before turning", () => {
@@ -296,5 +296,73 @@ describe("wire crossovers", () => {
       const crossovers = findWireCrossovers(c, routes);
       expect(crossovers.length).toBeLessThanOrEqual(1);
     }
+  });
+
+  it("straightens a jogged wire by resetting its jog offset", () => {
+    const c = emptyCircuit();
+    const km = addDevice(c, "contactor", "KM1", "coil", 4, 4);
+    const lamp = addDevice(c, "lamp", "HL1", "body", 10, 10);
+    addWire(c, km.symbol, "A2", lamp.symbol, "1");
+    const w = c.wires[0];
+    w.jog = { axis: "y", pos: 120 };
+
+    const joggedPts = wireRoute(c, w.a, w.b, w.jog);
+    expect(joggedPts.some((p) => Math.round(p.y) === 120)).toBe(true);
+
+    delete w.jog;
+    const defaultPts = wireRoute(c, w.a, w.b, w.jog);
+    expect(defaultPts).not.toEqual(joggedPts);
+  });
+
+  it("calculates junction position on a wire via pickJunctionPositionOnWire", () => {
+    const c = emptyCircuit();
+    const lamp1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
+    const lamp2 = addDevice(c, "lamp", "HL2", "body", 16, 4);
+    addWire(c, lamp1.symbol, "1", lamp2.symbol, "1");
+    const wire = c.wires[0];
+
+    // Midpoint position when worldPos is not specified
+    const midPos = pickJunctionPositionOnWire(c, wire.id);
+    expect(midPos).not.toBeNull();
+    expect(midPos!.y).toBe(4);
+    expect(midPos!.x).toBeGreaterThan(4);
+    expect(midPos!.x).toBeLessThan(16);
+
+    // Specific position when worldPos is provided
+    const specificPos = pickJunctionPositionOnWire(c, wire.id, { x: 8 * GRID, y: 4 * GRID });
+    expect(specificPos).toEqual({ x: 8, y: 4 });
+  });
+
+  it("finds closest port with findPortAtPoint", () => {
+    const c = emptyCircuit();
+    const lamp = addDevice(c, "lamp", "HL1", "body", 4, 4);
+    const world = terminalWorld(c, { symbolId: lamp.symbol.id, term: "1" })!;
+
+    const port = findPortAtPoint(c, world.x + 2, world.y + 2, 10);
+    expect(port).toEqual({ symbolId: lamp.symbol.id, term: "1" });
+
+    const none = findPortAtPoint(c, world.x + 50, world.y + 50, 10);
+    expect(none).toBeNull();
+  });
+
+  it("hits draggable wire segments for 2-point, 3-point, and multi-point wires", () => {
+    // 2-point horizontal wire: dragging moves in Y
+    const pts2H = [{ x: 50, y: 100 }, { x: 250, y: 100 }];
+    const hit2H = hitWireSegment(pts2H, { x: 150, y: 102 });
+    expect(hit2H).not.toBeNull();
+    expect(hit2H?.axis).toBe("y");
+
+    // 2-point vertical wire: dragging moves in X
+    const pts2V = [{ x: 100, y: 50 }, { x: 100, y: 250 }];
+    const hit2V = hitWireSegment(pts2V, { x: 102, y: 150 });
+    expect(hit2V).not.toBeNull();
+    expect(hit2V?.axis).toBe("x");
+
+    // 3-point L-shaped wire
+    const pts3 = [{ x: 50, y: 100 }, { x: 150, y: 100 }, { x: 150, y: 200 }];
+    const hit3Seg0 = hitWireSegment(pts3, { x: 80, y: 102 });
+    expect(hit3Seg0?.axis).toBe("y");
+    const hit3Seg1 = hitWireSegment(pts3, { x: 152, y: 160 });
+    expect(hit3Seg1?.axis).toBe("x");
   });
 });

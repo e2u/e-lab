@@ -41,12 +41,6 @@
         "params": {}
       },
       {
-        "id": "d_11_ee2b7f28",
-        "kind": "voltmeter",
-        "tag": "VM1",
-        "params": {}
-      },
-      {
         "id": "d_13_378f36d8",
         "kind": "lamp",
         "tag": "HL1",
@@ -58,6 +52,12 @@
         "id": "d_15_c609de4a",
         "kind": "ground",
         "tag": "PE1",
+        "params": {}
+      },
+      {
+        "id": "d_1j_1cd0d61d",
+        "kind": "junction",
+        "tag": "",
         "params": {}
       }
     ],
@@ -74,17 +74,17 @@
         "id": "s_u_a60953a1",
         "deviceId": "d_t_98a62c0d",
         "variant": "body",
-        "x": 14,
-        "y": 4,
-        "rot": 0
+        "x": 13.1875,
+        "y": 3.5,
+        "rot": 270
       },
       {
         "id": "s_w_e9055a7d",
         "deviceId": "d_v_056b9363",
         "variant": "body",
-        "x": 14,
-        "y": 6,
-        "rot": 0
+        "x": 13.125,
+        "y": 5.5,
+        "rot": 270
       },
       {
         "id": "s_y_6bb501db",
@@ -98,32 +98,32 @@
         "id": "s_10_5fb4fbf7",
         "deviceId": "d_z_a50545e8",
         "variant": "body",
-        "x": 34,
-        "y": 4,
-        "rot": 0
-      },
-      {
-        "id": "s_12_a28aec5f",
-        "deviceId": "d_11_ee2b7f28",
-        "variant": "body",
-        "x": 42,
+        "x": 32.9375,
         "y": 3.5,
-        "rot": 0
+        "rot": 270
       },
       {
         "id": "s_14_aa08b19c",
         "deviceId": "d_13_378f36d8",
         "variant": "body",
-        "x": 42,
-        "y": 8.5,
+        "x": 44.125,
+        "y": 4.875,
         "rot": 0
       },
       {
         "id": "s_16_13bb17a3",
         "deviceId": "d_15_c609de4a",
         "variant": "body",
-        "x": 22,
-        "y": 10,
+        "x": 9,
+        "y": 11.0625,
+        "rot": 0
+      },
+      {
+        "id": "s_1k_b69e0678",
+        "deviceId": "d_1j_1cd0d61d",
+        "variant": "body",
+        "x": 35,
+        "y": 7,
         "rot": 0
       }
     ],
@@ -184,28 +184,6 @@
         }
       },
       {
-        "id": "w_1c_1c22539b",
-        "a": {
-          "symbolId": "s_10_5fb4fbf7",
-          "term": "2"
-        },
-        "b": {
-          "symbolId": "s_12_a28aec5f",
-          "term": "1"
-        }
-      },
-      {
-        "id": "w_1d_2e46d7c0",
-        "a": {
-          "symbolId": "s_y_6bb501db",
-          "term": "X2"
-        },
-        "b": {
-          "symbolId": "s_12_a28aec5f",
-          "term": "2"
-        }
-      },
-      {
         "id": "w_1e_f993dfa0",
         "a": {
           "symbolId": "s_10_5fb4fbf7",
@@ -223,18 +201,7 @@
           "term": "2"
         },
         "b": {
-          "symbolId": "s_y_6bb501db",
-          "term": "X2"
-        }
-      },
-      {
-        "id": "w_1g_dfd1e40c",
-        "a": {
-          "symbolId": "s_y_6bb501db",
-          "term": "X2"
-        },
-        "b": {
-          "symbolId": "s_16_13bb17a3",
+          "symbolId": "s_1k_b69e0678",
           "term": "1"
         }
       },
@@ -248,8 +215,43 @@
           "symbolId": "s_16_13bb17a3",
           "term": "1"
         }
+      },
+      {
+        "id": "w_1l_2579a65e",
+        "a": {
+          "symbolId": "s_1k_b69e0678",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_y_6bb501db",
+          "term": "X2"
+        }
+      },
+      {
+        "id": "w_1m_cfea244a",
+        "a": {
+          "symbolId": "s_16_13bb17a3",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_1k_b69e0678",
+          "term": "1"
+        },
+        "jog": {
+          "axis": "y",
+          "pos": 242
+        }
       }
     ],
     "groups": []
+  },
+  "process": {
+    "temperature": 34,
+    "pressure": 0,
+    "level": 0,
+    "flow": 0,
+    "limitHit": false,
+    "proxHit": false,
+    "photoHit": false
   }
 }

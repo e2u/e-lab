@@ -1,11 +1,11 @@
 import { create } from "zustand";
 import { catalogItem, suggestNetLabelTag } from "./catalog";
-import { addDevice, addSymbol, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
+import { addDevice, addJunction, addSymbol, findJunctionAt, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
 import templateData from "./examples/blank-template.json";
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols } from "./groups";
 import { EXAMPLES } from "./examples";
-import { allWireRoutes, findWireAtPoint, nearestOnPolyline, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { allWireRoutes, findWireAtPoint, nearestOnPolyline, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   downloadJson,
@@ -159,6 +159,7 @@ export interface LabState {
     wireUpdates?: { id: string; jog: WireJog }[],
   ) => void;
   clickPort: (port: PortRef) => void;
+  addJunctionAndConnect: (gx: number, gy: number) => void;
   connectToWire: (wireId: string, world: { x: number; y: number }) => void;
   setWireJog: (id: string, jog: WireJog) => void;
   pointerDevice: (deviceId: string, down: boolean) => void;
@@ -205,6 +206,8 @@ export interface LabState {
   setDocName: (name: string) => void;
   setNotice: (notice: string | null) => void;
   updateWire: (id: string, patch: { label?: string }) => void;
+  straightenWire: (id: string) => void;
+  addJunctionOnWire: (id: string, worldPos?: { x: number; y: number }) => void;
   updateGroup: (groupId: string, patch: { color?: string; name?: string }) => void;
   toggleWireBroken: (id: string) => void;
   toggleDeviceWelded: (id: string) => void;
@@ -722,6 +725,28 @@ export const useLab = create<LabState>((set, get) => ({
     set({ circuit: next, wiringFrom: null, isDirty: true });
   },
 
+  addJunctionAndConnect: (gx, gy) => {
+    if (get().mode !== "edit") return;
+    const from = get().wiringFrom;
+    if (!from) return;
+    const circuit = get().circuit;
+    get().pushHistory();
+    const next = clone(circuit);
+    let j = findJunctionAt(next, gx, gy);
+    if (!j) {
+      j = addJunction(next, gx, gy).symbol;
+    }
+    const jPort: PortRef = { symbolId: j.id, term: "1" };
+    if (!portsEqual(from, jPort) && !next.wires.some((w) => wireHasEnds(w, from, jPort))) {
+      next.wires.push({
+        id: uid("w"),
+        a: from,
+        b: jPort,
+      });
+    }
+    set({ circuit: next, wiringFrom: jPort, isDirty: true });
+  },
+
   connectToWire: (wireId, world) => {
     if (get().mode !== "edit") return;
     const from = get().wiringFrom;
@@ -731,7 +756,7 @@ export const useLab = create<LabState>((set, get) => ({
     if (!w) return;
     const pts = allWireRoutes(circuit).get(wireId) ?? wireRoute(circuit, w.a, w.b, w.jog);
     const near = nearestOnPolyline(pts, world);
-    if (!near || near.d > 14) return;
+    if (!near || near.d > 24) return;
     const snapped = snapOnSegment(pts[near.index], pts[near.index + 1], { x: near.x, y: near.y });
     const gx = Math.round(snapped.x / GRID);
     const gy = Math.round(snapped.y / GRID);
@@ -939,7 +964,7 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   loadBlankTemplate: (skipConfirm = false) => {
-    if (!skipConfirm && get().isDirty) {
+    if (!skipConfirm && get().isDirty && typeof window !== "undefined") {
       const confirmDiscard = t("msg.confirmDiscard") || "Current diagram will be lost. Continue?";
       if (!window.confirm(confirmDiscard)) {
         return;
@@ -1024,6 +1049,36 @@ export const useLab = create<LabState>((set, get) => ({
     if (!w) return;
     if (patch.label !== undefined) w.label = patch.label;
     set({ circuit: next, isDirty: true });
+  },
+  straightenWire: (id) => {
+    const circuit = get().circuit;
+    const w = circuit.wires.find((x) => x.id === id);
+    if (!w || !w.jog) return;
+    get().pushHistory();
+    const next = clone(circuit);
+    const target = next.wires.find((x) => x.id === id);
+    if (target) {
+      delete target.jog;
+    }
+    set({ circuit: next, isDirty: true });
+  },
+  addJunctionOnWire: (id, worldPos) => {
+    if (get().mode !== "edit") return;
+    const circuit = get().circuit;
+    const w = circuit.wires.find((x) => x.id === id);
+    if (!w) return;
+    const pos = pickJunctionPositionOnWire(circuit, id, worldPos);
+    if (!pos) return;
+    get().pushHistory();
+    const next = clone(circuit);
+    const port = splitWireAt(next, id, pos.x, pos.y);
+    if (!port) return;
+    set({
+      circuit: next,
+      selected: { type: "symbol", id: port.symbolId },
+      selectedIds: [port.symbolId],
+      isDirty: true,
+    });
   },
   updateGroup: (groupId, patch) => {
     get().pushHistory();

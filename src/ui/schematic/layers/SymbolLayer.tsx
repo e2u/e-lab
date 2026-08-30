@@ -77,7 +77,15 @@ export const SymbolLayer = memo(function SymbolLayer({
             >
               {dev.kind === "junction" ? (
                 <>
-                  <rect className="sym-hit" x={-12} y={-12} width={24} height={24} fill="transparent" />
+                  <rect
+                    className="sym-hit"
+                    x={-14}
+                    y={-14}
+                    width={28}
+                    height={28}
+                    fill="transparent"
+                    style={{ cursor: "move" }}
+                  />
                   {sel && (
                     <circle cx={0} cy={0} r={10} fill="none" stroke="#2ca02c" strokeDasharray="4 3" pointerEvents="none" />
                   )}

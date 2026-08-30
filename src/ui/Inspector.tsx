@@ -193,6 +193,14 @@ export function Inspector() {
           {t("inspector.broken")}
         </label>
         <p className="hint">{t("inspector.brokenHint")}</p>
+        <button className="btn" onClick={() => useLab.getState().addJunctionOnWire(selected.id)}>
+          {t("inspector.addJunction")}
+        </button>
+        {wire?.jog && (
+          <button className="btn" onClick={() => useLab.getState().straightenWire(selected.id)}>
+            {t("ctx.straightenWire")}
+          </button>
+        )}
         <button className="btn danger" onClick={() => useLab.getState().deleteSelected()}>
           {t("inspector.deleteWire")}
         </button>

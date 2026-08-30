@@ -37,17 +37,17 @@
         "id": "s_5_0a190063",
         "deviceId": "d_4_9cc2ad0e",
         "variant": "body",
-        "x": 14,
-        "y": 4,
+        "x": 14.125,
+        "y": 3.8125,
         "rot": 0
       },
       {
         "id": "s_7_c3c641d3",
         "deviceId": "d_6_3e011398",
         "variant": "body",
-        "x": 22,
-        "y": 3.5,
-        "rot": 0
+        "x": 23.125,
+        "y": 3.9375,
+        "rot": 270
       }
     ],
     "wires": [
@@ -60,6 +60,10 @@
         "b": {
           "symbolId": "s_5_0a190063",
           "term": "1"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 235.125
         }
       },
       {
@@ -82,9 +86,22 @@
         "b": {
           "symbolId": "s_3_31e849c9",
           "term": "-"
+        },
+        "jog": {
+          "axis": "y",
+          "pos": 165
         }
       }
     ],
     "groups": []
+  },
+  "process": {
+    "temperature": 34,
+    "pressure": 0,
+    "level": 0,
+    "flow": 0,
+    "limitHit": false,
+    "proxHit": false,
+    "photoHit": false
   }
 }

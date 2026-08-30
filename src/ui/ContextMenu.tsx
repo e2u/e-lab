@@ -6,6 +6,7 @@ import { useLab } from "../store";
 export interface MenuPos {
   x: number;
   y: number;
+  world?: { x: number; y: number };
 }
 
 export function ContextMenu({
@@ -116,6 +117,12 @@ export function ContextMenu({
           <>
             <button type="button" onClick={() => run(() => useLab.getState().quickAttachClampMeter(selected.id))}>
               🧲 {t("meters.probeWire")}
+            </button>
+            <button type="button" onClick={() => run(() => useLab.getState().addJunctionOnWire(selected.id, pos.world))}>
+              {t("ctx.addJunction")}
+            </button>
+            <button type="button" onClick={() => run(() => useLab.getState().straightenWire(selected.id))}>
+              {t("ctx.straightenWire")}
             </button>
             <button type="button" onClick={() => run(() => useLab.getState().toggleWireBroken(selected.id))}>
               {t("ctx.brokenWire")}

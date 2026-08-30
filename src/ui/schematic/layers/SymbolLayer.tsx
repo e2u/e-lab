@@ -20,6 +20,9 @@ interface SymbolLayerProps {
   onSymbolPointerUp: (dev: Device) => void;
   onSymbolPointerLeave: (dev: Device) => void;
   onSymbolDoubleClick?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
+  onTagPointerDown?: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
+  onTagDoubleClick?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
+  onTagContextMenu?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
 }
 
 export const SymbolLayer = memo(function SymbolLayer({
@@ -34,6 +37,9 @@ export const SymbolLayer = memo(function SymbolLayer({
   onSymbolPointerUp,
   onSymbolPointerLeave,
   onSymbolDoubleClick,
+  onTagPointerDown,
+  onTagDoubleClick,
+  onTagContextMenu,
 }: SymbolLayerProps) {
   const selectedSym = selected?.type === "symbol" ? circuit.symbols.find((s) => s.id === selected.id) : null;
   const selectedDev = selectedSym ? circuit.devices.find((d) => d.id === selectedSym.deviceId) : null;
@@ -146,33 +152,45 @@ export const SymbolLayer = memo(function SymbolLayer({
             </g>
             {/* 元件 tag - 單獨渲染，不旋轉 */}
             {dev.kind !== "junction" && dev.kind !== "mains-3ph" && dev.kind !== "net-label" && dev.kind !== "title-block" && (
-              <g pointerEvents="none">
+              <g pointerEvents="all">
                 {(() => {
-                  const { tagX, tagY, textAnchor } = getSymbolTagPlacement(dev.kind, sym, v);
-                  const tagWidth = dev.tag.length * 7;
+                  const basePlacement = getSymbolTagPlacement(dev.kind, sym, v);
+                  const tagOffsetX = (sym.tagOffset?.dx ?? 0) * GRID;
+                  const tagOffsetY = (sym.tagOffset?.dy ?? 0) * GRID;
+                  const tagX = basePlacement.tagX + tagOffsetX;
+                  const tagY = basePlacement.tagY + tagOffsetY;
+                  const textAnchor = basePlacement.textAnchor;
+                  const tagWidth = Math.max(16, dev.tag.length * 7);
                   const isTagHighlighted = (selected?.type === "symbol" && selected.id === sym.id) || isSameDevice;
                   return (
-                    <>
+                    <g
+                      className="sym-tag-group"
+                      style={{ cursor: "move" }}
+                      onPointerDown={(e) => onTagPointerDown?.(e, sym, dev)}
+                      onDoubleClick={(e) => onTagDoubleClick?.(e, sym, dev)}
+                      onContextMenu={(e) => (onTagContextMenu ? onTagContextMenu(e, sym, dev) : onSymbolContextMenu(e, sym.id))}
+                    >
                       <rect
                         x={tagX - (textAnchor === "start" ? 4 : tagWidth / 2 + 6)}
                         y={tagY - 10}
                         width={textAnchor === "start" ? tagWidth + 8 : tagWidth + 12}
-                        height={14}
-                        rx="2"
+                        height={16}
+                        rx="3"
                         className={`sym-tag-bg ${isTagHighlighted ? "selected" : ""}`}
                         fill={isTagHighlighted ? "#ffe066" : "#efe6d0"}
-                        stroke={isTagHighlighted ? "#d97706" : "none"}
-                        strokeWidth={isTagHighlighted ? 1.2 : 0}
+                        stroke={isTagHighlighted ? "#d97706" : "#b0a588"}
+                        strokeWidth={isTagHighlighted ? 1.2 : 0.8}
                       />
                       <text
                         x={tagX}
                         y={tagY + 4}
                         textAnchor={textAnchor}
                         className={`sym-tag ${isTagHighlighted ? "selected" : ""}`}
+                        style={{ userSelect: "none" }}
                       >
                         {dev.tag}
                       </text>
-                    </>
+                    </g>
                   );
                 })()}
               </g>
@@ -183,6 +201,8 @@ export const SymbolLayer = memo(function SymbolLayer({
 
       {circuit.symbols.map((sym) => {
         if (!isJunction(sym.id, circuit)) return null;
+        const connectedWires = circuit.wires.filter((w) => w.a.symbolId === sym.id || w.b.symbolId === sym.id);
+        if (connectedWires.length < 3) return null;
         const p = terminalWorld(circuit, { symbolId: sym.id, term: "1" });
         if (!p) return null;
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);

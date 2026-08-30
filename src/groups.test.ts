@@ -177,12 +177,12 @@ describe("symbol groups", () => {
 
   it("rotates a group around its center preserving internal layout and rotating wire jogs", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0); // box (0,0) to (3,2.5), center (1.5,1.25)
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0); // box (4,0) to (7,2.5), center (5.5,1.25)
+    const a = addDevice(c, "lamp", "HL1", "body", 0, 0); // box (0,0) to (2,4), center (1,2)
+    const b = addDevice(c, "lamp", "HL2", "body", 4, 0); // box (4,0) to (6,4), center (5,2)
     addWire(c, a.symbol.id, "1", b.symbol.id, "1");
     const w = c.wires[c.wires.length - 1];
-    w.jog = { axis: "x", pos: 3.5 * GRID }; // vertical line at x=3.5 (group center)
-    groupSymbols(c, [a.symbol.id, b.symbol.id]); // bounds: x=0..7, y=0..2.5, center=(3.5, 1.25)
+    w.jog = { axis: "x", pos: 3 * GRID }; // vertical line at x=3 (group center)
+    groupSymbols(c, [a.symbol.id, b.symbol.id]); // bounds: x=0..6, y=0..4, center=(3, 2)
 
     useLab.setState({ circuit: c, selectedIds: [a.symbol.id, b.symbol.id] });
     useLab.getState().rotateSelected(1); // 90 deg CW
@@ -192,20 +192,20 @@ describe("symbol groups", () => {
     const sb = updated.symbols.find((s) => s.id === b.symbol.id)!;
     const sw = updated.wires.find((x) => x.id === w.id)!;
 
-    // Group center was (3.5, 1.25). A center was (1.5, 1.25), B center was (5.5, 1.25).
-    // CW 90: A center -> (3.5, -0.75). New lamp size is w:2.5, h:3. So sa.x = 3.5 - 1.25 = 2.25, sa.y = -0.75 - 1.5 = -2.25.
-    // CW 90: B center -> (3.5, 3.25). New lamp size is w:2.5, h:3. So sb.x = 3.5 - 1.25 = 2.25, sb.y = 3.25 - 1.5 = 1.75.
-    expect(sa.x).toBe(2.25);
-    expect(sa.y).toBe(-2.25);
+    // Group center was (3, 2). A center was (1, 2), B center was (5, 2).
+    // CW 90: A center -> (3, 0). New lamp size is w:4, h:2. So sa.x = 3 - 2 = 1, sa.y = 0 - 1 = -1.
+    // CW 90: B center -> (3, 4). New lamp size is w:4, h:2. So sb.x = 3 - 2 = 1, sb.y = 4 - 1 = 3.
+    expect(sa.x).toBe(1);
+    expect(sa.y).toBe(-1);
     expect(sa.rot).toBe(90);
 
-    expect(sb.x).toBe(2.25);
-    expect(sb.y).toBe(1.75);
+    expect(sb.x).toBe(1);
+    expect(sb.y).toBe(3);
     expect(sb.rot).toBe(90);
 
     // Wire jog axis rotated from 'x' to 'y', pos rotated around center
     expect(sw.jog?.axis).toBe("y");
-    expect(sw.jog?.pos).toBe(1.25 * GRID);
+    expect(sw.jog?.pos).toBe(2 * GRID);
   });
 
   it("disables flip operations on symbols in groups", () => {
@@ -301,9 +301,9 @@ describe("symbol groups", () => {
   it("prevents vertical overlap when aligning multiple elements to left/right/hcenter", () => {
     const c = emptyCircuit();
     // 3 lamps at the same y=0, but different x
-    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0); // h=2
-    const l2 = addDevice(c, "lamp", "HL2", "body", 10, 0); // h=2
-    const l3 = addDevice(c, "lamp", "HL3", "body", 20, 0); // h=2
+    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0); // h=4
+    const l2 = addDevice(c, "lamp", "HL2", "body", 10, 0); // h=4
+    const l3 = addDevice(c, "lamp", "HL3", "body", 20, 0); // h=4
 
     useLab.setState({ circuit: c, selectedIds: [l1.symbol.id, l2.symbol.id, l3.symbol.id] });
     useLab.getState().alignSelected("left");
@@ -319,18 +319,18 @@ describe("symbol groups", () => {
     expect(s3.x).toBe(0);
 
     // They must not stack on top of each other at y=0!
-    // Since each lamp height is 2.5, they should be placed at y=0, y=2.5, y=5
+    // Since each lamp height is 4, they should be placed at y=0, y=4, y=8
     expect(s1.y).toBe(0);
-    expect(s2.y).toBe(2.5);
-    expect(s3.y).toBe(5);
+    expect(s2.y).toBe(4);
+    expect(s3.y).toBe(8);
   });
 
   it("prevents horizontal overlap when aligning multiple elements to top/bottom/vcenter", () => {
     const c = emptyCircuit();
     // 3 lamps at the same x=0, but different y
-    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0); // w=3
-    const l2 = addDevice(c, "lamp", "HL2", "body", 0, 10); // w=3
-    const l3 = addDevice(c, "lamp", "HL3", "body", 0, 20); // w=3
+    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0); // w=2
+    const l2 = addDevice(c, "lamp", "HL2", "body", 0, 10); // w=2
+    const l3 = addDevice(c, "lamp", "HL3", "body", 0, 20); // w=2
 
     useLab.setState({ circuit: c, selectedIds: [l1.symbol.id, l2.symbol.id, l3.symbol.id] });
     useLab.getState().alignSelected("top");
@@ -346,10 +346,10 @@ describe("symbol groups", () => {
     expect(s3.y).toBe(0);
 
     // They must not stack on top of each other at x=0!
-    // Since each lamp width is 3, they should be placed at x=0, x=3, x=6
+    // Since each lamp width is 2, they should be placed at x=0, x=2, x=4
     expect(s1.x).toBe(0);
-    expect(s2.x).toBe(3);
-    expect(s3.x).toBe(6);
+    expect(s2.x).toBe(2);
+    expect(s3.x).toBe(4);
   });
 
   it("sets selected to specifically clicked symbol when selecting within a group", () => {

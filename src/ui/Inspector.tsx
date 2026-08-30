@@ -353,6 +353,16 @@ export function Inspector() {
               </select>
             </label>
           )}
+          {sym.tagOffset && (
+            <button
+              type="button"
+              className="btn"
+              style={{ marginTop: "6px", fontSize: "12px", width: "100%" }}
+              onClick={() => useLab.getState().resetSymbolTagOffset(sym.id)}
+            >
+              {t("inspector.resetTagPosition")}
+            </button>
+          )}
         </>
       )}
       {(dev.kind === "voltmeter" || dev.kind === "ammeter") && (

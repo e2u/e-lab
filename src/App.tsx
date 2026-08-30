@@ -10,6 +10,7 @@ import { Schematic } from "./ui/Schematic";
 import { LadderSchematic } from "./ui/LadderSchematic";  // ✅ 新增：引入梯形圖組件
 import { DiscardModal } from "./ui/DiscardModal";
 import { TogglePanelButton } from "./ui/TogglePanelButton";
+import { PanelResizer } from "./ui/PanelResizer";
 import { FloatingActionBar } from "./ui/FloatingActionBar";
 import { MobileMenuModal } from "./ui/MobileMenuModal";
 import { PrintModal } from "./ui/PrintModal";
@@ -32,6 +33,7 @@ const loadExamplesFromImports = async (): Promise<Example[]> => {
 
 export function App() {
   const mode = useLab((s) => s.mode);
+  const editSubMode = useLab((s) => s.editSubMode);
   const running = useLab((s) => s.running);
   const snapshot = useLab((s) => s.snapshot);
   const timeMs = useLab((s) => s.timeMs);
@@ -45,6 +47,8 @@ export function App() {
   const isDirty = useLab((s) => s.isDirty);
   const paletteOpen = useLab((s) => s.paletteOpen);
   const sideOpen = useLab((s) => s.sideOpen);
+  const paletteWidth = useLab((s) => s.paletteWidth);
+  const sideWidth = useLab((s) => s.sideWidth);
   const layoutMode = useLab((s) => s.layoutMode);
   const showLadderMenu = useLab((s) => s.showLadderMenu);
   const zoom = useLab((s) => s.zoom);
@@ -132,6 +136,9 @@ export function App() {
       if (e.key === "Escape") {
         lab.setPlacing(null);
         lab.select(null);
+        if (lab.wiringFrom) {
+          useLab.setState({ wiringFrom: null, hoverPort: null });
+        }
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
@@ -177,6 +184,22 @@ export function App() {
       if (e.key.toLowerCase() === "l" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         lab.toggleLayoutMode();
+        return;
+      }
+
+      // ✅ 新增：子模式切換（W: Wiring 佈線模式, E: Editing 編輯模式）
+      if (e.key.toLowerCase() === "w" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        if (lab.mode === "edit") {
+          lab.setEditSubMode("wiring");
+        }
+        return;
+      }
+      if (e.key.toLowerCase() === "e" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        if (lab.mode === "edit") {
+          lab.setEditSubMode("editing");
+        }
         return;
       }
       
@@ -378,6 +401,16 @@ export function App() {
                   {t("toolbar.edit")}
                 </button>
               )}
+              {mode === "edit" && layoutMode !== "ladder" && (
+                <button
+                  type="button"
+                  className={`btn submode-mobile-btn ${editSubMode === "wiring" ? "active" : ""}`}
+                  onClick={() => useLab.getState().toggleEditSubMode()}
+                  title={editSubMode === "wiring" ? t("toolbar.wiringTip") : t("toolbar.editingTip")}
+                >
+                  {editSubMode === "wiring" ? `🔌 ${t("toolbar.wiring")}` : `✋ ${t("toolbar.editing")}`}
+                </button>
+              )}
               <button className={`btn ${mode === "run" ? "active" : ""}`} onClick={() => useLab.getState().setMode("run")}>
                 {t("toolbar.run")}
               </button>
@@ -496,6 +529,30 @@ export function App() {
                   <span>{t("toolbar.reset")}</span>
                 </button>
               </div>
+
+              {/* Edit Sub-Mode Segmented Switch (Editing / Wiring) */}
+              {mode === "edit" && layoutMode !== "ladder" && (
+                <div className="segmented-group submode-switch">
+                  <button
+                    type="button"
+                    className={`seg-btn ${editSubMode === "editing" ? "active" : ""}`}
+                    onClick={() => useLab.getState().setEditSubMode("editing")}
+                    title={t("toolbar.editingTip")}
+                  >
+                    <span className="seg-icon">✋</span>
+                    <span>{t("toolbar.editing")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`seg-btn ${editSubMode === "wiring" ? "active" : ""}`}
+                    onClick={() => useLab.getState().setEditSubMode("wiring")}
+                    title={t("toolbar.wiringTip")}
+                  >
+                    <span className="seg-icon">🔌</span>
+                    <span>{t("toolbar.wiring")}</span>
+                  </button>
+                </div>
+              )}
 
               {/* Run Mode Probe Tools */}
               {mode === "run" && (
@@ -669,6 +726,10 @@ export function App() {
       <div 
         className={`workspace ${!paletteOpen ? "palette-collapsed" : ""} ${!sideOpen ? "side-collapsed" : ""}`} 
         data-layout-mode={layoutMode}
+        style={{
+          "--palette-width": `${paletteWidth}px`,
+          "--side-width": `${sideWidth}px`,
+        } as React.CSSProperties}
       >
         {/* Palette - desktop: inline, mobile: drawer */}
         {isMobile ? (
@@ -683,6 +744,16 @@ export function App() {
           paletteOpen && <Palette />
         )}
 
+        {/* Desktop left panel resizer */}
+        {!isMobile && paletteOpen && (
+          <PanelResizer
+            direction="left"
+            currentWidth={paletteWidth}
+            onResize={(w) => useLab.getState().setPaletteWidth(w)}
+            onReset={() => useLab.getState().setPaletteWidth(220)}
+          />
+        )}
+
         {/* ✅ 梯形圖條件渲染：根據 layoutMode 切換畫布類型 */}
         {layoutMode === "ladder" ? (
           <LadderSchematic />
@@ -691,6 +762,16 @@ export function App() {
             <Schematic />
             <FloatingActionBar />
           </>
+        )}
+
+        {/* Desktop right panel resizer */}
+        {!isMobile && sideOpen && (
+          <PanelResizer
+            direction="right"
+            currentWidth={sideWidth}
+            onResize={(w) => useLab.getState().setSideWidth(w)}
+            onReset={() => useLab.getState().setSideWidth(260)}
+          />
         )}
 
         {/* Side panel - desktop: inline, mobile: drawer */}

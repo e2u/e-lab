@@ -23,7 +23,7 @@ function t(id: string, x: number, y: number, label = id): TerminalDef {
 
 /** Grids from each terminal to the contact bars. */
 export const CONTACT_LEAD = 1;
-const CONTACT_W = CONTACT_LEAD * 2 + 0.4;
+const CONTACT_W = 4;
 
 const contactBody: VariantDef = {
   w: CONTACT_W,
@@ -34,43 +34,43 @@ const contactBody: VariantDef = {
 /** SPDT: 1-2 working throw, 3-4 opposite throw. */
 const contactSpdt: VariantDef = {
   w: CONTACT_W,
-  h: 3.2,
+  h: 4,
   terminals: [
     t("1", 0, 1),
     t("2", CONTACT_W, 1),
-    t("3", 0, 2.4),
-    t("4", CONTACT_W, 2.4),
+    t("3", 0, 3),
+    t("4", CONTACT_W, 3),
   ],
 };
 
 const pbBody: VariantDef = {
-  w: 3,
-  h: 3,
-  terminals: [t("1", 0.85, 1.65), t("2", 2.15, 1.65)],
+  w: 4,
+  h: 2,
+  terminals: [t("1", 0, 1), t("2", 4, 1)],
 };
 
 const coilBody: VariantDef = {
   w: 4,
-  h: 3,
-  terminals: [t("A1", 0, 1.5), t("A2", 4, 1.5)],
+  h: 2,
+  terminals: [t("A1", 0, 1), t("A2", 4, 1)],
 };
 
 const meterBody: VariantDef = {
   w: 4,
-  h: 3,
-  terminals: [t("1", 0, 1.5, "+"), t("2", 4, 1.5, "-")],
+  h: 2,
+  terminals: [t("1", 0, 1, "+"), t("2", 4, 1, "-")],
 };
 
 const timerVariants: KindMeta["variants"] = {
   coil: coilBody,
   "delayed-nc": {
     w: CONTACT_W,
-    h: 3,
+    h: 2,
     terminals: [t("15", 0, 1, "15"), t("16", CONTACT_W, 1, "16")],
   },
   "delayed-no": {
     w: CONTACT_W,
-    h: 3,
+    h: 2,
     terminals: [t("15", 0, 1, "15"), t("18", CONTACT_W, 1, "18")],
   },
   "inst-nc": {
@@ -86,9 +86,15 @@ const timerVariants: KindMeta["variants"] = {
 };
 
 const twoTermVert: VariantDef = {
-  w: 3,
+  w: 2,
   h: 4,
-  terminals: [t("1", 1.5, 1), t("2", 1.5, 3)],
+  terminals: [t("1", 1, 0), t("2", 1, 4)],
+};
+
+const twoTermHoriz: VariantDef = {
+  w: 4,
+  h: 2,
+  terminals: [t("1", 0, 1), t("2", 4, 1)],
 };
 
 const pole3: VariantDef = {
@@ -114,16 +120,16 @@ const starterBody: VariantDef = {
     t("T1", 8, 1),
     t("T2", 8, 3),
     t("T3", 8, 5),
-    t("A1", 0, 7.5),
-    t("A2", 8, 7.5),
-    t("95", 0.8, 10, "95"),
-    t("96", 2.6, 10, "96"),
-    t("97", 5.4, 10, "97"),
-    t("98", 7.2, 10, "98"),
-    t("13", 1.2, 0, "13"),
-    t("14", 3.2, 0, "14"),
-    t("21", 4.8, 0, "21"),
-    t("22", 6.8, 0, "22"),
+    t("A1", 0, 7),
+    t("A2", 8, 7),
+    t("95", 1, 10, "95"),
+    t("96", 3, 10, "96"),
+    t("97", 5, 10, "97"),
+    t("98", 7, 10, "98"),
+    t("13", 1, 0, "13"),
+    t("14", 3, 0, "14"),
+    t("21", 5, 0, "21"),
+    t("22", 7, 0, "22"),
   ],
 };
 
@@ -166,8 +172,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 5,
-        terminals: [t("+", 4, 1.5, "+"), t("-", 4, 3.5, "−")],
+        h: 4,
+        terminals: [t("+", 4, 1, "+"), t("-", 4, 3, "−")],
       },
     },
   },
@@ -177,7 +183,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 6,
-        h: 5,
+        h: 4,
         terminals: [
           t("H1", 0, 1, "H1"),
           t("H2", 0, 3, "H2"),
@@ -192,9 +198,9 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "單極斷路器",
     variants: {
       body: {
-        w: 3,
-        h: 5,
-        terminals: [t("1", 1.5, 0), t("2", 1.5, 5)],
+        w: 2,
+        h: 4,
+        terminals: [t("1", 1, 0), t("2", 1, 4)],
       },
     },
   },
@@ -263,9 +269,9 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "急停常閉",
     variants: {
       body: {
-        w: 3,
-        h: 3,
-        terminals: [t("11", 0.85, 1.65, "11"), t("12", 2.15, 1.65, "12")],
+        w: 4,
+        h: 2,
+        terminals: [t("11", 0, 1, "11"), t("12", 4, 1, "12")],
       },
     },
   },
@@ -274,9 +280,9 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "急停常開",
     variants: {
       body: {
-        w: 3,
-        h: 3,
-        terminals: [t("13", 0.85, 1.65, "13"), t("14", 2.15, 1.65, "14")],
+        w: 4,
+        h: 2,
+        terminals: [t("13", 0, 1, "13"), t("14", 4, 1, "14")],
       },
     },
   },
@@ -286,8 +292,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 5,
-        terminals: [t("1", 0, 1.5), t("2", 4, 1.5), t("3", 0, 3.5), t("4", 4, 3.5)],
+        h: 4,
+        terminals: [t("1", 0, 1), t("2", 4, 1), t("3", 0, 3), t("4", 4, 3)],
       },
     },
   },
@@ -296,12 +302,12 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "正-停-反 選擇開關",
     variants: {
       body: {
-        w: 5,
-        h: 6,
+        w: 4,
+        h: 4,
         terminals: [
-          t("COM", 0, 1.8, "C"),
-          t("FWD", 5, 1.8, "F"),
-          t("REV", 5, 4.6, "R"),
+          t("COM", 0, 1, "C"),
+          t("FWD", 4, 1, "F"),
+          t("REV", 4, 3, "R"),
         ],
       },
     },
@@ -324,8 +330,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 3,
-        terminals: [t("1", 0, 1.5, "COM"), t("2", 4, 0.6, "NC"), t("3", 4, 2.4, "NO")],
+        h: 4,
+        terminals: [t("1", 0, 2, "COM"), t("2", 4, 1, "NC"), t("3", 4, 3, "NO")],
       },
     },
   },
@@ -346,10 +352,10 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 6,
+        h: 8,
         terminals: [
-          t("1", 0, 1.5, "COM"), t("2", 4, 0.6, "NC"), t("3", 4, 2.4, "NO"),
-          t("4", 0, 4.5, "COM"), t("5", 4, 3.6, "NC"), t("6", 4, 5.4, "NO"),
+          t("1", 0, 2, "COM"), t("2", 4, 1, "NC"), t("3", 4, 3, "NO"),
+          t("4", 0, 6, "COM"), t("5", 4, 5, "NC"), t("6", 4, 7, "NO"),
         ],
       },
     },
@@ -360,12 +366,12 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 12,
+        h: 16,
         terminals: [
-          t("1", 0, 1.5, "COM"), t("2", 4, 0.6, "NC"), t("3", 4, 2.4, "NO"),
-          t("4", 0, 4.5, "COM"), t("5", 4, 3.6, "NC"), t("6", 4, 5.4, "NO"),
-          t("7", 0, 7.5, "COM"), t("8", 4, 6.6, "NC"), t("9", 4, 8.4, "NO"),
-          t("10", 0, 10.5, "COM"), t("11", 4, 9.6, "NC"), t("12", 4, 11.4, "NO"),
+          t("1", 0, 2, "COM"), t("2", 4, 1, "NC"), t("3", 4, 3, "NO"),
+          t("4", 0, 6, "COM"), t("5", 4, 5, "NC"), t("6", 4, 7, "NO"),
+          t("7", 0, 10, "COM"), t("8", 4, 9, "NC"), t("9", 4, 11, "NO"),
+          t("10", 0, 14, "COM"), t("11", 4, 13, "NC"), t("12", 4, 15, "NO"),
         ],
       },
     },
@@ -376,8 +382,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 3,
-        terminals: [t("1", 0, 1.5), t("2", 4, 1.5)],
+        h: 2,
+        terminals: [t("1", 0, 1), t("2", 4, 1)],
       },
     },
   },
@@ -387,8 +393,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 3,
-        terminals: [t("1", 0, 1.5), t("2", 4, 1.5)],
+        h: 2,
+        terminals: [t("1", 0, 1), t("2", 4, 1)],
       },
     },
   },
@@ -399,8 +405,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 3,
-        terminals: [t("1", 0, 1.5), t("2", 4, 1.5)],
+        h: 2,
+        terminals: [t("1", 0, 1), t("2", 4, 1)],
       },
     },
   },
@@ -410,8 +416,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 3,
-        terminals: [t("1", 0, 1.5), t("2", 4, 1.5)],
+        h: 2,
+        terminals: [t("1", 0, 1), t("2", 4, 1)],
       },
     },
   },
@@ -421,40 +427,40 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 5,
-        terminals: [t("1", 0, 1.4), t("2", 4, 1.4)],
+        h: 3,
+        terminals: [t("1", 0, 1), t("2", 4, 1)],
       },
     },
   },
   "temp-no": {
     prefix: "ST",
     label: "溫度開關 常開",
-    variants: { body: { w: 4, h: 4, terminals: [t("1", 0, 1.3), t("2", 4, 1.3)] } },
+    variants: { body: { w: 4, h: 2, terminals: [t("1", 0, 1), t("2", 4, 1)] } },
   },
   "temp-nc": {
     prefix: "ST",
     label: "溫度開關 常閉",
-    variants: { body: { w: 4, h: 4, terminals: [t("1", 0, 1.3), t("2", 4, 1.3)] } },
+    variants: { body: { w: 4, h: 2, terminals: [t("1", 0, 1), t("2", 4, 1)] } },
   },
   "pressure-no": {
     prefix: "SP",
     label: "壓力開關 常開",
-    variants: { body: { w: 4, h: 5, terminals: [t("1", 0, 1.3), t("2", 4, 1.3)] } },
+    variants: { body: { w: 4, h: 2, terminals: [t("1", 0, 1), t("2", 4, 1)] } },
   },
   "pressure-nc": {
     prefix: "SP",
     label: "壓力開關 常閉",
-    variants: { body: { w: 4, h: 5, terminals: [t("1", 0, 1.3), t("2", 4, 1.3)] } },
+    variants: { body: { w: 4, h: 2, terminals: [t("1", 0, 1), t("2", 4, 1)] } },
   },
   "flow-no": {
     prefix: "FS",
     label: "流量開關 常開",
-    variants: { body: { w: 4, h: 4, terminals: [t("1", 0, 1.3), t("2", 4, 1.3)] } },
+    variants: { body: { w: 4, h: 2, terminals: [t("1", 0, 1), t("2", 4, 1)] } },
   },
   "flow-nc": {
     prefix: "FS",
     label: "流量開關 常閉",
-    variants: { body: { w: 4, h: 4, terminals: [t("1", 0, 1.3), t("2", 4, 1.3)] } },
+    variants: { body: { w: 4, h: 2, terminals: [t("1", 0, 1), t("2", 4, 1)] } },
   },
   prox: { prefix: "SQ", label: "接近開關", variants: { body: contactBody } },
   photo: { prefix: "SQ", label: "光電開關", variants: { body: contactBody } },
@@ -539,13 +545,13 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "計數器",
     variants: {
       body: {
-        w: 5,
-        h: 5,
+        w: 6,
+        h: 6,
         terminals: [
-          t("A1", 0, 1.5),
-          t("A2", 5, 1.5),
-          t("1", 1.5, 5),
-          t("2", 3.5, 5),
+          t("A1", 0, 2),
+          t("A2", 6, 2),
+          t("1", 2, 6),
+          t("2", 4, 6),
         ],
       },
     },
@@ -555,34 +561,34 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "指示燈",
     variants: {
       body: {
-        w: 3,
-        h: 2.5,
-        terminals: [t("1", 1.5, 0), t("2", 1.5, 2.5)],
+        w: 2,
+        h: 4,
+        terminals: [t("1", 1, 0), t("2", 1, 4)],
       },
     },
   },
-  alarm: { prefix: "HA", label: "報警器", variants: { body: twoTermVert } },
-  horn: { prefix: "HA", label: "電笛", variants: { body: twoTermVert } },
+  alarm: { prefix: "HA", label: "報警器", variants: { body: twoTermHoriz } },
+  horn: { prefix: "HA", label: "電笛", variants: { body: twoTermHoriz } },
   fan: {
     prefix: "FF",
     label: "風扇",
     variants: {
       body: {
-        w: 5,
-        h: 5,
-        terminals: [t("U1", 0, 2.5), t("U2", 5, 2.5)],
+        w: 4,
+        h: 4,
+        terminals: [t("U1", 0, 2), t("U2", 4, 2)],
       },
     },
   },
-  heater: { prefix: "EH", label: "電熱器", variants: { body: twoTermVert } },
+  heater: { prefix: "EH", label: "電熱器", variants: { body: twoTermHoriz } },
   solenoid: {
     prefix: "YV",
     label: "電磁閥",
     variants: {
       body: {
         w: 4,
-        h: 3,
-        terminals: [t("A1", 0.85, 1.5, "A1"), t("A2", 3.15, 1.5, "A2")],
+        h: 2,
+        terminals: [t("A1", 0, 1, "A1"), t("A2", 4, 1, "A2")],
       },
     },
   },
@@ -591,12 +597,12 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "三相異步電機",
     variants: {
       body: {
-        w: 5,
+        w: 6,
         h: 6,
         terminals: [
-          t("U", 1.55, 0, "U"),
-          t("V", 2.5, 0, "V"),
-          t("W", 3.45, 0, "W"),
+          t("U", 1, 0, "U"),
+          t("V", 3, 0, "V"),
+          t("W", 5, 0, "W"),
         ],
       },
     },
@@ -606,9 +612,9 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "單相電機",
     variants: {
       body: {
-        w: 5,
+        w: 4,
         h: 6,
-        terminals: [t("U1", 1.7, 0, "1"), t("U2", 3.3, 0, "2")],
+        terminals: [t("U1", 1, 0, "1"), t("U2", 3, 0, "2")],
       },
     },
   },
@@ -618,8 +624,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 5,
-        h: 5,
-        terminals: [t("A1", 0, 1.6, "A+"), t("A2", 0, 3.4, "A−")],
+        h: 4,
+        terminals: [t("A1", 0, 1, "A+"), t("A2", 0, 3, "A−")],
       },
     },
   },
@@ -629,12 +635,12 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 6,
-        h: 7,
+        h: 8,
         terminals: [
-          t("U", 6, 1.5),
+          t("U", 6, 1),
           t("V", 6, 3),
-          t("W", 6, 4.5),
-          t("N", 6, 6),
+          t("W", 6, 5),
+          t("N", 6, 7),
         ],
       },
     },
@@ -645,8 +651,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 5,
-        h: 5,
-        terminals: [t("+", 5, 1.6, "+"), t("-", 5, 3.4, "−")],
+        h: 4,
+        terminals: [t("+", 5, 1, "+"), t("-", 5, 3, "−")],
       },
     },
   },
@@ -667,10 +673,10 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
           t("T1", 12, 1),
           t("T2", 12, 3),
           t("T3", 12, 5),
-          t("A1F", 0, 7.3, "A1F"),
-          t("A2F", 0, 8.5, "A2F"),
-          t("A1R", 12, 7.3, "A1R"),
-          t("A2R", 12, 8.5, "A2R"),
+          t("A1F", 0, 7, "A1F"),
+          t("A2F", 0, 9, "A2F"),
+          t("A1R", 12, 7, "A1R"),
+          t("A2R", 12, 9, "A2R"),
           t("13", 2, 11, "13"),
           t("14", 3, 11, "14"),
           t("21", 4, 11, "21"),
@@ -688,9 +694,9 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "標籤端子",
     variants: {
       body: {
-        w: 3.2,
-        h: 1.6,
-        terminals: [t("1", 0, 0.8)],
+        w: 3,
+        h: 2,
+        terminals: [t("1", 0, 1)],
       },
     },
   },

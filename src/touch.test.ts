@@ -394,6 +394,78 @@ describe("touch & mobile adaptation", () => {
     expect(isMobileMode(1366, 768, false)).toBe(false);
   });
 
+  it("snaps components and wire jogs strictly to the grid", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    s.setPlacing("lamp");
+    s.placeAt(4.4, 6.7);
+    const sym = useLab.getState().circuit.symbols[0];
+    expect(sym.x).toBe(4);
+    expect(sym.y).toBe(7);
+
+    // moveSymbol should snap to whole integer grid
+    s.moveSymbol(sym.id, 10.3, 14.8);
+    const movedSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id)!;
+    expect(movedSym.x).toBe(10);
+    expect(movedSym.y).toBe(15);
+
+    // Wire jog position should snap to integer multiples of GRID (22)
+    s.setPlacing("lamp");
+    s.placeAt(20, 15);
+    const sym2 = useLab.getState().circuit.symbols[1];
+    s.clickPort({ symbolId: sym.id, term: "1" });
+    s.clickPort({ symbolId: sym2.id, term: "1" });
+    const wire = useLab.getState().circuit.wires[0];
+    expect(wire).toBeDefined();
+
+    // Set non-integer jog pos (e.g. 105.7 px -> should snap to Math.round(105.7 / 22) * 22 = 5 * 22 = 110)
+    s.setWireJog(wire.id, { axis: "y", pos: 105.7 });
+    const jogWire = useLab.getState().circuit.wires.find((w) => w.id === wire.id)!;
+    expect(jogWire.jog?.pos).toBe(110);
+  });
+
+  it("only displays junction dot when 3 or more wire branches meet", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    s.setPlacing("lamp");
+    s.placeAt(4, 4);
+    s.setPlacing("lamp");
+    s.placeAt(20, 16);
+    const [symA, symB] = useLab.getState().circuit.symbols;
+
+    // Route through blank paper -> creates 1 junction point with 2 connected wires
+    s.clickPort({ symbolId: symA.id, term: "1" });
+    s.addJunctionAndConnect(12, 4);
+    s.clickPort({ symbolId: symB.id, term: "1" });
+
+    const c = useLab.getState().circuit;
+    const jSym = c.symbols.find((sym) => {
+      const dev = c.devices.find((d) => d.id === sym.deviceId);
+      return dev?.kind === "junction";
+    })!;
+    expect(jSym).toBeDefined();
+
+    const connectedWiresAtWaypoint = c.wires.filter(
+      (w) => w.a.symbolId === jSym.id || w.b.symbolId === jSym.id
+    );
+    // Waypoint junction has exactly 2 wires connected -> < 3 -> should NOT display black dot
+    expect(connectedWiresAtWaypoint.length).toBe(2);
+
+    // Now add a 3rd wire connecting to this junction
+    s.setPlacing("lamp");
+    s.placeAt(12, 24);
+    const symC = useLab.getState().circuit.symbols.find((x) => x.x === 12 && x.y === 24)!;
+    s.clickPort({ symbolId: symC.id, term: "1" });
+    s.clickPort({ symbolId: jSym.id, term: "1" });
+
+    const cAfter3rd = useLab.getState().circuit;
+    const connectedWiresAfter3rd = cAfter3rd.wires.filter(
+      (w) => w.a.symbolId === jSym.id || w.b.symbolId === jSym.id
+    );
+    // Now has 3 wires connected -> >= 3 -> displays thick black dot
+    expect(connectedWiresAfter3rd.length).toBe(3);
+  });
+
   it("has complete translations for mobile menu keys in all languages", () => {
     const requiredKeys = [
       "toolbar.menu",
@@ -404,6 +476,13 @@ describe("touch & mobile adaptation", () => {
       "mobileMenu.close",
       "mobileMenu.components",
       "mobileMenu.wires",
+      "toolbar.editing",
+      "toolbar.wiring",
+      "toolbar.editingTip",
+      "toolbar.wiringTip",
+      "ctx.addJunctionHere",
+      "ctx.resetTagPosition",
+      "inspector.resetTagPosition",
     ];
 
     for (const key of requiredKeys) {
@@ -412,5 +491,98 @@ describe("touch & mobile adaptation", () => {
       expect(TRANSLATIONS.zh[key]).toBeDefined();
       expect(TRANSLATIONS.zh[key].length).toBeGreaterThan(0);
     }
+  });
+
+  it("manages EditSubMode between editing and wiring properly", () => {
+    const s = useLab.getState();
+    s.setMode("edit");
+    expect(useLab.getState().editSubMode).toBe("editing");
+
+    // Toggle to wiring
+    s.toggleEditSubMode();
+    expect(useLab.getState().editSubMode).toBe("wiring");
+
+    // Setting wiringFrom and then switching back to editing clears wiringFrom & hoverPort
+    s.clickPort({ symbolId: "sym1", term: "1" });
+    expect(useLab.getState().wiringFrom).toEqual({ symbolId: "sym1", term: "1" });
+
+    s.setEditSubMode("editing");
+    expect(useLab.getState().editSubMode).toBe("editing");
+    expect(useLab.getState().wiringFrom).toBeNull();
+    expect(useLab.getState().hoverPort).toBeNull();
+
+    // Switching mode to run resets wiring
+    s.setEditSubMode("wiring");
+    s.clickPort({ symbolId: "sym1", term: "1" });
+    s.setMode("run");
+    expect(useLab.getState().wiringFrom).toBeNull();
+  });
+
+  it("supports addJunctionAt to place junction points at arbitrary coordinates with undo", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+
+    s.addJunctionAt(15.4, 22.8);
+    const c = useLab.getState().circuit;
+    expect(c.symbols.length).toBe(1);
+    expect(c.devices.length).toBe(1);
+    expect(c.devices[0].kind).toBe("junction");
+    expect(c.symbols[0].x).toBe(15);
+    expect(c.symbols[0].y).toBe(23);
+    expect(useLab.getState().selectedIds).toContain(c.symbols[0].id);
+
+    // Undo removes the junction
+    s.undo();
+    expect(useLab.getState().circuit.symbols.length).toBe(0);
+    expect(useLab.getState().circuit.devices.length).toBe(0);
+
+    // Redo restores it
+    s.redo();
+    expect(useLab.getState().circuit.symbols.length).toBe(1);
+    expect(useLab.getState().circuit.devices.length).toBe(1);
+  });
+
+  it("supports dragging component tag position, resetting tag offset, and undo/redo", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+
+    // Place a contactor coil
+    s.setPlacing("km-coil");
+    s.placeAt(10, 10);
+
+    const sym = useLab.getState().circuit.symbols[0];
+    expect(sym).toBeDefined();
+    expect(sym.tagOffset).toBeUndefined();
+
+    // Set tag offset (e.g. user drags the tag 2 grid units right, 3 grid units up)
+    s.pushHistory();
+    s.setSymbolTagOffset(sym.id, { dx: 2, dy: -3 });
+
+    let updatedSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id)!;
+    expect(updatedSym.tagOffset).toEqual({ dx: 2, dy: -3 });
+
+    // Moving symbol keeps tagOffset intact
+    s.moveSymbol(sym.id, 14, 14);
+    updatedSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id)!;
+    expect(updatedSym.x).toBe(14);
+    expect(updatedSym.y).toBe(14);
+    expect(updatedSym.tagOffset).toEqual({ dx: 2, dy: -3 });
+
+    // Resetting tag offset removes it
+    s.resetSymbolTagOffset(sym.id);
+    updatedSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id)!;
+    expect(updatedSym.tagOffset).toBeUndefined();
+
+    // Undo restores the custom tag offset
+    s.undo();
+    updatedSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id)!;
+    expect(updatedSym.tagOffset).toEqual({ dx: 2, dy: -3 });
+
+    // Redo clears the tag offset again
+    s.redo();
+    updatedSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id)!;
+    expect(updatedSym.tagOffset).toBeUndefined();
   });
 });

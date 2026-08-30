@@ -1,8 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { CATALOG, GROUPS } from "./catalog";
+import { CATALOG, GROUPS, KINDS } from "./catalog";
 import { TRANSLATIONS, catalogCompKey, formatFaultMessage, setLang, tOr } from "./i18n";
 
 describe("catalog labels", () => {
+  it("ensures all component variants and terminals are aligned to whole integer grid dimensions", () => {
+    for (const [kind, meta] of Object.entries(KINDS)) {
+      for (const [variantName, variant] of Object.entries(meta.variants)) {
+        expect(
+          Number.isInteger(variant.w),
+          `${kind}:${variantName} width (${variant.w}) should be an integer`,
+        ).toBe(true);
+        expect(
+          Number.isInteger(variant.h),
+          `${kind}:${variantName} height (${variant.h}) should be an integer`,
+        ).toBe(true);
+
+        for (const term of variant.terminals) {
+          expect(
+            Number.isInteger(term.x),
+            `${kind}:${variantName} terminal ${term.id} x (${term.x}) should be an integer`,
+          ).toBe(true);
+          expect(
+            Number.isInteger(term.y),
+            `${kind}:${variantName} terminal ${term.id} y (${term.y}) should be an integer`,
+          ).toBe(true);
+        }
+      }
+    }
+  });
   it("maps selector and net-label ids to real translation keys", () => {
     expect(catalogCompKey("selector-2")).toBe("comp.selector2");
     expect(catalogCompKey("selector-3")).toBe("comp.selector3");

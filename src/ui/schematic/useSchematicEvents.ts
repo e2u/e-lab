@@ -40,6 +40,15 @@ export function useSchematicEvents({
     startY?: number;
     pushedHistory?: boolean;
   } | null>(null);
+  const tagDrag = useRef<{
+    id: string;
+    originOffset: { dx: number; dy: number };
+    startX: number;
+    startY: number;
+    startClientX: number;
+    startClientY: number;
+    pushedHistory?: boolean;
+  } | null>(null);
   const junctionClick = useRef<{ id: string; x: number; y: number } | null>(null);
   const lastSymbolTapRef = useRef<{ id: string; time: number; x: number; y: number } | null>(null);
   const lastWireTapRef = useRef<{ id: string; time: number; x: number; y: number } | null>(null);
@@ -64,6 +73,7 @@ export function useSchematicEvents({
       cancelLongPress();
       drag.current = null;
       wireDrag.current = null;
+      tagDrag.current = null;
       junctionClick.current = null;
       paperTouchPanRef.current = null;
     };
@@ -114,6 +124,7 @@ export function useSchematicEvents({
       // Cancel active drag when menu appears
       drag.current = null;
       wireDrag.current = null;
+      tagDrag.current = null;
       marqueeRef.current = null;
       setMarqueeView(null);
       paperTouchPanRef.current = null;
@@ -236,7 +247,7 @@ export function useSchematicEvents({
         return;
       }
       const p = toGrid(e);
-      lab.addJunctionAndConnect(p.x, p.y);
+      lab.addJunctionAndConnect(Math.round(p.x), Math.round(p.y));
       return;
     }
     if (mode !== "edit") {
@@ -334,6 +345,21 @@ export function useSchematicEvents({
       });
       return;
     }
+    if (tagDrag.current && mode === "edit") {
+      if (
+        !tagDrag.current.pushedHistory &&
+        Math.hypot(e.clientX - tagDrag.current.startClientX, e.clientY - tagDrag.current.startClientY) > 2
+      ) {
+        useLab.getState().pushHistory();
+        tagDrag.current.pushedHistory = true;
+      }
+      const ddx = (world.x - tagDrag.current.startX) / GRID;
+      const ddy = (world.y - tagDrag.current.startY) / GRID;
+      const newDx = Math.round(tagDrag.current.originOffset.dx + ddx);
+      const newDy = Math.round(tagDrag.current.originOffset.dy + ddy);
+      useLab.getState().setSymbolTagOffset(tagDrag.current.id, { dx: newDx, dy: newDy });
+      return;
+    }
     if (wireDrag.current && mode === "edit") {
       const axis = wireDrag.current.axis;
       if (
@@ -344,17 +370,15 @@ export function useSchematicEvents({
         useLab.getState().pushHistory();
         wireDrag.current.pushedHistory = true;
       }
-      // Snap to 1/16 grid for more precise control
-      const SNAP_GRID = GRID / 16; // 22 / 16 = 1.375px
-      const pos = axis === "x" ? Math.round(world.x / SNAP_GRID) * SNAP_GRID : Math.round(world.y / SNAP_GRID) * SNAP_GRID;
+      // Snap to integer grid lines
+      const pos = axis === "x" ? Math.round(world.x / GRID) * GRID : Math.round(world.y / GRID) * GRID;
       useLab.getState().setWireJog(wireDrag.current.id, { axis, pos });
       return;
     }
     if (drag.current && mode === "edit") {
-      // Snap to 1/16 grid for more precise control (in grid units)
-      const SNAP_GRID_UNITS = 1 / 16; // 1/16 of a grid unit
-      const nx = Math.round((p.x - drag.current.dx) / SNAP_GRID_UNITS) * SNAP_GRID_UNITS;
-      const ny = Math.round((p.y - drag.current.dy) / SNAP_GRID_UNITS) * SNAP_GRID_UNITS;
+      // Snap to integer grid units
+      const nx = Math.round(p.x - drag.current.dx);
+      const ny = Math.round(p.y - drag.current.dy);
       const origin = drag.current.origins[drag.current.id];
       if (!origin) return;
       const ddx = nx - origin.x;
@@ -372,7 +396,7 @@ export function useSchematicEvents({
         id,
         jog: {
           axis: jog.axis,
-          pos: jog.axis === "x" ? jog.pos + ddx * GRID : jog.pos + ddy * GRID,
+          pos: Math.round((jog.axis === "x" ? jog.pos + ddx * GRID : jog.pos + ddy * GRID) / GRID) * GRID,
         },
       }));
       useLab.getState().moveGroup(updates, wireUpdates);
@@ -427,6 +451,7 @@ export function useSchematicEvents({
       finishMarquee();
       drag.current = null;
       wireDrag.current = null;
+      tagDrag.current = null;
       junctionClick.current = null;
       wiringStartedByDragRef.current = null;
       return;
@@ -436,7 +461,7 @@ export function useSchematicEvents({
       wiringStartedByDragRef.current = null;
       const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
       const lab = useLab.getState();
-      if (moved > 10 && lab.wiringFrom) {
+      if (moved > 10 && lab.wiringFrom && lab.editSubMode === "wiring") {
         const world = toWorld(e);
         const targetPort = findPortAtPoint(lab.circuit, world.x, world.y, 16);
         if (targetPort && !portsEqual(lab.wiringFrom, targetPort)) {
@@ -449,7 +474,7 @@ export function useSchematicEvents({
           return;
         }
         const p = toGrid(e);
-        lab.addJunctionAndConnect(p.x, p.y);
+        lab.addJunctionAndConnect(Math.round(p.x), Math.round(p.y));
         return;
       }
     }
@@ -457,8 +482,12 @@ export function useSchematicEvents({
     junctionClick.current = null;
     drag.current = null;
     wireDrag.current = null;
+    tagDrag.current = null;
     if (jc && Math.hypot(e.clientX - jc.x, e.clientY - jc.y) < 6) {
-      useLab.getState().clickPort({ symbolId: jc.id, term: "1" });
+      const lab = useLab.getState();
+      if (lab.mode === "edit" && lab.editSubMode === "wiring") {
+        lab.clickPort({ symbolId: jc.id, term: "1" });
+      }
     }
   };
 
@@ -595,7 +624,7 @@ export function useSchematicEvents({
         openMenu(pos);
       });
 
-      if (dev.kind === "junction" && lab.wiringFrom) {
+      if (dev.kind === "junction" && lab.wiringFrom && lab.editSubMode === "wiring") {
         lab.clickPort({ symbolId: sym.id, term: "1" });
         return;
       }
@@ -628,7 +657,7 @@ export function useSchematicEvents({
       try {
         svgRef.current?.setPointerCapture(e.pointerId);
       } catch {}
-      if (dev.kind === "junction") junctionClick.current = { id: sym.id, x: e.clientX, y: e.clientY };
+      if (dev.kind === "junction" && lab.editSubMode === "wiring") junctionClick.current = { id: sym.id, x: e.clientX, y: e.clientY };
       return;
     }
     if (e.button === 0) {
@@ -642,8 +671,101 @@ export function useSchematicEvents({
     if (lab.mode !== "edit") return;
     cancelLongPress();
     drag.current = null;
+    tagDrag.current = null;
     lab.select({ type: "symbol", id: sym.id }, true);
     lab.setSideOpen(true);
+  };
+
+  const onTagPointerDown = (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => {
+    pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+    e.stopPropagation();
+    const lab = useLab.getState();
+    if (lab.placing) {
+      placeAtEvent(e);
+      return;
+    }
+    if (lab.mode === "edit") {
+      const now = Date.now();
+      const lastTap = lastSymbolTapRef.current;
+      const isDoubleTap =
+        lastTap &&
+        lastTap.id === sym.id &&
+        now - lastTap.time < 350 &&
+        Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 20;
+      lastSymbolTapRef.current = { id: sym.id, time: now, x: e.clientX, y: e.clientY };
+
+      if (isDoubleTap && e.button === 0) {
+        cancelLongPress();
+        tagDrag.current = null;
+        drag.current = null;
+        lab.select({ type: "symbol", id: sym.id }, true);
+        lab.setSideOpen(true);
+        return;
+      }
+
+      startLongPress(e, (pos) => {
+        if (!lab.selectedIds.includes(sym.id)) {
+          lab.select({ type: "symbol", id: sym.id });
+        } else {
+          useLab.setState({ selected: { type: "symbol", id: sym.id } });
+        }
+        openMenu(pos);
+      });
+
+      if (e.button !== 0) return;
+
+      if (e.shiftKey) {
+        lab.selectToggle(sym.id);
+      } else if (!lab.selectedIds.includes(sym.id)) {
+        lab.select({ type: "symbol", id: sym.id });
+      } else {
+        useLab.setState({ selected: { type: "symbol", id: sym.id } });
+      }
+
+      const world = toWorld(e);
+      tagDrag.current = {
+        id: sym.id,
+        originOffset: { dx: sym.tagOffset?.dx ?? 0, dy: sym.tagOffset?.dy ?? 0 },
+        startX: world.x,
+        startY: world.y,
+        startClientX: e.clientX,
+        startClientY: e.clientY,
+      };
+      try {
+        svgRef.current?.setPointerCapture(e.pointerId);
+      } catch {}
+      return;
+    }
+    if (e.button === 0) {
+      interact(dev.kind, dev.id, true);
+    }
+  };
+
+  const onTagDoubleClick = (e: MouseEvent<SVGElement>, sym: SymbolInst, _dev: Device) => {
+    e.stopPropagation();
+    const lab = useLab.getState();
+    if (lab.mode !== "edit") return;
+    cancelLongPress();
+    tagDrag.current = null;
+    drag.current = null;
+    lab.select({ type: "symbol", id: sym.id }, true);
+    lab.setSideOpen(true);
+  };
+
+  const onTagContextMenu = (e: MouseEvent<SVGElement>, sym: SymbolInst, _dev: Device) => {
+    e.stopPropagation();
+    tagDrag.current = null;
+    drag.current = null;
+    wireDrag.current = null;
+    const lab = useLab.getState();
+    if (lab.mode === "edit" && !lab.placing) {
+      if (!lab.selectedIds.includes(sym.id)) {
+        lab.select({ type: "symbol", id: sym.id });
+      } else {
+        useLab.setState({ selected: { type: "symbol", id: sym.id } });
+      }
+    }
+    openMenu(e);
   };
 
   const onSymbolPointerUp = (dev: Device) => {
@@ -663,8 +785,17 @@ export function useSchematicEvents({
       placeAtEvent(e);
       return;
     }
-    triggerHaptic(10);
     const lab = useLab.getState();
+    if (lab.mode !== "edit") return;
+    if (lab.editSubMode === "editing") {
+      const sym = lab.circuit.symbols.find((s) => s.id === port.symbolId);
+      const dev = sym && lab.circuit.devices.find((d) => d.id === sym.deviceId);
+      if (sym && dev) {
+        onSymbolPointerDown(e as unknown as PointerEvent<SVGElement>, sym, dev);
+      }
+      return;
+    }
+    triggerHaptic(10);
     if (lab.wiringFrom && !portsEqual(lab.wiringFrom, port)) {
       lab.clickPort(port);
       return;
@@ -674,7 +805,9 @@ export function useSchematicEvents({
   };
 
   const onPortPointerEnter = (port: PortRef) => {
-    useLab.getState().setHoverPort(port);
+    if (useLab.getState().editSubMode === "wiring") {
+      useLab.getState().setHoverPort(port);
+    }
   };
 
   const onPortPointerLeave = () => {
@@ -715,6 +848,9 @@ export function useSchematicEvents({
     onSymbolContextMenu,
     onSymbolPointerDown,
     onSymbolDoubleClick,
+    onTagPointerDown,
+    onTagDoubleClick,
+    onTagContextMenu,
     onSymbolPointerUp,
     onSymbolPointerLeave,
     onPortPointerDown,

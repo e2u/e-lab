@@ -29,7 +29,7 @@
         "kind": "ammeter",
         "tag": "AM1",
         "params": {
-          "clampedWireId": "w_2n_63167079"
+          "clampedWireId": "w_2o_8ea0c160"
         }
       },
       {
@@ -78,9 +78,13 @@
         "id": "s_2a_87b70426",
         "deviceId": "d_29_a18bf073",
         "variant": "body",
-        "x": 13.1875,
-        "y": 3.5,
-        "rot": 270
+        "x": 13,
+        "y": 4,
+        "rot": 270,
+        "tagOffset": {
+          "dx": 1,
+          "dy": 0
+        }
       },
       {
         "id": "s_2c_724a1601",
@@ -94,16 +98,20 @@
         "id": "s_2e_68bc291c",
         "deviceId": "d_2d_635c778e",
         "variant": "body",
-        "x": 28.1875,
-        "y": 3.5,
-        "rot": 0
+        "x": 28,
+        "y": 4,
+        "rot": 0,
+        "tagOffset": {
+          "dx": 1,
+          "dy": -3
+        }
       },
       {
         "id": "s_2g_d4f3f8a6",
         "deviceId": "d_2f_af4676cc",
         "variant": "body",
-        "x": 43.625,
-        "y": 3.3125,
+        "x": 43,
+        "y": 4,
         "rot": 270,
         "flipY": false,
         "flipX": true
@@ -112,16 +120,16 @@
         "id": "s_2i_12a58e33",
         "deviceId": "d_2h_bc05ef67",
         "variant": "body",
-        "x": 28.4375,
-        "y": 7.375,
+        "x": 28,
+        "y": 8,
         "rot": 0
       },
       {
         "id": "s_2k_bfb4d5fc",
         "deviceId": "d_2j_b65bb732",
         "variant": "body",
-        "x": 7.6875,
-        "y": 15.375,
+        "x": 8,
+        "y": 16,
         "rot": 0
       },
       {
@@ -136,7 +144,7 @@
         "id": "s_4y_eb478770",
         "deviceId": "d_4x_8d4739e2",
         "variant": "body",
-        "x": 35,
+        "x": 36,
         "y": 11,
         "rot": 0
       }
@@ -206,6 +214,10 @@
         "b": {
           "symbolId": "s_2k_bfb4d5fc",
           "term": "1"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 198
         }
       },
       {

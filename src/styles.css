@@ -610,6 +610,59 @@ button, select, input {
   border-bottom-left-radius: 5px;
 }
 
+.panel-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  z-index: 34;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.panel-resizer.left {
+  left: calc(var(--palette-width, 220px) - 4px);
+}
+
+.panel-resizer.right {
+  right: calc(var(--side-width, 260px) - 4px);
+}
+
+.panel-resizer:hover,
+.panel-resizer.dragging {
+  background: rgba(230, 193, 30, 0.15);
+}
+
+.panel-resizer::after {
+  content: "";
+  width: 2px;
+  height: 100%;
+  background: #2a3223;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.panel-resizer:hover::after,
+.panel-resizer.dragging::after {
+  background: var(--stripe, #e6c11e);
+  box-shadow: 0 0 6px rgba(230, 193, 30, 0.6);
+}
+
+body.panel-resizing {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+body.panel-resizing * {
+  user-select: none !important;
+  cursor: col-resize !important;
+}
+
 .group h3, .panel h3 {
   margin: 12px 0 6px;
   font-size: 13px;
@@ -822,6 +875,18 @@ button, select, input {
   cursor: pointer;
 }
 
+.sym-tag-group {
+  cursor: move;
+  user-select: none;
+}
+.sym-tag-group:hover .sym-tag-bg {
+  stroke: #8a7c5c;
+  stroke-width: 1.2px;
+}
+.sym-tag-group:active .sym-tag-bg {
+  stroke: #d97706;
+}
+
 .sym-tag-bg {
   fill: #efe6d0;
   transition: fill 0.15s ease, stroke 0.15s ease, filter 0.15s ease;
@@ -919,6 +984,40 @@ button, select, input {
   cursor: pointer;
 }
 .port.hot { fill: var(--stripe); }
+.port.port-subtle {
+  fill: #263320;
+  stroke: #4d6342;
+  stroke-width: 1;
+}
+
+/* Submode Switcher */
+.submode-switch {
+  border-color: #3f4e35;
+  background: rgba(0, 0, 0, 0.4);
+}
+.submode-switch .seg-btn {
+  font-size: 12px;
+  padding: 0 8px;
+}
+.submode-switch .seg-btn.active {
+  background: #39522b;
+  color: #eafbe0;
+  border-color: #638c4f;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  font-weight: 700;
+}
+.submode-mobile-btn {
+  font-size: 11.5px !important;
+  padding: 4px 7px !important;
+  background: rgba(36, 48, 29, 0.7) !important;
+  border-color: #485c3b !important;
+}
+.submode-mobile-btn.active {
+  background: #3b562c !important;
+  color: #e5f7dc !important;
+  border-color: #699453 !important;
+  font-weight: 700;
+}
 
 .statusbar {
   display: flex;
@@ -2108,6 +2207,13 @@ html, body {
   background: rgba(230, 193, 30, 0.15);
   color: var(--stripe);
   transform: scale(1.08);
+}
+
+.floating-btn.active {
+  background: #39522b;
+  color: #eafbe0;
+  border: 1px solid #638c4f;
+  box-shadow: 0 0 8px rgba(99, 140, 79, 0.4);
 }
 
 .floating-btn:active:not(:disabled) {

@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { t } from "../i18n";
 import { selectionHasGroup } from "../groups";
 import { useLab } from "../store";
+import { GRID } from "../types";
 
 export interface MenuPos {
   x: number;
@@ -26,6 +27,10 @@ export function ContextMenu({
   const effectiveIds = selectedIds.length ? selectedIds : selected?.type === "symbol" ? [selected.id] : [];
   const hasGroup = selectionHasGroup(circuit, effectiveIds);
   const canUngroup = hasGroup;
+  const hasTagOffset = effectiveIds.some((id) => {
+    const s = circuit.symbols.find((x) => x.id === id);
+    return Boolean(s?.tagOffset);
+  });
 
   const run = (fn: () => void) => {
     fn();
@@ -107,6 +112,20 @@ export function ContextMenu({
             <button type="button" onClick={() => run(() => useLab.getState().snapSelected())}>
               {t("ctx.snapGrid")}
             </button>
+            {hasTagOffset && (
+              <button
+                type="button"
+                onClick={() =>
+                  run(() => {
+                    for (const id of effectiveIds) {
+                      useLab.getState().resetSymbolTagOffset(id);
+                    }
+                  })
+                }
+              >
+                {t("ctx.resetTagPosition")}
+              </button>
+            )}
             <div className="ctx-sep" />
             <button type="button" className="danger" onClick={() => run(() => useLab.getState().deleteSelected())}>
               {t("ctx.delete")} <kbd>Del</kbd>
@@ -134,6 +153,14 @@ export function ContextMenu({
         )}
         {!hasSymbols && !hasWire && (
           <>
+            {pos.world && (
+              <button
+                type="button"
+                onClick={() => run(() => useLab.getState().addJunctionAt(pos.world!.x / GRID, pos.world!.y / GRID))}
+              >
+                {t("ctx.addJunctionHere")}
+              </button>
+            )}
             <button type="button" onClick={() => run(() => useLab.getState().selectAll())}>
               {t("ctx.selectAll")} <kbd>⌘A</kbd>
             </button>

@@ -1,5 +1,4 @@
 import {createContext, useContext, type SVGProps} from "react";
-import {CONTACT_LEAD} from "./catalog";
 import type {Device, DeviceRuntime} from "./types";
 import {GRID} from "./types";
 
@@ -237,14 +236,14 @@ function contactLines(
 ) {
     const cx = (w * GRID) / 2;
     const cy = (h * GRID) / 2;
-    const xBarL = CONTACT_LEAD * GRID;
-    const xBarR = (w - CONTACT_LEAD) * GRID;
+    const xBarL = cx - 0.25 * GRID;
+    const xBarR = cx + 0.25 * GRID;
     const barH = 0.55 * GRID;
     if (extra === "pb" || extra === "estop") {
         const r = 5.5;
-        const xL = 0.85 * GRID;
-        const xR = 2.15 * GRID;
-        const yC = 1.65 * GRID;
+        const xL = cx - 0.75 * GRID;
+        const xR = cx + 0.75 * GRID;
+        const yC = cy;
         const barW = 18;
         const stemArc = (yTop: number) => {
             if (extra !== "estop") return null;
@@ -264,6 +263,8 @@ function contactLines(
             const travel = pressed ? 9 : 0;
             return (
                 <>
+                    <line x1={0} y1={yC} x2={xL - r} y2={yC} stroke={ink} strokeWidth="2"/>
+                    <line x1={xR + r} y1={yC} x2={w * GRID} y2={yC} stroke={ink} strokeWidth="2"/>
                     <circle cx={xL} cy={yC} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
                     <circle cx={xR} cy={yC} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
                     <g className="pb-plunger" style={{transform: `translateY(${travel}px)`}}>
@@ -279,6 +280,8 @@ function contactLines(
         const travel = pressed ? 10 : 0;
         return (
             <>
+                <line x1={0} y1={yC} x2={xL - r} y2={yC} stroke={ink} strokeWidth="2"/>
+                <line x1={xR + r} y1={yC} x2={w * GRID} y2={yC} stroke={ink} strokeWidth="2"/>
                 <g className="pb-plunger" style={{transform: `translateY(${travel}px)`}}>
                     <line x1={cx} y1={stemTop} x2={cx} y2={barY} stroke={ink} strokeWidth="2"/>
                     <line x1={cx - barW} y1={barY} x2={cx + barW} y2={barY} stroke={ink} strokeWidth="2.6"/>
@@ -438,48 +441,37 @@ function poles(
 
 /** Horizontal aux contact on a device body. `conducting` = electrically closed now. */
 /** Schematic toggle: SPST (one throw) or SPDT (NC above, NO below). `thrown` = actuated. */
-function togglePoles(w: number, h: number, n: number, doubleThrow: boolean, thrown: boolean) {
-    const pitch = (h * GRID) / n;
+function togglePoles(w: number, _h: number, n: number, doubleThrow: boolean, thrown: boolean) {
     const xPivot = 1.15 * GRID;
     const xThrow = doubleThrow ? w * GRID - 1.2 * GRID : w * GRID - 0.55 * GRID;
-    const dy = 0.42 * GRID;
-    const jog = 8;
     const items = [];
     const pivots: number[] = [];
     for (let i = 0; i < n; i += 1) {
-        const cy = (i + 0.5) * pitch;
-        pivots.push(cy);
-        items.push(
-            <line key={`c${i}`} x1={0} y1={cy} x2={xPivot} y2={cy} stroke={ink} strokeWidth="2.2"/>,
-            <circle key={`p${i}`} cx={xPivot} cy={cy} r={3.6} fill={ink}/>,
-        );
         if (doubleThrow) {
-            const yNc = cy - dy;
-            const yNo = cy + dy;
+            const base = i * 4 * GRID;
+            const cy = base + 2 * GRID;
+            const yNc = base + 1 * GRID;
+            const yNo = base + 3 * GRID;
             const yB = thrown ? yNo : yNc;
+            pivots.push(cy);
             items.push(
+                <line key={`c${i}`} x1={0} y1={cy} x2={xPivot} y2={cy} stroke={ink} strokeWidth="2.2"/>,
+                <circle key={`p${i}`} cx={xPivot} cy={cy} r={3.6} fill={ink}/>,
                 <line key={`b${i}`} x1={xPivot} y1={cy} x2={xThrow} y2={yB} stroke={ink} strokeWidth="2.4"/>,
                 <circle key={`nc${i}`} cx={xThrow} cy={yNc} r={3.6} fill={ink}/>,
                 <circle key={`no${i}`} cx={xThrow} cy={yNo} r={3.6} fill={ink}/>,
-                <polyline
-                    key={`lnc${i}`}
-                    points={`${xThrow},${yNc} ${xThrow},${yNc - jog} ${w * GRID},${yNc - jog}`}
-                    fill="none"
-                    stroke={ink}
-                    strokeWidth="2.2"
-                />,
-                <polyline
-                    key={`lno${i}`}
-                    points={`${xThrow},${yNo} ${xThrow},${yNo + jog} ${w * GRID},${yNo + jog}`}
-                    fill="none"
-                    stroke={ink}
-                    strokeWidth="2.2"
-                />,
+                <line key={`lnc${i}`} x1={xThrow} y1={yNc} x2={w * GRID} y2={yNc} stroke={ink} strokeWidth="2.2"/>,
+                <line key={`lno${i}`} x1={xThrow} y1={yNo} x2={w * GRID} y2={yNo} stroke={ink} strokeWidth="2.2"/>,
             );
         } else {
+            const base = i * 2 * GRID;
+            const cy = base + 1 * GRID;
             const xB = thrown ? xThrow : xThrow - 8;
             const yB = thrown ? cy : cy - 11;
+            pivots.push(cy);
             items.push(
+                <line key={`c${i}`} x1={0} y1={cy} x2={xPivot} y2={cy} stroke={ink} strokeWidth="2.2"/>,
+                <circle key={`p${i}`} cx={xPivot} cy={cy} r={3.6} fill={ink}/>,
                 <line key={`b${i}`} x1={xPivot} y1={cy} x2={xB} y2={yB} stroke={ink} strokeWidth="2.4"/>,
                 <circle key={`t${i}`} cx={xThrow} cy={cy} r={3.6} fill={ink}/>,
                 <line key={`r${i}`} x1={xThrow} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2.2"/>,
@@ -516,7 +508,7 @@ function sensorDots(w: number, y: number, xL: number, xR: number, r: number) {
 
 /** Temperature switch: lever plus hanging thermal zigzag (bimetal). */
 function tempSwitch(w: number, closed: boolean) {
-    const y = 1.3 * GRID;
+    const y = 1 * GRID;
     const xL = 0.95 * GRID;
     const xR = w * GRID - 0.95 * GRID;
     const r = 5;
@@ -554,7 +546,7 @@ function tempSwitch(w: number, closed: boolean) {
 
 /** Flow switch: vane triangle hanging from the arm. */
 function flowSwitch(w: number, closed: boolean) {
-    const y = 1.3 * GRID;
+    const y = 1 * GRID;
     const xL = 0.95 * GRID;
     const xR = w * GRID - 0.95 * GRID;
     const r = 5;
@@ -582,7 +574,7 @@ function flowSwitch(w: number, closed: boolean) {
 
 /** Pressure switch: diaphragm bowl hanging from the arm. */
 function pressureSwitch(w: number, closed: boolean) {
-    const y = 1.3 * GRID;
+    const y = 1 * GRID;
     const xL = 0.95 * GRID;
     const xR = w * GRID - 0.95 * GRID;
     const r = 5;
@@ -611,7 +603,7 @@ function pressureSwitch(w: number, closed: boolean) {
 
 /** Limit switch: slanted arm with a triangular actuator. Closed = arm nearly on the right circle. */
 function limitArm(w: number, closed: boolean) {
-    const y = 1.5 * GRID;
+    const y = 1 * GRID;
     const xL = 0.9 * GRID;
     const xR = w * GRID - 0.9 * GRID;
     const r = 6.5;
@@ -645,7 +637,7 @@ function limitArm(w: number, closed: boolean) {
 
 /** Foot switch: slanted pedal with a pad. Closed = pedal down on the right circle. */
 function footPedal(w: number, closed: boolean, openDown = false) {
-    const y = 1.5 * GRID;
+    const y = 1 * GRID;
     const xL = 0.85 * GRID;
     const xR = w * GRID - 0.85 * GRID;
     const r = 6.5;
@@ -678,8 +670,8 @@ function contactPair(
     labL?: string,
     labR?: string,
 ) {
-    const xL = 4;
-    const xR = w * GRID - 4;
+    const xL = 0;
+    const xR = w * GRID;
     const barL = w * GRID * 0.38;
     const barR = w * GRID * 0.62;
     const barH = 0.4 * GRID;
@@ -800,7 +792,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {contactPair(w, 1 * GRID, false, Boolean(rt?.actuated), "1", "2")}
-                {contactPair(w, 2.4 * GRID, true, !rt?.actuated, "3", "4")}
+                {contactPair(w, 3 * GRID, true, !rt?.actuated, "3", "4")}
                 <line x1={w * GRID / 2 - 8} y1={8} x2={w * GRID / 2 + 8} y2={2} stroke={ink} strokeWidth="2"/>
 
             </S>
@@ -829,7 +821,7 @@ function GlyphBody({
         return (
             <S w={w} h={h}>
                 {contactPair(w, 1 * GRID, false, Boolean(rt?.actuated), "1", "2")}
-                {contactPair(w, 2.4 * GRID, true, !rt?.actuated, "3", "4")}
+                {contactPair(w, 3 * GRID, true, !rt?.actuated, "3", "4")}
                 <Txt x={w * GRID / 2 + 10} y={1 * GRID} fontSize="9" fill={ink}>FS</Txt>
 
             </S>
@@ -846,7 +838,7 @@ function GlyphBody({
     }
     if (kind === "float") {
         const closed = Boolean(rt?.actuated);
-        const y = 1.4 * GRID;
+        const y = 1 * GRID;
         const xL = 0.9 * GRID;
         const xR = w * GRID - 0.9 * GRID;
         const r = 5.5;
@@ -855,7 +847,7 @@ function GlyphBody({
         const hx = xL + (p2x - xL) * 0.42;
         const hy = y + (p2y - y) * 0.42;
         const fr = 9;
-        const fy = hy + (closed ? 12 : 20) + fr;
+        const fy = hy + (closed ? 10 : 16) + fr;
         return (
             <S w={w} h={h}>
                 <line x1={0} y1={y} x2={xL - r} y2={y} stroke={ink} strokeWidth="2"/>
@@ -980,8 +972,8 @@ function GlyphBody({
                             : "W";
         return (
             <S w={w} h={h}>
-                <line x1={cx} y1={4} x2={cx} y2={cy - 14} stroke={ink} strokeWidth="2"/>
-                <line x1={cx} y1={cy + 14} x2={cx} y2={h * GRID - 4} stroke={ink} strokeWidth="2"/>
+                <line x1={cx} y1={0} x2={cx} y2={cy - 14} stroke={ink} strokeWidth="2"/>
+                <line x1={cx} y1={cy + 14} x2={cx} y2={h * GRID} stroke={ink} strokeWidth="2"/>
                 <circle
                     cx={cx}
                     cy={cy}
@@ -1010,6 +1002,8 @@ function GlyphBody({
         const cy = (h * GRID) / 2;
         return (
             <S w={w} h={h}>
+                <line x1={0} y1={cy} x2={cx - 10} y2={cy} stroke={ink} strokeWidth="2"/>
+                <line x1={cx + 12} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2"/>
                 <polygon
                     points={`${cx - 10},${cy - 10} ${cx + 8},${cy - 16} ${cx + 8},${cy + 16} ${cx - 10},${cy + 10}`}
                     fill={rt?.lit ? "#e23d2b" : "#efe6d0"}
@@ -1026,7 +1020,7 @@ function GlyphBody({
         const live = Boolean(rt?.on && !rt?.tripped);
         return (
             <S w={w} h={h}>
-                <line x1={cx} y1={4} x2={cx} y2={h * GRID - 4} stroke={ink} strokeWidth="2"/>
+                <line x1={cx} y1={0} x2={cx} y2={h * GRID} stroke={ink} strokeWidth="2"/>
                 {kind === "fuse" ? (
                     <rect
                         x={cx - 9}
@@ -1342,21 +1336,10 @@ function GlyphBody({
         );
     }
     if (kind === "junction") {
-        return (
-            <S w={Math.max(w, 1)} h={Math.max(h, 1)}>
-                <circle
-                    cx={0}
-                    cy={0}
-                    r={hot ? 5.6 : 4.8}
-                    fill={hot ? "#e6c11e" : ink}
-                    stroke="#efe6d0"
-                    strokeWidth="1.2"
-                />
-            </S>
-        );
+        return null;
     }
     if (kind === "net-label") {
-        const cy = 0.8 * GRID;
+        const cy = 1 * GRID;
         const label = device.tag.trim() || "?";
         const boxX = 10;
         const boxW = w * GRID - boxX - 1;
@@ -1451,13 +1434,13 @@ function GlyphBody({
                     DC
                 </Txt>
                 {/* Positive terminal */}
-                <circle cx={w * GRID - 15} cy={cy - 21} r="6" fill="#ffffff"/>
-                <Txt x={w * GRID - 15} y={cy - 16} textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1b1a16">
+                <circle cx={w * GRID - 15} cy={1 * GRID} r="6" fill="#ffffff"/>
+                <Txt x={w * GRID - 15} y={1 * GRID + 5} textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1b1a16">
                     +
                 </Txt>
                 {/* Negative terminal */}
-                <circle cx={w * GRID - 15} cy={cy + 22} r="6" fill="#ffffff"/>
-                <Txt x={w * GRID - 15} y={cy + 27} textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1b1a16">
+                <circle cx={w * GRID - 15} cy={3 * GRID} r="6" fill="#ffffff"/>
+                <Txt x={w * GRID - 15} y={3 * GRID + 5} textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1b1a16">
                     -
                 </Txt>
                 <Txt x={18} y={14} textAnchor="start" fill="#ffffff" fontSize="12" fontWeight="bold"
@@ -1605,7 +1588,7 @@ function GlyphBody({
         );
     }
     if (kind === "solenoid") {
-        const y = 1.5 * GRID;
+        const y = 1 * GRID;
         const xL = 0.85 * GRID;
         const xR = w * GRID - 0.85 * GRID;
         const r = 6;
@@ -1614,6 +1597,8 @@ function GlyphBody({
         const fill = hot ? "#f0d27a" : "#efe6d0";
         return (
             <S w={w} h={h}>
+                <line x1={0} y1={y} x2={xL} y2={y} stroke={ink} strokeWidth="2"/>
+                <line x1={xR} y1={y} x2={w * GRID} y2={y} stroke={ink} strokeWidth="2"/>
                 <polyline
                     points={`${xL + r},${y} ${mid - 6},${y - amp} ${mid + 6},${y + amp} ${xR - r},${y}`}
                     fill="none"
@@ -1643,10 +1628,10 @@ function GlyphBody({
     }
     if (kind === "motor-3ph") {
         const cx = (w * GRID) / 2;
-        const rO = 1.85 * GRID;
-        const rI = 1.4 * GRID;
+        const rO = 2.2 * GRID;
+        const rI = 1.6 * GRID;
         const cy = h * GRID - rO;
-        const leadXs = [cx - 0.95 * GRID, cx, cx + 0.95 * GRID];
+        const leadXs = [1 * GRID, 3 * GRID, 5 * GRID];
         const yTop = 0;
         const yJoin = cy - rO;
         const fill = hot ? "#d9c48a" : "#efe6d0";
@@ -1673,8 +1658,8 @@ function GlyphBody({
         const cy = h * GRID - r;
         const yTop = 0;
         const yJoin = cy - r;
-        const x1 = 1.7 * GRID;
-        const x2 = 3.3 * GRID;
+        const x1 = 1 * GRID;
+        const x2 = 3 * GRID;
         const fill = hot ? "#d9c48a" : "#efe6d0";
         const powerText = device.params.power !== undefined ? `${device.params.power}kW` : "1.5kW";
         return (
@@ -1697,6 +1682,8 @@ function GlyphBody({
         const powerText = device.params.power !== undefined ? `${device.params.power}kW` : "0.75kW";
         return (
             <S w={w} h={h}>
+                <line x1={0} y1={1 * GRID} x2={cx - 24} y2={1 * GRID} stroke={ink} strokeWidth="2.2"/>
+                <line x1={0} y1={3 * GRID} x2={cx - 24} y2={3 * GRID} stroke={ink} strokeWidth="2.2"/>
                 <circle
                     cx={cx}
                     cy={cy}
@@ -1713,10 +1700,23 @@ function GlyphBody({
         );
     }
     if (kind === "gen-ac" || kind === "gen-dc") {
-        const cx = (w * GRID) / 2 - 6;
+        const cx = (w * GRID) / 2 - (kind === "gen-ac" ? 10 : 8);
         const cy = (h * GRID) / 2;
         return (
             <S w={w} h={h}>
+                {kind === "gen-ac" ? (
+                    <>
+                        <line x1={cx + 24} y1={1 * GRID} x2={w * GRID} y2={1 * GRID} stroke={ink} strokeWidth="2"/>
+                        <line x1={cx + 24} y1={3 * GRID} x2={w * GRID} y2={3 * GRID} stroke={ink} strokeWidth="2"/>
+                        <line x1={cx + 24} y1={5 * GRID} x2={w * GRID} y2={5 * GRID} stroke={ink} strokeWidth="2"/>
+                        <line x1={cx + 24} y1={7 * GRID} x2={w * GRID} y2={7 * GRID} stroke={ink} strokeWidth="2"/>
+                    </>
+                ) : (
+                    <>
+                        <line x1={cx + 24} y1={1 * GRID} x2={w * GRID} y2={1 * GRID} stroke={ink} strokeWidth="2"/>
+                        <line x1={cx + 24} y1={3 * GRID} x2={w * GRID} y2={3 * GRID} stroke={ink} strokeWidth="2"/>
+                    </>
+                )}
                 <circle cx={cx} cy={cy} r="24" fill={hot ? "#cfe0f5" : "#efe6d0"} stroke={ink} strokeWidth="2.5"/>
                 <Txt x={cx} y={cy + 4} textAnchor="middle" className="sym-tag">
                     {kind === "gen-ac" ? "G~" : "G="}
@@ -1807,8 +1807,8 @@ function GlyphBody({
                     strokeDasharray="3 3"
                 />
                 {([
-                    {lab: "F", cx: 3.5 * GRID, on: fwd, side: -1, labs: ["A1F", "A2F"] as const, y1: 7.3, y2: 8.5, anchor: "start" as const, lx: 8},
-                    {lab: "R", cx: 8.5 * GRID, on: rev, side: 1, labs: ["A1R", "A2R"] as const, y1: 7.3, y2: 8.5, anchor: "end" as const, lx: w * GRID - 8},
+                    {lab: "F", cx: 3.5 * GRID, on: fwd, side: -1, labs: ["A1F", "A2F"] as const, y1: 7, y2: 9, anchor: "start" as const, lx: 8},
+                    {lab: "R", cx: 8.5 * GRID, on: rev, side: 1, labs: ["A1R", "A2R"] as const, y1: 7, y2: 9, anchor: "end" as const, lx: w * GRID - 8},
                 ]).map((c) => {
                     const y1 = c.y1 * GRID;
                     const y2 = c.y2 * GRID;
@@ -1878,7 +1878,33 @@ function GlyphBody({
                 <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink}
                       strokeWidth="2"/>
                 {poles(w, 6, 3, hot || Boolean(rt?.energizedAlt))}
-                <Txt x={(w * GRID) / 2} y={h * GRID - 16} textAnchor="middle" className="sym-tag">
+                {[
+                    {id: "13", x: 1, lab: "13"},
+                    {id: "14", x: 3, lab: "14"},
+                    {id: "21", x: 5, lab: "21"},
+                    {id: "22", x: 7, lab: "22"},
+                ].map((p) => (
+                    <g key={p.id}>
+                        <line x1={p.x * GRID} y1={0} x2={p.x * GRID} y2={1.5 * GRID} stroke={ink} strokeWidth="2"/>
+                        <Txt x={p.x * GRID} y={1.8 * GRID} textAnchor="middle" className="term-lab">{p.lab}</Txt>
+                    </g>
+                ))}
+                {[
+                    {id: "95", x: 1, lab: "95"},
+                    {id: "96", x: 3, lab: "96"},
+                    {id: "97", x: 5, lab: "97"},
+                    {id: "98", x: 7, lab: "98"},
+                ].map((p) => (
+                    <g key={p.id}>
+                        <line x1={p.x * GRID} y1={8.5 * GRID} x2={p.x * GRID} y2={10 * GRID} stroke={ink} strokeWidth="2"/>
+                        <Txt x={p.x * GRID} y={8.2 * GRID} textAnchor="middle" className="term-lab">{p.lab}</Txt>
+                    </g>
+                ))}
+                <line x1={0} y1={7 * GRID} x2={1.5 * GRID} stroke={ink} strokeWidth="2"/>
+                <line x1={w * GRID - 1.5 * GRID} y1={7 * GRID} x2={w * GRID} stroke={ink} strokeWidth="2"/>
+                <Txt x={8} y={7 * GRID - 5} className="term-lab">A1</Txt>
+                <Txt x={w * GRID - 8} y={7 * GRID - 5} textAnchor="end" className="term-lab">A2</Txt>
+                <Txt x={(w * GRID) / 2} y={7.5 * GRID} textAnchor="middle" className="sym-tag">
                     {device.tag}
                 </Txt>
             </S>
@@ -1886,13 +1912,13 @@ function GlyphBody({
     }
     if (kind === "selector-2") {
         const pos = rt?.position ?? 0;
-        const y1 = 1.5 * GRID;
-        const y2 = 3.5 * GRID;
+        const y1 = 1 * GRID;
+        const y2 = 3 * GRID;
         const xL = 0.9 * GRID;
         const xR = w * GRID - 0.9 * GRID;
         const cx = (w * GRID) / 2;
         const cr = 5.5;
-        const shaftTop = y1 - 16;
+        const shaftTop = y1 - 10;
         const row = (y: number, closed: boolean) => (
             <>
                 <line x1={0} y1={y} x2={xL - cr} y2={y} stroke={ink} strokeWidth="2"/>
@@ -1944,14 +1970,14 @@ function GlyphBody({
     }
     if (kind === "selector-3") {
         const pos = rt?.position ?? 0;
-        const y1 = 1.8 * GRID;
-        const yM = 3.2 * GRID;
-        const y2 = 4.6 * GRID;
+        const y1 = 1 * GRID;
+        const yM = 2 * GRID;
+        const y2 = 3 * GRID;
         const xL = 0.9 * GRID;
         const xR = w * GRID - 0.9 * GRID;
         const cx = (w * GRID) / 2;
         const cr = 5.5;
-        const shaftTop = y1 - 16;
+        const shaftTop = y1 - 10;
         const row = (y: number, closed: boolean, circles: boolean) => (
             <>
                 {circles ? (

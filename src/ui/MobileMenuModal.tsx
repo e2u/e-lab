@@ -27,6 +27,8 @@ export function MobileMenuModal({
 }: MobileMenuModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docName = useLab((s) => s.docName);
+  const mode = useLab((s) => s.mode);
+  const editSubMode = useLab((s) => s.editSubMode);
   const lang = useLab((s) => s.lang);
   const theme = useLab((s) => s.theme);
   const zoom = useLab((s) => s.zoom);
@@ -254,6 +256,29 @@ export function MobileMenuModal({
           {/* Section 3: Preferences & Zoom */}
           <section className="mobile-menu-section">
             <div className="mobile-menu-section-title">{t("mobileMenu.preferences") || "Preferences & View"}</div>
+
+            {/* Sub-mode Switch */}
+            {mode === "edit" && (
+              <div className="mobile-pref-row">
+                <span className="mobile-pref-label">{t("toolbar.edit")}</span>
+                <div className="mobile-segmented-control">
+                  <button
+                    type="button"
+                    className={`mobile-segment-btn ${editSubMode === "editing" ? "active" : ""}`}
+                    onClick={() => useLab.getState().setEditSubMode("editing")}
+                  >
+                    ✋ {t("toolbar.editing")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`mobile-segment-btn ${editSubMode === "wiring" ? "active" : ""}`}
+                    onClick={() => useLab.getState().setEditSubMode("wiring")}
+                  >
+                    🔌 {t("toolbar.wiring")}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Language Switch */}
             <div className="mobile-pref-row">

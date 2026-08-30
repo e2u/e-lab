@@ -55,24 +55,24 @@
         "id": "s_c_e591d2b8",
         "deviceId": "d_b_5f284ea0",
         "variant": "body",
-        "x": 3.8125,
-        "y": 3.9375,
+        "x": 3,
+        "y": 3,
         "rot": 0
       },
       {
         "id": "s_e_c27d32b9",
         "deviceId": "d_d_8c13c455",
         "variant": "body",
-        "x": 13.875,
-        "y": 3.8125,
+        "x": 14,
+        "y": 3,
         "rot": 0
       },
       {
         "id": "s_g_9a9ce57d",
         "deviceId": "d_f_4b706ad9",
         "variant": "body",
-        "x": 21.25,
-        "y": 3.875,
+        "x": 22,
+        "y": 3,
         "rot": 0
       },
       {
@@ -95,16 +95,16 @@
         "id": "s_v_d835e348",
         "deviceId": "d_u_a3feb205",
         "variant": "body",
-        "x": 19.125,
-        "y": 5.5,
+        "x": 20,
+        "y": 4,
         "rot": 0
       },
       {
         "id": "s_10_c53cf685",
         "deviceId": "d_z_6a9c2855",
         "variant": "body",
-        "x": 11.875,
-        "y": 7.5,
+        "x": 13,
+        "y": 7,
         "rot": 0
       }
     ],
@@ -152,6 +152,10 @@
         "b": {
           "symbolId": "s_10_c53cf685",
           "term": "1"
+        },
+        "jog": {
+          "axis": "y",
+          "pos": 154
         }
       },
       {

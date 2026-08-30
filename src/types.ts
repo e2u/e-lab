@@ -132,6 +132,11 @@ export interface Device {
   params: DeviceParams;
 }
 
+export interface TagOffset {
+  dx: number;
+  dy: number;
+}
+
 export interface SymbolInst {
   id: string;
   deviceId: string;
@@ -143,6 +148,8 @@ export interface SymbolInst {
   flipX?: boolean;
   /** Local Y mirror (up-down when rot is 0). */
   flipY?: boolean;
+  /** Offset for draggable component tag/label in grid units. */
+  tagOffset?: TagOffset;
 }
 
 export interface PortRef {
@@ -240,6 +247,7 @@ export interface SimSnapshot {
 }
 
 export type Mode = "edit" | "run";
+export type EditSubMode = "editing" | "wiring";
 
 export interface CatalogItem {
   id: string;

@@ -4,6 +4,7 @@ import { triggerHaptic } from "./schematic/interact";
 
 export function FloatingActionBar() {
   const mode = useLab((s) => s.mode);
+  const editSubMode = useLab((s) => s.editSubMode);
   const placing = useLab((s) => s.placing);
   const selected = useLab((s) => s.selected);
   const selectedIds = useLab((s) => s.selectedIds);
@@ -85,6 +86,16 @@ export function FloatingActionBar() {
         </>
       ) : (
         <>
+          <button
+            type="button"
+            className={`floating-btn ${editSubMode === "wiring" ? "active" : ""}`}
+            onClick={() => handleAction(() => useLab.getState().toggleEditSubMode())}
+            title={editSubMode === "wiring" ? t("toolbar.wiringTip") : t("toolbar.editingTip")}
+            aria-label={editSubMode === "wiring" ? t("toolbar.wiring") : t("toolbar.editing")}
+          >
+            <span className="floating-btn-icon">{editSubMode === "wiring" ? "🔌" : "✋"}</span>
+          </button>
+
           <button
             type="button"
             className="floating-btn"

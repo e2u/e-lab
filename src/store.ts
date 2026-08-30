@@ -21,7 +21,7 @@ import {
 } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
 import { buildLadderDiagram } from "./ladder/ladderLayout";
-import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type Theme, type WireJog } from "./types";
+import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type Theme, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
 function readLang(): Lang {
@@ -66,17 +66,55 @@ function readZoom(): number {
   return 1;
 }
 
-function readSidebarState(): { paletteOpen: boolean; sideOpen: boolean } {
-  if (typeof localStorage === "undefined") return { paletteOpen: true, sideOpen: true };
+const DEFAULT_PALETTE_WIDTH = 220;
+const DEFAULT_SIDE_WIDTH = 260;
+export const MIN_PALETTE_WIDTH = 160;
+export const MAX_PALETTE_WIDTH = 500;
+export const MIN_SIDE_WIDTH = 200;
+export const MAX_SIDE_WIDTH = 600;
+
+function readSidebarState(): {
+  paletteOpen: boolean;
+  sideOpen: boolean;
+  paletteWidth: number;
+  sideWidth: number;
+} {
+  if (typeof localStorage === "undefined") {
+    return {
+      paletteOpen: true,
+      sideOpen: true,
+      paletteWidth: DEFAULT_PALETTE_WIDTH,
+      sideWidth: DEFAULT_SIDE_WIDTH,
+    };
+  }
   try {
     const p = localStorage.getItem("elab.sidebar.paletteOpen");
     const s = localStorage.getItem("elab.sidebar.sideOpen");
+    const pw = localStorage.getItem("elab.sidebar.paletteWidth");
+    const sw = localStorage.getItem("elab.sidebar.sideWidth");
+
+    const parsedPw = pw !== null ? parseInt(pw, 10) : NaN;
+    const parsedSw = sw !== null ? parseInt(sw, 10) : NaN;
+
     return {
       paletteOpen: p !== null ? p === "true" : true,
       sideOpen: s !== null ? s === "true" : true,
+      paletteWidth:
+        !isNaN(parsedPw) && parsedPw >= MIN_PALETTE_WIDTH && parsedPw <= MAX_PALETTE_WIDTH
+          ? parsedPw
+          : DEFAULT_PALETTE_WIDTH,
+      sideWidth:
+        !isNaN(parsedSw) && parsedSw >= MIN_SIDE_WIDTH && parsedSw <= MAX_SIDE_WIDTH
+          ? parsedSw
+          : DEFAULT_SIDE_WIDTH,
     };
   } catch {
-    return { paletteOpen: true, sideOpen: true };
+    return {
+      paletteOpen: true,
+      sideOpen: true,
+      paletteWidth: DEFAULT_PALETTE_WIDTH,
+      sideWidth: DEFAULT_SIDE_WIDTH,
+    };
   }
 }
 
@@ -101,6 +139,7 @@ export interface LabState {
   circuit: Circuit;
   snapshot: SimSnapshot;
   mode: Mode;
+  editSubMode: EditSubMode;
   running: boolean;
   held: string[];
   process: ProcessVars;
@@ -123,6 +162,8 @@ export interface LabState {
   isDirty: boolean;
   paletteOpen: boolean;
   sideOpen: boolean;
+  paletteWidth: number;
+  sideWidth: number;
   zoom: number;
   printOpen: boolean;
   tutorialOpen: boolean;
@@ -131,6 +172,8 @@ export interface LabState {
   meterHistory: Record<string, MeterDataPoint[]>;
 
   setMode: (mode: Mode) => void;
+  setEditSubMode: (subMode: EditSubMode) => void;
+  toggleEditSubMode: () => void;
   setRunning: (running: boolean) => void;
   step: () => void;
   resetSim: () => void;
@@ -205,9 +248,12 @@ export interface LabState {
   loadCircuit: (circuit: Circuit, name?: string, process?: ProcessVars) => void;
   setDocName: (name: string) => void;
   setNotice: (notice: string | null) => void;
+  setSymbolTagOffset: (id: string, offset?: { dx: number; dy: number } | null) => void;
+  resetSymbolTagOffset: (id: string) => void;
   updateWire: (id: string, patch: { label?: string }) => void;
   straightenWire: (id: string) => void;
   addJunctionOnWire: (id: string, worldPos?: { x: number; y: number }) => void;
+  addJunctionAt: (gx: number, gy: number) => void;
   updateGroup: (groupId: string, patch: { color?: string; name?: string }) => void;
   toggleWireBroken: (id: string) => void;
   toggleDeviceWelded: (id: string) => void;
@@ -227,6 +273,9 @@ export interface LabState {
   reorderLadderRungs: (fromIndex: number, toIndex: number) => void;
   setPaletteOpen: (open: boolean) => void;
   setSideOpen: (open: boolean) => void;
+  setPaletteWidth: (width: number) => void;
+  setSideWidth: (width: number) => void;
+  resetPanelWidths: () => void;
   togglePalette: () => void;
   toggleSide: () => void;
   setShowLadderMenu: (show: boolean) => void;
@@ -304,6 +353,7 @@ export const useLab = create<LabState>((set, get) => ({
   circuit: boot.circuit,
   snapshot: emptySnapshot(boot.circuit),
   mode: initialLayoutMode === "ladder" ? "run" : "edit",
+  editSubMode: "editing",
   running: initialLayoutMode === "ladder",
   held: [],
   process: boot.process ?? defaultProcess(),
@@ -326,6 +376,8 @@ export const useLab = create<LabState>((set, get) => ({
   isDirty: false,
   paletteOpen: sidebarBoot.paletteOpen,
   sideOpen: sidebarBoot.sideOpen,
+  paletteWidth: sidebarBoot.paletteWidth,
+  sideWidth: sidebarBoot.sideWidth,
   zoom: readZoom(),
   printOpen: false,
   tutorialOpen: false,
@@ -372,6 +424,16 @@ export const useLab = create<LabState>((set, get) => ({
       held: [],
       meterHistory: {},
     });
+  },
+  setEditSubMode: (subMode) => {
+    set({
+      editSubMode: subMode,
+      ...(subMode === "editing" ? { wiringFrom: null, hoverPort: null } : {}),
+    });
+  },
+  toggleEditSubMode: () => {
+    const next = get().editSubMode === "editing" ? "wiring" : "editing";
+    get().setEditSubMode(next);
   },
   setRunning: (running) => set({ running }),
   step: () => {
@@ -643,11 +705,13 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === id);
     if (!sym) return;
-    sym.x = x;
-    sym.y = y;
+    const rx = Math.round(x);
+    const ry = Math.round(y);
+    sym.x = rx;
+    sym.y = ry;
     const dev = next.devices.find((d) => d.id === sym.deviceId);
     if (dev && dev.kind === "ammeter") {
-      const detected = findWireAtPoint(next, (x + 2) * GRID, (y + 2) * GRID, GRID * 2.5);
+      const detected = findWireAtPoint(next, (rx + 2) * GRID, (ry + 2) * GRID, GRID * 2.5);
       dev.params = { ...dev.params, clampedWireId: detected?.id };
     }
     set({ circuit: next, isDirty: true });
@@ -659,12 +723,14 @@ export const useLab = create<LabState>((set, get) => ({
     for (const u of updates) {
       const sym = next.symbols.find((s) => s.id === u.id);
       if (sym) {
-        deltas.set(u.id, { dx: u.x - sym.x, dy: u.y - sym.y });
-        sym.x = u.x;
-        sym.y = u.y;
+        const rx = Math.round(u.x);
+        const ry = Math.round(u.y);
+        deltas.set(u.id, { dx: rx - sym.x, dy: ry - sym.y });
+        sym.x = rx;
+        sym.y = ry;
         const dev = next.devices.find((d) => d.id === sym.deviceId);
         if (dev && dev.kind === "ammeter") {
-          const detected = findWireAtPoint(next, (u.x + 2) * GRID, (u.y + 2) * GRID, GRID * 2.5);
+          const detected = findWireAtPoint(next, (rx + 2) * GRID, (ry + 2) * GRID, GRID * 2.5);
           dev.params = { ...dev.params, clampedWireId: detected?.id };
         }
       }
@@ -672,7 +738,14 @@ export const useLab = create<LabState>((set, get) => ({
     if (wireUpdates && wireUpdates.length > 0) {
       for (const wu of wireUpdates) {
         const w = next.wires.find((x) => x.id === wu.id);
-        if (w) w.jog = wu.jog;
+        if (w) {
+          w.jog = wu.jog
+            ? {
+                axis: wu.jog.axis,
+                pos: Math.round(wu.jog.pos / GRID) * GRID,
+              }
+            : undefined;
+        }
       }
     } else {
       for (const w of next.wires) {
@@ -681,9 +754,9 @@ export const useLab = create<LabState>((set, get) => ({
           const db = deltas.get(w.b.symbolId);
           if (da && db && Math.abs(da.dx - db.dx) < 1e-4 && Math.abs(da.dy - db.dy) < 1e-4) {
             if (w.jog.axis === "x") {
-              w.jog.pos += da.dx * GRID;
+              w.jog.pos = Math.round((w.jog.pos + da.dx * GRID) / GRID) * GRID;
             } else if (w.jog.axis === "y") {
-              w.jog.pos += da.dy * GRID;
+              w.jog.pos = Math.round((w.jog.pos + da.dy * GRID) / GRID) * GRID;
             }
           }
         }
@@ -696,7 +769,12 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     const w = next.wires.find((x) => x.id === id);
     if (!w) return;
-    w.jog = jog;
+    w.jog = jog
+      ? {
+          axis: jog.axis,
+          pos: Math.round(jog.pos / GRID) * GRID,
+        }
+      : undefined;
     set({ circuit: next, isDirty: true });
   },
 
@@ -732,9 +810,11 @@ export const useLab = create<LabState>((set, get) => ({
     const circuit = get().circuit;
     get().pushHistory();
     const next = clone(circuit);
-    let j = findJunctionAt(next, gx, gy);
+    const rx = Math.round(gx);
+    const ry = Math.round(gy);
+    let j = findJunctionAt(next, rx, ry);
     if (!j) {
-      j = addJunction(next, gx, gy).symbol;
+      j = addJunction(next, rx, ry).symbol;
     }
     const jPort: PortRef = { symbolId: j.id, term: "1" };
     if (!portsEqual(from, jPort) && !next.wires.some((w) => wireHasEnds(w, from, jPort))) {
@@ -1042,6 +1122,33 @@ export const useLab = create<LabState>((set, get) => ({
   setDocName: (name) => set({ docName: name, isDirty: true }),
   setNotice: (notice) => set({ notice }),
 
+  setSymbolTagOffset: (id, offset) => {
+    const next = clone(get().circuit);
+    const sym = next.symbols.find((s) => s.id === id);
+    if (!sym) return;
+    if (!offset || (Math.round(offset.dx) === 0 && Math.round(offset.dy) === 0)) {
+      delete sym.tagOffset;
+    } else {
+      sym.tagOffset = {
+        dx: Math.round(offset.dx),
+        dy: Math.round(offset.dy),
+      };
+    }
+    set({ circuit: next, isDirty: true });
+  },
+  resetSymbolTagOffset: (id) => {
+    const circuit = get().circuit;
+    const sym = circuit.symbols.find((s) => s.id === id);
+    if (!sym || !sym.tagOffset) return;
+    get().pushHistory();
+    const next = clone(circuit);
+    const target = next.symbols.find((s) => s.id === id);
+    if (target) {
+      delete target.tagOffset;
+    }
+    set({ circuit: next, isDirty: true });
+  },
+
   updateWire: (id, patch) => {
     get().pushHistory();
     const next = clone(get().circuit);
@@ -1077,6 +1184,33 @@ export const useLab = create<LabState>((set, get) => ({
       circuit: next,
       selected: { type: "symbol", id: port.symbolId },
       selectedIds: [port.symbolId],
+      isDirty: true,
+    });
+  },
+  addJunctionAt: (gx, gy) => {
+    if (get().mode !== "edit") return;
+    get().pushHistory();
+    const next = clone(get().circuit);
+    const jDev = {
+      id: uid("dev"),
+      kind: "junction" as const,
+      tag: `J${next.symbols.filter((s) => isJunctionSymbol(next, s.id)).length + 1}`,
+      params: {},
+    };
+    const jSym = {
+      id: uid("sym"),
+      deviceId: jDev.id,
+      variant: "body",
+      x: Math.round(gx),
+      y: Math.round(gy),
+      rot: 0 as const,
+    };
+    next.devices.push(jDev);
+    next.symbols.push(jSym);
+    set({
+      circuit: next,
+      selected: { type: "symbol", id: jSym.id },
+      selectedIds: [jSym.id],
       isDirty: true,
     });
   },
@@ -1288,9 +1422,9 @@ export const useLab = create<LabState>((set, get) => ({
         const db = deltas.get(w.b.symbolId);
         if (da && db && Math.abs(da.dx - db.dx) < 1e-4 && Math.abs(da.dy - db.dy) < 1e-4) {
           if (w.jog.axis === "x") {
-            w.jog.pos += da.dx * GRID;
+            w.jog.pos = Math.round((w.jog.pos + da.dx * GRID) / GRID) * GRID;
           } else if (w.jog.axis === "y") {
-            w.jog.pos += da.dy * GRID;
+            w.jog.pos = Math.round((w.jog.pos + da.dy * GRID) / GRID) * GRID;
           }
         }
       }
@@ -1489,6 +1623,30 @@ export const useLab = create<LabState>((set, get) => ({
     set({ sideOpen: open });
   },
 
+  setPaletteWidth: (width) => {
+    const clamped = Math.max(MIN_PALETTE_WIDTH, Math.min(MAX_PALETTE_WIDTH, Math.round(width)));
+    try {
+      localStorage.setItem("elab.sidebar.paletteWidth", String(clamped));
+    } catch {}
+    set({ paletteWidth: clamped });
+  },
+
+  setSideWidth: (width) => {
+    const clamped = Math.max(MIN_SIDE_WIDTH, Math.min(MAX_SIDE_WIDTH, Math.round(width)));
+    try {
+      localStorage.setItem("elab.sidebar.sideWidth", String(clamped));
+    } catch {}
+    set({ sideWidth: clamped });
+  },
+
+  resetPanelWidths: () => {
+    try {
+      localStorage.setItem("elab.sidebar.paletteWidth", String(DEFAULT_PALETTE_WIDTH));
+      localStorage.setItem("elab.sidebar.sideWidth", String(DEFAULT_SIDE_WIDTH));
+    } catch {}
+    set({ paletteWidth: DEFAULT_PALETTE_WIDTH, sideWidth: DEFAULT_SIDE_WIDTH });
+  },
+
   // ✅ 新增：設置是否顯示梯形圖菜單
   setShowLadderMenu: (show: boolean) => {
     try {
@@ -1618,10 +1776,10 @@ export const useLab = create<LabState>((set, get) => ({
       let sideW = 0;
       if (!isDrawerMode) {
         if (paletteOpen) {
-          paletteW = window.innerWidth <= 1024 ? 180 : window.innerWidth <= 1400 ? 200 : 230;
+          paletteW = get().paletteWidth || (window.innerWidth <= 1024 ? 180 : window.innerWidth <= 1400 ? 200 : 230);
         }
         if (sideOpen) {
-          sideW = window.innerWidth <= 1024 ? 220 : window.innerWidth <= 1400 ? 240 : 270;
+          sideW = get().sideWidth || (window.innerWidth <= 1024 ? 220 : window.innerWidth <= 1400 ? 240 : 270);
         }
       }
       availW = Math.max(window.innerWidth - paletteW - sideW - 60, 200);

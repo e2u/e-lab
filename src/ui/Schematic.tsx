@@ -15,6 +15,7 @@ export function Schematic() {
   const circuit = useLab((s) => s.circuit);
   const snapshot = useLab((s) => s.snapshot);
   const mode = useLab((s) => s.mode);
+  const editSubMode = useLab((s) => s.editSubMode);
   const placing = useLab((s) => s.placing);
   const selected = useLab((s) => s.selected);
   const selectedIds = useLab((s) => s.selectedIds);
@@ -82,6 +83,9 @@ export function Schematic() {
     onSymbolContextMenu,
     onSymbolPointerDown,
     onSymbolDoubleClick,
+    onTagPointerDown,
+    onTagDoubleClick,
+    onTagContextMenu,
     onSymbolPointerUp,
     onSymbolPointerLeave,
     onPortPointerDown,
@@ -119,7 +123,7 @@ export function Schematic() {
         )}
         <svg
           ref={svgRef}
-          className={`paper${placing ? " placing" : ""}${mode === "run" ? " run" : ""}${wiringFrom ? " wiring" : ""}`}
+          className={`paper${placing ? " placing" : ""}${mode === "run" ? " run" : ""}${wiringFrom ? " wiring" : ""} submode-${editSubMode}`}
           width={COLS * GRID * zoom}
           height={ROWS * GRID * zoom}
           viewBox={`0 0 ${COLS * GRID} ${ROWS * GRID}`}
@@ -156,6 +160,9 @@ export function Schematic() {
             onSymbolContextMenu={onSymbolContextMenu}
             onSymbolPointerDown={onSymbolPointerDown}
             onSymbolDoubleClick={onSymbolDoubleClick}
+            onTagPointerDown={onTagPointerDown}
+            onTagDoubleClick={onTagDoubleClick}
+            onTagContextMenu={onTagContextMenu}
             onSymbolPointerUp={onSymbolPointerUp}
             onSymbolPointerLeave={onSymbolPointerLeave}
           />
@@ -163,6 +170,7 @@ export function Schematic() {
           <PortLayer
             circuit={circuit}
             mode={mode}
+            editSubMode={editSubMode}
             wiringFrom={wiringFrom}
             hoverPort={hoverPort}
             onPortPointerDown={onPortPointerDown}

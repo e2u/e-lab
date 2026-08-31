@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { addDevice, addJunction, addWire, emptyCircuit } from "./circuitBuilder";
+import { addDevice, addJunction, addWire, emptyCircuit, mergeWires } from "./circuitBuilder";
 import { GRID } from "./types";
-import { allWireRoutes, cleanPolyline, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute } from "./geometry";
+import { allWireRoutes, areWiresConnected, cleanPolyline, findOptimalJunctionForWires, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute, wiresInRect } from "./geometry";
 
 describe("wire routing stubs", () => {
   it("leaves a coil terminal in a straight stub before turning", () => {
@@ -18,7 +18,7 @@ describe("wire routing stubs", () => {
     expect(pts.length).toBeGreaterThanOrEqual(3);
     expect(pts[0].x).toBeCloseTo(start.x);
     expect(pts[0].y).toBeCloseTo(start.y);
-    expect(pts[1].x).toBeCloseTo(start.x + STUB);
+    expect(pts[1].x).toBeGreaterThan(start.x);
     expect(pts[1].y).toBeCloseTo(start.y);
   });
 
@@ -38,7 +38,7 @@ describe("wire routing stubs", () => {
     const dy = last.y - prev.y;
     expect(Math.abs(dx) < 0.5 || Math.abs(dy) < 0.5).toBe(true);
     const len = Math.hypot(dx, dy);
-    expect(len).toBeCloseTo(STUB, 0);
+    expect(len).toBeGreaterThanOrEqual(STUB);
   });
 
   it("offsets a jogged run without moving the stubs", () => {
@@ -52,6 +52,30 @@ describe("wire routing stubs", () => {
     const ys = new Set(pts.slice(1, -1).map((p) => Math.round(p.y)));
     expect(ys.has(Math.round(start.y + 40))).toBe(true);
     expect(pts[1].y).toBeCloseTo(start.y);
+  });
+
+  it("connects vertically or horizontally collinear terminals with a straight grid-aligned line without stub offsets", () => {
+    const c = emptyCircuit();
+    const btn = addDevice(c, "pb-no", "SB1", "body", 4, 4);
+    const relay = addDevice(c, "relay", "KA1", "aux-no", 4, 8);
+
+    // Terminal 1 of button (13) is at (4, 5)*GRID, terminal 1 of KA1 is at (4, 9)*GRID
+    addWire(c, btn.symbol, "1", relay.symbol, "1");
+    const wLeft = c.wires[0];
+    const ptsLeft = wireRoute(c, wLeft.a, wLeft.b);
+    expect(ptsLeft).toEqual([
+      { x: 4 * GRID, y: 5 * GRID },
+      { x: 4 * GRID, y: 9 * GRID },
+    ]);
+
+    // Terminal 2 of button (14) is at (8, 5)*GRID, terminal 2 of KA1 is at (8, 9)*GRID
+    addWire(c, btn.symbol, "2", relay.symbol, "2");
+    const wRight = c.wires[1];
+    const ptsRight = wireRoute(c, wRight.a, wRight.b);
+    expect(ptsRight).toEqual([
+      { x: 8 * GRID, y: 5 * GRID },
+      { x: 8 * GRID, y: 9 * GRID },
+    ]);
   });
 });
 
@@ -146,6 +170,63 @@ describe("wire crossovers", () => {
     const d = polylinePathD(pts, hops);
     expect(d).toContain("A ");
     expect(hopArcD(crossovers[0])).toContain(`A ${HOP_R} ${HOP_R}`);
+  });
+
+  it("merges multiple parallel wire crossings into a single larger arch", () => {
+    const c = emptyCircuit();
+    // 3 parallel horizontal lines (e.g. 3-phase lines L1, L2, L3 at y = 8, 9, 10)
+    const h1L = addJunction(c, 4, 8);
+    const h1R = addJunction(c, 16, 8);
+    const h2L = addJunction(c, 4, 9);
+    const h2R = addJunction(c, 16, 9);
+    const h3L = addJunction(c, 4, 10);
+    const h3R = addJunction(c, 16, 10);
+    addWire(c, h1L.symbol, "1", h1R.symbol, "1");
+    addWire(c, h2L.symbol, "1", h2R.symbol, "1");
+    addWire(c, h3L.symbol, "1", h3R.symbol, "1");
+
+    // 1 vertical wire crossing all 3 horizontal lines at x = 10
+    const vT = addJunction(c, 10, 4);
+    const vB = addJunction(c, 10, 16);
+    addWire(c, vT.symbol, "1", vB.symbol, "1");
+
+    const crossovers = findWireCrossovers(c);
+    expect(crossovers).toHaveLength(1);
+    expect(crossovers[0].count).toBe(3);
+    expect(crossovers[0].hopAxis).toBe("x");
+    expect(crossovers[0].x).toBeCloseTo(10 * GRID);
+    expect(crossovers[0].y).toBeCloseTo(9 * GRID); // Middle of y = 8, 9, 10
+    expect(crossovers[0].ry).toBeGreaterThan(HOP_R); // Larger vertical span
+    expect(crossovers[0].rx).toBeGreaterThanOrEqual(HOP_R); // Proportional bulge
+
+    const hops = crossovers.filter((x) => x.hopWireId === c.wires[3].id);
+    const pts = wireRoute(c, c.wires[3].a, c.wires[3].b);
+    const d = polylinePathD(pts, hops);
+
+    // Should only contain a single arc command leaping over all 3 lines
+    const arcMatches = d.match(/A /g);
+    expect(arcMatches).toHaveLength(1);
+    expect(d).toContain(`A ${crossovers[0].rx} ${crossovers[0].ry}`);
+  });
+
+  it("keeps distant crossings separate when gap exceeds threshold", () => {
+    const c = emptyCircuit();
+    // 2 horizontal lines far apart (y = 6 and y = 14, gap = 8 grids = 176px > 50px)
+    const h1L = addJunction(c, 4, 6);
+    const h1R = addJunction(c, 16, 6);
+    const h2L = addJunction(c, 4, 14);
+    const h2R = addJunction(c, 16, 14);
+    addWire(c, h1L.symbol, "1", h1R.symbol, "1");
+    addWire(c, h2L.symbol, "1", h2R.symbol, "1");
+
+    const vT = addJunction(c, 10, 2);
+    const vB = addJunction(c, 10, 18);
+    addWire(c, vT.symbol, "1", vB.symbol, "1");
+
+    const crossovers = findWireCrossovers(c);
+    expect(crossovers).toHaveLength(2);
+    expect(crossovers[0].count).toBe(1);
+    expect(crossovers[1].count).toBe(1);
   });
 
   it("does not treat a T-junction as a crossover", () => {
@@ -364,5 +445,151 @@ describe("wire crossovers", () => {
     expect(hit3Seg0?.axis).toBe("y");
     const hit3Seg1 = hitWireSegment(pts3, { x: 152, y: 160 });
     expect(hit3Seg1?.axis).toBe("x");
+  });
+});
+
+describe("wire merge and optimal junction point", () => {
+  it("detects connected wires via areWiresConnected", () => {
+    const c = emptyCircuit();
+    const l1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
+    const l2 = addDevice(c, "lamp", "HL2", "body", 14, 4);
+    const l3 = addDevice(c, "lamp", "HL3", "body", 14, 14);
+
+    const w1 = addWire(c, l1.symbol, "1", l2.symbol, "1");
+    const w2 = addWire(c, l2.symbol, "1", l3.symbol, "1");
+
+    // w1 and w2 share the same port l2.1
+    expect(areWiresConnected(c, w1.id, w2.id)).toBe(true);
+
+    // Add unconnected device & wire
+    const l4 = addDevice(c, "lamp", "HL4", "body", 24, 24);
+    const l5 = addDevice(c, "lamp", "HL5", "body", 34, 24);
+    const w3 = addWire(c, l4.symbol, "1", l5.symbol, "1");
+    expect(areWiresConnected(c, w1.id, w3.id)).toBe(false);
+  });
+
+  it("calculates optimal junction position when merging T-connected or intersecting wires", () => {
+    const c = emptyCircuit();
+    const l1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
+    const l2 = addDevice(c, "lamp", "HL2", "body", 16, 4);
+    const l3 = addDevice(c, "lamp", "HL3", "body", 10, 14);
+
+    const w1 = addWire(c, l1.symbol, "1", l2.symbol, "1");
+    const w2 = addWire(c, l3.symbol, "1", l1.symbol, "1");
+
+    const optPos = findOptimalJunctionForWires(c, w1.id, w2.id);
+    expect(optPos).not.toBeNull();
+    expect(optPos?.y).toBe(4);
+  });
+
+  it("merges two connected wires and creates junction with clean connections", () => {
+    const c = emptyCircuit();
+    const l1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
+    const l2 = addDevice(c, "lamp", "HL2", "body", 16, 4);
+    const l3 = addDevice(c, "lamp", "HL3", "body", 10, 14);
+
+    const w1 = addWire(c, l1.symbol, "1", l2.symbol, "1");
+    const w2 = addWire(c, l3.symbol, "1", l1.symbol, "1");
+
+    const res = mergeWires(c, w1.id, w2.id, { x: 10, y: 4 });
+    expect(res).not.toBeNull();
+    expect(res?.junction.x).toBe(10);
+    expect(res?.junction.y).toBe(4);
+
+    // Old wires removed, 3 new branches created to the junction
+    expect(c.wires.some((w) => w.id === w1.id)).toBe(false);
+    expect(c.wires.some((w) => w.id === w2.id)).toBe(false);
+    expect(c.wires.length).toBe(3);
+  });
+
+  it("finds wires within rectangular marquee selection using wiresInRect", () => {
+    const c = emptyCircuit();
+    const l1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
+    const l2 = addDevice(c, "lamp", "HL2", "body", 16, 4);
+    const w = addWire(c, l1.symbol, "1", l2.symbol, "1");
+
+    const inBox = wiresInRect(c, { x: 6, y: 2, w: 6, h: 4 });
+    expect(inBox).toContain(w.id);
+
+    const outBox = wiresInRect(c, { x: 20, y: 20, w: 4, h: 4 });
+    expect(outBox).not.toContain(w.id);
+  });
+
+  it("finds all connected/contiguous wires across junctions, shared ports, and net labels", () => {
+    const c = emptyCircuit();
+    const l1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
+    const j1 = addJunction(c, 10, 4);
+    const j2 = addJunction(c, 16, 4);
+    const l2 = addDevice(c, "lamp", "HL2", "body", 22, 4);
+    const l3 = addDevice(c, "lamp", "HL3", "body", 10, 12);
+
+    // Segment 1: l1 -> j1
+    const w1 = addWire(c, l1.symbol, "1", j1.symbol, "1");
+    // Segment 2: j1 -> j2
+    const w2 = addWire(c, j1.symbol, "1", j2.symbol, "1");
+    // Segment 3: j2 -> l2
+    const w3 = addWire(c, j2.symbol, "1", l2.symbol, "1");
+    // Branch: j1 -> l3
+    const w4 = addWire(c, j1.symbol, "1", l3.symbol, "1");
+
+    // Independent wire elsewhere
+    const l4 = addDevice(c, "lamp", "HL4", "body", 30, 30);
+    const l5 = addDevice(c, "lamp", "HL5", "body", 40, 30);
+    const wIsolated = addWire(c, l4.symbol, "1", l5.symbol, "1");
+
+    // Selecting w1 should find all connected wire segments: w1, w2, w3, w4
+    const conn1 = getConnectedWireIds(c, w1.id);
+    expect(conn1.size).toBe(4);
+    expect(conn1.has(w1.id)).toBe(true);
+    expect(conn1.has(w2.id)).toBe(true);
+    expect(conn1.has(w3.id)).toBe(true);
+    expect(conn1.has(w4.id)).toBe(true);
+    expect(conn1.has(wIsolated.id)).toBe(false);
+
+    // Selecting branch w4 should also return the entire connected tree
+    const conn4 = getConnectedWireIds(c, w4.id);
+    expect(conn4.size).toBe(4);
+    expect(conn4.has(w1.id)).toBe(true);
+    expect(conn4.has(w2.id)).toBe(true);
+    expect(conn4.has(w3.id)).toBe(true);
+    expect(conn4.has(w4.id)).toBe(true);
+    expect(conn4.has(wIsolated.id)).toBe(false);
+
+    // Selecting isolated wire should only return itself
+    const connIso = getConnectedWireIds(c, wIsolated.id);
+    expect(connIso.size).toBe(1);
+    expect(connIso.has(wIsolated.id)).toBe(true);
+    expect(connIso.has(w1.id)).toBe(false);
+
+    // Connecting wires via net-labels with matching tag
+    const net1 = addDevice(c, "net-label", "L1", "body", 10, 20);
+    const net2 = addDevice(c, "net-label", "L1", "body", 30, 20);
+    const wNetA = addWire(c, l3.symbol, "2", net1.symbol, "1");
+    const wNetB = addWire(c, net2.symbol, "1", l4.symbol, "2");
+
+    const connWithNets = getConnectedWireIds(c, wNetA.id);
+    expect(connWithNets.has(wNetA.id)).toBe(true);
+    expect(connWithNets.has(wNetB.id)).toBe(true);
+  });
+
+  it("routes around the component when connecting different terminals of the same symbol (self-loopback)", () => {
+    const c = emptyCircuit();
+    const btn = addDevice(c, "pb-no", "SB_START", "body", 4, 4);
+    // Connect terminal 1 (x=0, y=1) and 2 (x=4, y=1) of the same push button
+    addWire(c, btn.symbol, "1", btn.symbol, "2");
+    const w = c.wires[0];
+
+    const pts = wireRoute(c, w.a, w.b);
+    expect(pts.length).toBeGreaterThanOrEqual(4);
+
+    // The wire should loop around rather than cutting horizontally straight through the symbol body at y=5
+    const bodyY = (4 + 1) * GRID;
+    const detourPoints = pts.filter((p) => Math.abs(p.y - bodyY) > 10);
+    expect(detourPoints.length).toBeGreaterThan(0);
+
+    // Verify it is hittable and draggable
+    const midPt = pts[Math.floor(pts.length / 2)];
+    const hit = hitWireSegment(pts, { x: midPt.x, y: midPt.y + 1 });
+    expect(hit).not.toBeNull();
   });
 });

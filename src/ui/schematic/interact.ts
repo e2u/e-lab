@@ -35,7 +35,14 @@ export function interact(kind: string, id: string, down: boolean) {
   }
   if (kind === "overload" || kind === "fuse") lab.toggleIo(id, "tripped");
   if (kind === "selector-2" || kind === "selector-3") lab.cyclePosition(id);
-  if (kind === "limit-no" || kind === "limit-nc") lab.setProcess({ limitHit: !lab.process.limitHit });
+  if (kind === "limit-no" || kind === "limit-nc") {
+    const dev = lab.circuit.devices.find((d) => d.id === id);
+    if (dev) {
+      lab.toggleIo(id, "actuated");
+    } else {
+      lab.setProcess({ limitHit: !lab.process.limitHit });
+    }
+  }
   if (kind === "prox") lab.setProcess({ proxHit: !lab.process.proxHit });
   if (kind === "photo") lab.setProcess({ photoHit: !lab.process.photoHit });
   if (kind === "gen-ac" || kind === "gen-dc") lab.toggleIo(id, "prime");

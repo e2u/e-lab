@@ -7,6 +7,7 @@ import {
   type DeviceKind,
   type DeviceRuntime,
   type Fault,
+  type PortRef,
   type Potential,
   type PotentialKind,
   type ProcessVars,
@@ -19,11 +20,62 @@ export const PHASE_COLOR: Record<PotentialKind, string> = {
   L1: "#a65628", // Brown
   L2: "#ff7f00", // Orange
   L3: "#eccd26", // Yellow
-  N: "#ffffff", // White
-  PE: "#2ca02c", // Green
-  "DC+": "#e07020",
-  "DC-": "#1a5f8a",
+  N: "#0284c7", // Blue (Neutral)
+  PE: "#2ca02c", // Green (Earth/Ground)
+  "DC+": "#dc2626", // Red (DC+)
+  "DC-": "#1a5f8a", // Navy Blue (DC-)
 };
+
+export function matchNetLabelPhase(tag: string): PotentialKind | null {
+  const t = tag.trim().toUpperCase();
+  if (!t) return null;
+  if (/^(L1|PHASE[ _-]*1|PHASE[ _-]*A|LINE[ _-]*1)\b/i.test(t)) return "L1";
+  if (/^(L2|PHASE[ _-]*2|PHASE[ _-]*B|LINE[ _-]*2)\b/i.test(t)) return "L2";
+  if (/^(L3|PHASE[ _-]*3|PHASE[ _-]*C|LINE[ _-]*3)\b/i.test(t)) return "L3";
+  if (/^(N|NEUTRAL|N[\d_-]*)$/i.test(t)) return "N";
+  if (/^(PE|GND|GROUND|EARTH|G|E)$/i.test(t)) return "PE";
+  if (/^(DC\+|\+24V|\+12V|\+48V|\+5V|VCC|V\+|\+)$/i.test(t)) return "DC+";
+  if (/^(DC-|0V|-24V|-12V|COM|V-|-)$/i.test(t)) return "DC-";
+  return null;
+}
+
+export function directTerminalPotential(circuit: Circuit, port: PortRef): PotentialKind | null {
+  const sym = circuit.symbols.find((s) => s.id === port.symbolId);
+  if (!sym) return null;
+  const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+  if (!dev) return null;
+  if (dev.kind === "ground") return "PE";
+  if (port.term === "PE" || port.term === "GND" || port.term === "EARTH" || port.term === "G" || port.term === "E") {
+    return "PE";
+  }
+  if (dev.kind === "net-label") return matchNetLabelPhase(dev.tag);
+  if (dev.kind === "mains-3ph") {
+    if (port.term === "L1") return "L1";
+    if (port.term === "L2") return "L2";
+    if (port.term === "L3") return "L3";
+    if (port.term === "N") return "N";
+    if (port.term === "PE") return "PE";
+  }
+  if (dev.kind === "dc-supply") {
+    if (port.term === "+") return "DC+";
+    if (port.term === "-") return "DC-";
+  }
+  if (dev.kind === "gen-ac") {
+    if (port.term === "U") return "L1";
+    if (port.term === "V") return "L2";
+    if (port.term === "W") return "L3";
+    if (port.term === "N") return "N";
+  }
+  if (dev.kind === "gen-dc") {
+    if (port.term === "+") return "DC+";
+    if (port.term === "-") return "DC-";
+  }
+  if (dev.kind === "transformer") {
+    if (port.term === "X1" || port.term === "S1") return "L1";
+    if (port.term === "X2" || port.term === "S2") return "N";
+  }
+  return null;
+}
 
 export function defaultRuntime(kind: DeviceKind): DeviceRuntime {
   const closedHandle =
@@ -58,16 +110,132 @@ export function defaultRuntime(kind: DeviceKind): DeviceRuntime {
 export function createRuntime(circuit: Circuit): Record<string, DeviceRuntime> {
   const runtime: Record<string, DeviceRuntime> = {};
   for (const d of circuit.devices) runtime[d.id] = defaultRuntime(d.kind);
+
+  // Synchronize and enforce mutual exclusion for limit switches with the same tag (up to 2)
+  const limitByTag = new Map<string, Device[]>();
+  for (const d of circuit.devices) {
+    if (d.kind === "limit-no" || d.kind === "limit-nc") {
+      const tag = d.tag.trim();
+      if (tag) {
+        const list = limitByTag.get(tag) ?? [];
+        list.push(d);
+        limitByTag.set(tag, list);
+      }
+    }
+  }
+  for (const [, list] of limitByTag) {
+    if (list.length === 2) {
+      const [d1, d2] = list;
+      if (d1.kind === "limit-nc" && d2.kind === "limit-nc") {
+        if (runtime[d2.id]) runtime[d2.id].actuated = true;
+      }
+    }
+  }
+
   return runtime;
 }
 
 export function emptySnapshot(circuit: Circuit): SimSnapshot {
+  const runtime = createRuntime(circuit);
+  const uf = new UnionFind();
+  const link = (x: string, y: string) => {
+    uf.union(x, y);
+  };
+  for (const d of circuit.devices) {
+    for (const term of allTerminals(d.kind)) uf.add(nk(d.id, term));
+  }
+
+  for (const w of circuit.wires) {
+    if (w.broken) continue;
+    const a = portDevice(circuit, w.a);
+    const b = portDevice(circuit, w.b);
+    if (a && b) link(nk(a.deviceId, a.term), nk(b.deviceId, b.term));
+  }
+
+  linkNetLabels(circuit, link);
+
+  for (const d of circuit.devices) {
+    const rt = runtime[d.id];
+    for (const [a, b] of bridges(d, rt)) link(nk(d.id, a), nk(d.id, b));
+  }
+
+  const stamp = new Map<string, Potential[]>();
+  const stampNode = (deviceId: string, term: string, p: Potential) => {
+    const root = uf.find(nk(deviceId, term));
+    const list = stamp.get(root) ?? [];
+    if (!list.some((e) => e.kind === p.kind && e.sourceId === p.sourceId)) {
+      list.push(p);
+      stamp.set(root, list);
+    }
+  };
+
+  for (const d of circuit.devices) {
+    if (d.kind === "mains-3ph") {
+      stampNode(d.id, "L1", { sourceId: d.id, kind: "L1" });
+      stampNode(d.id, "L2", { sourceId: d.id, kind: "L2" });
+      stampNode(d.id, "L3", { sourceId: d.id, kind: "L3" });
+      const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+      const isDelta = d.params.supplyType === "delta" || sym?.variant === "delta";
+      if (!isDelta) {
+        stampNode(d.id, "N", { sourceId: d.id, kind: "N" });
+      }
+      stampNode(d.id, "PE", { sourceId: d.id, kind: "PE" });
+    }
+    if (d.kind === "ground") {
+      stampNode(d.id, "1", { sourceId: d.id, kind: "PE" });
+    }
+    if (d.kind === "dc-supply") {
+      stampNode(d.id, "+", { sourceId: d.id, kind: "DC+" });
+      stampNode(d.id, "-", { sourceId: d.id, kind: "DC-" });
+    }
+    if (d.kind === "gen-ac") {
+      stampNode(d.id, "U", { sourceId: d.id, kind: "L1" });
+      stampNode(d.id, "V", { sourceId: d.id, kind: "L2" });
+      stampNode(d.id, "W", { sourceId: d.id, kind: "L3" });
+      stampNode(d.id, "N", { sourceId: d.id, kind: "N" });
+    }
+    if (d.kind === "gen-dc") {
+      stampNode(d.id, "+", { sourceId: d.id, kind: "DC+" });
+      stampNode(d.id, "-", { sourceId: d.id, kind: "DC-" });
+    }
+    if (d.kind === "transformer") {
+      stampNode(d.id, "X1", { sourceId: `xf-${d.id}`, kind: "L1" });
+      stampNode(d.id, "X2", { sourceId: `xf-${d.id}`, kind: "N" });
+      stampNode(d.id, "S1", { sourceId: `xf-${d.id}`, kind: "L1" });
+      stampNode(d.id, "S2", { sourceId: `xf-${d.id}`, kind: "N" });
+    }
+  }
+
+  const wires: Record<string, WireLive> = {};
+  for (const w of circuit.wires) {
+    if (w.broken) {
+      wires[w.id] = { live: false, kind: null, dir: 0 };
+      continue;
+    }
+    const directA = directTerminalPotential(circuit, w.a);
+    const directB = directTerminalPotential(circuit, w.b);
+    let kind: PotentialKind | null = null;
+    if (directA === "PE" || directB === "PE") {
+      kind = "PE";
+    } else if (directA) {
+      kind = directA;
+    } else if (directB) {
+      kind = directB;
+    } else {
+      const a = portDevice(circuit, w.a);
+      const b = portDevice(circuit, w.b);
+      let p: Potential | null = null;
+      if (a) p = potOf(stamp, uf, nk(a.deviceId, a.term));
+      if (!p && b) p = potOf(stamp, uf, nk(b.deviceId, b.term));
+      kind = p?.kind ?? null;
+    }
+    wires[w.id] = { live: false, kind, dir: 0 };
+  }
+
   return {
-    runtime: createRuntime(circuit),
+    runtime,
     potentials: {},
-    wires: Object.fromEntries(
-      circuit.wires.map((w) => [w.id, { live: false, kind: null, dir: 0 }]),
-    ),
+    wires,
     faults: [],
     timeMs: 0,
   };
@@ -284,6 +452,8 @@ function potOf(
   if (hot) return hot;
   const ret = list.find((p) => p.kind === "N" || p.kind === "DC-");
   if (ret) return ret;
+  const pe = list.find((p) => p.kind === "PE");
+  if (pe) return pe;
   return list[0] ?? null;
 }
 
@@ -452,8 +622,14 @@ function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
       if (rt.position === 1) out.push(["3", "4"]);
       break;
     case "selector-3":
-      if (rt.position === 1) out.push(["COM", "FWD"]);
-      if (rt.position === 2) out.push(["COM", "REV"]);
+      if (rt.position === 1) {
+        out.push(["COM", "FWD"]);
+        out.push(["COM2", "FWD"]);
+      }
+      if (rt.position === 2) {
+        out.push(["COM2", "REV"]);
+        out.push(["COM", "REV"]);
+      }
       break;
     case "breaker-1p":
     case "fuse":
@@ -587,14 +763,74 @@ export function tick(
       d.kind.startsWith("pressure") ||
       d.kind.startsWith("flow") ||
       d.kind === "float" ||
-      d.kind === "limit-no" ||
-      d.kind === "limit-nc" ||
       d.kind === "prox" ||
       d.kind === "photo"
     ) {
       rt.actuated = sensed;
+    } else if (d.kind === "limit-no" || d.kind === "limit-nc") {
+      rt.actuated = input.held.has(d.id) || (input.process.limitHit ? true : prev.actuated);
     }
     runtime[d.id] = rt;
+  }
+
+  // Synchronize and enforce mutual exclusion for limit switches with the same tag (up to 2)
+  const limitByTag = new Map<string, Device[]>();
+  for (const d of circuit.devices) {
+    if (d.kind === "limit-no" || d.kind === "limit-nc") {
+      const tag = d.tag.trim();
+      if (tag) {
+        const list = limitByTag.get(tag) ?? [];
+        list.push(d);
+        limitByTag.set(tag, list);
+      }
+    }
+  }
+
+  for (const [, list] of limitByTag) {
+    if (list.length === 2) {
+      const [d1, d2] = list;
+      const rt1 = runtime[d1.id];
+      const rt2 = runtime[d2.id];
+      if (!rt1 || !rt2) continue;
+
+      const isOppositeKinds =
+        (d1.kind === "limit-no" && d2.kind === "limit-nc") ||
+        (d1.kind === "limit-nc" && d2.kind === "limit-no");
+      if (isOppositeKinds) {
+        // 1 NO + 1 NC of the same physical limit switch SQ:
+        // Share physical actuation state. When actuated, NO closes & NC opens.
+        const isActuated =
+          input.held.has(d1.id) ||
+          input.held.has(d2.id) ||
+          (input.process.limitHit
+            ? true
+            : Boolean(prevRuntime[d1.id]?.actuated || prevRuntime[d2.id]?.actuated));
+        rt1.actuated = isActuated;
+        rt2.actuated = isActuated;
+      } else if (d1.kind === "limit-no" && d2.kind === "limit-no") {
+        // 2 NO: mutually exclusive (cannot both be actuated/closed)
+        if (input.held.has(d1.id)) {
+          rt1.actuated = true;
+          rt2.actuated = false;
+        } else if (input.held.has(d2.id)) {
+          rt2.actuated = true;
+          rt1.actuated = false;
+        } else if (rt1.actuated && rt2.actuated) {
+          rt2.actuated = false;
+        }
+      } else if (d1.kind === "limit-nc" && d2.kind === "limit-nc") {
+        // 2 NC: mutually exclusive (cannot both be conducting/unactuated)
+        if (input.held.has(d1.id)) {
+          rt1.actuated = true;
+          rt2.actuated = false;
+        } else if (input.held.has(d2.id)) {
+          rt2.actuated = true;
+          rt1.actuated = false;
+        } else if (!rt1.actuated && !rt2.actuated) {
+          rt2.actuated = true;
+        }
+      }
+    }
   }
 
   const uf = new UnionFind();
@@ -849,14 +1085,26 @@ export function tick(
     }
 
     if (d.kind === "motor-1ph" || d.kind === "fan") {
-      const potsU1 = nodePots(stamp, uf, nk(d.id, "U1"));
-      const potsU2 = nodePots(stamp, uf, nk(d.id, "U2"));
+      const potsU1 = [
+        ...nodePots(stamp, uf, nk(d.id, "U1")),
+        ...nodePots(stamp, uf, nk(d.id, "1")),
+        ...nodePots(stamp, uf, nk(d.id, "L")),
+      ];
+      const potsU2 = [
+        ...nodePots(stamp, uf, nk(d.id, "U2")),
+        ...nodePots(stamp, uf, nk(d.id, "2")),
+        ...nodePots(stamp, uf, nk(d.id, "N")),
+      ];
       const live = hasVoltageBetween(potsU1, potsU2);
       rt.energized = live;
       rt.direction = live ? 1 : 0;
       if (live) {
         loadNodes.add(nk(d.id, "U1"));
         loadNodes.add(nk(d.id, "U2"));
+        loadNodes.add(nk(d.id, "1"));
+        loadNodes.add(nk(d.id, "2"));
+        loadNodes.add(nk(d.id, "L"));
+        loadNodes.add(nk(d.id, "N"));
       }
     }
 
@@ -1143,13 +1391,26 @@ export function tick(
       wires[w.id] = { live: false, kind: null, dir: 0, short: false };
       continue;
     }
-    const p = pot(a.deviceId, a.term);
+    const directA = directTerminalPotential(circuit, w.a);
+    const directB = directTerminalPotential(circuit, w.b);
+    let pKind: PotentialKind | null = null;
+    if (directA === "PE" || directB === "PE") {
+      pKind = "PE";
+    } else if (directA) {
+      pKind = directA;
+    } else if (directB) {
+      pKind = directB;
+    } else {
+      const p = pot(a.deviceId, a.term) ?? pot(b.deviceId, b.term);
+      pKind = p?.kind ?? null;
+    }
+
     const na = nk(a.deviceId, a.term);
     const nb = nk(b.deviceId, b.term);
     const root = uf.find(na);
     const rootB = uf.find(nb);
     const isShort = shortRoots.has(root) || shortRoots.has(rootB);
-    const carrying = (Boolean(p) && currentRoots.has(root)) || isShort;
+    const carrying = (Boolean(pKind) && (currentRoots.has(root) || currentRoots.has(rootB))) || isShort;
     let dir: 1 | -1 | 0 = 0;
     if (carrying) {
       const hA = distHot.get(na);
@@ -1168,7 +1429,7 @@ export function tick(
     }
     wires[w.id] = {
       live: carrying,
-      kind: isShort ? (p?.kind ?? "L1") : (p?.kind ?? null),
+      kind: isShort ? (pKind ?? "L1") : pKind,
       dir,
       short: isShort,
     };

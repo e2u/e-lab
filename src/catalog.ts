@@ -52,7 +52,7 @@ const pbBody: VariantDef = {
 const coilBody: VariantDef = {
   w: 4,
   h: 2,
-  terminals: [t("A1", 0, 1), t("A2", 4, 1)],
+  terminals: [t("A1", 0, 1, "A1"), t("A2", 4, 1, "A2")],
 };
 
 const meterBody: VariantDef = {
@@ -293,7 +293,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: {
         w: 4,
         h: 4,
-        terminals: [t("1", 0, 1), t("2", 4, 1), t("3", 0, 3), t("4", 4, 3)],
+        terminals: [t("1", 0, 1, "1"), t("2", 4, 1, "2"), t("3", 0, 3, "3"), t("4", 4, 3, "4")],
       },
     },
   },
@@ -305,9 +305,10 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
         w: 4,
         h: 4,
         terminals: [
-          t("COM", 0, 1, "C"),
-          t("FWD", 4, 1, "F"),
-          t("REV", 4, 3, "R"),
+          t("COM", 0, 1, "COM"),
+          t("FWD", 4, 1, "FWD"),
+          t("COM2", 0, 3, "COM2"),
+          t("REV", 4, 3, "REV"),
         ],
       },
     },
@@ -320,7 +321,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: {
         w: 4,
         h: 2,
-        terminals: [t("1", 0, 1), t("2", 4, 1)],
+        terminals: [t("1", 0, 1, "1"), t("2", 4, 1, "2")],
       },
     },
   },
@@ -342,7 +343,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: {
         w: 4,
         h: 4,
-        terminals: [t("1", 0, 1), t("2", 4, 1), t("3", 0, 3), t("4", 4, 3)],
+        terminals: [t("1", 0, 1, "1"), t("2", 4, 1, "2"), t("3", 0, 3, "3"), t("4", 4, 3, "4")],
       },
     },
   },
@@ -354,8 +355,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
         w: 4,
         h: 8,
         terminals: [
-          t("1", 0, 2, "COM"), t("2", 4, 1, "NC"), t("3", 4, 3, "NO"),
-          t("4", 0, 6, "COM"), t("5", 4, 5, "NC"), t("6", 4, 7, "NO"),
+          t("1", 0, 2, "COM1"), t("2", 4, 1, "NC1"), t("3", 4, 3, "NO1"),
+          t("4", 0, 6, "COM2"), t("5", 4, 5, "NC2"), t("6", 4, 7, "NO2"),
         ],
       },
     },
@@ -368,10 +369,10 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
         w: 4,
         h: 16,
         terminals: [
-          t("1", 0, 2, "COM"), t("2", 4, 1, "NC"), t("3", 4, 3, "NO"),
-          t("4", 0, 6, "COM"), t("5", 4, 5, "NC"), t("6", 4, 7, "NO"),
-          t("7", 0, 10, "COM"), t("8", 4, 9, "NC"), t("9", 4, 11, "NO"),
-          t("10", 0, 14, "COM"), t("11", 4, 13, "NC"), t("12", 4, 15, "NO"),
+          t("1", 0, 2, "COM1"), t("2", 4, 1, "NC1"), t("3", 4, 3, "NO1"),
+          t("4", 0, 6, "COM2"), t("5", 4, 5, "NC2"), t("6", 4, 7, "NO2"),
+          t("7", 0, 10, "COM3"), t("8", 4, 9, "NC3"), t("9", 4, 11, "NO3"),
+          t("10", 0, 14, "COM4"), t("11", 4, 13, "NC4"), t("12", 4, 15, "NO4"),
         ],
       },
     },
@@ -511,22 +512,22 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       "aux-no": {
         w: CONTACT_W,
         h: 2,
-        terminals: [t("1", 0, 1), t("2", CONTACT_W, 1)],
+        terminals: [t("1", 0, 1, "1"), t("2", CONTACT_W, 1, "2")],
       },
       "aux-nc": {
         w: CONTACT_W,
         h: 2,
-        terminals: [t("3", 0, 1), t("4", CONTACT_W, 1)],
+        terminals: [t("3", 0, 1, "3"), t("4", CONTACT_W, 1, "4")],
       },
       "aux-no2": {
         w: CONTACT_W,
         h: 2,
-        terminals: [t("5", 0, 1), t("6", CONTACT_W, 1)],
+        terminals: [t("5", 0, 1, "5"), t("6", CONTACT_W, 1, "6")],
       },
       "aux-nc2": {
         w: CONTACT_W,
         h: 2,
-        terminals: [t("7", 0, 1), t("8", CONTACT_W, 1)],
+        terminals: [t("7", 0, 1, "7"), t("8", CONTACT_W, 1, "8")],
       },
     },
   },
@@ -548,10 +549,10 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
         w: 6,
         h: 6,
         terminals: [
-          t("A1", 0, 2),
-          t("A2", 6, 2),
-          t("1", 2, 6),
-          t("2", 4, 6),
+          t("A1", 0, 2, "A1"),
+          t("A2", 6, 2, "A2"),
+          t("1", 2, 6, "1"),
+          t("2", 4, 6, "2"),
         ],
       },
     },
@@ -563,7 +564,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: {
         w: 2,
         h: 4,
-        terminals: [t("1", 1, 0), t("2", 1, 4)],
+        terminals: [t("1", 1, 0, "X1"), t("2", 1, 4, "X2")],
       },
     },
   },
@@ -576,7 +577,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: {
         w: 4,
         h: 4,
-        terminals: [t("U1", 0, 2), t("U2", 4, 2)],
+        terminals: [t("U1", 0, 2, "U1"), t("U2", 4, 2, "U2")],
       },
     },
   },
@@ -614,7 +615,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: {
         w: 4,
         h: 6,
-        terminals: [t("U1", 1, 0, "1"), t("U2", 3, 0, "2")],
+        terminals: [t("U1", 1, 0, "U1"), t("U2", 3, 0, "U2")],
       },
     },
   },
@@ -637,10 +638,10 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
         w: 6,
         h: 8,
         terminals: [
-          t("U", 6, 1),
-          t("V", 6, 3),
-          t("W", 6, 5),
-          t("N", 6, 7),
+          t("U", 6, 1, "U"),
+          t("V", 6, 3, "V"),
+          t("W", 6, 5, "W"),
+          t("N", 6, 7, "N"),
         ],
       },
     },
@@ -718,6 +719,17 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: {
         w: 16,
         h: 5,
+        terminals: [],
+      },
+    },
+  },
+  comment: {
+    prefix: "REM",
+    label: "註釋文字框",
+    variants: {
+      body: {
+        w: 6,
+        h: 3,
         terminals: [],
       },
     },
@@ -821,6 +833,7 @@ export const CATALOG: CatalogItem[] = [
 
   { id: "starter-rev-combo", kind: "starter-rev-combo", variant: "body", group: "起動器", label: "正反轉組合起動器", labelEn: "Reversing Starter", prefix: "KMR", creates: "device" },
   { id: "title-block", kind: "title-block", variant: "body", group: "圖紙標註", label: "圖紙標題欄", labelEn: "Title Block", prefix: "TB", creates: "device" },
+  { id: "comment", kind: "comment", variant: "body", group: "圖紙標註", label: "註釋文字框", labelEn: "Comment Box", prefix: "REM", creates: "device" },
 ];
 
 export const GROUPS = [

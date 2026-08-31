@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { EXAMPLES, type Example } from "./examples";
-import { rotateSelected, useLab } from "./store";
+import { useLab } from "./store";
 import { formatFaultMessage, t, tOr } from "./i18n";
 import { Bench, ProcessRack } from "./ui/Bench";
 import { FilesMenu } from "./ui/FilesMenu";
@@ -15,6 +15,7 @@ import { FloatingActionBar } from "./ui/FloatingActionBar";
 import { MobileMenuModal } from "./ui/MobileMenuModal";
 import { PrintModal } from "./ui/PrintModal";
 import { TutorialOverlay } from "./tutorial/TutorialOverlay";
+import { setupKeyboardShortcuts } from "./keyboard";
 
 
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
@@ -90,153 +91,9 @@ export function App() {
     return () => window.clearInterval(id);
   }, [running, mode]);
 
+  // Global keyboard shortcuts and focus management
   useEffect(() => {
-    const typing = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
-      return t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA" || t.isContentEditable;
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (typing(e)) return;
-      const lab = useLab.getState();
-      if (e.key === "[" || ((e.metaKey || e.ctrlKey) && e.key === "[")) {
-        e.preventDefault();
-        lab.togglePalette();
-        return;
-      }
-      if (e.key === "]" || ((e.metaKey || e.ctrlKey) && e.key === "]")) {
-        e.preventDefault();
-        lab.toggleSide();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && (e.key === "=" || e.key === "+")) {
-        e.preventDefault();
-        lab.zoomIn();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && (e.key === "-" || e.key === "_")) {
-        e.preventDefault();
-        lab.zoomOut();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === "0") {
-        e.preventDefault();
-        lab.resetZoom();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === "9") {
-        e.preventDefault();
-        lab.zoomFit();
-        return;
-      }
-      if (e.key === "Delete" || e.key === "Backspace") {
-        e.preventDefault();
-        lab.deleteSelected();
-        return;
-      }
-      if (e.key === "Escape") {
-        lab.setPlacing(null);
-        lab.select(null);
-        if (lab.wiringFrom) {
-          useLab.setState({ wiringFrom: null, hoverPort: null });
-        }
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        if (e.shiftKey) lab.redo();
-        else lab.undo();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
-        e.preventDefault();
-        lab.copySelected();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "v") {
-        e.preventDefault();
-        lab.pasteClipboard();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
-        e.preventDefault();
-        lab.duplicateSelected();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
-        e.preventDefault();
-        lab.selectAll();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "p") {
-        e.preventDefault();
-        lab.openPrint();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g") {
-        e.preventDefault();
-        if (lab.mode !== "edit") return;
-        if (e.shiftKey) lab.ungroupSelected();
-        else lab.groupSelected();
-        return;
-      }
-      
-      // ✅ 新增：切換布局模式（Schematic / Ladder）
-      if (e.key.toLowerCase() === "l" && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        lab.toggleLayoutMode();
-        return;
-      }
-
-      // ✅ 新增：子模式切換（W: Wiring 佈線模式, E: Editing 編輯模式）
-      if (e.key.toLowerCase() === "w" && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        if (lab.mode === "edit") {
-          lab.setEditSubMode("wiring");
-        }
-        return;
-      }
-      if (e.key.toLowerCase() === "e" && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        if (lab.mode === "edit") {
-          lab.setEditSubMode("editing");
-        }
-        return;
-      }
-      
-      if (e.key === " ") {
-        e.preventDefault();
-        if (lab.mode === "run") lab.setRunning(!lab.running);
-        return;
-      }
-      if (e.key.toLowerCase() === "r" && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        if (lab.mode !== "edit") return;
-        rotateSelected(e.shiftKey ? -1 : 1);
-        return;
-      }
-      if (e.key.toLowerCase() === "h" && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        if (lab.mode !== "edit") return;
-        lab.flipSelected("h");
-        return;
-      }
-      if (e.key.toLowerCase() === "v" && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        if (lab.mode !== "edit") return;
-        lab.flipSelected("v");
-        return;
-      }
-      if (lab.mode === "edit" && (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown")) {
-        e.preventDefault();
-        const step = e.shiftKey ? 5 : 1;
-        if (e.key === "ArrowLeft") lab.nudgeSelected(-step, 0);
-        if (e.key === "ArrowRight") lab.nudgeSelected(step, 0);
-        if (e.key === "ArrowUp") lab.nudgeSelected(0, -step);
-        if (e.key === "ArrowDown") lab.nudgeSelected(0, step);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return setupKeyboardShortcuts();
   }, []);
 
   // Load examples on mount - works in both dev and GitHub Pages
@@ -623,7 +480,10 @@ export function App() {
                 <span className="example-icon">📚</span>
                 <select 
                   value={selectedExample}
-                  onChange={(e) => handleRequestSelectExample(e.target.value)}
+                  onChange={(e) => {
+                    handleRequestSelectExample(e.target.value);
+                    e.target.blur();
+                  }}
                   className="example-select"
                   title={t("lib.example")}
                 >
@@ -656,7 +516,10 @@ export function App() {
                   value={lang}
                   title={t("lib.language")}
                   className="lang-select"
-                  onChange={(e) => useLab.getState().setLang(e.target.value as any)}
+                  onChange={(e) => {
+                    useLab.getState().setLang(e.target.value as any);
+                    e.target.blur();
+                  }}
                 >
                   <option value="zh">繁中</option>
                   <option value="en">EN</option>

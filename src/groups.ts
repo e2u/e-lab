@@ -265,8 +265,10 @@ export function alignEntities(
         for (const w of circuit.wires) {
           if (w.jog && memberSet.has(w.a.symbolId) && memberSet.has(w.b.symbolId) && !updatedWires.has(w.id)) {
             updatedWires.add(w.id);
-            const newPos = w.jog.axis === "x" ? w.jog.pos + dx * GRID : w.jog.pos;
-            wireJogUpdates.push({ id: w.id, jog: { axis: w.jog.axis, pos: newPos } });
+            const jogCopy: WireJog = { ...w.jog };
+            if (jogCopy.x !== undefined) jogCopy.x += dx * GRID;
+            if (jogCopy.axis === "x") jogCopy.pos = (jogCopy.pos ?? 0) + dx * GRID;
+            wireJogUpdates.push({ id: w.id, jog: jogCopy });
           }
         }
       }
@@ -304,8 +306,10 @@ export function alignEntities(
         for (const w of circuit.wires) {
           if (w.jog && memberSet.has(w.a.symbolId) && memberSet.has(w.b.symbolId) && !updatedWires.has(w.id)) {
             updatedWires.add(w.id);
-            const newPos = w.jog.axis === "y" ? w.jog.pos + dy * GRID : w.jog.pos;
-            wireJogUpdates.push({ id: w.id, jog: { axis: w.jog.axis, pos: newPos } });
+            const jogCopy: WireJog = { ...w.jog };
+            if (jogCopy.y !== undefined) jogCopy.y += dy * GRID;
+            if (jogCopy.axis === "y") jogCopy.pos = (jogCopy.pos ?? 0) + dy * GRID;
+            wireJogUpdates.push({ id: w.id, jog: jogCopy });
           }
         }
       }
@@ -355,10 +359,12 @@ export function alignEntities(
         for (const w of circuit.wires) {
           if (w.jog && memberSet.has(w.a.symbolId) && memberSet.has(w.b.symbolId) && !updatedWires.has(w.id)) {
             updatedWires.add(w.id);
-            let newPos = w.jog.pos;
-            if (w.jog.axis === "x" && Math.abs(dx) > 0.0001) newPos += dx * GRID;
-            if (w.jog.axis === "y" && Math.abs(dy) > 0.0001) newPos += dy * GRID;
-            wireJogUpdates.push({ id: w.id, jog: { axis: w.jog.axis, pos: newPos } });
+            const jogCopy: WireJog = { ...w.jog };
+            if (jogCopy.x !== undefined && Math.abs(dx) > 0.0001) jogCopy.x += dx * GRID;
+            if (jogCopy.y !== undefined && Math.abs(dy) > 0.0001) jogCopy.y += dy * GRID;
+            if (jogCopy.axis === "x" && Math.abs(dx) > 0.0001) jogCopy.pos = (jogCopy.pos ?? 0) + dx * GRID;
+            if (jogCopy.axis === "y" && Math.abs(dy) > 0.0001) jogCopy.pos = (jogCopy.pos ?? 0) + dy * GRID;
+            wireJogUpdates.push({ id: w.id, jog: jogCopy });
           }
         }
       }
@@ -401,10 +407,12 @@ export function alignEntities(
         for (const w of circuit.wires) {
           if (w.jog && memberSet.has(w.a.symbolId) && memberSet.has(w.b.symbolId) && !updatedWires.has(w.id)) {
             updatedWires.add(w.id);
-            let newPos = w.jog.pos;
-            if (w.jog.axis === "x" && Math.abs(dx) > 0.0001) newPos += dx * GRID;
-            if (w.jog.axis === "y" && Math.abs(dy) > 0.0001) newPos += dy * GRID;
-            wireJogUpdates.push({ id: w.id, jog: { axis: w.jog.axis, pos: newPos } });
+            const jogCopy: WireJog = { ...w.jog };
+            if (jogCopy.x !== undefined && Math.abs(dx) > 0.0001) jogCopy.x += dx * GRID;
+            if (jogCopy.y !== undefined && Math.abs(dy) > 0.0001) jogCopy.y += dy * GRID;
+            if (jogCopy.axis === "x" && Math.abs(dx) > 0.0001) jogCopy.pos = (jogCopy.pos ?? 0) + dx * GRID;
+            if (jogCopy.axis === "y" && Math.abs(dy) > 0.0001) jogCopy.pos = (jogCopy.pos ?? 0) + dy * GRID;
+            wireJogUpdates.push({ id: w.id, jog: jogCopy });
           }
         }
       }
@@ -498,19 +506,23 @@ export function rotateSelection(
       const cyPx = cy * GRID;
       for (const w of circuit.wires) {
         if (w.jog && memberSet.has(w.a.symbolId) && memberSet.has(w.b.symbolId)) {
-          if (dir === 1) {
-            if (w.jog.axis === "x") {
-              wireJogUpdates.push({ id: w.id, jog: { axis: "y", pos: cyPx + (w.jog.pos - cxPx) } });
-            } else {
-              wireJogUpdates.push({ id: w.id, jog: { axis: "x", pos: cxPx - (w.jog.pos - cyPx) } });
-            }
-          } else {
-            if (w.jog.axis === "x") {
-              wireJogUpdates.push({ id: w.id, jog: { axis: "y", pos: cyPx - (w.jog.pos - cxPx) } });
-            } else {
-              wireJogUpdates.push({ id: w.id, jog: { axis: "x", pos: cxPx + (w.jog.pos - cyPx) } });
-            }
+          const oldX = w.jog.x ?? (w.jog.axis === "x" ? w.jog.pos : undefined);
+          const oldY = w.jog.y ?? (w.jog.axis === "y" ? w.jog.pos : undefined);
+          let newX: number | undefined;
+          let newY: number | undefined;
+          if (oldX !== undefined) {
+            newY = dir === 1 ? cyPx + (oldX - cxPx) : cyPx - (oldX - cxPx);
           }
+          if (oldY !== undefined) {
+            newX = dir === 1 ? cxPx - (oldY - cyPx) : cxPx + (oldY - cyPx);
+          }
+          const jogObj: WireJog = {
+            axis: w.jog.axis === "x" ? "y" : "x",
+            pos: w.jog.axis === "x" ? (newY ?? 0) : (newX ?? 0),
+          };
+          if (newX !== undefined) jogObj.x = newX;
+          if (newY !== undefined) jogObj.y = newY;
+          wireJogUpdates.push({ id: w.id, jog: jogObj });
         }
       }
     }

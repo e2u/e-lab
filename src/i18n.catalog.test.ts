@@ -28,6 +28,39 @@ describe("catalog labels", () => {
       }
     }
   });
+
+  it("ensures all component terminals have clear, non-empty terminal identifiers and labels", () => {
+    for (const [kind, meta] of Object.entries(KINDS)) {
+      for (const [variantName, variant] of Object.entries(meta.variants)) {
+        for (const term of variant.terminals) {
+          expect(term.id.trim().length, `${kind}:${variantName} terminal ID should not be empty`).toBeGreaterThan(0);
+          expect(term.label.trim().length, `${kind}:${variantName} terminal label should not be empty`).toBeGreaterThan(0);
+        }
+      }
+    }
+
+    // Verify key terminal labels
+    const s3 = KINDS["selector-3"].variants.body.terminals;
+    expect(s3.map((t) => t.label)).toEqual(["COM", "FWD", "COM2", "REV"]);
+
+    const s2 = KINDS["selector-2"].variants.body.terminals;
+    expect(s2.map((t) => t.label)).toEqual(["1", "2", "3", "4"]);
+
+    const spdt = KINDS["toggle-spdt"].variants.body.terminals;
+    expect(spdt.map((t) => t.label)).toEqual(["COM", "NC", "NO"]);
+
+    const dpdt = KINDS["toggle-dpdt"].variants.body.terminals;
+    expect(dpdt.map((t) => t.label)).toEqual(["COM1", "NC1", "NO1", "COM2", "NC2", "NO2"]);
+
+    const kmCoil = KINDS["contactor"].variants.coil.terminals;
+    expect(kmCoil.map((t) => t.label)).toEqual(["A1", "A2"]);
+
+    const m3 = KINDS["motor-3ph"].variants.body.terminals;
+    expect(m3.map((t) => t.label)).toEqual(["U", "V", "W"]);
+
+    const m1 = KINDS["motor-1ph"].variants.body.terminals;
+    expect(m1.map((t) => t.label)).toEqual(["U1", "U2"]);
+  });
   it("maps selector and net-label ids to real translation keys", () => {
     expect(catalogCompKey("selector-2")).toBe("comp.selector2");
     expect(catalogCompKey("selector-3")).toBe("comp.selector3");

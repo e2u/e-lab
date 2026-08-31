@@ -14,6 +14,7 @@ interface SymbolLayerProps {
   selected: Selection | null;
   selectedIds: string[];
   selectedNetTag: string;
+  highlightedWireIds?: Set<string>;
   held: string[];
   onSymbolContextMenu: (e: MouseEvent<SVGElement>, symId: string) => void;
   onSymbolPointerDown: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
@@ -31,6 +32,7 @@ export const SymbolLayer = memo(function SymbolLayer({
   selected,
   selectedIds,
   selectedNetTag,
+  highlightedWireIds,
   held,
   onSymbolContextMenu,
   onSymbolPointerDown,
@@ -65,8 +67,10 @@ export const SymbolLayer = memo(function SymbolLayer({
             dev.kind !== "junction" &&
             dev.kind !== "net-label" &&
             dev.kind !== "title-block" &&
-            (sym.deviceId === selectedDev.id ||
-              (dev.kind === selectedDev.kind && dev.tag.trim() && dev.tag.trim() === selectedDev.tag.trim()))
+            ((dev.kind !== "comment" && sym.deviceId === selectedDev.id) ||
+              (selectedDev.kind === "comment" && dev.id === selectedDev.params?.targetDeviceId) ||
+              (dev.kind === "comment" && dev.params?.targetDeviceId === selectedDev.id) ||
+              (dev.kind !== "comment" && dev.kind === selectedDev.kind && dev.tag.trim() && dev.tag.trim() === selectedDev.tag.trim()))
         );
         const isRelatedSymbol = !sel && isSameDevice;
         return (
@@ -151,7 +155,7 @@ export const SymbolLayer = memo(function SymbolLayer({
               )}
             </g>
             {/* 元件 tag - 單獨渲染，不旋轉 */}
-            {dev.kind !== "junction" && dev.kind !== "mains-3ph" && dev.kind !== "net-label" && dev.kind !== "title-block" && (
+            {dev.kind !== "junction" && dev.kind !== "mains-3ph" && dev.kind !== "net-label" && dev.kind !== "title-block" && dev.kind !== "comment" && (
               <g pointerEvents="all">
                 {(() => {
                   const basePlacement = getSymbolTagPlacement(dev.kind, sym, v);
@@ -208,17 +212,76 @@ export const SymbolLayer = memo(function SymbolLayer({
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
         const hot = Boolean(dev && snapshot.runtime[dev.id]?.energized);
         const sel = selectedIds.includes(sym.id);
+        const isConnectedJunction = highlightedWireIds ? connectedWires.some((w) => highlightedWireIds.has(w.id)) : false;
         return (
           <circle
             key={`jdot-${sym.id}`}
             cx={p.x}
             cy={p.y}
-            r={hot || sel ? 5.6 : 4.8}
-            fill={hot ? "#e6c11e" : "#1b1a16"}
+            r={hot || sel || isConnectedJunction ? 5.6 : 4.8}
+            fill={hot || isConnectedJunction ? "#e6c11e" : "#1b1a16"}
             stroke="#efe6d0"
             strokeWidth="1.2"
             pointerEvents="none"
           />
+        );
+      })}
+
+      {/* Comment leader lines */}
+      {circuit.symbols.map((sym) => {
+        const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+        if (!dev || dev.kind !== "comment" || !dev.params?.targetDeviceId || dev.params?.showLeaderLine === false) return null;
+        const targetDev = circuit.devices.find((d) => d.id === dev.params?.targetDeviceId);
+        if (!targetDev) return null;
+        const targetSym = circuit.symbols.find((s) => s.deviceId === targetDev.id);
+        if (!targetSym) return null;
+
+        const v = variantDef(dev.kind, sym.variant);
+        const tv = variantDef(targetDev.kind, targetSym.variant);
+        const cw = ((dev.params?.width ?? v.w) * GRID);
+        const ch = ((dev.params?.height ?? v.h) * GRID);
+        const tw = (tv.w * GRID);
+        const th = (tv.h * GRID);
+
+        // Comment center / anchor
+        const cx = sym.x * GRID + cw / 2;
+        const cy = sym.y * GRID + ch / 2;
+
+        // Target center
+        const tx = targetSym.x * GRID + tw / 2;
+        const ty = targetSym.y * GRID + th / 2;
+
+        const isHighlighted = selectedIds.includes(sym.id) || selectedIds.includes(targetSym.id);
+
+        return (
+          <g key={`leader-${sym.id}`} pointerEvents="none">
+            <line
+              x1={cx}
+              y1={cy}
+              x2={tx}
+              y2={ty}
+              stroke={isHighlighted ? "#ca8a04" : "#94a3b8"}
+              strokeWidth={isHighlighted ? 2 : 1.4}
+              strokeDasharray="4 3"
+              opacity={isHighlighted ? 1 : 0.75}
+            />
+            {/* Anchor circle at target component */}
+            <circle
+              cx={tx}
+              cy={ty}
+              r={3.5}
+              fill={isHighlighted ? "#ca8a04" : "#94a3b8"}
+              stroke="#ffffff"
+              strokeWidth={1}
+            />
+            {/* Anchor dot at comment box */}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={2.5}
+              fill={isHighlighted ? "#ca8a04" : "#94a3b8"}
+            />
+          </g>
         );
       })}
 

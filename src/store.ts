@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { catalogItem, suggestNetLabelTag } from "./catalog";
-import { addDevice, addJunction, addSymbol, findJunctionAt, isJunctionSymbol, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
+import { catalogItem, suggestNetLabelTag, variantDef } from "./catalog";
+import { addDevice, addJunction, addSymbol, deleteWireAndCleanJunctions, findJunctionAt, isJunctionSymbol, mergeWires, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
 import templateData from "./examples/blank-template.json";
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols } from "./groups";
@@ -19,9 +19,9 @@ import {
   writeDraft,
   type SavedLab,
 } from "./persist";
-import { emptySnapshot, tick } from "./sim/engine";
+import { defaultRuntime, emptySnapshot, tick } from "./sim/engine";
 import { buildLadderDiagram } from "./ladder/ladderLayout";
-import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type SimSnapshot, type Theme, type WireJog } from "./types";
+import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type Rot, type SimSnapshot, type Theme, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 
 function readLang(): Lang {
@@ -145,8 +145,10 @@ export interface LabState {
   process: ProcessVars;
   selected: Selection | null;
   selectedIds: string[];
+  selectedWireIds: string[];
   clipboard: Circuit | null;
   placing: string | null;
+  placingRot: Rot;
   wiringFrom: PortRef | null;
   history: Circuit[];
   future: Circuit[];
@@ -179,10 +181,15 @@ export interface LabState {
   resetSim: () => void;
   setProcess: (patch: Partial<ProcessVars>) => void;
   setPlacing: (id: string | null) => void;
+  setPlacingRot: (rot: Rot) => void;
+  rotatePlacing: (dir?: 1 | -1) => void;
   setHoverPort: (port: PortRef | null) => void;
   select: (sel: Selection | null, isolate?: boolean) => void;
   selectToggle: (id: string) => void;
   selectIds: (ids: string[], additive?: boolean) => void;
+  selectWireToggle: (id: string) => void;
+  selectWireIds: (ids: string[], additive?: boolean) => void;
+  mergeSelectedWires: () => void;
   selectAll: () => void;
   groupSelected: () => void;
   ungroupSelected: () => void;
@@ -196,6 +203,7 @@ export interface LabState {
   pasteClipboard: () => void;
   placeAt: (x: number, y: number, extraParams?: Partial<DeviceParams>) => void;
   quickAttachClampMeter: (wireId: string) => void;
+  addCommentForSymbol: (symbolId: string) => void;
   moveSymbol: (id: string, x: number, y: number) => void;
   moveGroup: (
     updates: { id: string; x: number; y: number }[],
@@ -234,6 +242,14 @@ export interface LabState {
       designedBy?: string;
       date?: string;
       scale?: number;
+      text?: string;
+      targetDeviceId?: string;
+      fontSize?: number;
+      bgColor?: string;
+      borderColor?: string;
+      showLeaderLine?: boolean;
+      width?: number;
+      height?: number;
     },
   ) => void;
   setSymbolVariant: (symbolId: string, variant: string) => void;
@@ -359,8 +375,10 @@ export const useLab = create<LabState>((set, get) => ({
   process: boot.process ?? defaultProcess(),
   selected: null,
   selectedIds: [],
+  selectedWireIds: [],
   clipboard: null,
   placing: null,
+  placingRot: 0,
   wiringFrom: null,
   history: [],
   future: [],
@@ -486,16 +504,42 @@ export const useLab = create<LabState>((set, get) => ({
     }
   },
   setProcess: (patch) => set({ process: { ...get().process, ...patch } }),
-  setPlacing: (id) => set({ placing: id, wiringFrom: null, selected: null, selectedIds: [] }),
+  setPlacing: (id) => {
+    let defaultRot: Rot = 0;
+    if (id) {
+      try {
+        defaultRot = catalogItem(id).defaultRot ?? 0;
+      } catch {}
+    }
+    set({ placing: id, placingRot: defaultRot, wiringFrom: null, selected: null, selectedIds: [], selectedWireIds: [] });
+  },
+  setPlacingRot: (rot) => set({ placingRot: rot }),
+  rotatePlacing: (dir = 1) => {
+    const cur = get().placingRot ?? 0;
+    const step = dir === 1 ? 90 : 270;
+    const next = (((cur + step) % 360) as Rot);
+    set({ placingRot: next });
+  },
   setHoverPort: (port) => set({ hoverPort: port }),
   select: (sel, isolate = false) => {
-    if (!sel || sel.type !== "symbol") {
-      set({ selected: sel, selectedIds: [], placing: null, wiringFrom: null });
+    if (!sel) {
+      set({ selected: null, selectedIds: [], selectedWireIds: [], placing: null, wiringFrom: null });
+      return;
+    }
+    if (sel.type === "wire") {
+      set({
+        selected: sel,
+        selectedIds: [],
+        selectedWireIds: [sel.id],
+        placing: null,
+        wiringFrom: null,
+      });
       return;
     }
     set({
       selected: sel,
       selectedIds: isolate ? [sel.id] : expandIds(get().circuit, [sel.id]),
+      selectedWireIds: [],
       placing: null,
       wiringFrom: null,
     });
@@ -511,6 +555,7 @@ export const useLab = create<LabState>((set, get) => ({
     set({
       selected: next.length ? { type: "symbol", id: next[next.length - 1] } : null,
       selectedIds: next,
+      selectedWireIds: [],
       placing: null,
       wiringFrom: null,
     });
@@ -524,8 +569,58 @@ export const useLab = create<LabState>((set, get) => ({
     set({
       selected: next.length ? { type: "symbol", id: next[next.length - 1] } : null,
       selectedIds: next,
+      selectedWireIds: [],
       placing: null,
       wiringFrom: null,
+    });
+  },
+  selectWireToggle: (id) => {
+    const { circuit, selectedWireIds } = get();
+    const cur = new Set(selectedWireIds ?? []);
+    if (cur.has(id)) {
+      cur.delete(id);
+    } else {
+      cur.add(id);
+    }
+    const next = circuit.wires.map((w) => w.id).filter((x) => cur.has(x));
+    set({
+      selected: next.length ? { type: "wire", id: next[next.length - 1] } : null,
+      selectedWireIds: next,
+      selectedIds: [],
+      placing: null,
+      wiringFrom: null,
+    });
+  },
+  selectWireIds: (ids, additive = false) => {
+    const { circuit, selectedWireIds } = get();
+    const cur = new Set(additive ? (selectedWireIds ?? []) : []);
+    for (const id of ids) cur.add(id);
+    const next = circuit.wires.map((w) => w.id).filter((x) => cur.has(x));
+    set({
+      selected: next.length ? { type: "wire", id: next[next.length - 1] } : null,
+      selectedWireIds: next,
+      selectedIds: [],
+      placing: null,
+      wiringFrom: null,
+    });
+  },
+  mergeSelectedWires: () => {
+    if (get().mode !== "edit") return;
+    const { circuit, selectedWireIds, mode } = get();
+    if (!selectedWireIds || selectedWireIds.length !== 2) return;
+    const [w1, w2] = selectedWireIds;
+    get().pushHistory();
+    const next = clone(circuit);
+    const res = mergeWires(next, w1, w2);
+    if (!res) return;
+    set({
+      circuit: next,
+      snapshot: mode === "edit" ? emptySnapshot(next) : get().snapshot,
+      selected: { type: "symbol", id: res.junction.id },
+      selectedIds: [res.junction.id],
+      selectedWireIds: [],
+      isDirty: true,
+      notice: t("notice.wiresMerged"),
     });
   },
   groupSelected: () => {
@@ -556,15 +651,17 @@ export const useLab = create<LabState>((set, get) => ({
     set({
       selected: ids.length ? { type: "symbol", id: ids[ids.length - 1] } : null,
       selectedIds: ids,
+      selectedWireIds: [],
       placing: null,
       wiringFrom: null,
     });
   },
 
   placeAt: (x, y, extraParams) => {
-    const { placing, circuit, selected } = get();
+    const { placing, placingRot, circuit, selected } = get();
     if (!placing) return;
     const item = catalogItem(placing);
+    const rotToUse = placingRot ?? item.defaultRot ?? 0;
     get().pushHistory();
     const next = clone(circuit);
     const gx = Math.round(x);
@@ -580,18 +677,19 @@ export const useLab = create<LabState>((set, get) => ({
           gx,
           gy,
           extraParams ?? {},
-          item.defaultRot ?? 0,
+          rotToUse,
         );
         host = created.device.id;
       } else {
-        addSymbol(next, host, item.variant, gx, gy, item.defaultRot ?? 0);
+        addSymbol(next, host, item.variant, gx, gy, rotToUse);
       }
       const placed = next.symbols[next.symbols.length - 1];
       set({
         circuit: next,
         selected: { type: "symbol", id: placed.id },
         selectedIds: [placed.id],
-        placing: null, // 放置一個元件後回到佈線模式
+        placing: null,
+        placingRot: 0,
         wiringFrom: null,
         snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
         isDirty: true,
@@ -631,6 +729,15 @@ export const useLab = create<LabState>((set, get) => ({
                             date: formatMMDDYYYY(),
                             scale: 1,
                           }
+                        : item.kind === "comment"
+                          ? {
+                              text: "備註說明 / Note",
+                              showLeaderLine: true,
+                              bgColor: "#fef9c3",
+                              fontSize: 12,
+                              width: 6,
+                              height: 3,
+                            }
                         : {};
 
     if (item.kind === "ammeter" && !extraParams?.clampedWireId) {
@@ -650,13 +757,14 @@ export const useLab = create<LabState>((set, get) => ({
       gx,
       gy,
       { ...defaultParams, ...extraParams },
-      item.defaultRot ?? 0,
+      rotToUse,
     );
     set({
       circuit: next,
       selected: { type: "symbol", id: created.symbol.id },
       selectedIds: [created.symbol.id],
-      placing: null, // 放置一個元件後回到佈線模式
+      placing: null,
+      placingRot: 0,
       wiringFrom: null,
       snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
       isDirty: true,
@@ -701,6 +809,47 @@ export const useLab = create<LabState>((set, get) => ({
     });
   },
 
+  addCommentForSymbol: (symbolId: string) => {
+    const { circuit } = get();
+    const sym = circuit.symbols.find((s) => s.id === symbolId);
+    if (!sym) return;
+    const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev) return;
+    get().pushHistory();
+    const next = clone(circuit);
+    const v = variantDef(dev.kind, sym.variant);
+    const gx = Math.round(sym.x + (v?.w ?? 4) + 1);
+    const gy = Math.round(sym.y);
+    const created = addDevice(
+      next,
+      "comment",
+      nextTag(next.devices.map((d) => d.tag), "REM"),
+      "body",
+      gx,
+      gy,
+      {
+        text: `${dev.tag} 備註說明`,
+        targetDeviceId: dev.id,
+        showLeaderLine: true,
+        bgColor: "#fef9c3",
+        fontSize: 12,
+        width: 6,
+        height: 3,
+      },
+      0,
+    );
+    set({
+      circuit: next,
+      selected: { type: "symbol", id: created.symbol.id },
+      selectedIds: [created.symbol.id],
+      placing: null,
+      wiringFrom: null,
+      sideOpen: true,
+      snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
+      isDirty: true,
+    });
+  },
+
   moveSymbol: (id, x, y) => {
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === id);
@@ -739,12 +888,20 @@ export const useLab = create<LabState>((set, get) => ({
       for (const wu of wireUpdates) {
         const w = next.wires.find((x) => x.id === wu.id);
         if (w) {
-          w.jog = wu.jog
-            ? {
-                axis: wu.jog.axis,
-                pos: Math.round(wu.jog.pos / GRID) * GRID,
-              }
-            : undefined;
+          if (!wu.jog) {
+            w.jog = undefined;
+          } else {
+            const rx = wu.jog.x !== undefined ? Math.round(wu.jog.x / GRID) * GRID : undefined;
+            const ry = wu.jog.y !== undefined ? Math.round(wu.jog.y / GRID) * GRID : undefined;
+            const rpos = wu.jog.pos !== undefined ? Math.round(wu.jog.pos / GRID) * GRID : undefined;
+            const jogObj: WireJog = {
+              axis: wu.jog.axis ?? (rx !== undefined ? "x" : "y"),
+              pos: wu.jog.axis === "y" ? (ry ?? rpos ?? 0) : (rx ?? rpos ?? 0),
+            };
+            if (rx !== undefined) jogObj.x = rx;
+            if (ry !== undefined) jogObj.y = ry;
+            w.jog = jogObj;
+          }
         }
       }
     } else {
@@ -753,10 +910,16 @@ export const useLab = create<LabState>((set, get) => ({
           const da = deltas.get(w.a.symbolId);
           const db = deltas.get(w.b.symbolId);
           if (da && db && Math.abs(da.dx - db.dx) < 1e-4 && Math.abs(da.dy - db.dy) < 1e-4) {
+            if (w.jog.x !== undefined) {
+              w.jog.x = Math.round((w.jog.x + da.dx * GRID) / GRID) * GRID;
+            }
+            if (w.jog.y !== undefined) {
+              w.jog.y = Math.round((w.jog.y + da.dy * GRID) / GRID) * GRID;
+            }
             if (w.jog.axis === "x") {
-              w.jog.pos = Math.round((w.jog.pos + da.dx * GRID) / GRID) * GRID;
+              w.jog.pos = Math.round(((w.jog.x ?? w.jog.pos ?? 0) + (w.jog.x !== undefined ? 0 : da.dx * GRID)) / GRID) * GRID;
             } else if (w.jog.axis === "y") {
-              w.jog.pos = Math.round((w.jog.pos + da.dy * GRID) / GRID) * GRID;
+              w.jog.pos = Math.round(((w.jog.y ?? w.jog.pos ?? 0) + (w.jog.y !== undefined ? 0 : da.dy * GRID)) / GRID) * GRID;
             }
           }
         }
@@ -769,12 +932,34 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     const w = next.wires.find((x) => x.id === id);
     if (!w) return;
-    w.jog = jog
-      ? {
-          axis: jog.axis,
-          pos: Math.round(jog.pos / GRID) * GRID,
-        }
-      : undefined;
+    if (!jog) {
+      w.jog = undefined;
+    } else {
+      const rx = jog.x !== undefined ? Math.round(jog.x / GRID) * GRID : undefined;
+      const ry = jog.y !== undefined ? Math.round(jog.y / GRID) * GRID : undefined;
+      const rpos = jog.pos !== undefined ? Math.round(jog.pos / GRID) * GRID : undefined;
+
+      const oldJogX = w.jog?.x ?? (w.jog?.axis === "x" ? w.jog.pos : undefined);
+      const oldJogY = w.jog?.y ?? (w.jog?.axis === "y" ? w.jog.pos : undefined);
+
+      let newJogX = rx ?? (jog.axis === "x" ? rpos : undefined);
+      let newJogY = ry ?? (jog.axis === "y" ? rpos : undefined);
+
+      if (newJogX === undefined && jog.axis === "y") {
+        newJogX = oldJogX;
+      }
+      if (newJogY === undefined && jog.axis === "x") {
+        newJogY = oldJogY;
+      }
+
+      const jogObj: WireJog = {
+        axis: jog.axis ?? (newJogX !== undefined ? "x" : "y"),
+        pos: jog.axis === "y" ? (newJogY ?? rpos ?? 0) : (newJogX ?? rpos ?? 0),
+      };
+      if (newJogX !== undefined) jogObj.x = newJogX;
+      if (newJogY !== undefined) jogObj.y = newJogY;
+      w.jog = jogObj;
+    }
     set({ circuit: next, isDirty: true });
   },
 
@@ -854,10 +1039,56 @@ export const useLab = create<LabState>((set, get) => ({
     const dev = get().circuit.devices.find((d) => d.id === deviceId);
     if (!dev) return;
     if (get().mode !== "run") return;
-    if (dev.kind === "pb-no" || dev.kind === "pb-nc" || dev.kind === "foot" || dev.kind === "foot-no" || dev.kind === "foot-nc") {
+    const isMomentaryType =
+      dev.kind === "pb-no" ||
+      dev.kind === "pb-nc" ||
+      dev.kind === "foot" ||
+      dev.kind === "foot-no" ||
+      dev.kind === "foot-nc";
+    const isLimit = dev.kind === "limit-no" || dev.kind === "limit-nc";
+    if (isMomentaryType || isLimit) {
       const held = new Set(get().held);
-      if (down) held.add(deviceId);
-      else held.delete(deviceId);
+      const tag = dev.tag.trim();
+
+      if (isLimit && tag) {
+        const sameTagLimits = get().circuit.devices.filter(
+          (d) => (d.kind === "limit-no" || d.kind === "limit-nc") && d.tag.trim() === tag
+        );
+        if (sameTagLimits.length === 2) {
+          const [d1, d2] = sameTagLimits;
+          const isOppositeKinds =
+            (d1.kind === "limit-no" && d2.kind === "limit-nc") ||
+            (d1.kind === "limit-nc" && d2.kind === "limit-no");
+          if (isOppositeKinds) {
+            if (down) {
+              held.add(d1.id);
+              held.add(d2.id);
+            } else {
+              held.delete(d1.id);
+              held.delete(d2.id);
+            }
+          } else {
+            const other = d1.id === deviceId ? d2 : d1;
+            if (down) {
+              held.add(deviceId);
+              held.delete(other.id);
+            } else {
+              held.delete(deviceId);
+            }
+          }
+        } else {
+          if (down) held.add(deviceId);
+          else held.delete(deviceId);
+        }
+      } else {
+        const sameTagDevs = tag
+          ? get().circuit.devices.filter((d) => isMomentaryType && d.tag.trim() === tag)
+          : [dev];
+        for (const d of sameTagDevs) {
+          if (down) held.add(d.id);
+          else held.delete(d.id);
+        }
+      }
       set({ held: [...held] });
     }
   },
@@ -872,13 +1103,66 @@ export const useLab = create<LabState>((set, get) => ({
       set({ circuit: next });
       return;
     }
-    const runtime = { ...get().snapshot.runtime };
-    const rt = { ...(runtime[deviceId] ?? emptySnapshot(get().circuit).runtime[deviceId]) };
-    if (field === "on") rt.on = !rt.on;
-    if (field === "tripped") rt.tripped = !rt.tripped;
-    if (field === "actuated") rt.actuated = !rt.actuated;
-    runtime[deviceId] = rt;
-    set({ snapshot: { ...get().snapshot, runtime } });
+    const curSnap = get().snapshot ?? emptySnapshot(get().circuit);
+    const runtime = { ...curSnap.runtime };
+    const rt = { ...(runtime[deviceId] ?? defaultRuntime(dev.kind)) };
+    if (field === "on") {
+      rt.on = !rt.on;
+      runtime[deviceId] = rt;
+    }
+    if (field === "tripped") {
+      rt.tripped = !rt.tripped;
+      runtime[deviceId] = rt;
+    }
+    if (field === "actuated") {
+      const isLimit = dev.kind === "limit-no" || dev.kind === "limit-nc";
+      const tag = dev.tag.trim();
+      if (isLimit && tag) {
+        const sameTagLimits = get().circuit.devices.filter(
+          (d) => (d.kind === "limit-no" || d.kind === "limit-nc") && d.tag.trim() === tag
+        );
+        if (sameTagLimits.length === 2) {
+          const [d1, d2] = sameTagLimits;
+          const isOppositeKinds =
+            (d1.kind === "limit-no" && d2.kind === "limit-nc") ||
+            (d1.kind === "limit-nc" && d2.kind === "limit-no");
+          if (isOppositeKinds) {
+            const nextAct = !rt.actuated;
+            const rt1 = { ...(runtime[d1.id] ?? defaultRuntime(d1.kind)), actuated: nextAct };
+            const rt2 = { ...(runtime[d2.id] ?? defaultRuntime(d2.kind)), actuated: nextAct };
+            runtime[d1.id] = rt1;
+            runtime[d2.id] = rt2;
+          } else if (d1.kind === "limit-no" && d2.kind === "limit-no") {
+            const other = d1.id === deviceId ? d2 : d1;
+            const nextAct = !rt.actuated;
+            const rtCur = { ...(runtime[deviceId] ?? defaultRuntime(dev.kind)), actuated: nextAct };
+            const rtOther = {
+              ...(runtime[other.id] ?? defaultRuntime(other.kind)),
+              actuated: nextAct ? false : (runtime[other.id]?.actuated ?? false),
+            };
+            runtime[deviceId] = rtCur;
+            runtime[other.id] = rtOther;
+          } else {
+            const other = d1.id === deviceId ? d2 : d1;
+            const nextAct = !rt.actuated;
+            const rtCur = { ...(runtime[deviceId] ?? defaultRuntime(dev.kind)), actuated: nextAct };
+            const rtOther = {
+              ...(runtime[other.id] ?? defaultRuntime(other.kind)),
+              actuated: !nextAct,
+            };
+            runtime[deviceId] = rtCur;
+            runtime[other.id] = rtOther;
+          }
+        } else {
+          rt.actuated = !rt.actuated;
+          runtime[deviceId] = rt;
+        }
+      } else {
+        rt.actuated = !rt.actuated;
+        runtime[deviceId] = rt;
+      }
+    }
+    set({ snapshot: { ...curSnap, runtime } });
   },
 
   cyclePosition: (deviceId) => {
@@ -931,6 +1215,14 @@ export const useLab = create<LabState>((set, get) => ({
     if (patch.designedBy !== undefined) d.params.designedBy = patch.designedBy;
     if (patch.date !== undefined) d.params.date = patch.date;
     if (patch.scale !== undefined) d.params.scale = patch.scale;
+    if (patch.text !== undefined) d.params.text = patch.text;
+    if (patch.targetDeviceId !== undefined) d.params.targetDeviceId = patch.targetDeviceId || undefined;
+    if (patch.fontSize !== undefined) d.params.fontSize = patch.fontSize;
+    if (patch.bgColor !== undefined) d.params.bgColor = patch.bgColor;
+    if (patch.borderColor !== undefined) d.params.borderColor = patch.borderColor;
+    if (patch.showLeaderLine !== undefined) d.params.showLeaderLine = patch.showLeaderLine;
+    if (patch.width !== undefined) d.params.width = patch.width;
+    if (patch.height !== undefined) d.params.height = patch.height;
     set({ circuit: next, isDirty: true });
   },
 
@@ -957,13 +1249,20 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   deleteSelected: () => {
-    const { selected, selectedIds, circuit } = get();
-    if (!selected && !selectedIds.length) return;
+    const { selected, selectedIds, selectedWireIds, circuit, mode } = get();
+    const wireIdsToDelete =
+      selectedWireIds && selectedWireIds.length > 0
+        ? selectedWireIds
+        : selected?.type === "wire"
+        ? [selected.id]
+        : [];
+    if (!selected && !selectedIds.length && !wireIdsToDelete.length) return;
     get().pushHistory();
     const next = clone(circuit);
-    if (selected?.type === "wire") {
-      next.wires = next.wires.filter((w) => w.id !== selected.id);
-      pruneOrphanJunctions(next);
+    if (wireIdsToDelete.length > 0) {
+      for (const wId of wireIdsToDelete) {
+        deleteWireAndCleanJunctions(next, wId);
+      }
     } else {
       const ids = new Set(selectedIds.length ? selectedIds : selected ? [selected.id] : []);
       const onlyJunction =
@@ -982,7 +1281,14 @@ export const useLab = create<LabState>((set, get) => ({
       }
       pruneGroups(next);
     }
-    set({ circuit: next, selected: null, selectedIds: [], isDirty: true });
+    set({
+      circuit: next,
+      snapshot: mode === "edit" ? emptySnapshot(next) : get().snapshot,
+      selected: null,
+      selectedIds: [],
+      selectedWireIds: [],
+      isDirty: true,
+    });
   },
 
   loadExample: async (id) => {
@@ -1008,6 +1314,7 @@ export const useLab = create<LabState>((set, get) => ({
         snapshot: emptySnapshot(jsonData.circuit),
         selected: null,
         selectedIds: [],
+        selectedWireIds: [],
         placing: null,
         wiringFrom: null,
         timeMs: 0,
@@ -1032,6 +1339,7 @@ export const useLab = create<LabState>((set, get) => ({
       snapshot: emptySnapshot(circuit),
       selected: null,
       selectedIds: [],
+      selectedWireIds: [],
       placing: null,
       wiringFrom: null,
       timeMs: 0,
@@ -1058,6 +1366,7 @@ export const useLab = create<LabState>((set, get) => ({
       snapshot: emptySnapshot(c),
       selected: null,
       selectedIds: [],
+      selectedWireIds: [],
       placing: null,
       wiringFrom: null,
       timeMs: 0,
@@ -1084,6 +1393,7 @@ export const useLab = create<LabState>((set, get) => ({
       circuit: prev,
       selected: null,
       selectedIds: [],
+      selectedWireIds: [],
       isDirty: true,
     });
   },
@@ -1097,6 +1407,7 @@ export const useLab = create<LabState>((set, get) => ({
       circuit: nxt,
       selected: null,
       selectedIds: [],
+      selectedWireIds: [],
       isDirty: true,
     });
   },
@@ -1108,6 +1419,7 @@ export const useLab = create<LabState>((set, get) => ({
       snapshot: emptySnapshot(circuit),
       selected: null,
       selectedIds: [],
+      selectedWireIds: [],
       placing: null,
       wiringFrom: null,
       timeMs: 0,
@@ -1126,12 +1438,12 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === id);
     if (!sym) return;
-    if (!offset || (Math.round(offset.dx) === 0 && Math.round(offset.dy) === 0)) {
+    if (!offset || (Math.abs(offset.dx) < 1e-4 && Math.abs(offset.dy) < 1e-4)) {
       delete sym.tagOffset;
     } else {
       sym.tagOffset = {
-        dx: Math.round(offset.dx),
-        dy: Math.round(offset.dy),
+        dx: Number(offset.dx.toFixed(3)),
+        dy: Number(offset.dy.toFixed(3)),
       };
     }
     set({ circuit: next, isDirty: true });
@@ -1353,8 +1665,37 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   nudgeSelected: (dx, dy) => {
-    const ids = get().selectedIds;
-    if (!ids.length) return;
+    const { selected, selectedIds } = get();
+    const ids = selectedIds.length ? selectedIds : selected?.type === "symbol" ? [selected.id] : [];
+    if (!ids.length) {
+      if (selected?.type === "wire") {
+        get().pushHistory();
+        const next = clone(get().circuit);
+        const w = next.wires.find((wire) => wire.id === selected.id);
+        if (w) {
+          if (!w.jog) {
+            w.jog = {
+              axis: dx !== 0 ? "x" : "y",
+              pos: 0,
+            };
+          }
+          if (dx !== 0) {
+            const curX = w.jog.x ?? (w.jog.axis === "x" ? w.jog.pos ?? 0 : 0);
+            const nx = curX + dx * GRID;
+            w.jog.x = nx;
+            if (w.jog.axis === "x") w.jog.pos = nx;
+          }
+          if (dy !== 0) {
+            const curY = w.jog.y ?? (w.jog.axis === "y" ? w.jog.pos ?? 0 : 0);
+            const ny = curY + dy * GRID;
+            w.jog.y = ny;
+            if (w.jog.axis === "y") w.jog.pos = ny;
+          }
+          set({ circuit: next, isDirty: true });
+        }
+      }
+      return;
+    }
     get().pushHistory();
     const next = clone(get().circuit);
     const movedIds = new Set(ids);
@@ -1366,10 +1707,16 @@ export const useLab = create<LabState>((set, get) => ({
     }
     for (const w of next.wires) {
       if (w.jog && movedIds.has(w.a.symbolId) && movedIds.has(w.b.symbolId)) {
+        if (w.jog.x !== undefined) {
+          w.jog.x += dx * GRID;
+        }
+        if (w.jog.y !== undefined) {
+          w.jog.y += dy * GRID;
+        }
         if (w.jog.axis === "x") {
-          w.jog.pos += dx * GRID;
+          w.jog.pos = (w.jog.pos ?? 0) + dx * GRID;
         } else if (w.jog.axis === "y") {
-          w.jog.pos += dy * GRID;
+          w.jog.pos = (w.jog.pos ?? 0) + dy * GRID;
         }
       }
     }
@@ -1377,9 +1724,10 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   alignSelected: (edge) => {
-    const { circuit, selectedIds } = get();
-    if (selectedIds.length < 2) return;
-    const res = alignEntities(circuit, selectedIds, edge);
+    const { circuit, selected, selectedIds } = get();
+    const ids = selectedIds.length ? selectedIds : selected?.type === "symbol" ? [selected.id] : [];
+    if (ids.length < 2) return;
+    const res = alignEntities(circuit, ids, edge);
     if (!res || (!res.symbolUpdates.length && !res.wireJogUpdates.length)) return;
 
     get().pushHistory();
@@ -1401,10 +1749,11 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   snapSelected: () => {
-    const ids = get().selectedIds;
+    const { selected, selectedIds, circuit } = get();
+    const ids = selectedIds.length ? selectedIds : selected?.type === "symbol" ? [selected.id] : [];
     if (!ids.length) return;
     get().pushHistory();
-    const next = clone(get().circuit);
+    const next = clone(circuit);
     const movedIds = new Set(ids);
     const deltas = new Map<string, { dx: number; dy: number }>();
     for (const id of ids) {
@@ -1421,10 +1770,16 @@ export const useLab = create<LabState>((set, get) => ({
         const da = deltas.get(w.a.symbolId);
         const db = deltas.get(w.b.symbolId);
         if (da && db && Math.abs(da.dx - db.dx) < 1e-4 && Math.abs(da.dy - db.dy) < 1e-4) {
+          if (w.jog.x !== undefined) {
+            w.jog.x = Math.round((w.jog.x + da.dx * GRID) / GRID) * GRID;
+          }
+          if (w.jog.y !== undefined) {
+            w.jog.y = Math.round((w.jog.y + da.dy * GRID) / GRID) * GRID;
+          }
           if (w.jog.axis === "x") {
-            w.jog.pos = Math.round((w.jog.pos + da.dx * GRID) / GRID) * GRID;
+            w.jog.pos = Math.round(((w.jog.x ?? w.jog.pos ?? 0) + (w.jog.x !== undefined ? 0 : da.dx * GRID)) / GRID) * GRID;
           } else if (w.jog.axis === "y") {
-            w.jog.pos = Math.round((w.jog.pos + da.dy * GRID) / GRID) * GRID;
+            w.jog.pos = Math.round(((w.jog.y ?? w.jog.pos ?? 0) + (w.jog.y !== undefined ? 0 : da.dy * GRID)) / GRID) * GRID;
           }
         }
       }
@@ -1500,12 +1855,23 @@ export const useLab = create<LabState>((set, get) => ({
       const a = symMap.get(w.a.symbolId);
       const b = symMap.get(w.b.symbolId);
       if (!a || !b) continue;
-      const jog = w.jog
-        ? {
-            axis: w.jog.axis,
-            pos: w.jog.axis === "x" ? w.jog.pos + 2 * GRID : w.jog.pos + 2 * GRID,
-          }
-        : undefined;
+      let jog: WireJog | undefined = undefined;
+      if (w.jog) {
+        const rx = w.jog.x !== undefined ? w.jog.x + 2 * GRID : undefined;
+        const ry = w.jog.y !== undefined ? w.jog.y + 2 * GRID : undefined;
+        const rpos =
+          w.jog.pos !== undefined
+            ? w.jog.pos + 2 * GRID
+            : w.jog.axis === "y"
+              ? (ry ?? 0)
+              : (rx ?? 0);
+        jog = {
+          axis: w.jog.axis,
+          pos: rpos,
+          x: rx,
+          y: ry,
+        };
+      }
       next.wires.push({
         ...clone(w),
         id: uniqueId("w", used),
@@ -1745,12 +2111,15 @@ export const useLab = create<LabState>((set, get) => ({
         maxY = Math.max(maxY, pB.y / GRID);
       }
       if (w.jog) {
-        if (w.jog.axis === "x") {
-          minX = Math.min(minX, w.jog.pos / GRID);
-          maxX = Math.max(maxX, w.jog.pos / GRID);
-        } else {
-          minY = Math.min(minY, w.jog.pos / GRID);
-          maxY = Math.max(maxY, w.jog.pos / GRID);
+        const jx = w.jog.x ?? (w.jog.axis === "x" ? w.jog.pos : undefined);
+        const jy = w.jog.y ?? (w.jog.axis === "y" ? w.jog.pos : undefined);
+        if (jx !== undefined) {
+          minX = Math.min(minX, jx / GRID);
+          maxX = Math.max(maxX, jx / GRID);
+        }
+        if (jy !== undefined) {
+          minY = Math.min(minY, jy / GRID);
+          maxY = Math.max(maxY, jy / GRID);
         }
       }
     }

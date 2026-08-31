@@ -1,5 +1,6 @@
 import { GROUP_COLORS, KINDS, LAMP_COLORS } from "../catalog";
 import { selectionHasGroup, selectionIsGroup } from "../groups";
+import { areWiresConnected } from "../geometry";
 import { catalogCompKey, t, tOr } from "../i18n";
 import { useLab } from "../store";
 import type { Circuit, DeviceKind } from "../types";
@@ -79,6 +80,7 @@ function weldable(kind: DeviceKind): boolean {
 export function Inspector() {
   const selected = useLab((s) => s.selected);
   const selectedIds = useLab((s) => s.selectedIds);
+  const selectedWireIds = useLab((s) => s.selectedWireIds);
   const circuit = useLab((s) => s.circuit);
   const runtime = useLab((s) => s.snapshot.runtime);
   const meterHistory = useLab((s) => s.meterHistory);
@@ -89,6 +91,40 @@ export function Inspector() {
       .filter((d) => d.params.welded)
       .map((d) => ({ id: d.id, type: "device" as const, label: `${d.tag} ${t("inspector.weldedContact")}` })),
   ];
+
+  if (selectedWireIds && selectedWireIds.length > 1) {
+    const canMerge =
+      selectedWireIds.length === 2 &&
+      areWiresConnected(circuit, selectedWireIds[0], selectedWireIds[1]);
+    return (
+      <div className="inspector">
+        <h3>{t("inspector.selectedWires", { count: selectedWireIds.length.toString() })}</h3>
+        <p className="hint">{t("inspector.selectedWiresHint")}</p>
+        {selectedWireIds.length === 2 && (
+          <button
+            className="btn"
+            disabled={!canMerge}
+            onClick={() => useLab.getState().mergeSelectedWires()}
+          >
+            🔗 {t("ctx.mergeWires")}
+          </button>
+        )}
+        <button
+          className="btn"
+          onClick={() => {
+            for (const id of selectedWireIds) {
+              useLab.getState().straightenWire(id);
+            }
+          }}
+        >
+          {t("ctx.straightenWire")}
+        </button>
+        <button className="btn danger" onClick={() => useLab.getState().deleteSelected()}>
+          {t("inspector.deleteWire")}
+        </button>
+      </div>
+    );
+  }
 
   if (!selected) {
     return (
@@ -233,7 +269,125 @@ export function Inspector() {
   return (
     <div className="inspector">
       <h3>{tOr(catalogCompKey(dev.kind), KINDS[dev.kind].label)}</h3>
-      {dev.kind === "title-block" ? (
+      {dev.kind === "comment" ? (
+        <div className="comment-editor">
+          <label>
+            <span>{t("inspector.commentText")}</span>
+            <textarea
+              rows={4}
+              value={dev.params.text ?? ""}
+              placeholder={t("inspector.commentPlaceholder")}
+              style={{ width: "100%", padding: "6px 8px", fontSize: `${dev.params.fontSize ?? 12}px`, resize: "vertical" }}
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { text: e.target.value })}
+            />
+          </label>
+          <label>
+            <span>{t("inspector.bindTarget")}</span>
+            <select
+              value={dev.params.targetDeviceId ?? ""}
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { targetDeviceId: e.target.value })}
+            >
+              <option value="">{t("inspector.noneUnbound")}</option>
+              {circuit.devices
+                .filter((d) => d.id !== dev.id && d.kind !== "comment" && d.kind !== "junction" && d.kind !== "title-block")
+                .map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.tag} ({tOr(catalogCompKey(d.kind), KINDS[d.kind]?.label ?? d.kind)})
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label className="chk">
+            <input
+              type="checkbox"
+              checked={dev.params.showLeaderLine !== false}
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { showLeaderLine: e.target.checked })}
+            />
+            {t("inspector.showLeaderLine")}
+          </label>
+          <label>
+            <span>{t("inspector.bgColor")}</span>
+            <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
+              {[
+                { val: "#fef9c3", label: t("color.yellow"), bg: "#fef9c3", border: "#ca8a04" },
+                { val: "#e0f2fe", label: t("color.blue"), bg: "#e0f2fe", border: "#0284c7" },
+                { val: "#dcfce7", label: t("color.green"), bg: "#dcfce7", border: "#16a34a" },
+                { val: "#ffffff", label: t("color.white"), bg: "#ffffff", border: "#94a3b8" },
+                { val: "#f3f4f6", label: t("color.gray"), bg: "#f3f4f6", border: "#6b7280" },
+                { val: "transparent", label: t("color.transparent"), bg: "transparent", border: "#94a3b8" },
+              ].map((c) => (
+                <button
+                  key={c.val}
+                  type="button"
+                  className={`btn ${(dev.params.bgColor ?? "#fef9c3") === c.val ? "primary" : ""}`}
+                  style={{
+                    backgroundColor: c.bg,
+                    border: `1.5px solid ${c.border}`,
+                    color: "#1f2937",
+                    fontSize: "11px",
+                    padding: "3px 8px",
+                  }}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { bgColor: c.val })}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </label>
+          <label>
+            <span>{t("inspector.fontSize")} ({dev.params.fontSize ?? 12}px)</span>
+            <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+              {[10, 12, 14, 16].map((sz) => (
+                <button
+                  key={sz}
+                  type="button"
+                  className={`btn ${(dev.params.fontSize ?? 12) === sz ? "primary" : ""}`}
+                  style={{ flex: 1, padding: "3px 6px", fontSize: "11px" }}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { fontSize: sz })}
+                >
+                  {sz}px
+                </button>
+              ))}
+            </div>
+          </label>
+          <div className="row-2">
+            <label>
+              <span>{t("inspector.widthGrids")}</span>
+              <input
+                type="number"
+                min="3"
+                max="30"
+                value={dev.params.width ?? 6}
+                onChange={(e) => {
+                  const wVal = parseInt(e.target.value, 10);
+                  if (!isNaN(wVal) && wVal >= 3) {
+                    useLab.getState().updateDevice(dev.id, { width: wVal });
+                  }
+                }}
+              />
+            </label>
+            <label>
+              <span>{t("inspector.heightGrids")}</span>
+              <input
+                type="number"
+                min="2"
+                max="20"
+                value={dev.params.height ?? 3}
+                onChange={(e) => {
+                  const hVal = parseInt(e.target.value, 10);
+                  if (!isNaN(hVal) && hVal >= 2) {
+                    useLab.getState().updateDevice(dev.id, { height: hVal });
+                  }
+                }}
+              />
+            </label>
+          </div>
+          <label>
+            <span>{t("inspector.tag")}</span>
+            <input value={dev.tag} onChange={(e) => useLab.getState().updateDevice(dev.id, { tag: e.target.value })} />
+          </label>
+        </div>
+      ) : dev.kind === "title-block" ? (
         <div className="title-block-editor">
           <label>
             <span>{t("inspector.projectName")}</span>
@@ -747,6 +901,51 @@ export function Inspector() {
           {rt.starDelta === "delta" ? ` ${t("runtime.starDeltaDelta")}` : ""}
           {Math.abs(rt.rpm) > 0.05 ? ` · ${rt.rpm > 0 ? "+" : ""}${rt.rpm.toFixed(2)} pu` : ""}
         </p>
+      )}
+      {dev.kind !== "comment" && dev.kind !== "title-block" && (
+        <div style={{ margin: "8px 0" }}>
+          <button
+            type="button"
+            className="btn"
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+            onClick={() => useLab.getState().addCommentForSymbol(sym.id)}
+          >
+            💬 {t("inspector.addComment")}
+          </button>
+          {(() => {
+            const boundComments = circuit.devices.filter(
+              (d) => d.kind === "comment" && d.params?.targetDeviceId === dev.id
+            );
+            if (!boundComments.length) return null;
+            return (
+              <div style={{ marginTop: "6px" }}>
+                <span className="hint" style={{ fontSize: "11px", fontWeight: "bold" }}>
+                  {t("inspector.boundComments")}:
+                </span>
+                {boundComments.map((cd) => {
+                  const csym = circuit.symbols.find((s) => s.deviceId === cd.id);
+                  return (
+                    <div key={cd.id} style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "3px" }}>
+                      <span style={{ fontSize: "11px", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        📝 {cd.params?.text || cd.tag}
+                      </span>
+                      {csym && (
+                        <button
+                          type="button"
+                          className="btn"
+                          style={{ padding: "2px 6px", fontSize: "10px" }}
+                          onClick={() => useLab.getState().select({ type: "symbol", id: csym.id })}
+                        >
+                          {t("inspector.jumpTo")}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
       )}
       <button className="btn" onClick={() => useLab.getState().rotateSelected(1)}>
         {t("inspector.rotate90")}

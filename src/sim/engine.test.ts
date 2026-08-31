@@ -3,7 +3,7 @@ import { addDevice, addSymbol, addWire, emptyCircuit, splitWireAt } from "../cir
 import { GRID } from "../types";
 import { wireRoute } from "../geometry";
 import { selectorReversing, selfHoldMotor, starDeltaStart } from "../examples";
-import { createRuntime, tick } from "./engine";
+import { createRuntime, emptySnapshot, PHASE_COLOR, tick } from "./engine";
 import type { ProcessVars } from "../types";
 
 const process: ProcessVars = {
@@ -467,6 +467,40 @@ describe("sim engine", () => {
     expect(snap.runtime[motor.id].direction).toBe(-1);
   });
 
+  it("supports wiring to both COM (top-left) and COM2 (bottom-left) on selector-3", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
+    const sa = addDevice(c, "selector-3", "SA1", "body", 6, 0);
+    const hlF = addDevice(c, "lamp", "HL_F", "body", 16, 0);
+    const hlR = addDevice(c, "lamp", "HL_R", "body", 16, 6);
+
+    // Wire power directly to bottom-left terminal COM2
+    addWire(c, g.symbol, "L1", sa.symbol, "COM2");
+    addWire(c, sa.symbol, "FWD", hlF.symbol, "1");
+    addWire(c, hlF.symbol, "2", g.symbol, "N");
+    addWire(c, sa.symbol, "REV", hlR.symbol, "1");
+    addWire(c, hlR.symbol, "2", g.symbol, "N");
+
+    const rt = createRuntime(c);
+    // Position 0 (OFF)
+    rt[sa.device.id].position = 0;
+    let snap = tick(c, rt, { held: new Set(), process }, 50, 50);
+    expect(snap.runtime[hlF.device.id].lit).toBe(false);
+    expect(snap.runtime[hlR.device.id].lit).toBe(false);
+
+    // Position 1 (FWD)
+    rt[sa.device.id].position = 1;
+    snap = tick(c, rt, { held: new Set(), process }, 50, 100);
+    expect(snap.runtime[hlF.device.id].lit).toBe(true);
+    expect(snap.runtime[hlR.device.id].lit).toBe(false);
+
+    // Position 2 (REV)
+    rt[sa.device.id].position = 2;
+    snap = tick(c, rt, { held: new Set(), process }, 50, 150);
+    expect(snap.runtime[hlF.device.id].lit).toBe(false);
+    expect(snap.runtime[hlR.device.id].lit).toBe(true);
+  });
+
   it("connects distant halves through matching net labels", () => {
     const c = emptyCircuit();
     const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
@@ -654,5 +688,203 @@ describe("sim engine", () => {
     expect(shortFaults.length).toBeGreaterThan(0);
     expect(snap.runtime[g.device.id].short).toBe(true);
     expect(snap.wires[c.wires[0].id].short).toBe(true);
+  });
+
+  it("colors wires according to their phase in both edit and run modes", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
+    const m = addDevice(c, "motor-3ph", "M1", "body", 12, 0);
+    const gnd = addDevice(c, "ground", "PE1", "body", 12, 8);
+    const hl = addDevice(c, "lamp", "HL1", "body", 12, 12);
+
+    const wL1 = addWire(c, g.symbol, "L1", m.symbol, "U");
+    const wL2 = addWire(c, g.symbol, "L2", m.symbol, "V");
+    const wL3 = addWire(c, g.symbol, "L3", m.symbol, "W");
+    const wN = addWire(c, g.symbol, "N", hl.symbol, "2");
+    const wPE = addWire(c, g.symbol, "PE", gnd.symbol, "1");
+
+    // In edit mode (emptySnapshot)
+    const editSnap = emptySnapshot(c);
+    expect(editSnap.wires[wL1.id].kind).toBe("L1");
+    expect(editSnap.wires[wL2.id].kind).toBe("L2");
+    expect(editSnap.wires[wL3.id].kind).toBe("L3");
+    expect(editSnap.wires[wN.id].kind).toBe("N");
+    expect(editSnap.wires[wPE.id].kind).toBe("PE");
+
+    expect(PHASE_COLOR["L1"]).toBe("#a65628");
+    expect(PHASE_COLOR["L2"]).toBe("#ff7f00");
+    expect(PHASE_COLOR["L3"]).toBe("#eccd26");
+    expect(PHASE_COLOR["N"]).toBe("#0284c7");
+    expect(PHASE_COLOR["PE"]).toBe("#2ca02c");
+    expect(PHASE_COLOR["DC+"]).toBe("#dc2626");
+    expect(PHASE_COLOR["DC-"]).toBe("#1a5f8a");
+
+    // In run mode (tick)
+    const runSnap = run(c, [], 2);
+    expect(runSnap.wires[wL1.id].kind).toBe("L1");
+    expect(runSnap.wires[wL2.id].kind).toBe("L2");
+    expect(runSnap.wires[wL3.id].kind).toBe("L3");
+    expect(runSnap.wires[wN.id].kind).toBe("N");
+    expect(runSnap.wires[wPE.id].kind).toBe("PE");
+  });
+
+  it("colors DC supply wires correctly with DC+ and DC- phases", () => {
+    const c = emptyCircuit();
+    const dc = addDevice(c, "dc-supply", "DC1", "body", 0, 0);
+    const hl = addDevice(c, "lamp", "HL1", "body", 8, 0);
+    const wPos = addWire(c, dc.symbol, "+", hl.symbol, "1");
+    const wNeg = addWire(c, dc.symbol, "-", hl.symbol, "2");
+
+    const editSnap = emptySnapshot(c);
+    expect(editSnap.wires[wPos.id].kind).toBe("DC+");
+    expect(editSnap.wires[wNeg.id].kind).toBe("DC-");
+
+    const runSnap = run(c, [], 2);
+    expect(runSnap.wires[wPos.id].kind).toBe("DC+");
+    expect(runSnap.wires[wNeg.id].kind).toBe("DC-");
+  });
+
+  it("colors ground / earth wires green (PE) when connected to ground or PE net label", () => {
+    const c = emptyCircuit();
+    const gnd1 = addDevice(c, "ground", "PE1", "body", 0, 0);
+    const gnd2 = addDevice(c, "ground", "PE2", "body", 8, 0);
+    const m = addDevice(c, "motor-3ph", "M1", "body", 0, 6);
+    const nlPE = addDevice(c, "net-label", "PE", "body", 8, 6);
+
+    const wGnd = addWire(c, gnd1.symbol, "1", gnd2.symbol, "1");
+    const wMotorPE = addWire(c, m.symbol, "PE", nlPE.symbol, "1");
+
+    const editSnap = emptySnapshot(c);
+    expect(editSnap.wires[wGnd.id].kind).toBe("PE");
+    expect(editSnap.wires[wMotorPE.id].kind).toBe("PE");
+    expect(PHASE_COLOR[editSnap.wires[wGnd.id].kind!]).toBe("#2ca02c");
+    expect(PHASE_COLOR[editSnap.wires[wMotorPE.id].kind!]).toBe("#2ca02c");
+
+    const runSnap = run(c, [], 2);
+    expect(runSnap.wires[wGnd.id].kind).toBe("PE");
+    expect(runSnap.wires[wMotorPE.id].kind).toBe("PE");
+  });
+
+  it("energizes and runs single-phase motor (motor-1ph) with live voltage between U1/1 and U2/2", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
+    const m1 = addDevice(c, "motor-1ph", "M1", "body", 12, 0);
+
+    addWire(c, g.symbol, "L1", m1.symbol, "U1");
+    addWire(c, g.symbol, "N", m1.symbol, "U2");
+
+    const snap = run(c, [], 5);
+    expect(snap.runtime[m1.device.id].energized).toBe(true);
+    expect(snap.runtime[m1.device.id].direction).toBe(1);
+    expect(snap.runtime[m1.device.id].rpm).toBeGreaterThan(0.5);
+  });
+
+  describe("same-tag limit switches mutual exclusion and linkage (up to 2)", () => {
+    it("coordinates 1 NO + 1 NC limit switch with same tag (SQ1) as linked contacts", () => {
+      const c = emptyCircuit();
+      const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
+      const sqNo = addDevice(c, "limit-no", "SQ1", "body", 6, 0);
+      const sqNc = addDevice(c, "limit-nc", "SQ1", "body", 6, 6);
+      const hl1 = addDevice(c, "lamp", "HL1", "body", 12, 0);
+      const hl2 = addDevice(c, "lamp", "HL2", "body", 12, 6);
+
+      addWire(c, g.symbol, "L1", sqNo.symbol, "1");
+      addWire(c, sqNo.symbol, "2", hl1.symbol, "1");
+      addWire(c, hl1.symbol, "2", g.symbol, "N");
+
+      addWire(c, g.symbol, "L1", sqNc.symbol, "1");
+      addWire(c, sqNc.symbol, "2", hl2.symbol, "1");
+      addWire(c, hl2.symbol, "2", g.symbol, "N");
+
+      // Initially unactuated: NO is open (HL1 OFF), NC is closed (HL2 ON)
+      const snap0 = run(c, [], 2);
+      expect(snap0.runtime[sqNo.device.id].actuated).toBe(false);
+      expect(snap0.runtime[sqNc.device.id].actuated).toBe(false);
+      expect(snap0.runtime[hl1.device.id].lit).toBe(false);
+      expect(snap0.runtime[hl2.device.id].lit).toBe(true);
+
+      // When held/actuated: NO closes (HL1 ON), NC opens (HL2 OFF)
+      const snapHeld = run(c, [sqNo.device.id], 2);
+      expect(snapHeld.runtime[sqNo.device.id].actuated).toBe(true);
+      expect(snapHeld.runtime[sqNc.device.id].actuated).toBe(true);
+      expect(snapHeld.runtime[hl1.device.id].lit).toBe(true);
+      expect(snapHeld.runtime[hl2.device.id].lit).toBe(false);
+
+      // Actuating the NC switch also actuates the NO switch of the same physical device
+      const snapHeldNc = run(c, [sqNc.device.id], 2);
+      expect(snapHeldNc.runtime[sqNo.device.id].actuated).toBe(true);
+      expect(snapHeldNc.runtime[sqNc.device.id].actuated).toBe(true);
+      expect(snapHeldNc.runtime[hl1.device.id].lit).toBe(true);
+      expect(snapHeldNc.runtime[hl2.device.id].lit).toBe(false);
+    });
+
+    it("enforces mutual exclusion for 2 NO limit switches with same tag (SQ1)", () => {
+      const c = emptyCircuit();
+      const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
+      const sq1 = addDevice(c, "limit-no", "SQ1", "body", 6, 0);
+      const sq2 = addDevice(c, "limit-no", "SQ1", "body", 6, 6);
+      const hl1 = addDevice(c, "lamp", "HL1", "body", 12, 0);
+      const hl2 = addDevice(c, "lamp", "HL2", "body", 12, 6);
+
+      addWire(c, g.symbol, "L1", sq1.symbol, "1");
+      addWire(c, sq1.symbol, "2", hl1.symbol, "1");
+      addWire(c, hl1.symbol, "2", g.symbol, "N");
+
+      addWire(c, g.symbol, "L1", sq2.symbol, "1");
+      addWire(c, sq2.symbol, "2", hl2.symbol, "1");
+      addWire(c, hl2.symbol, "2", g.symbol, "N");
+
+      // Actuating sq1 makes sq1 closed and forces sq2 open
+      const snap1 = run(c, [sq1.device.id], 2);
+      expect(snap1.runtime[sq1.device.id].actuated).toBe(true);
+      expect(snap1.runtime[sq2.device.id].actuated).toBe(false);
+      expect(snap1.runtime[hl1.device.id].lit).toBe(true);
+      expect(snap1.runtime[hl2.device.id].lit).toBe(false);
+
+      // Actuating sq2 makes sq2 closed and forces sq1 open
+      const snap2 = run(c, [sq2.device.id], 2);
+      expect(snap2.runtime[sq1.device.id].actuated).toBe(false);
+      expect(snap2.runtime[sq2.device.id].actuated).toBe(true);
+      expect(snap2.runtime[hl1.device.id].lit).toBe(false);
+      expect(snap2.runtime[hl2.device.id].lit).toBe(true);
+    });
+
+    it("enforces mutual exclusion for 2 NC limit switches with same tag (SQ1)", () => {
+      const c = emptyCircuit();
+      const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
+      const sq1 = addDevice(c, "limit-nc", "SQ1", "body", 6, 0);
+      const sq2 = addDevice(c, "limit-nc", "SQ1", "body", 6, 6);
+      const hl1 = addDevice(c, "lamp", "HL1", "body", 12, 0);
+      const hl2 = addDevice(c, "lamp", "HL2", "body", 12, 6);
+
+      addWire(c, g.symbol, "L1", sq1.symbol, "1");
+      addWire(c, sq1.symbol, "2", hl1.symbol, "1");
+      addWire(c, hl1.symbol, "2", g.symbol, "N");
+
+      addWire(c, g.symbol, "L1", sq2.symbol, "1");
+      addWire(c, sq2.symbol, "2", hl2.symbol, "1");
+      addWire(c, hl2.symbol, "2", g.symbol, "N");
+
+      // By default in createRuntime / tick, 2 NC with same tag cannot both be conducting simultaneously
+      const snap0 = run(c, [], 2);
+      const conducting1 = !snap0.runtime[sq1.device.id].actuated;
+      const conducting2 = !snap0.runtime[sq2.device.id].actuated;
+      // Exactly one is conducting (not both)
+      expect(conducting1 !== conducting2).toBe(true);
+
+      // Actuating sq1 explicitly opens sq1 (actuated=true) and allows sq2 to conduct (actuated=false)
+      const snap1 = run(c, [sq1.device.id], 2);
+      expect(snap1.runtime[sq1.device.id].actuated).toBe(true);
+      expect(snap1.runtime[sq2.device.id].actuated).toBe(false);
+      expect(snap1.runtime[hl1.device.id].lit).toBe(false);
+      expect(snap1.runtime[hl2.device.id].lit).toBe(true);
+
+      // Actuating sq2 explicitly opens sq2 (actuated=true) and allows sq1 to conduct (actuated=false)
+      const snap2 = run(c, [sq2.device.id], 2);
+      expect(snap2.runtime[sq1.device.id].actuated).toBe(false);
+      expect(snap2.runtime[sq2.device.id].actuated).toBe(true);
+      expect(snap2.runtime[hl1.device.id].lit).toBe(true);
+      expect(snap2.runtime[hl2.device.id].lit).toBe(false);
+    });
   });
 });

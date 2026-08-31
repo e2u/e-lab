@@ -148,14 +148,40 @@ function betweenStubs(
   oa?: { x: number; y: number },
   ob?: { x: number; y: number },
   jog?: WireJog,
+  isSelf = false,
 ): { x: number; y: number }[] {
-  if (jog?.axis === "y") {
-    return [a1, { x: a1.x, y: jog.pos }, { x: b1.x, y: jog.pos }, b1];
+  const jogX = jog?.x ?? (jog?.axis === "x" ? jog.pos : undefined);
+  const jogY = jog?.y ?? (jog?.axis === "y" ? jog.pos : undefined);
+
+  if (jogX !== undefined && jogY !== undefined) {
+    const oaActive = Boolean(oa && (oa.x !== 0 || oa.y !== 0));
+    const obActive = Boolean(ob && (ob.x !== 0 || ob.y !== 0));
+
+    let exitH = true;
+    if (oaActive) {
+      exitH = oa!.x !== 0;
+    } else if (obActive) {
+      exitH = ob!.y !== 0;
+    } else {
+      exitH = jog?.axis !== "y";
+    }
+
+    if (exitH) {
+      return [a1, { x: jogX, y: a1.y }, { x: jogX, y: jogY }, { x: b1.x, y: jogY }, b1];
+    } else {
+      return [a1, { x: a1.x, y: jogY }, { x: jogX, y: jogY }, { x: jogX, y: b1.y }, b1];
+    }
   }
-  if (jog?.axis === "x") {
-    return [a1, { x: jog.pos, y: a1.y }, { x: jog.pos, y: b1.y }, b1];
+
+  if (jogY !== undefined) {
+    return [a1, { x: a1.x, y: jogY }, { x: b1.x, y: jogY }, b1];
   }
-  if (a1.x === b1.x || a1.y === b1.y) {
+  if (jogX !== undefined) {
+    return [a1, { x: jogX, y: a1.y }, { x: jogX, y: b1.y }, b1];
+  }
+
+  // If not on the same symbol, collinear stubs connect directly
+  if (!isSelf && (Math.abs(a1.x - b1.x) < 0.5 || Math.abs(a1.y - b1.y) < 0.5)) {
     return [a1, b1];
   }
 
@@ -191,16 +217,19 @@ function betweenStubs(
     if (oaX * obX < 0) {
       // Facing each other or opposite directions
       if ((b1.x - a1.x) * oaX >= 0) {
-        // Space in between -> clean S-bend
-        const midX = Math.round((a1.x + b1.x) / 2);
+        if (Math.abs(a1.y - b1.y) < 0.5) return [a1, b1];
+        // Space in between -> clean S-bend snapped to grid
+        const midX = Math.round(((a1.x + b1.x) / 2) / GRID) * GRID;
         return [a1, { x: midX, y: a1.y }, { x: midX, y: b1.y }, b1];
       }
-      // Crossed over -> route around
-      const outX = oaX > 0 ? Math.max(a1.x, b1.x) + STUB * 3 : Math.min(a1.x, b1.x) - STUB * 3;
-      return [a1, { x: outX, y: a1.y }, { x: outX, y: b1.y }, b1];
+      // Crossed over / facing away -> route around in Y snapped to grid
+      const rawOutY = a1.y <= b1.y ? Math.min(a1.y, b1.y) - GRID : Math.max(a1.y, b1.y) + GRID;
+      const outY = Math.round(rawOutY / GRID) * GRID;
+      return [a1, { x: a1.x, y: outY }, { x: b1.x, y: outY }, b1];
     }
-    // Facing same horizontal direction (C-shape / U-turn)
-    const outX = oaX > 0 ? Math.max(a1.x, b1.x) + STUB * 3 : Math.min(a1.x, b1.x) - STUB * 3;
+    // Facing same horizontal direction (C-shape / U-turn) snapped to grid
+    const rawOutX = oaX > 0 ? Math.max(a1.x, b1.x) + GRID : Math.min(a1.x, b1.x) - GRID;
+    const outX = Math.round(rawOutX / GRID) * GRID;
     return [a1, { x: outX, y: a1.y }, { x: outX, y: b1.y }, b1];
   }
 
@@ -209,15 +238,18 @@ function betweenStubs(
     if (oaY * obY < 0) {
       // Facing each other
       if ((b1.y - a1.y) * oaY >= 0) {
-        const midY = Math.round((a1.y + b1.y) / 2);
+        if (Math.abs(a1.x - b1.x) < 0.5) return [a1, b1];
+        const midY = Math.round(((a1.y + b1.y) / 2) / GRID) * GRID;
         return [a1, { x: a1.x, y: midY }, { x: b1.x, y: midY }, b1];
       }
-      // Crossed over
-      const outY = oaY > 0 ? Math.max(a1.y, b1.y) + STUB * 3 : Math.min(a1.y, b1.y) - STUB * 3;
-      return [a1, { x: a1.x, y: outY }, { x: b1.x, y: outY }, b1];
+      // Crossed over -> route around in X snapped to grid
+      const rawOutX = a1.x <= b1.x ? Math.min(a1.x, b1.x) - GRID : Math.max(a1.x, b1.x) + GRID;
+      const outX = Math.round(rawOutX / GRID) * GRID;
+      return [a1, { x: outX, y: a1.y }, { x: outX, y: b1.y }, b1];
     }
-    // Facing same vertical direction
-    const outY = oaY > 0 ? Math.max(a1.y, b1.y) + STUB * 3 : Math.min(a1.y, b1.y) - STUB * 3;
+    // Facing same vertical direction snapped to grid
+    const rawOutY = oaY > 0 ? Math.max(a1.y, b1.y) + GRID : Math.min(a1.y, b1.y) - GRID;
+    const outY = Math.round(rawOutY / GRID) * GRID;
     return [a1, { x: a1.x, y: outY }, { x: b1.x, y: outY }, b1];
   }
 
@@ -226,7 +258,8 @@ function betweenStubs(
     if ((b1.x - a1.x) * oaX >= -0.5 && (a1.y - b1.y) * obY <= 0.5) {
       return [a1, { x: b1.x, y: a1.y }, b1];
     }
-    const turnX = a1.x + oaX * STUB * 2;
+    const rawTurnX = oaX > 0 ? Math.max(a1.x, b1.x) + GRID : Math.min(a1.x, b1.x) - GRID;
+    const turnX = Math.round(rawTurnX / GRID) * GRID;
     return [a1, { x: turnX, y: a1.y }, { x: turnX, y: b1.y }, b1];
   }
 
@@ -235,7 +268,8 @@ function betweenStubs(
     if ((b1.y - a1.y) * oaY >= -0.5 && (a1.x - b1.x) * obX <= 0.5) {
       return [a1, { x: a1.x, y: b1.y }, b1];
     }
-    const turnY = a1.y + oaY * STUB * 2;
+    const rawTurnY = oaY > 0 ? Math.max(a1.y, b1.y) + GRID : Math.min(a1.y, b1.y) - GRID;
+    const turnY = Math.round(rawTurnY / GRID) * GRID;
     return [a1, { x: a1.x, y: turnY }, { x: b1.x, y: turnY }, b1];
   }
 
@@ -272,21 +306,24 @@ export function wireRoute(
   if (isPortRef(to)) {
     const b = terminalWorld(circuit, to);
     if (!b) return pts;
+    const isSelf = from.symbolId === to.symbolId;
+    if (!isSelf && !jog && (Math.abs(a.x - b.x) < 0.5 || Math.abs(a.y - b.y) < 0.5)) {
+      return [a, b];
+    }
     const ob = terminalOutward(circuit, to);
     const sb = stubLen(circuit, to);
     const b1 = { x: b.x + ob.x * sb, y: b.y + ob.y * sb };
-    for (const p of betweenStubs(a1, b1, oa, ob, jog).slice(1)) append(pts, p);
+    for (const p of betweenStubs(a1, b1, oa, ob, jog, isSelf).slice(1)) append(pts, p);
     append(pts, b);
-    return pts;
+    return cleanPolyline(pts);
+  }
+  if (!jog && (Math.abs(a.x - to.x) < 0.5 || Math.abs(a.y - to.y) < 0.5)) {
+    return [a, to];
   }
   const mid = oa.x !== 0 ? { x: to.x, y: a1.y } : { x: a1.x, y: to.y };
-  if (a1.x === to.x || a1.y === to.y) {
-    append(pts, to);
-  } else {
-    append(pts, mid);
-    append(pts, to);
-  }
-  return pts;
+  append(pts, mid);
+  append(pts, to);
+  return cleanPolyline(pts);
 }
 
 export const WIRE_LANE = 8;
@@ -623,6 +660,56 @@ export function hitWireSegment(
   return best ? { index: best.index, axis: best.axis } : null;
 }
 
+/** Find existing orthogonal jog coordinate from polyline points when initiating a drag. */
+export function findComplementaryJogFromPolyline(
+  pts: { x: number; y: number }[],
+  hitAxis: "x" | "y",
+  hitIndex?: number,
+): number | undefined {
+  if (pts.length < 3) return undefined;
+
+  if (hitAxis === "x") {
+    // We are dragging in X (vertical segment). Look for horizontal segments in pts.
+    const order: number[] = [];
+    if (hitIndex !== undefined) {
+      if (hitIndex + 1 < pts.length - 1) order.push(hitIndex + 1);
+      if (hitIndex - 1 >= 0) order.push(hitIndex - 1);
+    }
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (!order.includes(i)) order.push(i);
+    }
+    for (const i of order) {
+      const p0 = pts[i];
+      const p1 = pts[i + 1];
+      const dx = Math.abs(p0.x - p1.x);
+      const dy = Math.abs(p0.y - p1.y);
+      if (dy < 0.8 && dx > 0.8) {
+        return Math.round(p0.y / GRID) * GRID;
+      }
+    }
+  } else {
+    // We are dragging in Y (horizontal segment). Look for vertical segments in pts.
+    const order: number[] = [];
+    if (hitIndex !== undefined) {
+      if (hitIndex + 1 < pts.length - 1) order.push(hitIndex + 1);
+      if (hitIndex - 1 >= 0) order.push(hitIndex - 1);
+    }
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (!order.includes(i)) order.push(i);
+    }
+    for (const i of order) {
+      const p0 = pts[i];
+      const p1 = pts[i + 1];
+      const dx = Math.abs(p0.x - p1.x);
+      const dy = Math.abs(p0.y - p1.y);
+      if (dx < 0.8 && dy > 0.8) {
+        return Math.round(p0.x / GRID) * GRID;
+      }
+    }
+  }
+  return undefined;
+}
+
 /** Find the closest wire in the circuit within maxDist to a point (x, y) in world pixels. */
 export function findWireAtPoint(
   circuit: Circuit,
@@ -774,6 +861,279 @@ export function nodeKey(deviceId: string, term: string): string {
   return `${deviceId}::${term}`;
 }
 
+/** Calculate the optimal junction grid position (gx, gy) when merging two wires. */
+export function findOptimalJunctionForWires(
+  circuit: Circuit,
+  wireId1: string,
+  wireId2: string,
+): { x: number; y: number } | null {
+  const w1 = circuit.wires.find((w) => w.id === wireId1);
+  const w2 = circuit.wires.find((w) => w.id === wireId2);
+  if (!w1 || !w2 || w1.id === w2.id) return null;
+
+  const pts1 = wireRoute(circuit, w1.a, w1.b, w1.jog);
+  const pts2 = wireRoute(circuit, w2.a, w2.b, w2.jog);
+  if (pts1.length < 2 || pts2.length < 2) return null;
+
+  // 1. Check segment-segment intersection (crossings or overlaps)
+  for (let i = 0; i < pts1.length - 1; i++) {
+    const a1 = pts1[i];
+    const b1 = pts1[i + 1];
+    for (let j = 0; j < pts2.length - 1; j++) {
+      const a2 = pts2[j];
+      const b2 = pts2[j + 1];
+
+      // Intersection between orthogonal or general segments
+      const denom = (b2.y - a2.y) * (b1.x - a1.x) - (b2.x - a2.x) * (b1.y - a1.y);
+      if (Math.abs(denom) >= 0.001) {
+        const ua = ((b2.x - a2.x) * (a1.y - a2.y) - (b2.y - a2.y) * (a1.x - a2.x)) / denom;
+        const ub = ((b1.x - a1.x) * (a1.y - a2.y) - (b1.y - a1.y) * (a1.x - a2.x)) / denom;
+        if (ua >= -0.05 && ua <= 1.05 && ub >= -0.05 && ub <= 1.05) {
+          const ix = a1.x + Math.max(0, Math.min(1, ua)) * (b1.x - a1.x);
+          const iy = a1.y + Math.max(0, Math.min(1, ua)) * (b1.y - a1.y);
+          return { x: Math.round(ix / GRID), y: Math.round(iy / GRID) };
+        }
+      } else {
+        // Collinear parallel segments: check overlap
+        const axis1 = segmentAxis(a1, b1);
+        const axis2 = segmentAxis(a2, b2);
+        if (axis1 && axis1 === axis2 && distToSegment(a2, a1, b1) < 2) {
+          if (axis1 === "x") {
+            const min1 = Math.min(a1.y, b1.y);
+            const max1 = Math.max(a1.y, b1.y);
+            const min2 = Math.min(a2.y, b2.y);
+            const max2 = Math.max(a2.y, b2.y);
+            const overlapMin = Math.max(min1, min2);
+            const overlapMax = Math.min(max1, max2);
+            if (overlapMin <= overlapMax) {
+              const midY = (overlapMin + overlapMax) / 2;
+              return { x: Math.round(a1.x / GRID), y: Math.round(midY / GRID) };
+            }
+          } else {
+            const min1 = Math.min(a1.x, b1.x);
+            const max1 = Math.max(a1.x, b1.x);
+            const min2 = Math.min(a2.x, b2.x);
+            const max2 = Math.max(a2.x, b2.x);
+            const overlapMin = Math.max(min1, min2);
+            const overlapMax = Math.min(max1, max2);
+            if (overlapMin <= overlapMax) {
+              const midX = (overlapMin + overlapMax) / 2;
+              return { x: Math.round(midX / GRID), y: Math.round(a1.y / GRID) };
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Check if an endpoint of one wire lies along or near the other wire (T-junction)
+  const a1World = terminalWorld(circuit, w1.a);
+  const b1World = terminalWorld(circuit, w1.b);
+  const a2World = terminalWorld(circuit, w2.a);
+  const b2World = terminalWorld(circuit, w2.b);
+
+  const checkEndpointsOnOther = [
+    { pt: a1World, otherPts: pts2 },
+    { pt: b1World, otherPts: pts2 },
+    { pt: a2World, otherPts: pts1 },
+    { pt: b2World, otherPts: pts1 },
+  ];
+
+  for (const { pt, otherPts } of checkEndpointsOnOther) {
+    if (!pt) continue;
+    const near = nearestOnPolyline(otherPts, pt);
+    if (near) {
+      const d = Math.hypot(near.x - pt.x, near.y - pt.y);
+      if (d <= GRID * 1.5) {
+        return { x: Math.round(near.x / GRID), y: Math.round(near.y / GRID) };
+      }
+    }
+  }
+
+  // 3. Check shared endpoints
+  const sharedPorts: PortRef[] = [];
+  if (portsEqual(w1.a, w2.a) || portsEqual(w1.a, w2.b)) sharedPorts.push(w1.a);
+  if (portsEqual(w1.b, w2.a) || portsEqual(w1.b, w2.b)) sharedPorts.push(w1.b);
+
+  if (sharedPorts.length > 0) {
+    const sp = sharedPorts[0];
+    const sym = circuit.symbols.find((s) => s.id === sp.symbolId);
+    if (sym && isJunction(sym.id, circuit)) {
+      return { x: Math.round(sym.x), y: Math.round(sym.y) };
+    }
+    const world = terminalWorld(circuit, sp);
+    if (world) {
+      const outward = terminalOutward(circuit, sp);
+      if (Math.abs(outward.x) > 0.1 || Math.abs(outward.y) > 0.1) {
+        return {
+          x: Math.round((world.x + outward.x * GRID) / GRID),
+          y: Math.round((world.y + outward.y * GRID) / GRID),
+        };
+      }
+      return { x: Math.round(world.x / GRID), y: Math.round(world.y / GRID) };
+    }
+  }
+
+  // 4. Closest points between polylines
+  let bestDist = Infinity;
+  let bestMid = { x: (pts1[0].x + pts2[0].x) / 2, y: (pts1[0].y + pts2[0].y) / 2 };
+
+  for (const p1 of pts1) {
+    const near = nearestOnPolyline(pts2, p1);
+    if (near) {
+      const d = Math.hypot(near.x - p1.x, near.y - p1.y);
+      if (d < bestDist) {
+        bestDist = d;
+        bestMid = { x: (p1.x + near.x) / 2, y: (p1.y + near.y) / 2 };
+      }
+    }
+  }
+
+  return { x: Math.round(bestMid.x / GRID), y: Math.round(bestMid.y / GRID) };
+}
+
+/**
+ * Find all wire IDs that belong to the same contiguous connected electrical net/branch
+ * as the given wire(s).
+ */
+export function getConnectedWireIds(circuit: Circuit, startWireIds: string[] | string): Set<string> {
+  const seeds = Array.isArray(startWireIds) ? startWireIds : [startWireIds];
+  const initialValid = seeds.filter((id) => circuit.wires.some((w) => w.id === id));
+  if (initialValid.length === 0) return new Set();
+
+  const getNodeKey = (ref: PortRef): string => {
+    if (isJunction(ref.symbolId, circuit)) {
+      return `junction:${ref.symbolId}`;
+    }
+    const sym = circuit.symbols.find((s) => s.id === ref.symbolId);
+    const dev = sym && circuit.devices.find((d) => d.id === sym.deviceId);
+    if (dev?.kind === "net-label") {
+      const tag = dev.tag.trim();
+      if (tag) return `net:${tag}`;
+    }
+    return `port:${ref.symbolId}:${ref.term}`;
+  };
+
+  const nodeToWires = new Map<string, string[]>();
+  const wireToNodes = new Map<string, [string, string]>();
+
+  for (const w of circuit.wires) {
+    const na = getNodeKey(w.a);
+    const nb = getNodeKey(w.b);
+    wireToNodes.set(w.id, [na, nb]);
+
+    if (!nodeToWires.has(na)) nodeToWires.set(na, []);
+    nodeToWires.get(na)!.push(w.id);
+
+    if (!nodeToWires.has(nb)) nodeToWires.set(nb, []);
+    nodeToWires.get(nb)!.push(w.id);
+  }
+
+  const visitedWires = new Set<string>(initialValid);
+  const queue = [...initialValid];
+
+  while (queue.length > 0) {
+    const curWireId = queue.shift()!;
+    const nodes = wireToNodes.get(curWireId);
+    if (!nodes) continue;
+
+    for (const nodeKey of nodes) {
+      const neighborWireIds = nodeToWires.get(nodeKey);
+      if (neighborWireIds) {
+        for (const nWireId of neighborWireIds) {
+          if (!visitedWires.has(nWireId)) {
+            visitedWires.add(nWireId);
+            queue.push(nWireId);
+          }
+        }
+      }
+    }
+  }
+
+  return visitedWires;
+}
+
+/** Check if two wires are connected topologically, by shared node/net, or intersecting geometrically. */
+export function areWiresConnected(circuit: Circuit, wireId1: string, wireId2: string): boolean {
+  const w1 = circuit.wires.find((w) => w.id === wireId1);
+  const w2 = circuit.wires.find((w) => w.id === wireId2);
+  if (!w1 || !w2 || w1.id === w2.id) return false;
+
+  // 1. Direct topological connection (shared port, junction, net label, multi-hop net)
+  if (getConnectedWireIds(circuit, [wireId1]).has(wireId2)) {
+    return true;
+  }
+
+  // 2. Geometric intersection or close proximity (for merging intersecting wires)
+  const pts1 = wireRoute(circuit, w1.a, w1.b, w1.jog);
+  const pts2 = wireRoute(circuit, w2.a, w2.b, w2.jog);
+  for (let i = 0; i < pts1.length - 1; i++) {
+    for (let j = 0; j < pts2.length - 1; j++) {
+      const a1 = pts1[i];
+      const b1 = pts1[i + 1];
+      const a2 = pts2[j];
+      const b2 = pts2[j + 1];
+      const denom = (b2.y - a2.y) * (b1.x - a1.x) - (b2.x - a2.x) * (b1.y - a1.y);
+      if (Math.abs(denom) >= 0.001) {
+        const ua = ((b2.x - a2.x) * (a1.y - a2.y) - (b2.y - a2.y) * (a1.x - a2.x)) / denom;
+        const ub = ((b1.x - a1.x) * (a1.y - a2.y) - (b1.y - a1.y) * (a1.x - a2.x)) / denom;
+        if (ua >= -0.05 && ua <= 1.05 && ub >= -0.05 && ub <= 1.05) return true;
+      } else {
+        if (distToSegment(a2, a1, b1) < GRID * 1.2 || distToSegment(b2, a1, b1) < GRID * 1.2) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+/** Find wire IDs whose route passes through or intersects the given bounding rectangle (in grid units). */
+export function wiresInRect(
+  circuit: Circuit,
+  rect: { x: number; y: number; w: number; h: number },
+  routes?: Map<string, { x: number; y: number }[]>,
+): string[] {
+  const result: string[] = [];
+  const rx0 = rect.x * GRID;
+  const ry0 = rect.y * GRID;
+  const rx1 = (rect.x + rect.w) * GRID;
+  const ry1 = (rect.y + rect.h) * GRID;
+  const minX = Math.min(rx0, rx1);
+  const maxX = Math.max(rx0, rx1);
+  const minY = Math.min(ry0, ry1);
+  const maxY = Math.max(ry0, ry1);
+
+  for (const w of circuit.wires) {
+    const pts = routes?.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
+    let hit = false;
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      if (p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY) {
+        hit = true;
+        break;
+      }
+    }
+    if (!hit) {
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const segMinX = Math.min(p1.x, p2.x);
+        const segMaxX = Math.max(p1.x, p2.x);
+        const segMinY = Math.min(p1.y, p2.y);
+        const segMaxY = Math.max(p1.y, p2.y);
+        if (segMaxX >= minX && segMinX <= maxX && segMaxY >= minY && segMinY <= maxY) {
+          hit = true;
+          break;
+        }
+      }
+    }
+    if (hit) result.push(w.id);
+  }
+  return result;
+}
+
 export function portDevice(
   circuit: Circuit,
   ref: PortRef,
@@ -809,13 +1169,19 @@ function lineIntersect(
 
 export const HOP_R = 10;
 
-/** A crossing of two unconnected wires. The hopping wire draws a semicircle. */
+/** A crossing of two unconnected wires. The hopping wire draws an arc (semicircle or merged arch). */
 export interface WireCrossover {
   x: number;
   y: number;
   hopWireId: string;
   /** "x" = vertical hop (constant x, bulge right); "y" = horizontal hop (bulge up). */
   hopAxis: "x" | "y";
+  /** Horizontal radius of the arc. */
+  rx?: number;
+  /** Vertical radius of the arc. */
+  ry?: number;
+  /** Number of crossed wires spanned by this arc. */
+  count?: number;
 }
 
 function sharesJunction(a: { a: PortRef; b: PortRef }, b: { a: PortRef; b: PortRef }, circuit: Circuit): boolean {
@@ -823,9 +1189,9 @@ function sharesJunction(a: { a: PortRef; b: PortRef }, b: { a: PortRef; b: PortR
   return ids.some((id) => (b.a.symbolId === id || b.b.symbolId === id) && isJunction(id, circuit));
 }
 
-/** Find unconnected wire crossings. Vertical wire hops over horizontal. */
+/** Find unconnected wire crossings. Vertical wire hops over horizontal. Merges multiple close crossings into a single larger arc. */
 export function findWireCrossovers(circuit: Circuit, routes?: Map<string, Pt[]>): WireCrossover[] {
-  const crossovers: WireCrossover[] = [];
+  const rawCrossings: { x: number; y: number; hopWireId: string; hopAxis: "x" | "y" }[] = [];
   const resolved = routes ?? allWireRoutes(circuit);
   const wireSegments = circuit.wires.map((w) => {
     const pts = resolved.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
@@ -849,17 +1215,108 @@ export function findWireCrossovers(circuit: Circuit, routes?: Map<string, Pt[]>)
           if (!axisA || !axisB || axisA === axisB) continue;
           const intersect = lineIntersect(segA.a, segA.b, segB.a, segB.b);
           if (!intersect) continue;
-          
-          // Always show crossover for wire crossings
+
           const hopAxis: "x" | "y" = axisA === "x" || axisB === "x" ? "x" : "y";
           const hopWireId = hopAxis === axisA ? wireA.wire.id : wireB.wire.id;
-          if (!crossovers.some((c) => Math.hypot(c.x - intersect.x, c.y - intersect.y) < 2)) {
-            crossovers.push({ x: intersect.x, y: intersect.y, hopWireId, hopAxis });
+          if (!rawCrossings.some((c) => c.hopWireId === hopWireId && Math.hypot(c.x - intersect.x, c.y - intersect.y) < 2)) {
+            rawCrossings.push({ x: intersect.x, y: intersect.y, hopWireId, hopAxis });
           }
         }
       }
     }
   }
+
+  const MAX_MERGE_GAP = 50;
+  const crossovers: WireCrossover[] = [];
+
+  for (const item of wireSegments) {
+    const w = item.wire;
+    const wireRaw = rawCrossings.filter((c) => c.hopWireId === w.id);
+    if (!wireRaw.length) continue;
+
+    for (const seg of item.segments) {
+      const segAxis = segmentAxis(seg.a, seg.b);
+      if (!segAxis) continue;
+
+      const segHits = wireRaw.filter((h) => h.hopAxis === segAxis && distToSegment(h, seg.a, seg.b) < 1.5);
+      if (!segHits.length) continue;
+
+      if (segAxis === "x") {
+        segHits.sort((p, q) => p.y - q.y);
+      } else {
+        segHits.sort((p, q) => p.x - q.x);
+      }
+
+      const clusters: typeof segHits[] = [];
+      for (const hit of segHits) {
+        if (!clusters.length) {
+          clusters.push([hit]);
+        } else {
+          const curCluster = clusters[clusters.length - 1];
+          const lastHit = curCluster[curCluster.length - 1];
+          const gap = segAxis === "x" ? Math.abs(hit.y - lastHit.y) : Math.abs(hit.x - lastHit.x);
+          if (gap <= MAX_MERGE_GAP) {
+            curCluster.push(hit);
+          } else {
+            clusters.push([hit]);
+          }
+        }
+      }
+
+      for (const cluster of clusters) {
+        if (cluster.length === 1) {
+          crossovers.push({
+            x: cluster[0].x,
+            y: cluster[0].y,
+            hopWireId: w.id,
+            hopAxis: segAxis,
+            rx: HOP_R,
+            ry: HOP_R,
+            count: 1,
+          });
+        } else {
+          const first = cluster[0];
+          const last = cluster[cluster.length - 1];
+          if (segAxis === "x") {
+            const yMin = Math.min(first.y, last.y);
+            const yMax = Math.max(first.y, last.y);
+            const span = yMax - yMin;
+            const pad = 9;
+            const rParallel = span / 2 + pad;
+            const rPerp = Math.min(22, Math.max(10, Math.round(7 + rParallel * 0.35)));
+            const yc = (yMin + yMax) / 2;
+            crossovers.push({
+              x: first.x,
+              y: yc,
+              hopWireId: w.id,
+              hopAxis: "x",
+              rx: rPerp,
+              ry: rParallel,
+              count: cluster.length,
+            });
+          } else {
+            const xMin = Math.min(first.x, last.x);
+            const xMax = Math.max(first.x, last.x);
+            const span = xMax - xMin;
+            const pad = 9;
+            const rParallel = span / 2 + pad;
+            const rPerp = Math.min(22, Math.max(10, Math.round(7 + rParallel * 0.35)));
+            const xc = (xMin + xMax) / 2;
+            crossovers.push({
+              x: xc,
+              y: first.y,
+              hopWireId: w.id,
+              hopAxis: "y",
+              rx: rParallel,
+              ry: rPerp,
+              count: cluster.length,
+            });
+          }
+        }
+      }
+    }
+  }
+
   return crossovers;
 }
 
@@ -868,19 +1325,20 @@ function hopSweep(hopAxis: "x" | "y", from: { x: number; y: number }, to: { x: n
   return from.x <= to.x ? 0 : 1;
 }
 
-/** Semicircle overlay for a hop, always the same geometry as `polylinePathD`. */
+/** Semicircle or merged elliptical arc overlay for a hop, always the same geometry as `polylinePathD`. */
 export function hopArcD(c: WireCrossover, r = HOP_R): string {
+  const rx = c.rx ?? r;
+  const ry = c.ry ?? r;
   if (c.hopAxis === "x") {
-    return `M ${c.x} ${c.y - r} A ${r} ${r} 0 0 1 ${c.x} ${c.y + r}`;
+    return `M ${c.x} ${c.y - ry} A ${rx} ${ry} 0 0 1 ${c.x} ${c.y + ry}`;
   }
-  return `M ${c.x - r} ${c.y} A ${r} ${r} 0 0 0 ${c.x + r} ${c.y}`;
+  return `M ${c.x - rx} ${c.y} A ${rx} ${ry} 0 0 0 ${c.x + rx} ${c.y}`;
 }
 
 function hopsOnSegment(
   a: { x: number; y: number },
   b: { x: number; y: number },
   hops: WireCrossover[],
-  r: number,
 ): WireCrossover[] {
   const axis = segmentAxis(a, b);
   if (!axis) return [];
@@ -889,24 +1347,13 @@ function hopsOnSegment(
     if (distToSegment(h, a, b) > 1.5) return false;
     const da = Math.hypot(h.x - a.x, h.y - a.y);
     const db = Math.hypot(h.x - b.x, h.y - b.y);
-    return da >= r && db >= r;
+    return da >= 2 && db >= 2;
   });
   hits.sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y));
-  const out: WireCrossover[] = [];
-  for (const h of hits) {
-    if (!out.length) {
-      out.push(h);
-    } else {
-      const prev = out[out.length - 1];
-      if (Math.hypot(h.x - prev.x, h.y - prev.y) >= r * 1.2) {
-        out.push(h);
-      }
-    }
-  }
-  return out;
+  return hits;
 }
 
-/** SVG path along an orthogonal polyline, with hop semicircles on the hopping wire. */
+/** SVG path along an orthogonal polyline, with hop semicircles or merged arches on the hopping wire. */
 export function polylinePathD(
   pts: { x: number; y: number }[],
   hops: WireCrossover[] = [],
@@ -917,19 +1364,22 @@ export function polylinePathD(
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i];
     const b = pts[i + 1];
-    const onSeg = hopsOnSegment(a, b, hops, r);
+    const onSeg = hopsOnSegment(a, b, hops);
     let cursor = a;
     for (const hop of onSeg) {
       const len = Math.hypot(b.x - a.x, b.y - a.y);
       if (len < 1) continue;
       const ux = (b.x - a.x) / len;
       const uy = (b.y - a.y) / len;
-      const before = { x: hop.x - ux * r, y: hop.y - uy * r };
-      const after = { x: hop.x + ux * r, y: hop.y + uy * r };
+      const rPar = hop.hopAxis === "x" ? (hop.ry ?? r) : (hop.rx ?? r);
+      const rx = hop.rx ?? r;
+      const ry = hop.ry ?? r;
+      const before = { x: hop.x - ux * rPar, y: hop.y - uy * rPar };
+      const after = { x: hop.x + ux * rPar, y: hop.y + uy * rPar };
       const forwardDist = (before.x - cursor.x) * ux + (before.y - cursor.y) * uy;
       if (forwardDist < -0.1) continue;
       parts.push(`L ${before.x} ${before.y}`);
-      parts.push(`A ${r} ${r} 0 0 ${hopSweep(hop.hopAxis, before, after)} ${after.x} ${after.y}`);
+      parts.push(`A ${rx} ${ry} 0 0 ${hopSweep(hop.hopAxis, before, after)} ${after.x} ${after.y}`);
       cursor = after;
     }
     if (Math.hypot(cursor.x - b.x, cursor.y - b.y) > 0.5) {

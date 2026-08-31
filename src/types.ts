@@ -78,6 +78,7 @@ export type DeviceKind =
   | "ground"
   | "net-label"
   | "title-block"
+  | "comment"
   | "junction";
 
 export type PotentialKind = "L1" | "L2" | "L3" | "N" | "PE" | "DC+" | "DC-";
@@ -123,6 +124,14 @@ export interface DeviceParams {
   designedBy?: string;
   date?: string;
   scale?: number;
+  text?: string;
+  targetDeviceId?: string;
+  fontSize?: number;
+  bgColor?: string;
+  borderColor?: string;
+  showLeaderLine?: boolean;
+  width?: number;
+  height?: number;
 }
 
 export interface Device {
@@ -158,8 +167,10 @@ export interface PortRef {
 }
 
 export interface WireJog {
-  axis: "x" | "y";
-  pos: number;
+  axis?: "x" | "y";
+  pos?: number;
+  x?: number;
+  y?: number;
 }
 
 export interface Wire {

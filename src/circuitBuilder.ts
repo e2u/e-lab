@@ -1,8 +1,8 @@
 import { variantDef } from "./catalog";
 import { GRID } from "./types";
-import { portsEqual, terminalWorld } from "./geometry";
+import { findOptimalJunctionForWires, portsEqual, terminalWorld } from "./geometry";
 import { uid } from "./ids";
-import type { Circuit, Device, DeviceKind, DeviceParams, PortRef, Rot, SymbolInst } from "./types";
+import type { Circuit, Device, DeviceKind, DeviceParams, PortRef, Rot, SymbolInst, Wire } from "./types";
 
 export function emptyCircuit(): Circuit {
   return { devices: [], symbols: [], wires: [], groups: [] };
@@ -61,14 +61,16 @@ export function addWire(
   ta: string,
   sb: SymbolInst | string,
   tb: string,
-): void {
+): Wire {
   const a = typeof sa === "string" ? sa : sa.id;
   const b = typeof sb === "string" ? sb : sb.id;
-  circuit.wires.push({
+  const w: Wire = {
     id: uid("w"),
     a: { symbolId: a, term: ta },
     b: { symbolId: b, term: tb },
-  });
+  };
+  circuit.wires.push(w);
+  return w;
 }
 
 export function isJunctionSymbol(circuit: Circuit, symbolId: string): boolean {
@@ -135,11 +137,27 @@ export function pruneOrphanJunctions(circuit: Circuit): void {
   circuit.devices = circuit.devices.filter((d) => !dropDev.has(d.id) || circuit.symbols.some((s) => s.deviceId === d.id));
 }
 
-/** Remove a junction. Two remaining legs are spliced back into one wire. */
+/**
+ * Deletes a wire without affecting other wires or causing them to shift.
+ * Only cleans up orphan junctions (junctions with 0 remaining wires).
+ */
+export function deleteWireAndCleanJunctions(circuit: Circuit, wireId: string): void {
+  const targetWire = circuit.wires.find((w) => w.id === wireId);
+  if (!targetWire) return;
+
+  // Only remove the target wire itself
+  circuit.wires = circuit.wires.filter((w) => w.id !== wireId);
+
+  // Clean up any junctions that have become completely orphaned (0 connected wires)
+  pruneOrphanJunctions(circuit);
+}
+
+/** Remove a junction. If two remaining legs are spliced, preserve the junction coordinate as jog so the wire does not shift. */
 export function removeJunction(circuit: Circuit, symbolId: string): void {
   const legs = circuit.wires.filter((w) => w.a.symbolId === symbolId || w.b.symbolId === symbolId);
   const far = (w: Circuit["wires"][0]): PortRef => (w.a.symbolId === symbolId ? w.b : w.a);
-  if (legs.length === 2) {
+  const sym = circuit.symbols.find((s) => s.id === symbolId);
+  if (legs.length === 2 && sym) {
     const p1 = far(legs[0]);
     const p2 = far(legs[1]);
     circuit.wires = circuit.wires.filter((w) => w.id !== legs[0].id && w.id !== legs[1].id);
@@ -150,15 +168,82 @@ export function removeJunction(circuit: Circuit, symbolId: string): void {
         b: p2,
         broken: Boolean(legs[0].broken || legs[1].broken),
         label: legs[0].label || legs[1].label,
+        jog: { x: sym.x, y: sym.y },
       });
     }
   } else {
     const ids = new Set(legs.map((w) => w.id));
     circuit.wires = circuit.wires.filter((w) => !ids.has(w.id));
   }
-  const sym = circuit.symbols.find((s) => s.id === symbolId);
   circuit.symbols = circuit.symbols.filter((s) => s.id !== symbolId);
   if (sym && !circuit.symbols.some((s) => s.deviceId === sym.deviceId)) {
     circuit.devices = circuit.devices.filter((d) => d.id !== sym.deviceId);
   }
+}
+
+/**
+ * Merges two wires at an optimal junction point.
+ * Computes the optimal junction position (or uses provided pos), inserts or reuses a junction at that position,
+ * removes the two original wires, and creates clean wire connections from each distinct endpoint to the junction.
+ */
+export function mergeWires(
+  circuit: Circuit,
+  wireId1: string,
+  wireId2: string,
+  junctionPos?: { x: number; y: number }
+): { junction: SymbolInst; newWires: Wire[] } | null {
+  const w1 = circuit.wires.find((w) => w.id === wireId1);
+  const w2 = circuit.wires.find((w) => w.id === wireId2);
+  if (!w1 || !w2 || w1.id === w2.id) return null;
+
+  const pos = junctionPos ?? findOptimalJunctionForWires(circuit, wireId1, wireId2);
+  if (!pos) return null;
+
+  let j = findJunctionAt(circuit, pos.x, pos.y);
+  if (!j) {
+    j = addJunction(circuit, pos.x, pos.y).symbol;
+  }
+  const jPort: PortRef = { symbolId: j.id, term: "1" };
+
+  const allEndpoints: PortRef[] = [w1.a, w1.b, w2.a, w2.b];
+  const distinctEndpoints: PortRef[] = [];
+
+  for (const ep of allEndpoints) {
+    if (portsEqual(ep, jPort)) continue;
+    if (isJunctionSymbol(circuit, ep.symbolId)) {
+      const jSym = circuit.symbols.find((s) => s.id === ep.symbolId);
+      if (jSym && Math.abs(jSym.x - pos.x) <= 0.45 && Math.abs(jSym.y - pos.y) <= 0.45) {
+        continue;
+      }
+    }
+    if (!distinctEndpoints.some((existing) => portsEqual(existing, ep))) {
+      distinctEndpoints.push(ep);
+    }
+  }
+
+  // Remove the two merged wires
+  circuit.wires = circuit.wires.filter((w) => w.id !== wireId1 && w.id !== wireId2);
+
+  const createdWires: Wire[] = [];
+  for (const ep of distinctEndpoints) {
+    const alreadyConnected = circuit.wires.some(
+      (w) =>
+        (portsEqual(w.a, ep) && portsEqual(w.b, jPort)) ||
+        (portsEqual(w.b, ep) && portsEqual(w.a, jPort))
+    );
+    if (!alreadyConnected) {
+      const newWire: Wire = {
+        id: uid("w"),
+        a: ep,
+        b: jPort,
+        broken: w1.broken || w2.broken,
+        label: w1.label || w2.label,
+      };
+      circuit.wires.push(newWire);
+      createdWires.push(newWire);
+    }
+  }
+
+  pruneOrphanJunctions(circuit);
+  return { junction: j, newWires: createdWires };
 }

@@ -37,8 +37,10 @@ describe("20 Progressive Example Circuits", () => {
         expect(hasTermB, `Terminal ${wire.b.term} in ${devB!.kind}:${symB!.variant} must exist`).toBe(true);
       }
 
-      // Verify simulation runs without faults/errors
+      // Verify simulation runs without faults/errors and wires have assigned phase kinds
       const initialSnap = emptySnapshot(circuit);
+      const coloredWires = Object.values(initialSnap.wires).filter((w) => w.kind !== null);
+      expect(coloredWires.length).toBeGreaterThan(0);
       const snap = tick(
         circuit,
         initialSnap.runtime,

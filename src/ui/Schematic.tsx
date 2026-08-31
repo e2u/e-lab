@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { allWireRoutes, findWireCrossovers } from "../geometry";
+import { allWireRoutes, findWireCrossovers, getConnectedWireIds } from "../geometry";
 import { useLab } from "../store";
 import { COLS, GRID, ROWS } from "../types";
 import { ContextMenu } from "./ContextMenu";
@@ -8,17 +8,24 @@ import { PaperBackground } from "./schematic/layers/PaperBackground";
 import { PortLayer } from "./schematic/layers/PortLayer";
 import { SymbolLayer } from "./schematic/layers/SymbolLayer";
 import { WireLayer } from "./schematic/layers/WireLayer";
+import { emptySnapshot } from "../sim/engine";
 import { RulerLeft, RulerTop } from "./schematic/Ruler";
 import { useSchematicEvents } from "./schematic/useSchematicEvents";
+import { blurActiveInput } from "../keyboard";
 
 export function Schematic() {
   const circuit = useLab((s) => s.circuit);
-  const snapshot = useLab((s) => s.snapshot);
+  const rawSnapshot = useLab((s) => s.snapshot);
   const mode = useLab((s) => s.mode);
+  const snapshot = useMemo(() => {
+    return mode === "edit" ? emptySnapshot(circuit) : rawSnapshot;
+  }, [circuit, mode, rawSnapshot]);
   const editSubMode = useLab((s) => s.editSubMode);
   const placing = useLab((s) => s.placing);
+  const placingRot = useLab((s) => s.placingRot);
   const selected = useLab((s) => s.selected);
   const selectedIds = useLab((s) => s.selectedIds);
+  const selectedWireIds = useLab((s) => s.selectedWireIds);
   const wiringFrom = useLab((s) => s.wiringFrom);
   const hoverPort = useLab((s) => s.hoverPort);
   const held = useLab((s) => s.held);
@@ -64,6 +71,18 @@ export function Schematic() {
   const routes = useMemo(() => allWireRoutes(circuit), [circuit]);
   const crossovers = useMemo(() => findWireCrossovers(circuit, routes), [circuit, routes]);
 
+  const highlightedWireIds = useMemo(() => {
+    const ids: string[] = [];
+    if (selected?.type === "wire") ids.push(selected.id);
+    if (selectedWireIds && selectedWireIds.length > 0) {
+      for (const id of selectedWireIds) {
+        if (!ids.includes(id)) ids.push(id);
+      }
+    }
+    if (ids.length === 0) return new Set<string>();
+    return getConnectedWireIds(circuit, ids);
+  }, [circuit, selected, selectedWireIds]);
+
   const {
     svgRef,
     cursor,
@@ -102,7 +121,11 @@ export function Schematic() {
   });
 
   return (
-    <div className="paper-wrap" ref={wrapRef}>
+    <div
+      className="paper-wrap"
+      ref={wrapRef}
+      onPointerDownCapture={blurActiveInput}
+    >
       <div className={`schematic-container ${showRulers ? "with-rulers" : ""}`}>
         {showRulers && (
           <>
@@ -139,23 +162,13 @@ export function Schematic() {
         >
           <PaperBackground onPaperDown={onPaperDown} />
 
-          <WireLayer
-            circuit={circuit}
-            snapshot={snapshot}
-            selected={selected}
-            routes={routes}
-            crossovers={crossovers}
-            onWireContextMenu={onWireContextMenu}
-            onWirePointerDown={onWirePointerDown}
-            onWireDoubleClick={onWireDoubleClick}
-          />
-
           <SymbolLayer
             circuit={circuit}
             snapshot={snapshot}
             selected={selected}
             selectedIds={selectedIds}
             selectedNetTag={selectedNetTag}
+            highlightedWireIds={highlightedWireIds}
             held={held}
             onSymbolContextMenu={onSymbolContextMenu}
             onSymbolPointerDown={onSymbolPointerDown}
@@ -165,6 +178,19 @@ export function Schematic() {
             onTagContextMenu={onTagContextMenu}
             onSymbolPointerUp={onSymbolPointerUp}
             onSymbolPointerLeave={onSymbolPointerLeave}
+          />
+
+          <WireLayer
+            circuit={circuit}
+            snapshot={snapshot}
+            selected={selected}
+            selectedWireIds={selectedWireIds}
+            highlightedWireIds={highlightedWireIds}
+            routes={routes}
+            crossovers={crossovers}
+            onWireContextMenu={onWireContextMenu}
+            onWirePointerDown={onWirePointerDown}
+            onWireDoubleClick={onWireDoubleClick}
           />
 
           <PortLayer
@@ -183,6 +209,7 @@ export function Schematic() {
             wiringFrom={wiringFrom}
             cursor={cursor}
             placing={placing}
+            placingRot={placingRot}
             selected={selected}
             routes={routes}
             marqueeView={marqueeView}

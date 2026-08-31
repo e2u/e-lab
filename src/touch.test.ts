@@ -304,12 +304,61 @@ describe("touch & mobile adaptation", () => {
     // Drag wire along Y axis
     s.setWireJog(wire.id, { axis: "y", pos: 8 * 22 });
     let updatedWire = useLab.getState().circuit.wires.find((w) => w.id === wire.id)!;
-    expect(updatedWire.jog).toEqual({ axis: "y", pos: 176 });
+    expect(updatedWire.jog?.pos).toBe(176);
+    expect(updatedWire.jog?.y).toBe(176);
 
     // Straighten wire
     s.straightenWire(wire.id);
     updatedWire = useLab.getState().circuit.wires.find((w) => w.id === wire.id)!;
     expect(updatedWire.jog).toBeUndefined();
+  });
+
+  it("independently drags vertical and horizontal wire segments without affecting the other axis", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+
+    // Place contactor coil and lamp
+    s.setPlacing("km-coil");
+    s.placeAt(4, 4);
+    s.setPlacing("lamp");
+    s.placeAt(16, 12);
+
+    const [symA, symB] = useLab.getState().circuit.symbols;
+    s.clickPort({ symbolId: symA.id, term: "A1" });
+    s.clickPort({ symbolId: symB.id, term: "1" });
+
+    const wire = useLab.getState().circuit.wires[0];
+    expect(wire).toBeDefined();
+
+    // 1. Drag vertical segment along X axis
+    s.setWireJog(wire.id, { axis: "x", pos: 10 * 22 });
+    let w = useLab.getState().circuit.wires.find((item) => item.id === wire.id)!;
+    expect(w.jog?.x).toBe(220);
+    expect(w.jog?.y).toBeUndefined();
+
+    // 2. Drag horizontal segment along Y axis without altering X
+    s.setWireJog(wire.id, { axis: "y", pos: 8 * 22 });
+    w = useLab.getState().circuit.wires.find((item) => item.id === wire.id)!;
+    expect(w.jog?.x).toBe(220);
+    expect(w.jog?.y).toBe(176);
+
+    // Verify route contains both x = 220 and y = 176
+    const circuit = useLab.getState().circuit;
+    const pts = wireRoute(circuit, w.a, w.b, w.jog);
+    expect(pts.some((p) => p.x === 220)).toBe(true);
+    expect(pts.some((p) => p.y === 176)).toBe(true);
+
+    // 3. Move vertical segment to x = 264 (12 * 22), horizontal segment y = 176 must remain unchanged
+    s.setWireJog(wire.id, { axis: "x", pos: 12 * 22 });
+    w = useLab.getState().circuit.wires.find((item) => item.id === wire.id)!;
+    expect(w.jog?.x).toBe(264);
+    expect(w.jog?.y).toBe(176);
+
+    // 4. Straighten wire resets all jog coordinates
+    s.straightenWire(wire.id);
+    w = useLab.getState().circuit.wires.find((item) => item.id === wire.id)!;
+    expect(w.jog).toBeUndefined();
   });
 
   it("creates a junction point when clicking on blank paper during wiring and allows flexible routing", () => {
@@ -543,7 +592,7 @@ describe("touch & mobile adaptation", () => {
     expect(useLab.getState().circuit.devices.length).toBe(1);
   });
 
-  it("supports dragging component tag position, resetting tag offset, and undo/redo", () => {
+  it("supports dragging component tag position smoothly without snapping to grid, resetting tag offset, and undo/redo", () => {
     const s = useLab.getState();
     s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
     useLab.setState({ history: [], future: [], mode: "edit" });
@@ -556,19 +605,19 @@ describe("touch & mobile adaptation", () => {
     expect(sym).toBeDefined();
     expect(sym.tagOffset).toBeUndefined();
 
-    // Set tag offset (e.g. user drags the tag 2 grid units right, 3 grid units up)
+    // Set tag offset with fractional values (e.g. user drags the tag smoothly without snapping to grid)
     s.pushHistory();
-    s.setSymbolTagOffset(sym.id, { dx: 2, dy: -3 });
+    s.setSymbolTagOffset(sym.id, { dx: 1.45, dy: -2.35 });
 
     let updatedSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id)!;
-    expect(updatedSym.tagOffset).toEqual({ dx: 2, dy: -3 });
+    expect(updatedSym.tagOffset).toEqual({ dx: 1.45, dy: -2.35 });
 
     // Moving symbol keeps tagOffset intact
     s.moveSymbol(sym.id, 14, 14);
     updatedSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id)!;
     expect(updatedSym.x).toBe(14);
     expect(updatedSym.y).toBe(14);
-    expect(updatedSym.tagOffset).toEqual({ dx: 2, dy: -3 });
+    expect(updatedSym.tagOffset).toEqual({ dx: 1.45, dy: -2.35 });
 
     // Resetting tag offset removes it
     s.resetSymbolTagOffset(sym.id);
@@ -578,11 +627,166 @@ describe("touch & mobile adaptation", () => {
     // Undo restores the custom tag offset
     s.undo();
     updatedSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id)!;
-    expect(updatedSym.tagOffset).toEqual({ dx: 2, dy: -3 });
+    expect(updatedSym.tagOffset).toEqual({ dx: 1.45, dy: -2.35 });
 
     // Redo clears the tag offset again
     s.redo();
     updatedSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id)!;
     expect(updatedSym.tagOffset).toBeUndefined();
+  });
+
+  it("supports multi-wire selection, merging connected wires at optimal junction point, and undo/redo", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+
+    // Place 3 lamps
+    s.setPlacing("lamp");
+    s.placeAt(4, 4);
+    s.setPlacing("lamp");
+    s.placeAt(16, 4);
+    s.setPlacing("lamp");
+    s.placeAt(10, 14);
+
+    const [l1, l2, l3] = useLab.getState().circuit.symbols;
+
+    // Connect l1 to l2, and l3 to l1
+    s.clickPort({ symbolId: l1.id, term: "1" });
+    s.clickPort({ symbolId: l2.id, term: "1" });
+
+    s.clickPort({ symbolId: l3.id, term: "1" });
+    s.clickPort({ symbolId: l1.id, term: "1" });
+
+    expect(useLab.getState().circuit.wires.length).toBe(2);
+    const [w1, w2] = useLab.getState().circuit.wires;
+
+    // Select both wires via selectWireToggle or selectWireIds
+    s.selectWireIds([w1.id, w2.id]);
+    expect(useLab.getState().selectedWireIds).toEqual([w1.id, w2.id]);
+
+    // Merge wires
+    s.mergeSelectedWires();
+
+    const c = useLab.getState().circuit;
+    // Should have created a junction point symbol and 3 wire segments
+    const junctionSym = c.symbols.find((sym) => {
+      const dev = c.devices.find((d) => d.id === sym.deviceId);
+      return dev?.kind === "junction";
+    });
+    expect(junctionSym).toBeDefined();
+    expect(c.wires.length).toBe(3);
+    expect(useLab.getState().selected?.id).toBe(junctionSym?.id);
+
+    // Undo should restore original 2 wires
+    s.undo();
+    expect(useLab.getState().circuit.wires.length).toBe(2);
+    expect(useLab.getState().circuit.symbols.length).toBe(3);
+
+    // Redo should re-apply the merge
+    s.redo();
+    expect(useLab.getState().circuit.wires.length).toBe(3);
+    expect(useLab.getState().circuit.symbols.length).toBe(4);
+  });
+
+  it("coordinates pointerDevice and toggleIo for limit switches sharing identical tags", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "run" });
+
+    // 1. Place 1 NO + 1 NC with same tag SQ1
+    s.setPlacing("limit-no");
+    s.placeAt(4, 4);
+    s.setPlacing("limit-nc");
+    s.placeAt(4, 10);
+
+    const [dNo, dNc] = useLab.getState().circuit.devices;
+    s.updateDevice(dNo.id, { tag: "SQ1" });
+    s.updateDevice(dNc.id, { tag: "SQ1" });
+
+    // Test pointerDevice down/up
+    s.pointerDevice(dNo.id, true);
+    expect(useLab.getState().held).toContain(dNo.id);
+    expect(useLab.getState().held).toContain(dNc.id);
+
+    s.pointerDevice(dNo.id, false);
+    expect(useLab.getState().held).not.toContain(dNo.id);
+    expect(useLab.getState().held).not.toContain(dNc.id);
+
+    // Test toggleIo actuated
+    s.toggleIo(dNo.id, "actuated");
+    expect(useLab.getState().snapshot.runtime[dNo.id]?.actuated).toBe(true);
+    expect(useLab.getState().snapshot.runtime[dNc.id]?.actuated).toBe(true);
+
+    s.toggleIo(dNc.id, "actuated");
+    expect(useLab.getState().snapshot.runtime[dNo.id]?.actuated).toBe(false);
+    expect(useLab.getState().snapshot.runtime[dNc.id]?.actuated).toBe(false);
+
+    // 2. Test 2 NO switches with same tag SQ2 (mutual exclusion)
+    s.setPlacing("limit-no");
+    s.placeAt(14, 4);
+    s.setPlacing("limit-no");
+    s.placeAt(14, 10);
+
+    const dNo1 = useLab.getState().circuit.devices[2];
+    const dNo2 = useLab.getState().circuit.devices[3];
+    s.updateDevice(dNo1.id, { tag: "SQ2" });
+    s.updateDevice(dNo2.id, { tag: "SQ2" });
+
+    s.pointerDevice(dNo1.id, true);
+    expect(useLab.getState().held).toContain(dNo1.id);
+    expect(useLab.getState().held).not.toContain(dNo2.id);
+
+    s.pointerDevice(dNo2.id, true);
+    expect(useLab.getState().held).toContain(dNo2.id);
+    expect(useLab.getState().held).not.toContain(dNo1.id);
+
+    s.pointerDevice(dNo2.id, false);
+    expect(useLab.getState().held).not.toContain(dNo2.id);
+
+    s.toggleIo(dNo1.id, "actuated");
+    expect(useLab.getState().snapshot.runtime[dNo1.id]?.actuated).toBe(true);
+    expect(useLab.getState().snapshot.runtime[dNo2.id]?.actuated).toBe(false);
+
+    s.toggleIo(dNo2.id, "actuated");
+    expect(useLab.getState().snapshot.runtime[dNo1.id]?.actuated).toBe(false);
+    expect(useLab.getState().snapshot.runtime[dNo2.id]?.actuated).toBe(true);
+  });
+
+  it("allows selecting, jogging, and deleting wire connected between different terminals of the same component", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+
+    // Place a push button (pb-no) with terminals 1 and 2 (labels 13 and 14)
+    s.setPlacing("pb-no");
+    s.placeAt(4, 4);
+
+    const btn = useLab.getState().circuit.symbols[0];
+
+    // Connect terminal 1 to terminal 2 on the same symbol
+    s.clickPort({ symbolId: btn.id, term: "1" });
+    s.clickPort({ symbolId: btn.id, term: "2" });
+
+    expect(useLab.getState().circuit.wires.length).toBe(1);
+    const wire = useLab.getState().circuit.wires[0];
+
+    // Select the wire
+    s.select({ type: "wire", id: wire.id });
+    expect(useLab.getState().selected?.id).toBe(wire.id);
+    expect(useLab.getState().selectedWireIds).toContain(wire.id);
+
+    // Set jog on wire (drag wire)
+    s.setWireJog(wire.id, { axis: "y", pos: 22 });
+    const updatedWire = useLab.getState().circuit.wires.find((w) => w.id === wire.id);
+    expect(updatedWire?.jog?.y).toBe(22);
+
+    // Delete selected wire
+    s.deleteSelected();
+    expect(useLab.getState().circuit.wires.length).toBe(0);
+    expect(useLab.getState().circuit.symbols.length).toBe(1); // Button symbol remains intact
+
+    // Undo restores the wire
+    s.undo();
+    expect(useLab.getState().circuit.wires.length).toBe(1);
   });
 });

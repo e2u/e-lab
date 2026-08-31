@@ -239,16 +239,22 @@ export function Bench() {
             // Limit & Foot Switches
             if (d.kind.startsWith("limit") || d.kind.startsWith("foot")) {
               const isHeld = held.includes(d.id);
+              const isAct = Boolean(rt.actuated || isHeld);
               return (
                 <div className="widget" key={d.id} title={`${d.tag}`}>
                   <button
-                    className={`btn btn-momentary ${isHeld ? "active" : ""}`}
+                    className={`btn btn-momentary ${isAct ? "active" : ""}`}
                     disabled={mode !== "run"}
                     onPointerDown={() => useLab.getState().pointerDevice(d.id, true)}
                     onPointerUp={() => useLab.getState().pointerDevice(d.id, false)}
                     onPointerLeave={() => useLab.getState().pointerDevice(d.id, false)}
+                    onClick={() => {
+                      if (d.kind.startsWith("limit")) {
+                        useLab.getState().toggleIo(d.id, "actuated");
+                      }
+                    }}
                   >
-                    {isHeld ? "ACT" : "NORM"}
+                    {isAct ? "ACT" : "NORM"}
                   </button>
                   <span className="widget-label">{d.tag}</span>
                 </div>

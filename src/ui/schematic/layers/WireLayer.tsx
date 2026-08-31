@@ -1,5 +1,5 @@
-import { memo, type MouseEvent, type PointerEvent } from "react";
-import { hopArcD, polylinePathD, terminalWorld, wireLabelPos, wireRoute, type WireCrossover } from "../../../geometry";
+import { memo, useMemo, type MouseEvent, type PointerEvent } from "react";
+import { getConnectedWireIds, hopArcD, polylinePathD, terminalWorld, wireLabelPos, wireRoute, type WireCrossover } from "../../../geometry";
 import { PHASE_COLOR } from "../../../sim/engine";
 import type { Selection } from "../../../store";
 import type { Circuit, SimSnapshot, Wire } from "../../../types";
@@ -8,6 +8,8 @@ interface WireLayerProps {
   circuit: Circuit;
   snapshot: SimSnapshot;
   selected: Selection | null;
+  selectedWireIds?: string[];
+  highlightedWireIds?: Set<string>;
   routes: Map<string, { x: number; y: number }[]>;
   crossovers: WireCrossover[];
   onWireContextMenu: (e: MouseEvent<SVGElement>, wireId: string) => void;
@@ -19,12 +21,27 @@ export const WireLayer = memo(function WireLayer({
   circuit,
   snapshot,
   selected,
+  selectedWireIds,
+  highlightedWireIds,
   routes,
   crossovers,
   onWireContextMenu,
   onWirePointerDown,
   onWireDoubleClick,
 }: WireLayerProps) {
+  const activeHighlightedWireIds = useMemo(() => {
+    if (highlightedWireIds) return highlightedWireIds;
+    const ids: string[] = [];
+    if (selected?.type === "wire") ids.push(selected.id);
+    if (selectedWireIds && selectedWireIds.length > 0) {
+      for (const id of selectedWireIds) {
+        if (!ids.includes(id)) ids.push(id);
+      }
+    }
+    if (ids.length === 0) return new Set<string>();
+    return getConnectedWireIds(circuit, ids);
+  }, [circuit, selected, selectedWireIds, highlightedWireIds]);
+
   return (
     <>
       {circuit.wires.map((w) => {
@@ -38,7 +55,12 @@ export const WireLayer = memo(function WireLayer({
         const flowPts = live?.dir === -1 ? [...pts].reverse() : pts;
         const flowD = polylinePathD(flowPts, hops);
         const color = w.broken ? "#c4391d" : live?.kind ? PHASE_COLOR[live.kind] : "#2a2924";
-        const sel = selected?.type === "wire" && selected.id === w.id;
+        const isDirectlySelected =
+          (selected?.type === "wire" && selected.id === w.id) ||
+          Boolean(selectedWireIds?.includes(w.id));
+        const isConnected = activeHighlightedWireIds.has(w.id);
+        const isHighlighted = isDirectlySelected || isConnected;
+        const stroke = isHighlighted ? "#e6c11e" : color;
         const mid = pts[Math.floor(pts.length / 2)] ?? a;
         const tag = (w.label ?? "").trim();
         const tagPos = tag ? wireLabelPos(pts) : null;
@@ -61,10 +83,24 @@ export const WireLayer = memo(function WireLayer({
             <path
               d={d}
               className={`wire ${live?.live ? "live" : ""} ${w.broken ? "broken" : ""} ${live?.short ? "short-circuit" : ""}`}
-              stroke={sel ? "#e6c11e" : color}
+              stroke={stroke}
+              style={{ stroke, color }}
               strokeDasharray={w.broken ? "6 5" : undefined}
             />
-            {sel && (
+            {isHighlighted && (
+              <path
+                d={d}
+                className="wire-glow"
+                fill="none"
+                stroke="#e6c11e"
+                strokeWidth={isDirectlySelected ? "6" : "5"}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={isDirectlySelected ? "0.4" : "0.25"}
+                pointerEvents="none"
+              />
+            )}
+            {isDirectlySelected && (
               <>
                 <path
                   d={d}
@@ -144,14 +180,20 @@ export const WireLayer = memo(function WireLayer({
       {crossovers.map((c, i) => {
         const w = circuit.wires.find((item) => item.id === c.hopWireId);
         const live = snapshot.wires[c.hopWireId];
-        const sel = selected?.type === "wire" && selected.id === c.hopWireId;
+        const isDirectlySelected =
+          (selected?.type === "wire" && selected.id === c.hopWireId) ||
+          Boolean(selectedWireIds?.includes(c.hopWireId));
+        const isConnected = activeHighlightedWireIds.has(c.hopWireId);
+        const isHighlighted = isDirectlySelected || isConnected;
         const color = w?.broken ? "#c4391d" : live?.kind ? PHASE_COLOR[live.kind] : "#2a2924";
+        const stroke = isHighlighted ? "#e6c11e" : color;
         return (
           <path
             key={`hop-${i}`}
             d={hopArcD(c)}
             className={`wire ${live?.live ? "live" : ""} ${live?.short ? "short-circuit" : ""}`}
-            stroke={sel ? "#e6c11e" : color}
+            stroke={stroke}
+            style={{ stroke, color }}
             strokeDasharray={w?.broken ? "6 5" : undefined}
             fill="none"
             pointerEvents="none"

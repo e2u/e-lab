@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from "react";
-import { findPortAtPoint, findWireAtPoint, hitWireSegment, portsEqual, wireRoute } from "../../geometry";
+import { findComplementaryJogFromPolyline, findPortAtPoint, findWireAtPoint, hitWireSegment, portsEqual, wireRoute, wiresInRect } from "../../geometry";
 import { normalizeRect, symbolsInRect } from "../../groups";
 import { useLab } from "../../store";
 import { GRID, type Circuit, type Device, type Mode, type PortRef, type SymbolInst, type Wire, type WireJog } from "../../types";
 import type { MenuPos } from "../ContextMenu";
 import { interact, triggerHaptic } from "./interact";
+import { blurActiveInput } from "../../keyboard";
 
 interface UseSchematicEventsParams {
   circuit: Circuit;
@@ -36,6 +37,7 @@ export function useSchematicEvents({
   const wireDrag = useRef<{
     id: string;
     axis: "x" | "y";
+    otherAxisJog?: number;
     startX?: number;
     startY?: number;
     pushedHistory?: boolean;
@@ -209,10 +211,16 @@ export function useSchematicEvents({
     const rect = normalizeRect(m.x0, m.y0, m.x1, m.y1);
     if (rect.w < 0.35 && rect.h < 0.35) return;
     const ids = symbolsInRect(useLab.getState().circuit, rect);
-    useLab.getState().selectIds(ids, m.shift);
+    const wireIds = wiresInRect(useLab.getState().circuit, rect, routes);
+    if (ids.length > 0) {
+      useLab.getState().selectIds(ids, m.shift);
+    } else if (wireIds.length > 0) {
+      useLab.getState().selectWireIds(wireIds, m.shift);
+    }
   };
 
   const onPaperDown = (e: PointerEvent<SVGRectElement>) => {
+    blurActiveInput();
     // Record pointer
     pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
 
@@ -355,8 +363,8 @@ export function useSchematicEvents({
       }
       const ddx = (world.x - tagDrag.current.startX) / GRID;
       const ddy = (world.y - tagDrag.current.startY) / GRID;
-      const newDx = Math.round(tagDrag.current.originOffset.dx + ddx);
-      const newDy = Math.round(tagDrag.current.originOffset.dy + ddy);
+      const newDx = Number((tagDrag.current.originOffset.dx + ddx).toFixed(3));
+      const newDy = Number((tagDrag.current.originOffset.dy + ddy).toFixed(3));
       useLab.getState().setSymbolTagOffset(tagDrag.current.id, { dx: newDx, dy: newDy });
       return;
     }
@@ -372,7 +380,13 @@ export function useSchematicEvents({
       }
       // Snap to integer grid lines
       const pos = axis === "x" ? Math.round(world.x / GRID) * GRID : Math.round(world.y / GRID) * GRID;
-      useLab.getState().setWireJog(wireDrag.current.id, { axis, pos });
+      const jogPayload: WireJog = {
+        axis,
+        pos,
+        x: axis === "x" ? pos : wireDrag.current.otherAxisJog,
+        y: axis === "y" ? pos : wireDrag.current.otherAxisJog,
+      };
+      useLab.getState().setWireJog(wireDrag.current.id, jogPayload);
       return;
     }
     if (drag.current && mode === "edit") {
@@ -392,13 +406,23 @@ export function useSchematicEvents({
         x: o.x + ddx,
         y: o.y + ddy,
       }));
-      const wireUpdates = Object.entries(drag.current.wireJogOrigins).map(([id, jog]) => ({
-        id,
-        jog: {
+      const wireUpdates = Object.entries(drag.current.wireJogOrigins).map(([id, jog]) => {
+        const rx = jog.x !== undefined ? Math.round((jog.x + ddx * GRID) / GRID) * GRID : undefined;
+        const ry = jog.y !== undefined ? Math.round((jog.y + ddy * GRID) / GRID) * GRID : undefined;
+        const rpos = Math.round(
+          (jog.axis === "x" ? (jog.x ?? jog.pos ?? 0) + ddx * GRID : (jog.y ?? jog.pos ?? 0) + ddy * GRID) / GRID,
+        ) * GRID;
+        const jogObj: WireJog = {
           axis: jog.axis,
-          pos: Math.round((jog.axis === "x" ? jog.pos + ddx * GRID : jog.pos + ddy * GRID) / GRID) * GRID,
-        },
-      }));
+          pos: rpos,
+        };
+        if (rx !== undefined) jogObj.x = rx;
+        if (ry !== undefined) jogObj.y = ry;
+        return {
+          id,
+          jog: jogObj,
+        };
+      });
       useLab.getState().moveGroup(updates, wireUpdates);
       return;
     }
@@ -507,13 +531,38 @@ export function useSchematicEvents({
   const onWireContextMenu = (e: MouseEvent<SVGElement>, wireId: string) => {
     drag.current = null;
     wireDrag.current = null;
-    useLab.getState().select({ type: "wire", id: wireId });
-    openMenu(e, toWorld(e));
+    const world = toWorld(e);
+    const nearJunction = circuit.symbols.find((sym) => {
+      const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+      if (dev?.kind !== "junction") return false;
+      return Math.hypot(sym.x * GRID - world.x, sym.y * GRID - world.y) <= 14;
+    });
+    if (nearJunction) {
+      onSymbolContextMenu(e, nearJunction.id);
+      return;
+    }
+    const lab = useLab.getState();
+    if (!lab.selectedWireIds?.includes(wireId)) {
+      lab.select({ type: "wire", id: wireId });
+    }
+    openMenu(e, world);
   };
 
   const onWirePointerDown = (e: PointerEvent<SVGElement>, wire: Wire, pts: { x: number; y: number }[]) => {
+    blurActiveInput();
     pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
     e.stopPropagation();
+    const world = toWorld(e);
+    const nearJunction = circuit.symbols.find((sym) => {
+      const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+      if (dev?.kind !== "junction") return false;
+      return Math.hypot(sym.x * GRID - world.x, sym.y * GRID - world.y) <= 14;
+    });
+    if (nearJunction) {
+      const dev = circuit.devices.find((d) => d.id === nearJunction.deviceId)!;
+      onSymbolPointerDown(e, nearJunction, dev);
+      return;
+    }
     if (placing) {
       placeAtEvent(e, placing === "ammeter" ? wire.id : undefined);
       return;
@@ -521,13 +570,21 @@ export function useSchematicEvents({
     if (e.button !== 0) return;
 
     startLongPress(e, (pos) => {
-      useLab.getState().select({ type: "wire", id: wire.id });
-      openMenu(pos, toWorld(e));
+      const lab = useLab.getState();
+      if (!lab.selectedWireIds?.includes(wire.id)) {
+        lab.select({ type: "wire", id: wire.id });
+      }
+      openMenu(pos, world);
     });
 
     const lab = useLab.getState();
     if (lab.wiringFrom) {
       lab.connectToWire(wire.id, toWorld(e));
+      return;
+    }
+
+    if (e.shiftKey) {
+      lab.selectWireToggle(wire.id);
       return;
     }
 
@@ -551,12 +608,29 @@ export function useSchematicEvents({
       }
     }
 
-    lab.select({ type: "wire", id: wire.id });
+    if (!lab.selectedWireIds?.includes(wire.id) || lab.selectedWireIds.length <= 1) {
+      lab.select({ type: "wire", id: wire.id });
+    }
     if (lab.mode !== "edit") return;
-    const world = toWorld(e);
     const hit = hitWireSegment(pts, world, 1000);
     if (hit) {
-      wireDrag.current = { id: wire.id, axis: hit.axis, startX: e.clientX, startY: e.clientY, pushedHistory: false };
+      const existingJogX = wire.jog?.x ?? (wire.jog?.axis === "x" ? wire.jog.pos : undefined);
+      const existingJogY = wire.jog?.y ?? (wire.jog?.axis === "y" ? wire.jog.pos : undefined);
+      let otherAxisJog: number | undefined = undefined;
+      if (hit.axis === "x") {
+        otherAxisJog = existingJogY !== undefined ? existingJogY : findComplementaryJogFromPolyline(pts, "x", hit.index);
+      } else {
+        otherAxisJog = existingJogX !== undefined ? existingJogX : findComplementaryJogFromPolyline(pts, "y", hit.index);
+      }
+
+      wireDrag.current = {
+        id: wire.id,
+        axis: hit.axis,
+        otherAxisJog,
+        startX: e.clientX,
+        startY: e.clientY,
+        pushedHistory: false,
+      };
       setWireCursor(hit.axis === "x" ? "ew-resize" : "ns-resize");
       try {
         svgRef.current?.setPointerCapture(e.pointerId);
@@ -590,6 +664,7 @@ export function useSchematicEvents({
   };
 
   const onSymbolPointerDown = (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => {
+    blurActiveInput();
     pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
     e.stopPropagation();
     const lab = useLab.getState();
@@ -677,6 +752,7 @@ export function useSchematicEvents({
   };
 
   const onTagPointerDown = (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => {
+    blurActiveInput();
     pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
     e.stopPropagation();
     const lab = useLab.getState();
@@ -779,6 +855,7 @@ export function useSchematicEvents({
   };
 
   const onPortPointerDown = (e: PointerEvent<SVGCircleElement>, port: PortRef) => {
+    blurActiveInput();
     pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
     e.stopPropagation();
     if (placing) {
@@ -815,6 +892,7 @@ export function useSchematicEvents({
   };
 
   const onPlaceOverlayPointerDown = (e: PointerEvent<SVGRectElement>) => {
+    blurActiveInput();
     e.stopPropagation();
     placeAtEvent(e);
   };

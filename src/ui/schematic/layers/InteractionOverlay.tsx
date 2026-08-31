@@ -1,16 +1,17 @@
 import { memo, type MouseEvent, type PointerEvent } from "react";
 import { catalogItem, suggestNetLabelTag, variantDef } from "../../../catalog";
-import { nearestOnPolyline, snapOnSegment, terminalWorld, wireRoute } from "../../../geometry";
+import { findPortAtPoint, glyphTransform, nearestOnPolyline, portsEqual, snapOnSegment, terminalWorld, wireRoute } from "../../../geometry";
 import { normalizeRect } from "../../../groups";
 import { SymbolGlyph } from "../../../Glyphs";
 import type { Selection } from "../../../store";
-import { COLS, GRID, ROWS, type Circuit, type Device, type PortRef } from "../../../types";
+import { COLS, GRID, ROWS, type Circuit, type Device, type PortRef, type Rot, type SymbolInst } from "../../../types";
 
 interface InteractionOverlayProps {
   circuit: Circuit;
   wiringFrom: PortRef | null;
   cursor: { x: number; y: number } | null;
   placing: string | null;
+  placingRot?: Rot;
   selected: Selection | null;
   routes: Map<string, { x: number; y: number }[]>;
   marqueeView: { x0: number; y0: number; x1: number; y1: number } | null;
@@ -30,6 +31,7 @@ export const InteractionOverlay = memo(function InteractionOverlay({
   wiringFrom,
   cursor,
   placing,
+  placingRot = 0,
   selected,
   routes,
   marqueeView,
@@ -43,13 +45,23 @@ export const InteractionOverlay = memo(function InteractionOverlay({
         if (!a) return null;
         let b = { x: cursor.x * GRID, y: cursor.y * GRID };
         let snapped = false;
-        for (const w of circuit.wires) {
-          const wpts = routes.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
-          const near = nearestOnPolyline(wpts, b);
-          if (near && near.d <= 14) {
-            b = snapOnSegment(wpts[near.index], wpts[near.index + 1], { x: near.x, y: near.y });
+        const targetPort = findPortAtPoint(circuit, b.x, b.y, 16);
+        if (targetPort && !portsEqual(wiringFrom, targetPort)) {
+          const p = terminalWorld(circuit, targetPort);
+          if (p) {
+            b = p;
             snapped = true;
-            break;
+          }
+        }
+        if (!snapped) {
+          for (const w of circuit.wires) {
+            const wpts = routes.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
+            const near = nearestOnPolyline(wpts, b);
+            if (near && near.d <= 14) {
+              b = snapOnSegment(wpts[near.index], wpts[near.index + 1], { x: near.x, y: near.y });
+              snapped = true;
+              break;
+            }
           }
         }
         const pts = wireRoute(circuit, wiringFrom, b);
@@ -99,6 +111,15 @@ export const InteractionOverlay = memo(function InteractionOverlay({
                     date: formatMMDDYYYY(),
                     scale: 1,
                   }
+                : item.kind === "comment"
+                  ? {
+                      text: "備註說明 / Note",
+                      showLeaderLine: true,
+                      bgColor: "#fef9c3",
+                      fontSize: 12,
+                      width: 6,
+                      height: 3,
+                    }
                 : {},
         };
         const scale = ghost.params?.scale ?? 1;
@@ -106,10 +127,18 @@ export const InteractionOverlay = memo(function InteractionOverlay({
         const boxH = v.h * scale;
         const gx = Math.round(cursor.x);
         const gy = Math.round(cursor.y);
+        const ghostSym: SymbolInst = {
+          id: "ghost",
+          deviceId: "ghost",
+          variant: item.variant,
+          x: gx,
+          y: gy,
+          rot: placingRot,
+        };
         return (
           <g
             className="place-ghost"
-            transform={`translate(${gx * GRID} ${gy * GRID})`}
+            transform={glyphTransform(ghostSym, boxW, boxH)}
             pointerEvents="none"
           >
             <SymbolGlyph device={ghost} variant={item.variant} w={boxW} h={boxH} />

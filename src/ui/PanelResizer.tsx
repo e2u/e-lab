@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { t } from "../i18n";
 
 export interface PanelResizerProps {
@@ -90,33 +90,6 @@ export function PanelResizer({
     [onReset]
   );
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      const step = e.shiftKey ? 30 : 10;
-      const dynamicMax = typeof window !== "undefined" ? Math.min(maxWidth, Math.round(window.innerWidth * 0.45)) : maxWidth;
-
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        const next = direction === "left" ? currentWidth - step : currentWidth + step;
-        onResize(Math.max(minWidth, Math.min(dynamicMax, next)));
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        const next = direction === "left" ? currentWidth + step : currentWidth - step;
-        onResize(Math.max(minWidth, Math.min(dynamicMax, next)));
-      } else if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        onReset?.();
-      }
-    },
-    [currentWidth, direction, minWidth, maxWidth, onResize, onReset]
-  );
-
-  useEffect(() => {
-    return () => {
-      document.body.classList.remove("panel-resizing");
-    };
-  }, []);
-
   const titleText =
     direction === "left"
       ? t("toolbar.resizeLeft") || "Drag to resize palette (Double-click to reset)"
@@ -125,7 +98,6 @@ export function PanelResizer({
   return (
     <div
       role="separator"
-      tabIndex={0}
       aria-orientation="vertical"
       aria-valuenow={currentWidth}
       aria-valuemin={minWidth}
@@ -138,7 +110,6 @@ export function PanelResizer({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       onDoubleClick={handleDoubleClick}
-      onKeyDown={handleKeyDown}
     />
   );
 }

@@ -63,9 +63,9 @@ export function isContactClosed(
       if (variant === "aux-nc" || variant === "nc") return !(rt?.done ?? false);
       return rt?.done ?? false;
     case "limit-no":
-      return Boolean(process.limitHit);
+      return rt?.actuated ?? Boolean(process.limitHit);
     case "limit-nc":
-      return !process.limitHit;
+      return !(rt?.actuated ?? Boolean(process.limitHit));
     case "prox":
       return Boolean(process.proxHit);
     case "photo":
@@ -871,7 +871,7 @@ export function buildLadderDiagram(
     const d = symToDev.get(s.id);
     if (!d) continue;
     // Link symbol terminals to device terminals
-    ["1", "2", "3", "4", "5", "6", "11", "12", "13", "14", "21", "22", "31", "32", "43", "44", "95", "96", "97", "98", "A1", "A2", "X1", "X2", "U", "V", "W", "L1", "L2", "L3", "T1", "T2", "T3", "COM", "FWD", "REV", "PLUS", "MINUS", "+", "-"].forEach((term) => {
+    ["1", "2", "3", "4", "5", "6", "11", "12", "13", "14", "21", "22", "31", "32", "43", "44", "95", "96", "97", "98", "A1", "A2", "X1", "X2", "U", "V", "W", "L1", "L2", "L3", "T1", "T2", "T3", "COM", "COM2", "FWD", "REV", "PLUS", "MINUS", "+", "-"].forEach((term) => {
       unionNode(`${s.id}:${term}`, `${d.id}:${term}`);
     });
 
@@ -881,6 +881,9 @@ export function buildLadderDiagram(
       unionNode(`${s.id}:2`, `${s.id}:12`);
       unionNode(`${d.id}:1`, `${d.id}:11`);
       unionNode(`${d.id}:2`, `${d.id}:12`);
+    } else if (d.kind === "selector-3") {
+      unionNode(`${s.id}:COM`, `${s.id}:COM2`);
+      unionNode(`${d.id}:COM`, `${d.id}:COM2`);
     } else if (d.kind === "pb-no" || d.kind === "estop-no") {
       unionNode(`${s.id}:1`, `${s.id}:3`);
       unionNode(`${s.id}:2`, `${s.id}:4`);

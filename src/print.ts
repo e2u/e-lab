@@ -86,12 +86,15 @@ export function getPrintContentBounds(circuit: Circuit, paddingGrids = 2): Print
       }
     }
     if (w.jog) {
-      if (w.jog.axis === "x") {
-        minX = Math.min(minX, w.jog.pos / GRID);
-        maxX = Math.max(maxX, w.jog.pos / GRID);
-      } else {
-        minY = Math.min(minY, w.jog.pos / GRID);
-        maxY = Math.max(maxY, w.jog.pos / GRID);
+      const jx = w.jog.x ?? (w.jog.axis === "x" ? w.jog.pos : undefined);
+      const jy = w.jog.y ?? (w.jog.axis === "y" ? w.jog.pos : undefined);
+      if (jx !== undefined) {
+        minX = Math.min(minX, jx / GRID);
+        maxX = Math.max(maxX, jx / GRID);
+      }
+      if (jy !== undefined) {
+        minY = Math.min(minY, jy / GRID);
+        maxY = Math.max(maxY, jy / GRID);
       }
     }
   }

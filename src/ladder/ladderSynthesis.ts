@@ -80,7 +80,7 @@ export interface NewContactOptions {
   contactType?: string;
 }
 
-// ✅ TERMINAL_MAP 已移除 - 使用硬編碼值代替
+// TERMINAL_MAP removed - using hardcoded values instead
 
 export interface NewCoilOptions {
   existingDeviceId?: string;
@@ -90,7 +90,7 @@ export interface NewCoilOptions {
   delay?: number;
 }
 
-// ✅ 保留 TERMINAL_MAP 以備未來使用（目前未調用 getTerminalForRole）
+// Reserved TERMINAL_MAP for future use (currently getTerminalForRole is not called)
 
 /**
  * Add a new Rung to the circuit with optional initial contact and output coil.
@@ -218,7 +218,7 @@ export function synthesizeAddRung(
   if (contactSym && coilSym) {
     const devKind = coilOpt?.kind || "lamp";
     
-    // 獲取終端名稱（支援多種命名慣例）
+    // Get terminal name (supports multiple naming conventions)
     const getCoilTerm = (variant?: string): string => {
       if (variant === "coil") return "A1";  // Contactor/Relay coil
       // Light/Horn/Solenoid etc.
@@ -518,7 +518,7 @@ export function synthesizeToggleContactVariant(
   return next;
 }
 
-// ✅ 支援的 rung ID 前綴列表（用於清理）
+// Supported rung ID prefixes (used for cleanup)
 const RUNG_ID_PREFIXES = ["rung_", "rung_aux_"];
 
 /**
@@ -572,28 +572,28 @@ export function synthesizeDeleteElement(
     if (!hasOtherSymbols) {
       next.devices = next.devices.filter((d) => d.id !== sym.deviceId);
       
-      // ✅ 改進：清理所有與此裝置相關的 rung IDs（包括 aux contacts 和 coil rungs）
+      // Clean up all rung IDs associated with this device (including aux contacts and coil rungs)
       if (next.ladderRungOrder) {
         const deviceIdPrefix = `rung_${sym.deviceId}`;
         
-        // 刪除主 coil rung
+        // Remove primary coil rung
         next.ladderRungOrder = next.ladderRungOrder.filter(id => 
           !isValidRungId(id) || 
           !id.startsWith(deviceIdPrefix)
         );
       }
     } else if (next.ladderRungOrder) {
-      // 即使有其他符號，也可能需要清理 auxiliary contact rungs
-      // 檢查是否刪除了 auxiliary contact
+      // Even if there are other symbols, auxiliary contact rungs might still need cleanup
+      // Check if an auxiliary contact was deleted
       if (sym.variant?.includes("aux") || sym.variant === "no" || sym.variant === "nc") {
         const deviceId = sym.deviceId;
         next.ladderRungOrder = next.ladderRungOrder.filter(id => {
           if (!isValidRungId(id)) return true;
           
-          // 解析 rung ID 並檢查是否匹配裝置
+          // Parse rung ID and check if it matches device
           const parsed = parseRungId(id);
           if (parsed && parsed.kind) {
-            // 查找是否有相同裝置在相同位置的符號
+            // Check if there is a symbol for the same device at the same location
             const hasMatchingSym = next.symbols.some(s => 
               s.deviceId === deviceId &&
               Math.abs(s.x - parsed!.x!) < 1 &&

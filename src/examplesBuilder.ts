@@ -3,7 +3,6 @@ import type { Circuit } from "./types";
 
 /**
  * 01# Basic Lamp Circuit
- * 01# 基礎指示燈控制電路
  */
 export function ex01BasicLamp(): Circuit {
   const c = emptyCircuit();
@@ -19,7 +18,6 @@ export function ex01BasicLamp(): Circuit {
 
 /**
  * 02# Start-Stop Dual Indicators
- * 02# 啟停雙按鈕與紅綠燈指示電路
  */
 export function ex02StartStopLamp(): Circuit {
   const c = emptyCircuit();
@@ -42,7 +40,6 @@ export function ex02StartStopLamp(): Circuit {
 
 /**
  * 03# Control Transformer & Fuse Protection
- * 03# 控制變壓器降壓與熔斷保護電路
  */
 export function ex03TransformerFuse(): Circuit {
   const c = emptyCircuit();
@@ -78,7 +75,6 @@ export function ex03TransformerFuse(): Circuit {
 
 /**
  * 04# Relay Self-Holding Circuit
- * 04# 中間繼電器啟停自鎖控制電路
  */
 export function ex04RelaySelfHolding(): Circuit {
   const c = emptyCircuit();
@@ -109,7 +105,6 @@ export function ex04RelaySelfHolding(): Circuit {
 
 /**
  * 05# Single-Phase Motor Manual Control
- * 05# 單相馬達斷路器與開關手動控制
  */
 export function ex05Motor1phManual(): Circuit {
   const c = emptyCircuit();
@@ -136,7 +131,6 @@ export function ex05Motor1phManual(): Circuit {
 
 /**
  * 06# Three-Phase Motor DOL Starter
- * 06# 三相馬達直接起動 DOL 控制電路
  */
 export function ex06Motor3phDol(): Circuit {
   const c = emptyCircuit();
@@ -188,7 +182,6 @@ export function ex06Motor3phDol(): Circuit {
 
 /**
  * 07# Motor Overload Protection & Alarm
- * 07# 馬達熱過載保護與故障聲光警報
  */
 export function ex07OverloadAlarm(): Circuit {
   const c = emptyCircuit();
@@ -250,7 +243,6 @@ export function ex07OverloadAlarm(): Circuit {
 
 /**
  * 08# Emergency Stop Safety Interlock
- * 08# 急停按鈕與安全主繼電器迴路
  */
 export function ex08EstopSafety(): Circuit {
   const c = emptyCircuit();
@@ -325,7 +317,6 @@ export function ex08EstopSafety(): Circuit {
 
 /**
  * 09# Hand-Off-Auto Selector & Pump
- * 09# 三檔選擇開關 手動/停止/自動 控制
  */
 export function ex09HoaSelector(): Circuit {
   const c = emptyCircuit();
@@ -375,7 +366,6 @@ export function ex09HoaSelector(): Circuit {
 
 /**
  * 10# Dual-Station Remote Motor Control
- * 10# 雙地異地兩地啟停控制電路
  */
 export function ex10DualStation(): Circuit {
   const c = emptyCircuit();
@@ -442,7 +432,6 @@ export function ex10DualStation(): Circuit {
 
 /**
  * 11# Forward / Reverse Interlock Starter
- * 11# 三相馬達正反轉電氣互鎖控制
  */
 export function ex11FwdRevInterlock(): Circuit {
   const c = emptyCircuit();
@@ -531,7 +520,6 @@ export function ex11FwdRevInterlock(): Circuit {
 
 /**
  * 12# Limit Switch Auto-Cycle Travel
- * 12# 行程開關自動往返行程控制
  */
 export function ex12LimitReciprocating(): Circuit {
   const c = emptyCircuit();
@@ -612,7 +600,6 @@ export function ex12LimitReciprocating(): Circuit {
 
 /**
  * 13# On-Delay Timer Sequential Start
- * 13# 通電延時繼電器 雙馬達順序起動
  */
 export function ex13TimerOnSequence(): Circuit {
   const c = emptyCircuit();
@@ -691,7 +678,6 @@ export function ex13TimerOnSequence(): Circuit {
 
 /**
  * 14# Off-Delay Timer Fan Cooling Cycle
- * 14# 斷電延時繼電器 電熱風扇延時冷卻
  */
 export function ex14TimerOffCooling(): Circuit {
   const c = emptyCircuit();
@@ -764,7 +750,6 @@ export function ex14TimerOffCooling(): Circuit {
 
 /**
  * 15# Star-Delta (Y-Δ) Reduced Starter
- * 15# 三相馬達星三角降壓起動控制
  */
 export function ex15StarDeltaStarter(): Circuit {
   const c = emptyCircuit();
@@ -860,7 +845,6 @@ export function ex15StarDeltaStarter(): Circuit {
 
 /**
  * 16# Tank Liquid Level Automatic Pump & High-Alarm
- * 16# 水箱高低浮球液位控制與電笛警報
  */
 export function ex16TankLevelPump(): Circuit {
   const c = emptyCircuit();
@@ -910,7 +894,6 @@ export function ex16TankLevelPump(): Circuit {
 
 /**
  * 17# Temp & Pressure Interlock Chamber
- * 17# 溫度與壓力雙閉環電熱爐聯鎖系統
  */
 export function ex17TempPressureHeater(): Circuit {
   const c = emptyCircuit();
@@ -972,7 +955,6 @@ export function ex17TempPressureHeater(): Circuit {
 
 /**
  * 18# Conveyor Counter & Sorting Solenoid
- * 18# 接近與光電感測器輸送帶自動計數分揀
  */
 export function ex18ConveyorCounterSorter(): Circuit {
   const c = emptyCircuit();
@@ -1010,7 +992,6 @@ export function ex18ConveyorCounterSorter(): Circuit {
 
 /**
  * 19# Automatic Transfer Switch (ATS) Dual Power System
- * 19# 市電與發電機雙電源自動切換系統
  */
 export function ex19AtsDualPower(): Circuit {
   const c = emptyCircuit();
@@ -1092,7 +1073,6 @@ export function ex19AtsDualPower(): Circuit {
 
 /**
  * 20# Automated Manufacturing Machine Cell
- * 20# 全功能自動化多工位加工單元綜合控制
  */
 export function ex20AutomatedCell(): Circuit {
   const c = emptyCircuit();

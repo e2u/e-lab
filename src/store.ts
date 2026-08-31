@@ -43,7 +43,7 @@ function readLayoutMode(): LayoutMode {
     const val = localStorage.getItem("elab.layoutMode");
     if (val === "ladder" || val === "schematic") return val;
   } catch {}
-  return "schematic";  // 默認返回 schematic
+  return "schematic"; // Default to schematic
 }
 
 function readZoom(): number {
@@ -118,12 +118,12 @@ function readSidebarState(): {
   }
 }
 
-// ✅ 新增：檢查是否顯示梯形圖菜單的設置
+// Check settings for showing ladder diagram menu
 function readShowLadderMenu(): boolean {
   if (typeof localStorage === "undefined") return true;
   try {
     const val = localStorage.getItem("elab.showLadderMenu");
-    // 預設顯示（true），只有明確設定為 false 才隱藏
+    // Default to visible (true), only hidden when explicitly set to false
     return val === null ? true : val === "true";
   } catch {
     return true;
@@ -160,7 +160,7 @@ export interface LabState {
   lang: Lang;
   theme: Theme;
   layoutMode: LayoutMode;
-  showLadderMenu: boolean;  // ✅ 新增：控制是否顯示梯形圖菜單
+  showLadderMenu: boolean; // Controls whether to show ladder diagram menu
   isDirty: boolean;
   paletteOpen: boolean;
   sideOpen: boolean;
@@ -390,7 +390,7 @@ export const useLab = create<LabState>((set, get) => ({
   lang: readLang(),
   theme: readTheme(),
   layoutMode: initialLayoutMode,
-  showLadderMenu: readShowLadderMenu(),  // ✅ 新增：控制是否顯示梯形圖菜單
+  showLadderMenu: readShowLadderMenu(), // Controls whether to show ladder diagram menu
   isDirty: false,
   paletteOpen: sidebarBoot.paletteOpen,
   sideOpen: sidebarBoot.sideOpen,
@@ -406,10 +406,10 @@ export const useLab = create<LabState>((set, get) => ({
   pushHistory: () => {
     const { history, circuit } = get();
     
-    // 當切換布局模式或執行某些操作時，確保 ladderRungOrder 與 rung ID 同步
+    // When switching layout modes or performing operations, ensure ladderRungOrder is synchronized with rung IDs
     const normalizedCircuit = { ...circuit };
     if (normalizedCircuit.ladderRungOrder && Array.isArray(normalizedCircuit.ladderRungOrder)) {
-      // 過濾掉不存在於 circuit 中的 rung IDs（防止舊 ID 殘留）
+      // Filter out rung IDs that no longer exist in the circuit (prevent stale IDs)
       const existingDeviceIds = new Set([
         ...circuit.symbols.map(s => s.deviceId),
         ...circuit.devices.map(d => d.id)
@@ -418,9 +418,9 @@ export const useLab = create<LabState>((set, get) => ({
       normalizedCircuit.ladderRungOrder = normalizedCircuit.ladderRungOrder.filter(id => {
         if (!id.startsWith("rung_")) return false;
         
-        // 提取 device id 從 rung_id
+        // Extract device id from rung_id
         const parts = id.split("_");
-        if (parts.length < 2) return true;  // 保留未知格式
+        if (parts.length < 2) return true; // Keep unknown formats
         
         const deviceId = parts[1];
         return existingDeviceIds.has(deviceId);
@@ -1962,7 +1962,7 @@ export const useLab = create<LabState>((set, get) => ({
     const next = get().layoutMode === "schematic" ? "ladder" : "schematic";
     get().setLayoutMode(next);
     
-    // ✅ 切換到 schematic 模式時自動清理 ladderRungOrder（因為 schematic mode 不需要它）
+    // Automatically clean up ladderRungOrder when switching to schematic mode (not needed in schematic mode)
     if (next === "schematic") {
       const current = get().circuit;
       if (current.ladderRungOrder && Array.isArray(current.ladderRungOrder)) {
@@ -1970,7 +1970,7 @@ export const useLab = create<LabState>((set, get) => ({
         set({
           circuit: {
             ...clone(current),
-            ladderRungOrder: undefined  // 清除 ladderRungOrder 在 schematic mode
+            ladderRungOrder: undefined // Clear ladderRungOrder in schematic mode
           },
           isDirty: true
         });
@@ -2037,7 +2037,7 @@ export const useLab = create<LabState>((set, get) => ({
     set({ paletteWidth: DEFAULT_PALETTE_WIDTH, sideWidth: DEFAULT_SIDE_WIDTH });
   },
 
-  // ✅ 新增：設置是否顯示梯形圖菜單
+  // Set whether to show ladder diagram menu
   setShowLadderMenu: (show: boolean) => {
     try {
       if (typeof localStorage !== "undefined") {

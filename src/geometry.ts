@@ -844,7 +844,7 @@ export function textUnflipTransform(x: number, y: number, flipX?: boolean, flipY
   return `translate(${x} ${y}) scale(${fx} ${fy}) translate(${-x} ${-y})`;
 }
 
-/** 左右／上下 in world space, independent of current rotation. */
+/** Horizontal / vertical flip in world space, independent of current rotation. */
 export function toggleWorldFlip(sym: SymbolInst, axis: "h" | "v"): void {
   const localX = sym.rot === 0 || sym.rot === 180;
   if (axis === "h") {

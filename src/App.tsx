@@ -7,7 +7,7 @@ import { FilesMenu } from "./ui/FilesMenu";
 import { Inspector } from "./ui/Inspector";
 import { Palette } from "./ui/Palette";
 import { Schematic } from "./ui/Schematic";
-import { LadderSchematic } from "./ui/LadderSchematic";  // ✅ 新增：引入梯形圖組件
+import { LadderSchematic } from "./ui/LadderSchematic"; // Ladder diagram schematic component
 import { DiscardModal } from "./ui/DiscardModal";
 import { TogglePanelButton } from "./ui/TogglePanelButton";
 import { PanelResizer } from "./ui/PanelResizer";
@@ -435,7 +435,7 @@ export function App() {
 
               <div className="topbar-divider" />
 
-              {/* ✅ 只有當 showLadderMenu 為 true 時才顯示 Layout Mode 切換按鈕 */}
+              {/* Only show Layout Mode switch button when showLadderMenu is true */}
               {showLadderMenu && (
                 <>
                   {/* Layout Mode Toggle - Schematic / Ladder */}
@@ -526,7 +526,7 @@ export function App() {
                 </select>
               </div>
 
-              {/* ✅ 新增：梯形圖菜單開關 */}
+              {/* Ladder menu toggle */}
               <button
                 type="button"
                 className={`btn-icon ${showLadderMenu ? "active" : ""}`}
@@ -585,7 +585,7 @@ export function App() {
         />
       )}
 
-      {/* ✅ 添加 data-layout-mode 屬性到 workspace div 以支援 ladder mode 的 CSS 布局 */}
+      {/* Add data-layout-mode attribute to workspace div to support ladder mode CSS layout */}
       <div 
         className={`workspace ${!paletteOpen ? "palette-collapsed" : ""} ${!sideOpen ? "side-collapsed" : ""}`} 
         data-layout-mode={layoutMode}
@@ -617,7 +617,7 @@ export function App() {
           />
         )}
 
-        {/* ✅ 梯形圖條件渲染：根據 layoutMode 切換畫布類型 */}
+        {/* Ladder diagram conditional rendering: switch canvas based on layoutMode */}
         {layoutMode === "ladder" ? (
           <LadderSchematic />
         ) : (

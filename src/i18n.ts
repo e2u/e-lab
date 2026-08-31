@@ -704,7 +704,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "theme.switchToDark": "Switch to Dark Theme",
   },
   zh: {
-    // Wire color codes (美國標準 with line identifiers)
+    // Wire color codes (US standard with line identifiers)
     "wireColor.l1Brown": "L1 棕色",
     "wireColor.l2Orange": "L2 橙色",
     "wireColor.l3Yellow": "L3 黃色",

@@ -641,7 +641,7 @@ describe("Ladder Diagram System", () => {
     });
 
     it("should ensure English ladder translations contain no Chinese characters", () => {
-      useLab.setState({ lang: "en" });
+      useLab.getState().setLang("en");
       const englishLadderKeys = [
         "ladder.title",
         "ladder.leftRail",

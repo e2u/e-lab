@@ -411,7 +411,7 @@ export function buildLadderDiagram(
     device: Device;
     symbol?: SymbolInst;
     variant?: string;
-    address?: string;  // ✅ 改為可選，在必要時提供默認值
+    address?: string; // Optional, default value provided when necessary
     contactType: LadderContactType;
     termA: string;
     termB: string;
@@ -906,8 +906,8 @@ export function buildLadderDiagram(
     }
   }
 
-  // Connect schematic wires - ✅ 改進：使用 Union-Find 正確處理所有終端連接
-  // Connect symbol terminals via wires - ✅ 改進：只連接指定的終端，不連接所有可能組合
+  // Connect schematic wires - use Union-Find to properly handle all terminal connections
+  // Connect symbol terminals via wires - only connect specified terminals, not all combinations
   for (const w of circuit.wires) {
     if (w.broken) continue;
     
@@ -916,7 +916,7 @@ export function buildLadderDiagram(
     
     if (!symA || !symB) continue;
     
-    // 只連接指定的終端（通過 wire）
+    // Only connect specified terminals (via wire)
     unionNode(`${symA.id}:${w.a.term}`, `${symB.id}:${w.b.term}`);
   }
 
@@ -1096,7 +1096,7 @@ export function buildLadderDiagram(
   const getAddressOrDefault = (cu: DiscoveredContact): string => {
     if (cu.address) return cu.address;
     
-    // 根據 contactType 提供默認值
+    // Provide default value based on contactType
     switch (cu.contactType) {
       case "no":
       case "timer-no":
@@ -1304,7 +1304,7 @@ export function buildLadderDiagram(
     }
 
     rungs.push({
-      // ✅ 使用簡單且穩定的 ID 格式: 基於裝置標籤
+      // Use simple and stable ID format based on device tag
       id: `rung_${device.tag.replace(/[^a-zA-Z0-9]/g, "_")}`,
       rungNumber: 0,
       title: rungTitle,
@@ -1329,7 +1329,7 @@ export function buildLadderDiagram(
     let auxIdx = 1;
     while (remainingContacts.length > 0) {
       const batch = remainingContacts.splice(0, 4);
-      // ✅ 使用 getAddressOrDefault 防止 address 為 undefined 的情況
+      // Use getAddressOrDefault to prevent undefined address
       const rungItems: LadderRungItem[] = batch.map((cu) => ({
         type: "contact",
         element: makeContactElement(cu.device, cu.symbol, cu.variant, getAddressOrDefault(cu), cu.contactType),

@@ -75,7 +75,7 @@ export const SymbolLayer = memo(function SymbolLayer({
         const isRelatedSymbol = !sel && isSameDevice;
         return (
           <g key={sym.id}>
-            {/* 元件主體 - 保持旋轉 */}
+            {/* Symbol body - preserve rotation */}
             <g
               className="sym-g"
               transform={glyphTransform(sym, boxW, boxH)}
@@ -154,7 +154,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                 </text>
               )}
             </g>
-            {/* 元件 tag - 單獨渲染，不旋轉 */}
+            {/* Symbol tag - rendered separately, unrotated */}
             {dev.kind !== "junction" && dev.kind !== "mains-3ph" && dev.kind !== "net-label" && dev.kind !== "title-block" && dev.kind !== "comment" && (
               <g pointerEvents="all">
                 {(() => {

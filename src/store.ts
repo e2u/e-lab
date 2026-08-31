@@ -23,6 +23,22 @@ import { defaultRuntime, emptySnapshot, tick } from "./sim/engine";
 import { buildLadderDiagram } from "./ladder/ladderLayout";
 import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type Rot, type SimSnapshot, type Theme, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
+import {
+  trackCircuitPause,
+  trackCircuitReset,
+  trackCircuitRun,
+  trackCircuitStep,
+  trackComponentDeleted,
+  trackComponentPlaced,
+  trackExampleLoaded,
+  trackExportJson,
+  trackLadderView,
+  trackLangChange,
+  trackOpenJson,
+  trackSaveToLibrary,
+  trackShareLinkCreated,
+  trackThemeChange,
+} from "./analytics";
 
 function readLang(): Lang {
   return getLanguage();
@@ -432,6 +448,13 @@ export const useLab = create<LabState>((set, get) => ({
 
   setMode: (mode) => {
     const { circuit } = get();
+    if (mode === "run") {
+      trackCircuitRun({
+        symbolCount: circuit.symbols.length,
+        wireCount: circuit.wires.length,
+        deviceCount: circuit.devices.length,
+      });
+    }
     set({
       mode,
       placing: null,
@@ -453,8 +476,21 @@ export const useLab = create<LabState>((set, get) => ({
     const next = get().editSubMode === "editing" ? "wiring" : "editing";
     get().setEditSubMode(next);
   },
-  setRunning: (running) => set({ running }),
+  setRunning: (running) => {
+    if (running) {
+      const { circuit } = get();
+      trackCircuitRun({
+        symbolCount: circuit.symbols.length,
+        wireCount: circuit.wires.length,
+        deviceCount: circuit.devices.length,
+      });
+    } else {
+      trackCircuitPause();
+    }
+    set({ running });
+  },
   step: () => {
+    trackCircuitStep();
     const s = get();
     const nextTimeMs = s.timeMs + 50;
     const snap = tick(
@@ -486,6 +522,7 @@ export const useLab = create<LabState>((set, get) => ({
     });
   },
   resetSim: () => {
+    trackCircuitReset();
     const { circuit } = get();
     set({
       snapshot: emptySnapshot(circuit),
@@ -684,6 +721,7 @@ export const useLab = create<LabState>((set, get) => ({
         addSymbol(next, host, item.variant, gx, gy, rotToUse);
       }
       const placed = next.symbols[next.symbols.length - 1];
+      trackComponentPlaced(item.kind, item.group, next.symbols.length);
       set({
         circuit: next,
         selected: { type: "symbol", id: placed.id },
@@ -759,6 +797,7 @@ export const useLab = create<LabState>((set, get) => ({
       { ...defaultParams, ...extraParams },
       rotToUse,
     );
+    trackComponentPlaced(item.kind, item.group, next.symbols.length);
     set({
       circuit: next,
       selected: { type: "symbol", id: created.symbol.id },
@@ -1293,11 +1332,14 @@ export const useLab = create<LabState>((set, get) => ({
         ids.size === 1 && [...ids].every((id) => isJunctionSymbol(next, id));
       if (onlyJunction) {
         removeJunction(next, [...ids][0]);
+        trackComponentDeleted("junction");
       } else {
         next.wires = next.wires.filter((w) => !ids.has(w.a.symbolId) && !ids.has(w.b.symbolId));
         const removed = next.symbols.filter((s) => ids.has(s.id));
         next.symbols = next.symbols.filter((s) => !ids.has(s.id));
         for (const sym of removed) {
+          const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+          trackComponentDeleted(dev?.kind);
           const leftovers = next.symbols.some((s) => s.deviceId === sym.deviceId);
           if (!leftovers) next.devices = next.devices.filter((d) => d.id !== sym.deviceId);
         }
@@ -1332,6 +1374,8 @@ export const useLab = create<LabState>((set, get) => ({
       
       // Handle different JSON formats (some use 'title', some use 'name')
       const docName = jsonData.title || jsonData.name || id;
+      trackExampleLoaded(id, docName);
+      trackOpenJson({ source: "example", symbolCount: jsonData.circuit.symbols?.length, name: docName });
       
       set({
         circuit: jsonData.circuit,
@@ -1593,12 +1637,14 @@ export const useLab = create<LabState>((set, get) => ({
       doc: makeDoc(s.circuit, title, s.process),
     };
     putSave(save);
+    trackSaveToLibrary(title);
     set({ docName: title, savesTick: s.savesTick + 1, notice: t("notice.savedDoc", { title }), isDirty: false });
   },
   loadSave: (id) => {
     const found = listSaves().find((s) => s.id === id);
     if (!found) return;
     get().pushHistory();
+    trackOpenJson({ source: "local_save", symbolCount: found.doc.circuit?.symbols?.length, name: found.name });
     get().loadCircuit(found.doc.circuit, found.name, found.doc.process);
     set({ notice: t("notice.loadSave", { name: found.name }), isDirty: false });
   },
@@ -1609,6 +1655,11 @@ export const useLab = create<LabState>((set, get) => ({
   exportFile: () => {
     const s = get();
     const name = s.docName.trim() || "elab-circuit";
+    trackExportJson({
+      symbolCount: s.circuit.symbols.length,
+      deviceCount: s.circuit.devices.length,
+      hasName: Boolean(s.docName.trim()),
+    });
     downloadJson(makeDoc(s.circuit, name, s.process), `${name}.json`);
     set({ notice: t("notice.exportJson"), isDirty: false });
   },
@@ -1618,12 +1669,18 @@ export const useLab = create<LabState>((set, get) => ({
       set({ notice: t("msg.fileFormatError") });
       return;
     }
+    trackOpenJson({
+      source: "file",
+      symbolCount: doc.circuit.symbols.length,
+      name: doc.name,
+    });
     get().pushHistory();
     get().loadCircuit(doc.circuit, doc.name ?? tOr("msg.unnamedDiagram", "Untitled Diagram"), doc.process);
     set({ notice: t("notice.importFile") });
   },
   copyShareLink: async () => {
     const s = get();
+    trackShareLinkCreated({ symbolCount: s.circuit.symbols.length });
     const hash = hashFromDoc(makeDoc(s.circuit, s.docName, s.process));
     const url = `${window.location.origin}${window.location.pathname}${hash}`;
     window.history.replaceState(null, "", hash);
@@ -1925,11 +1982,13 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   setLang: (lang) => {
+    trackLangChange(lang);
     setLanguage(lang);
     set({ lang, notice: lang === "zh" ? t("notice.lang.zh") : t("notice.lang.en") });
   },
 
   setTheme: (theme) => {
+    trackThemeChange(theme);
     try {
       if (typeof localStorage !== "undefined") {
         localStorage.setItem("elab.theme", theme);
@@ -1953,6 +2012,7 @@ export const useLab = create<LabState>((set, get) => ({
       }
     } catch {}
     if (layoutMode === "ladder") {
+      trackLadderView({ source: "toggle", symbolCount: get().circuit?.symbols?.length });
       get().setMode("run");
     }
     set({ layoutMode });

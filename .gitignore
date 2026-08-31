@@ -25,3 +25,5 @@ dist-ssr
 /dist
 SESSION_HANDOVER.md
 e-lab-docs
+.env.*
+!.env.example

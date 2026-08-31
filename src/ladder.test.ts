@@ -10,7 +10,7 @@ import {
 import { useLab } from "./store";
 import { emptySnapshot } from "./sim/engine";
 import type { Circuit } from "./types";
-import { t } from "./i18n";
+import { t, setLang } from "./i18n";
 
 describe("Ladder Diagram System", () => {
   beforeEach(() => {
@@ -641,7 +641,7 @@ describe("Ladder Diagram System", () => {
     });
 
     it("should ensure English ladder translations contain no Chinese characters", () => {
-      useLab.setState({ lang: "en" });
+      setLang("en");
       const englishLadderKeys = [
         "ladder.title",
         "ladder.leftRail",

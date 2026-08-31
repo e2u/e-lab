@@ -3,6 +3,7 @@ import { allWireRoutes, findWireCrossovers } from "../geometry";
 import { t } from "../i18n";
 import { DEFAULT_PRINT_OPTIONS, getPrintContentBounds, type PrintOptions } from "../print";
 import { useLab } from "../store";
+import { trackExportImage } from "../analytics";
 import { COLS, GRID, ROWS } from "../types";
 import { emptySnapshot } from "../sim/engine";
 import { SymbolLayer } from "./schematic/layers/SymbolLayer";
@@ -41,6 +42,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
   const [vbX, vbY, vbW, vbH] = viewBoxParts;
 
   const handlePrint = () => {
+    trackExportImage("print");
     window.print();
   };
 

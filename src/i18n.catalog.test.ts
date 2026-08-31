@@ -88,9 +88,6 @@ describe("catalog labels", () => {
       "rcd",
       "prox",
       "photo",
-      "horn",
-      "fan",
-      "heater",
       "motor-dc",
       "gen-ac",
       "gen-dc",
@@ -108,6 +105,9 @@ describe("catalog labels", () => {
     expect(ids.has("pressure-nc")).toBe(true);
     expect(ids.has("temp-no")).toBe(true);
     expect(ids.has("temp-nc")).toBe(true);
+    expect(ids.has("fan")).toBe(true);
+    expect(ids.has("heater")).toBe(true);
+    expect(ids.has("horn")).toBe(true);
   });
 
   it("resolves every palette group heading", () => {

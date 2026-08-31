@@ -912,6 +912,41 @@ body.panel-resizing * {
   font-weight: 700;
 }
 
+.sym-tag-delay-group {
+  pointer-events: none;
+}
+
+.sym-tag-delay-bg {
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+
+.sym-tag-delay-bg.timing {
+  fill: #fef3c7;
+  stroke: #f59e0b;
+  filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.3));
+}
+
+.sym-tag-delay-bg.done {
+  fill: #dcfce7;
+  stroke: #16a34a;
+  filter: drop-shadow(0 0 2px rgba(22, 163, 74, 0.3));
+}
+
+.sym-tag-delay-text {
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 600;
+  transition: fill 0.15s ease;
+}
+
+.sym-tag-delay-text.timing {
+  fill: #b45309;
+}
+
+.sym-tag-delay-text.done {
+  fill: #15803d;
+}
+
 .term-lab {
   font-family: "Red Hat Mono", monospace;
   font-size: 9px;

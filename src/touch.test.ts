@@ -789,4 +789,138 @@ describe("touch & mobile adaptation", () => {
     s.undo();
     expect(useLab.getState().circuit.wires.length).toBe(1);
   });
+
+  it("updates timer runtime and delay progression when timer coil is energized", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+
+    // Place mains and timer-on
+    s.setPlacing("mains-3ph");
+    s.placeAt(0, 0);
+    s.setPlacing("timer-on");
+    s.placeAt(6, 0);
+
+    const [, ktDev] = useLab.getState().circuit.devices;
+    s.updateDevice(ktDev.id, { delayMs: 3000 });
+
+    const [gSym, ktSym] = useLab.getState().circuit.symbols;
+    s.clickPort({ symbolId: gSym.id, term: "L1" });
+    s.clickPort({ symbolId: ktSym.id, term: "A1" });
+    s.clickPort({ symbolId: ktSym.id, term: "A2" });
+    s.clickPort({ symbolId: gSym.id, term: "N" });
+
+    // Switch to run mode and step simulation
+    useLab.setState({ mode: "run" });
+    s.step(); // initial step to evaluate topology
+
+    // Step simulation 10 times (500ms)
+    for (let i = 0; i < 10; i++) s.step();
+    let rt = useLab.getState().snapshot.runtime[ktDev.id];
+    expect(rt?.energized).toBe(true);
+    expect(rt?.elapsedMs).toBeGreaterThanOrEqual(500);
+    expect(rt?.done).toBe(false);
+
+    // Step past delay (additional 60 steps = 3000ms)
+    for (let i = 0; i < 60; i++) s.step();
+    rt = useLab.getState().snapshot.runtime[ktDev.id];
+    expect(rt?.energized).toBe(true);
+    expect(rt?.elapsedMs).toBe(3000);
+    expect(rt?.done).toBe(true);
+  });
+
+  it("switches contact variant dynamically and remaps connected wire terminals", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+
+    // Place timer-on device (coil) and attach delayed-no contact
+    s.setPlacing("timer-on");
+    s.placeAt(0, 0);
+    s.setPlacing("timer-on-no");
+    s.placeAt(6, 0);
+
+    const [ktDev] = useLab.getState().circuit.devices;
+    const [, contactSym] = useLab.getState().circuit.symbols;
+    s.rebind(contactSym.id, ktDev.id);
+
+    // Place lamp
+    s.setPlacing("lamp");
+    s.placeAt(12, 0);
+    const [, , lampSym] = useLab.getState().circuit.symbols;
+
+    // Connect contact terminal 18 to lamp terminal 1
+    s.clickPort({ symbolId: contactSym.id, term: "18" });
+    s.clickPort({ symbolId: lampSym.id, term: "1" });
+
+    expect(useLab.getState().circuit.wires.length).toBe(1);
+    expect(useLab.getState().circuit.wires[0].a.term).toBe("18");
+
+    // Switch contact variant from delayed-no (15-18) to delayed-nc (15-16)
+    s.setSymbolVariant(contactSym.id, "delayed-nc");
+
+    const updatedSym = useLab.getState().circuit.symbols.find((x) => x.id === contactSym.id);
+    expect(updatedSym?.variant).toBe("delayed-nc");
+    const updatedWire = useLab.getState().circuit.wires[0];
+    // Wire terminal should be seamlessly remapped from 18 to 16
+    expect(updatedWire.a.term).toBe("16");
+  });
+
+  it("tests TON NCTO (常閉延時斷開) opening circuit after delay and NOTC closing circuit after delay", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "edit" });
+
+    // Mains
+    s.setPlacing("mains-3ph");
+    s.placeAt(0, 0);
+
+    // Timer ON coil
+    s.setPlacing("timer-on");
+    s.placeAt(8, 0);
+
+    // TON NC contact (15-16)
+    s.setPlacing("timer-on-nc");
+    s.placeAt(8, 6);
+
+    // Lamp (Load)
+    s.setPlacing("lamp");
+    s.placeAt(16, 6);
+
+    const [, ktDev, lampDev] = useLab.getState().circuit.devices;
+    const [gSym, ktSym, ncSym, lampSym] = useLab.getState().circuit.symbols;
+
+    s.updateDevice(ktDev.id, { delayMs: 2000 });
+    s.rebind(ncSym.id, ktDev.id);
+
+    // Wire coil: L1 -> A1, A2 -> N
+    s.clickPort({ symbolId: gSym.id, term: "L1" });
+    s.clickPort({ symbolId: ktSym.id, term: "A1" });
+    s.clickPort({ symbolId: ktSym.id, term: "A2" });
+    s.clickPort({ symbolId: gSym.id, term: "N" });
+
+    // Wire load path through NC contact: L1 -> 15, 16 -> Lamp 1, Lamp 2 -> N
+    s.clickPort({ symbolId: gSym.id, term: "L1" });
+    s.clickPort({ symbolId: ncSym.id, term: "15" });
+    s.clickPort({ symbolId: ncSym.id, term: "16" });
+    s.clickPort({ symbolId: lampSym.id, term: "1" });
+    s.clickPort({ symbolId: lampSym.id, term: "2" });
+    s.clickPort({ symbolId: gSym.id, term: "N" });
+
+    // Start simulation
+    useLab.setState({ mode: "run" });
+    s.step();
+
+    // 1. Initially (during 2.0s timing), NC contact is closed, lamp is powered on!
+    for (let i = 0; i < 10; i++) s.step(); // 500ms elapsed
+    let snap = useLab.getState().snapshot;
+    expect(snap.runtime[lampDev.id]?.energized).toBe(true);
+    expect(snap.runtime[ktDev.id]?.done).toBe(false);
+
+    // 2. After 2.0s delay (done), NC contact opens and lamp is powered off!
+    for (let i = 0; i < 40; i++) s.step(); // total > 2000ms
+    snap = useLab.getState().snapshot;
+    expect(snap.runtime[ktDev.id]?.done).toBe(true);
+    expect(snap.runtime[lampDev.id]?.energized).toBe(false);
+  });
 });

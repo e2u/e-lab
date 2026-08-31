@@ -77,6 +77,44 @@ function weldable(kind: DeviceKind): boolean {
   );
 }
 
+function getVariantDisplayName(kind: string, variantKey: string): string {
+  if (kind === "timer-on") {
+    switch (variantKey) {
+      case "coil": return t("comp.timerOn");
+      case "delayed-nc": return t("comp.timerOnNc");
+      case "delayed-no": return t("comp.timerOnNo");
+      case "inst-nc": return t("comp.timerOnInstNc");
+      case "inst-no": return t("comp.timerOnInstNo");
+    }
+  } else if (kind === "timer-off") {
+    switch (variantKey) {
+      case "coil": return t("comp.timerOff");
+      case "delayed-nc": return t("comp.timerOffNc");
+      case "delayed-no": return t("comp.timerOffNo");
+      case "inst-nc": return t("comp.timerOffInstNc");
+      case "inst-no": return t("comp.timerOffInstNo");
+    }
+  } else if (kind === "contactor") {
+    switch (variantKey) {
+      case "coil": return t("comp.contactorCoil");
+      case "main": return t("comp.contactorMain");
+      case "aux-no": return t("comp.contactorAuxNo");
+      case "aux-nc": return t("comp.contactorAuxNc");
+      case "aux-no2": return t("comp.contactorAuxNo2");
+      case "aux-nc2": return t("comp.contactorAuxNc2");
+    }
+  } else if (kind === "relay") {
+    switch (variantKey) {
+      case "coil": return t("comp.relayCoil");
+      case "aux-no": return t("comp.relayAuxNo");
+      case "aux-nc": return t("comp.relayAuxNc");
+      case "aux-no2": return t("comp.relayAuxNo2");
+      case "aux-nc2": return t("comp.relayAuxNc2");
+    }
+  }
+  return variantKey;
+}
+
 export function Inspector() {
   const selected = useLab((s) => s.selected);
   const selectedIds = useLab((s) => s.selectedIds);
@@ -494,6 +532,45 @@ export function Inspector() {
             <NetLabelHint circuit={circuit} deviceId={dev.id} tag={dev.tag} />
           ) : (
             <div className="hint">{t("inspector.variant")}: {sym.variant} · {dev.kind}</div>
+          )}
+          {KINDS[dev.kind] && Object.keys(KINDS[dev.kind].variants).length > 1 && (
+            <label style={{ marginTop: "6px" }}>
+              <span>{t("inspector.contactVariant")}</span>
+              <select
+                value={sym.variant}
+                onChange={(e) => useLab.getState().setSymbolVariant(sym.id, e.target.value)}
+              >
+                {Object.keys(KINDS[dev.kind].variants).map((vKey) => (
+                  <option key={vKey} value={vKey}>
+                    {getVariantDisplayName(dev.kind, vKey)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {(dev.kind === "timer-on" || dev.kind === "timer-off") && (
+            <div
+              style={{
+                marginTop: "6px",
+                padding: "6px 8px",
+                borderRadius: "4px",
+                fontSize: "11px",
+                lineHeight: "1.4",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                color: "#166534",
+              }}
+            >
+              {dev.kind === "timer-on" && sym.variant === "delayed-nc" && t("inspector.hintTonNc")}
+              {dev.kind === "timer-on" && sym.variant === "delayed-no" && t("inspector.hintTonNo")}
+              {dev.kind === "timer-off" && sym.variant === "delayed-no" && t("inspector.hintTofNo")}
+              {dev.kind === "timer-off" && sym.variant === "delayed-nc" && t("inspector.hintTofNc")}
+              {sym.variant === "coil" && (
+                dev.kind === "timer-on"
+                  ? "⏱️ 通電延時線圈：通電後開始延時計時，時間到達後所有延時觸點動作。"
+                  : "⏱️ 斷電延時線圈：通電後觸點立即動作；斷電後開始延時計時，時間到達後觸點復位。"
+              )}
+            </div>
           )}
           {dev.kind !== "net-label" && sameKind.length > 1 && (
             <label>

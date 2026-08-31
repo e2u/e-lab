@@ -123,6 +123,26 @@ export function ContextMenu({
               const sym = circuit.symbols.find((s) => s.id === effectiveIds[0]);
               const dev = sym ? circuit.devices.find((d) => d.id === sym.deviceId) : null;
               if (!dev || !sym) return null;
+              const getToggleVariant = (k: string, v: string): string | null => {
+                if (k === "timer-on" || k === "timer-off") {
+                  if (v === "delayed-no") return "delayed-nc";
+                  if (v === "delayed-nc") return "delayed-no";
+                  if (v === "inst-no") return "inst-nc";
+                  if (v === "inst-nc") return "inst-no";
+                } else if (k === "contactor") {
+                  if (v === "aux-no") return "aux-nc";
+                  if (v === "aux-nc") return "aux-no";
+                  if (v === "aux-no2") return "aux-nc2";
+                  if (v === "aux-nc2") return "aux-no2";
+                } else if (k === "relay") {
+                  if (v === "aux-no") return "aux-nc";
+                  if (v === "aux-nc") return "aux-no";
+                  if (v === "aux-no2") return "aux-nc2";
+                  if (v === "aux-nc2") return "aux-no2";
+                }
+                return null;
+              };
+              const toggleTarget = getToggleVariant(dev.kind, sym.variant);
               if (dev.kind === "comment") {
                 return (
                   <>
@@ -153,14 +173,23 @@ export function ContextMenu({
                   </>
                 );
               }
-              if (dev.kind !== "junction" && dev.kind !== "title-block") {
-                return (
-                  <button type="button" onClick={() => run(() => useLab.getState().addCommentForSymbol(sym.id))}>
-                    💬 {t("inspector.addComment")}
-                  </button>
-                );
-              }
-              return null;
+              return (
+                <>
+                  {toggleTarget && (
+                    <button
+                      type="button"
+                      onClick={() => run(() => useLab.getState().setSymbolVariant(sym.id, toggleTarget))}
+                    >
+                      🔀 {t("ctx.switchContactVariant")}
+                    </button>
+                  )}
+                  {dev.kind !== "junction" && dev.kind !== "title-block" && (
+                    <button type="button" onClick={() => run(() => useLab.getState().addCommentForSymbol(sym.id))}>
+                      💬 {t("inspector.addComment")}
+                    </button>
+                  )}
+                </>
+              );
             })()}
             {hasTagOffset && (
               <button

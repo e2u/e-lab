@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { catalogItem, suggestNetLabelTag, variantDef } from "./catalog";
+import { catalogItem, KINDS, suggestNetLabelTag, variantDef } from "./catalog";
 import { addDevice, addJunction, addSymbol, deleteWireAndCleanJunctions, findJunctionAt, isJunctionSymbol, mergeWires, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
 import templateData from "./examples/blank-template.json";
@@ -1231,12 +1231,36 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === symbolId);
     if (!sym) return;
+    const oldVariant = sym.variant;
     sym.variant = variant;
     const d = next.devices.find((x) => x.id === sym.deviceId);
-    if (d && d.kind === "mains-3ph" && (variant === "wye" || variant === "delta")) {
-      d.params.supplyType = variant;
+    if (d) {
+      if (d.kind === "mains-3ph" && (variant === "wye" || variant === "delta")) {
+        d.params.supplyType = variant;
+      }
+      // Remap terminal ports on connected wires if variant changed
+      const oldTerms = KINDS[d.kind]?.variants[oldVariant]?.terminals;
+      const newTerms = KINDS[d.kind]?.variants[variant]?.terminals;
+      if (oldTerms && newTerms && oldTerms.length === newTerms.length) {
+        const termMap = new Map<string, string>();
+        for (let i = 0; i < oldTerms.length; i++) {
+          termMap.set(oldTerms[i].id, newTerms[i].id);
+        }
+        for (const w of next.wires) {
+          if (w.a.symbolId === sym.id && termMap.has(w.a.term)) {
+            w.a.term = termMap.get(w.a.term)!;
+          }
+          if (w.b.symbolId === sym.id && termMap.has(w.b.term)) {
+            w.b.term = termMap.get(w.b.term)!;
+          }
+        }
+      }
     }
-    set({ circuit: next, isDirty: true });
+    set({
+      circuit: next,
+      snapshot: get().mode === "edit" ? emptySnapshot(next) : get().snapshot,
+      isDirty: true,
+    });
   },
 
   rebind: (symbolId, deviceId) => {

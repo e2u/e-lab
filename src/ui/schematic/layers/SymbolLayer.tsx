@@ -166,6 +166,47 @@ export const SymbolLayer = memo(function SymbolLayer({
                   const textAnchor = basePlacement.textAnchor;
                   const tagWidth = Math.max(16, dev.tag.length * 7);
                   const isTagHighlighted = (selected?.type === "symbol" && selected.id === sym.id) || isSameDevice;
+
+                  // Timer active delay display below tag
+                  const isTimerKind = dev.kind === "timer-on" || dev.kind === "timer-off";
+                  const isTimerActive = isTimerKind && Boolean(rt && (rt.energized || (dev.kind === "timer-off" && rt.elapsedMs > 0)));
+
+                  let delayText = "";
+                  let isDone = false;
+                  if (isTimerActive && rt) {
+                    const delayMs = dev.params.delayMs ?? 2000;
+                    const elapsedMs = rt.elapsedMs ?? 0;
+                    isDone = Boolean(rt.done);
+
+                    if (dev.kind === "timer-on") {
+                      if (!isDone) {
+                        const remMs = Math.max(0, delayMs - elapsedMs);
+                        const remStr = (remMs / 1000).toFixed(1) + "s";
+                        const totalStr = (delayMs / 1000).toFixed(1) + "s";
+                        delayText = `${remStr} / ${totalStr}`;
+                      } else {
+                        delayText = `${(delayMs / 1000).toFixed(1)}s`;
+                      }
+                    } else {
+                      // timer-off
+                      if (rt.energized) {
+                        delayText = `${(delayMs / 1000).toFixed(1)}s`;
+                      } else {
+                        const remMs = Math.max(0, elapsedMs);
+                        const remStr = (remMs / 1000).toFixed(1) + "s";
+                        const totalStr = (delayMs / 1000).toFixed(1) + "s";
+                        delayText = `${remStr} / ${totalStr}`;
+                      }
+                    }
+                  }
+
+                  const delayBadgeW = Math.max(26, delayText.length * 6.2 + 8);
+                  const delayBadgeH = 14;
+                  const delayBadgeY = tagY + 8;
+                  const delayBadgeX = textAnchor === "start" ? tagX : tagX - delayBadgeW / 2;
+                  const delayTextX = textAnchor === "start" ? tagX + 4 : tagX;
+                  const delayTextAnchor = textAnchor === "start" ? "start" : "middle";
+
                   return (
                     <g
                       className="sym-tag-group"
@@ -194,6 +235,37 @@ export const SymbolLayer = memo(function SymbolLayer({
                       >
                         {dev.tag}
                       </text>
+
+                      {isTimerActive && delayText && (
+                        <g className="sym-tag-delay-group">
+                          <rect
+                            x={delayBadgeX}
+                            y={delayBadgeY}
+                            width={delayBadgeW}
+                            height={delayBadgeH}
+                            rx="3"
+                            className={`sym-tag-delay-bg ${isDone ? "done" : "timing"}`}
+                            fill={isDone ? "#dcfce7" : "#fef3c7"}
+                            stroke={isDone ? "#16a34a" : "#f59e0b"}
+                            strokeWidth={0.8}
+                          />
+                          <text
+                            x={delayTextX}
+                            y={delayBadgeY + 10.5}
+                            textAnchor={delayTextAnchor}
+                            className={`sym-tag-delay-text ${isDone ? "done" : "timing"}`}
+                            style={{
+                              userSelect: "none",
+                              fontSize: "9px",
+                              fontWeight: 600,
+                              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                              fill: isDone ? "#15803d" : "#b45309",
+                            }}
+                          >
+                            {delayText}
+                          </text>
+                        </g>
+                      )}
                     </g>
                   );
                 })()}

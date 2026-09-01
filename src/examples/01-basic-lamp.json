@@ -4,19 +4,19 @@
   "circuit": {
     "devices": [
       {
-        "id": "d_2_a49d6962",
+        "id": "d_2_543e6d6a",
         "kind": "dc-supply",
         "tag": "G1",
         "params": {}
       },
       {
-        "id": "d_4_7d7714cf",
+        "id": "d_4_9cc2ad0e",
         "kind": "pb-no",
         "tag": "SB1",
         "params": {}
       },
       {
-        "id": "d_6_f23348a3",
+        "id": "d_6_3e011398",
         "kind": "lamp",
         "tag": "HL1",
         "params": {
@@ -26,65 +26,82 @@
     ],
     "symbols": [
       {
-        "id": "s_3_747dbb87",
-        "deviceId": "d_2_a49d6962",
+        "id": "s_3_31e849c9",
+        "deviceId": "d_2_543e6d6a",
         "variant": "body",
         "x": 4,
         "y": 4,
         "rot": 0
       },
       {
-        "id": "s_5_0a87263b",
-        "deviceId": "d_4_7d7714cf",
+        "id": "s_5_0a190063",
+        "deviceId": "d_4_9cc2ad0e",
         "variant": "body",
         "x": 14,
         "y": 4,
         "rot": 0
       },
       {
-        "id": "s_7_ddb17b62",
-        "deviceId": "d_6_f23348a3",
+        "id": "s_7_c3c641d3",
+        "deviceId": "d_6_3e011398",
         "variant": "body",
-        "x": 22,
-        "y": 3.5,
-        "rot": 0
+        "x": 23,
+        "y": 4,
+        "rot": 270
       }
     ],
     "wires": [
       {
-        "id": "w_8_b000c8c9",
+        "id": "w_8_6c1a2212",
         "a": {
-          "symbolId": "s_3_747dbb87",
+          "symbolId": "s_3_31e849c9",
           "term": "+"
         },
         "b": {
-          "symbolId": "s_5_0a87263b",
+          "symbolId": "s_5_0a190063",
+          "term": "1"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 235.125
+        }
+      },
+      {
+        "id": "w_9_ef219510",
+        "a": {
+          "symbolId": "s_5_0a190063",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_7_c3c641d3",
           "term": "1"
         }
       },
       {
-        "id": "w_9_a89a020f",
+        "id": "w_a_6740a6ed",
         "a": {
-          "symbolId": "s_5_0a87263b",
+          "symbolId": "s_7_c3c641d3",
           "term": "2"
         },
         "b": {
-          "symbolId": "s_7_ddb17b62",
-          "term": "1"
-        }
-      },
-      {
-        "id": "w_a_1cd05ee4",
-        "a": {
-          "symbolId": "s_7_ddb17b62",
-          "term": "2"
-        },
-        "b": {
-          "symbolId": "s_3_747dbb87",
+          "symbolId": "s_3_31e849c9",
           "term": "-"
+        },
+        "jog": {
+          "axis": "y",
+          "pos": 154
         }
       }
     ],
     "groups": []
+  },
+  "process": {
+    "temperature": 34,
+    "pressure": 0,
+    "level": 0,
+    "flow": 0,
+    "limitHit": false,
+    "proxHit": false,
+    "photoHit": false
   }
 }

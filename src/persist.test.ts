@@ -45,4 +45,25 @@ describe("persist", () => {
     expect(state.circuit.wires.length).toBe(templateData.circuit.wires.length);
     expect(state.isDirty).toBe(false);
   });
+
+  it("persists device setpoint and parameters across updates and drafts", () => {
+    useLab.getState().newBoard();
+    useLab.getState().setPlacing("float");
+    useLab.getState().placeAt(5, 5);
+    const state = useLab.getState();
+    const floatSym = state.circuit.symbols[state.circuit.symbols.length - 1];
+    const floatDev = state.circuit.devices.find((d) => d.id === floatSym.deviceId)!;
+    expect(floatDev.params.setpoint).toBe(50);
+
+    // Update setpoint to 90%
+    useLab.getState().updateDevice(floatDev.id, { setpoint: 90 });
+    const updatedDev = useLab.getState().circuit.devices.find((d) => d.id === floatDev.id)!;
+    expect(updatedDev.params.setpoint).toBe(90);
+
+    // Verify roundtrip encoding
+    const doc = makeDoc(useLab.getState().circuit, "Float Test", useLab.getState().process);
+    const roundtripped = decodeShare(encodeShare(doc));
+    const roundtrippedDev = roundtripped?.circuit.devices.find((d) => d.id === floatDev.id);
+    expect(roundtrippedDev?.params.setpoint).toBe(90);
+  });
 });

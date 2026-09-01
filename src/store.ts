@@ -330,7 +330,7 @@ export interface LabState {
 }
 
 const defaultProcess = (): ProcessVars => ({
-  temperature: 25,
+  temperature: 75,
   pressure: 1,
   level: 20,
   flow: 0,
@@ -540,7 +540,11 @@ export const useLab = create<LabState>((set, get) => ({
       set({ meterHistory: {} });
     }
   },
-  setProcess: (patch) => set({ process: { ...get().process, ...patch } }),
+  setProcess: (patch) => {
+    const next = { ...get().process, ...patch };
+    set({ process: next });
+    get().persistDraft();
+  },
   setPlacing: (id) => {
     let defaultRot: Rot = 0;
     if (id) {
@@ -739,44 +743,52 @@ export const useLab = create<LabState>((set, get) => ({
         ? { color: "green" }
         : item.kind === "timer-on" || item.kind === "timer-off"
           ? { delayMs: 2000 }
-          : item.kind === "temp-no" || item.kind === "temp-nc"
-            ? { setpoint: 60 }
-            : item.kind === "transformer"
-              ? { primaryVoltage: 480, secondaryVoltage: 120, ratio: "480/120" }
-              : item.kind === "mains-3ph"
-                ? { supplyType: item.variant === "delta" ? "delta" : "wye", voltage: 480, maxCurrent: 400 }
-                : item.kind === "motor-3ph" ||
-                  item.kind === "starter-dol" ||
-                  item.kind === "starter-fwd" ||
-                  item.kind === "starter-rev" ||
-                  item.kind === "starter-rev-combo"
-                  ? { power: 5.5 }
-                  : item.kind === "motor-1ph"
-                    ? { power: 1.5 }
-                    : item.kind === "motor-dc"
-                      ? { power: 0.75 }
-                      : item.kind === "title-block"
-                        ? {
-                            projectName: "MOTOR CONTROL CIRCUIT",
-                            projectNo: "DWG-001",
-                            rev: "A",
-                            sheetNum: "1",
-                            sheetTotal: "1",
-                            description: "SCHEMATIC DIAGRAM",
-                            designedBy: "ENGINEER",
-                            date: formatMMDDYYYY(),
-                            scale: 1,
-                          }
-                        : item.kind === "comment"
-                          ? {
-                              text: "備註說明 / Note",
-                              showLeaderLine: true,
-                              bgColor: "#fef9c3",
-                              fontSize: 12,
-                              width: 6,
-                              height: 3,
-                            }
-                        : {};
+          : item.kind === "counter"
+            ? { preset: 5 }
+            : item.kind === "float"
+              ? { setpoint: 50 }
+            : item.kind === "temp-no" || item.kind === "temp-nc"
+              ? { setpoint: 140 }
+              : item.kind === "pressure-no" || item.kind === "pressure-nc"
+                ? { setpoint: 4 }
+                : item.kind === "flow-no" || item.kind === "flow-nc"
+                  ? { setpoint: 40 }
+                  : item.kind === "transformer"
+                    ? { primaryVoltage: 480, secondaryVoltage: 120, ratio: "480/120" }
+                    : item.kind === "mains-3ph"
+                      ? { supplyType: item.variant === "delta" ? "delta" : "wye", voltage: 480, maxCurrent: 400 }
+                      : item.kind === "motor-3ph" ||
+                        item.kind === "starter-dol" ||
+                        item.kind === "starter-fwd" ||
+                        item.kind === "starter-rev" ||
+                        item.kind === "starter-rev-combo"
+                        ? { power: 5.5 }
+                        : item.kind === "motor-1ph"
+                          ? { power: 1.5 }
+                          : item.kind === "motor-dc"
+                            ? { power: 0.75 }
+                            : item.kind === "title-block"
+                              ? {
+                                  projectName: "MOTOR CONTROL CIRCUIT",
+                                  projectNo: "DWG-001",
+                                  rev: "A",
+                                  sheetNum: "1",
+                                  sheetTotal: "1",
+                                  description: "SCHEMATIC DIAGRAM",
+                                  designedBy: "ENGINEER",
+                                  date: formatMMDDYYYY(),
+                                  scale: 1,
+                                }
+                              : item.kind === "comment"
+                                ? {
+                                    text: "備註說明 / Note",
+                                    showLeaderLine: true,
+                                    bgColor: "#fef9c3",
+                                    fontSize: 12,
+                                    width: 6,
+                                    height: 3,
+                                  }
+                              : {};
 
     if (item.kind === "ammeter" && !extraParams?.clampedWireId) {
       const detected = findWireAtPoint(next, (gx + 2) * GRID, (gy + 2) * GRID, GRID * 2.5);
@@ -1220,6 +1232,7 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     const d = next.devices.find((x) => x.id === deviceId);
     if (!d) return;
+    if (!d.params) d.params = {};
     if (patch.params) {
       d.params = { ...d.params, ...patch.params };
     }
@@ -1263,6 +1276,7 @@ export const useLab = create<LabState>((set, get) => ({
     if (patch.width !== undefined) d.params.width = patch.width;
     if (patch.height !== undefined) d.params.height = patch.height;
     set({ circuit: next, isDirty: true });
+    get().persistDraft();
   },
 
   setSymbolVariant: (symbolId, variant) => {

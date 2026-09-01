@@ -84,14 +84,10 @@ describe("catalog labels", () => {
   it("omits devices outside relay-contactor control", () => {
     const ids = new Set(CATALOG.map((c) => c.id));
     for (const extra of [
-      "dc-supply",
       "rcd",
-      "prox",
-      "photo",
       "motor-dc",
       "gen-ac",
       "gen-dc",
-      "counter",
       "starter-dol",
       "starter-fwd",
       "starter-rev",
@@ -101,6 +97,10 @@ describe("catalog labels", () => {
     expect(ids.has("km-coil")).toBe(true);
     expect(ids.has("motor-3ph")).toBe(true);
     expect(ids.has("timer-on")).toBe(true);
+    expect(ids.has("counter")).toBe(true);
+    expect(ids.has("prox")).toBe(true);
+    expect(ids.has("photo")).toBe(true);
+    expect(ids.has("dc-supply")).toBe(true);
     expect(ids.has("flow-no")).toBe(true);
     expect(ids.has("pressure-nc")).toBe(true);
     expect(ids.has("temp-no")).toBe(true);

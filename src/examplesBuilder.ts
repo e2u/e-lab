@@ -963,11 +963,13 @@ export function ex18ConveyorCounterSorter(): Circuit {
   const ct = addDevice(c, "counter", "CT1", "body", 22, 4, { preset: 5 });
   const hlCount = addDevice(c, "lamp", "HL_COUNT", "body", 30, 3.5, { color: "yellow" });
 
-  const prox = addDevice(c, "prox", "SQ_PROX", "body", 14, 12);
-  const mConv = addDevice(c, "motor-dc", "M_CONV", "body", 22, 11.5);
+  const sbReset = addDevice(c, "pb-no", "SB_RST", "body", 14, 7.5);
 
-  const yvPush = addDevice(c, "solenoid", "YV_PUSH", "body", 30, 19.5);
-  const hlDone = addDevice(c, "lamp", "HL_DONE", "body", 38, 19.5, { color: "green" });
+  const prox = addDevice(c, "prox", "SQ_PROX", "body", 14, 13);
+  const mConv = addDevice(c, "motor-dc", "M_CONV", "body", 22, 12.5);
+
+  const yvPush = addDevice(c, "solenoid", "YV_PUSH", "body", 30, 20.5);
+  const hlDone = addDevice(c, "lamp", "HL_DONE", "body", 38, 20.5, { color: "green" });
 
   // Photo Sensor counting pulse & count indicator (Y=5 straight line)
   addWire(c, g.symbol, "+", photo.symbol, "1");
@@ -976,12 +978,17 @@ export function ex18ConveyorCounterSorter(): Circuit {
   addWire(c, photo.symbol, "2", hlCount.symbol, "1");
   addWire(c, hlCount.symbol, "2", g.symbol, "-");
 
-  // Conveyor motor runs when proximity sensor detects presence (Y=13 straight line)
+  // Counter Reset Pushbutton (Y=8 straight line into R1-R2)
+  addWire(c, g.symbol, "+", sbReset.symbol, "1");
+  addWire(c, sbReset.symbol, "2", ct.symbol, "R1");
+  addWire(c, ct.symbol, "R2", g.symbol, "-");
+
+  // Conveyor motor runs when proximity sensor detects presence (Y=14 straight line)
   addWire(c, g.symbol, "+", prox.symbol, "1");
   addWire(c, prox.symbol, "2", mConv.symbol, "A1");
   addWire(c, mConv.symbol, "A2", g.symbol, "-");
 
-  // Counter Output (1-2) triggers Pusher Solenoid YV1 and Done Lamp (Y=21 straight line)
+  // Counter Output (1-2) triggers Pusher Solenoid YV1 and Done Lamp (Y=22 straight line)
   addWire(c, g.symbol, "+", ct.symbol, "1");
   addWire(c, ct.symbol, "2", yvPush.symbol, "A1");
   addWire(c, ct.symbol, "2", hlDone.symbol, "1");

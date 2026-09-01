@@ -17,6 +17,7 @@ export function Bench() {
   const runtime = useLab((s) => s.snapshot.runtime);
   const held = useLab((s) => s.held);
   const mode = useLab((s) => s.mode);
+  const process = useLab((s) => s.process);
 
   // Filter and collect all interactive devices with runtime state
   const activeDevices = circuit.devices.filter((d) => {
@@ -35,6 +36,8 @@ export function Bench() {
       d.kind === "fan" ||
       d.kind === "gen-ac" ||
       d.kind === "gen-dc" ||
+      d.kind === "heater" ||
+      d.kind === "solenoid" ||
       d.kind === "breaker-3p" ||
       d.kind === "breaker-1p" ||
       d.kind === "isolator" ||
@@ -49,7 +52,13 @@ export function Bench() {
       d.kind === "toggle" ||
       d.kind.startsWith("toggle-") ||
       d.kind.startsWith("limit") ||
-      d.kind.startsWith("foot")
+      d.kind.startsWith("foot") ||
+      d.kind === "float" ||
+      d.kind.startsWith("temp-") ||
+      d.kind.startsWith("pressure-") ||
+      d.kind.startsWith("flow-") ||
+      d.kind === "prox" ||
+      d.kind === "photo"
     );
   });
 
@@ -287,6 +296,236 @@ export function Bench() {
               );
             }
 
+            // Float Switches
+            if (d.kind === "float") {
+              const sp = d.params.setpoint ?? 50;
+              const isAct = Boolean(rt.actuated);
+              return (
+                <div
+                  className="widget"
+                  key={d.id}
+                  onClick={() => {
+                    const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+                    if (sym) useLab.getState().select({ type: "symbol", id: sym.id }, true);
+                  }}
+                  title={`${d.tag} (${t("bench.float")}: ${sp}% | ${t("process.level")}: ${process.level}%)`}
+                >
+                  <button
+                    className={`btn btn-toggle-switch ${isAct ? "on" : "off"}`}
+                    disabled={mode !== "run"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isAct) {
+                        useLab.getState().setProcess({ level: Math.max(0, sp - 10) });
+                      } else {
+                        useLab.getState().setProcess({ level: sp });
+                      }
+                    }}
+                  >
+                    {isAct ? "💧 ACT" : "⚪ NORM"}
+                  </button>
+                  <span className="widget-label">{d.tag} ({sp}%)</span>
+                </div>
+              );
+            }
+
+            // Temperature Switches
+            if (d.kind.startsWith("temp-")) {
+              const sp = d.params.setpoint ?? 140;
+              const isAct = Boolean(rt.actuated);
+              return (
+                <div
+                  className="widget"
+                  key={d.id}
+                  onClick={() => {
+                    const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+                    if (sym) useLab.getState().select({ type: "symbol", id: sym.id }, true);
+                  }}
+                  title={`${d.tag} (${t("bench.tempSw")}: ${sp}°F | ${t("process.temperature")}: ${process.temperature}°F)`}
+                >
+                  <button
+                    className={`btn btn-toggle-switch ${isAct ? "on" : "off"}`}
+                    disabled={mode !== "run"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isAct) {
+                        useLab.getState().setProcess({ temperature: Math.max(0, sp - 10) });
+                      } else {
+                        useLab.getState().setProcess({ temperature: sp });
+                      }
+                    }}
+                  >
+                    {isAct ? "🔥 ACT" : "❄️ NORM"}
+                  </button>
+                  <span className="widget-label">{d.tag} ({sp}°F)</span>
+                </div>
+              );
+            }
+
+            // Pressure Switches
+            if (d.kind.startsWith("pressure-")) {
+              const sp = d.params.setpoint ?? 4;
+              const isAct = Boolean(rt.actuated);
+              return (
+                <div
+                  className="widget"
+                  key={d.id}
+                  onClick={() => {
+                    const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+                    if (sym) useLab.getState().select({ type: "symbol", id: sym.id }, true);
+                  }}
+                  title={`${d.tag} (${t("bench.pressureSw")}: ${sp}bar | ${t("process.pressure")}: ${process.pressure.toFixed(1)}bar)`}
+                >
+                  <button
+                    className={`btn btn-toggle-switch ${isAct ? "on" : "off"}`}
+                    disabled={mode !== "run"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isAct) {
+                        useLab.getState().setProcess({ pressure: Math.max(0, Math.round((sp - 1) * 10) / 10) });
+                      } else {
+                        useLab.getState().setProcess({ pressure: sp });
+                      }
+                    }}
+                  >
+                    {isAct ? "💨 ACT" : "⚪ NORM"}
+                  </button>
+                  <span className="widget-label">{d.tag} ({sp}b)</span>
+                </div>
+              );
+            }
+
+            // Flow Switches
+            if (d.kind.startsWith("flow-")) {
+              const sp = d.params.setpoint ?? 40;
+              const isAct = Boolean(rt.actuated);
+              return (
+                <div
+                  className="widget"
+                  key={d.id}
+                  onClick={() => {
+                    const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+                    if (sym) useLab.getState().select({ type: "symbol", id: sym.id }, true);
+                  }}
+                  title={`${d.tag} (${t("bench.flowSw")}: ${sp}% | ${t("process.flow")}: ${process.flow}%)`}
+                >
+                  <button
+                    className={`btn btn-toggle-switch ${isAct ? "on" : "off"}`}
+                    disabled={mode !== "run"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isAct) {
+                        useLab.getState().setProcess({ flow: Math.max(0, sp - 10) });
+                      } else {
+                        useLab.getState().setProcess({ flow: sp });
+                      }
+                    }}
+                  >
+                    {isAct ? "🌊 ACT" : "⚪ NORM"}
+                  </button>
+                  <span className="widget-label">{d.tag} ({sp}%)</span>
+                </div>
+              );
+            }
+
+            // Proximity Sensors
+            if (d.kind === "prox") {
+              const isHit = Boolean(process.proxHit);
+              return (
+                <div
+                  className="widget"
+                  key={d.id}
+                  onClick={() => {
+                    const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+                    if (sym) useLab.getState().select({ type: "symbol", id: sym.id }, true);
+                  }}
+                  title={`${d.tag} (${t("bench.proxSw")})`}
+                >
+                  <button
+                    className={`btn btn-momentary ${isHit ? "active" : ""}`}
+                    disabled={mode !== "run"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      useLab.getState().setProcess({ proxHit: !process.proxHit });
+                    }}
+                  >
+                    {isHit ? "🧲 ACT" : "⚪ NORM"}
+                  </button>
+                  <span className="widget-label">{d.tag}</span>
+                </div>
+              );
+            }
+
+            // Photoelectric Sensors
+            if (d.kind === "photo") {
+              const isHit = Boolean(process.photoHit);
+              return (
+                <div
+                  className="widget"
+                  key={d.id}
+                  onClick={() => {
+                    const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+                    if (sym) useLab.getState().select({ type: "symbol", id: sym.id }, true);
+                  }}
+                  title={`${d.tag} (${t("bench.photoSw")})`}
+                >
+                  <button
+                    className={`btn btn-momentary ${isHit ? "active" : ""}`}
+                    disabled={mode !== "run"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      useLab.getState().setProcess({ photoHit: !process.photoHit });
+                    }}
+                  >
+                    {isHit ? "💡 ACT" : "⚪ NORM"}
+                  </button>
+                  <span className="widget-label">{d.tag}</span>
+                </div>
+              );
+            }
+
+            // Counters
+            if (d.kind === "counter") {
+              const preset = d.params.preset ?? 5;
+              const count = rt.count ?? 0;
+              const isDone = Boolean(rt.done);
+              return (
+                <div
+                  className="widget meter-widget"
+                  key={d.id}
+                  onClick={() => {
+                    const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+                    if (sym) useLab.getState().select({ type: "symbol", id: sym.id }, true);
+                  }}
+                  title={`${d.tag} (${t("comp.counter")}: ${count}/${preset})`}
+                >
+                  <span className="meter-badge" style={{ borderColor: isDone ? "#eab308" : "#64748b", color: isDone ? "#eab308" : "#94a3b8" }}>
+                    CT
+                  </span>
+                  <span className="meter-reading" style={{ color: isDone ? "#eab308" : "inherit" }}>
+                    {d.tag}: {count}/{preset}
+                  </span>
+                </div>
+              );
+            }
+
+            // Heaters & Solenoids
+            if (d.kind === "heater" || d.kind === "solenoid") {
+              const isHot = Boolean(rt.energized);
+              return (
+                <div className="widget" key={d.id} title={`${d.tag} (${d.kind === "heater" ? t("bench.heater") : t("bench.solenoid")})`}>
+                  <div
+                    className="pilot"
+                    style={{
+                      background: isHot ? (d.kind === "heater" ? "#f97316" : "#06b6d4") : "#2a241c",
+                      boxShadow: isHot ? `0 0 16px ${d.kind === "heater" ? "#f97316" : "#06b6d4"}` : undefined,
+                    }}
+                  />
+                  <span className="widget-label">{d.tag}</span>
+                </div>
+              );
+            }
+
             return null;
           })}
         </div>
@@ -307,8 +546,8 @@ export function ProcessRack() {
       <h3>{t("lib.processVars")}</h3>
       <label>
         {t("process.temperature")}
-        <input type="range" min={0} max={120} value={p.temperature} onChange={(e) => set({ temperature: Number(e.target.value) })} />
-        <span>{p.temperature}°</span>
+        <input type="range" min={0} max={250} value={p.temperature} onChange={(e) => set({ temperature: Number(e.target.value) })} />
+        <span>{p.temperature}°F</span>
       </label>
       <label>
         {t("process.level")}

@@ -511,7 +511,7 @@ function sensorActuated(device: Device, process: ProcessVars): boolean {
       return process.level >= (set ?? 50);
     case "temp-no":
     case "temp-nc":
-      return process.temperature >= (set ?? 60);
+      return process.temperature >= (set ?? 140);
     case "pressure-no":
     case "pressure-nc":
       return process.pressure >= (set ?? 4);
@@ -729,7 +729,10 @@ function coilTerms(kind: DeviceKind): [string, string][] {
     case "heater":
       return [["1", "2"]];
     case "counter":
-      return [["A1", "A2"]];
+      return [
+        ["A1", "A2"],
+        ["R1", "R2"],
+      ];
     case "transformer":
       return [
         ["H1", "H2"],
@@ -1015,6 +1018,9 @@ export function tick(
       if (d.kind === "starter-rev-combo") {
         if (a === "A1F" && live) rt.energized = true;
         if (a === "A1R" && live) rt.energizedAlt = true;
+      } else if (d.kind === "counter") {
+        if (a === "A1" && live) rt.energized = true;
+        if (a === "R1" && live) rt.energizedAlt = true;
       } else if (live) {
         rt.energized = true;
       }
@@ -1177,10 +1183,17 @@ export function tick(
     }
 
     if (d.kind === "counter") {
-      const pulse = rt.energized;
-      if (pulse && !rt.prevPulse) rt.count += 1;
-      rt.prevPulse = pulse;
-      rt.done = rt.count >= preset;
+      const reset = rt.energizedAlt;
+      if (reset) {
+        rt.count = 0;
+        rt.done = false;
+        rt.prevPulse = false;
+      } else {
+        const pulse = rt.energized;
+        if (pulse && !rt.prevPulse) rt.count += 1;
+        rt.prevPulse = pulse;
+        rt.done = rt.count >= preset;
+      }
     }
 
     const machine =

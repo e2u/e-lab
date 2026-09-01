@@ -1755,32 +1755,89 @@ function GlyphBody({
     if (kind === "counter") {
         const cx = (w * GRID) / 2;
         const cy = 2 * GRID;
+        const rstY = 4 * GRID;
+        const contactY = 5.1 * GRID;
+        const x1 = 2 * GRID;
+        const x2 = 4 * GRID;
+        const isDone = Boolean(rt?.done);
+        const isReset = Boolean(rt?.energizedAlt);
+        const preset = device.params.preset ?? 5;
         return (
             <S w={w} h={h}>
-                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink} strokeWidth="1.5" />
-                <line x1={0} y1={cy} x2={cx - 17} y2={cy} stroke={ink} strokeWidth="2"/>
-                <line x1={cx + 17} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2"/>
+                {/* Main Enclosure Box */}
+                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink} strokeWidth="1.5" rx="2" />
+
+                {/* Top Coil / Pulse Circuit (A1 - A2) */}
+                <line x1={0} y1={cy} x2={cx - 15} y2={cy} stroke={ink} strokeWidth="2"/>
+                <line x1={cx + 15} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2"/>
                 <circle
                     cx={cx}
                     cy={cy}
-                    r="16"
-                    fill={rt?.done ? "#f0d27a" : "#efe6d0"}
+                    r="14"
+                    fill={isDone ? "#f0d27a" : "#efe6d0"}
                     stroke={ink}
                     strokeWidth="2"
                 />
-                <Txt x={8} y={cy - 5} className="term-lab">A1</Txt>
-                <Txt x={w * GRID - 8} y={cy - 5} textAnchor="end" className="term-lab">A2</Txt>
+                {/* Pulse Terminals A1, A2 */}
+                <Txt x={6} y={cy - 5} className="term-lab">A1</Txt>
+                <Txt x={w * GRID - 6} y={cy - 5} textAnchor="end" className="term-lab">A2</Txt>
                 <Txt x={cx} y={cy + 4} textAnchor="middle" className="sym-tag">
                     {device.tag}
                 </Txt>
-                {/* Bottom contacts: 1 and 2 */}
-                <line x1={2 * GRID} y1={4.5 * GRID} x2={2 * GRID} y2={6 * GRID} stroke={ink} strokeWidth="2"/>
-                <line x1={4 * GRID} y1={4.5 * GRID} x2={4 * GRID} y2={6 * GRID} stroke={ink} strokeWidth="2"/>
-                <Txt x={2 * GRID} y={5.4 * GRID} textAnchor="middle" className="term-lab">1</Txt>
-                <Txt x={4 * GRID} y={5.4 * GRID} textAnchor="middle" className="term-lab">2</Txt>
-                <Txt x={cx} y={4.2 * GRID} textAnchor="middle" className="term-lab">
-                    {rt ? `${rt.count}/${device.params.preset ?? 5}` : `PV: ${device.params.preset ?? 5}`}
+
+                {/* Digital / Preset Counter Status Readout */}
+                <rect
+                    x={cx - 22}
+                    y={2.9 * GRID - 6}
+                    width={44}
+                    height={12}
+                    rx="2"
+                    fill="#e2dbcb"
+                    stroke={ink}
+                    strokeWidth="0.8"
+                />
+                <Txt x={cx} y={2.9 * GRID + 3} textAnchor="middle" className="term-lab" fontSize="8" fontWeight="bold">
+                    {rt ? `${rt.count ?? 0}/${preset}` : `PV:${preset}`}
                 </Txt>
+
+                {/* Middle Reset Circuit (R1 - R2) */}
+                <line x1={0} y1={rstY} x2={cx - 15} y2={rstY} stroke={ink} strokeWidth="2"/>
+                <line x1={cx + 15} y1={rstY} x2={w * GRID} y2={rstY} stroke={ink} strokeWidth="2"/>
+                <rect
+                    x={cx - 15}
+                    y={rstY - 6.5}
+                    width={30}
+                    height={13}
+                    rx="2"
+                    fill={isReset ? "#fca5a5" : "#e2dbcb"}
+                    stroke={ink}
+                    strokeWidth="1.2"
+                />
+                <Txt x={cx} y={rstY + 3.5} textAnchor="middle" className="term-lab" fontSize="8.5" fontWeight="bold">
+                    RST
+                </Txt>
+                {/* Reset Terminals R1, R2 */}
+                <Txt x={6} y={rstY - 5} className="term-lab">R1</Txt>
+                <Txt x={w * GRID - 6} y={rstY - 5} textAnchor="end" className="term-lab">R2</Txt>
+
+                {/* Bottom Output NO Contact (Terminals 1 and 2) */}
+                <line x1={x1} y1={contactY} x2={x1} y2={h * GRID} stroke={ink} strokeWidth="2"/>
+                <line x1={x2} y1={contactY} x2={x2} y2={h * GRID} stroke={ink} strokeWidth="2"/>
+
+                {/* Contact Pads */}
+                <circle cx={x1} cy={contactY} r="2.5" fill={ink}/>
+                <circle cx={x2} cy={contactY} r="2.5" fill={ink}/>
+
+                {/* Contact Switch Action: closes when done */}
+                {isDone ? (
+                    <line x1={x1} y1={contactY} x2={x2} y2={contactY} stroke={ink} strokeWidth="2.4"/>
+                ) : (
+                    <line x1={x1} y1={contactY} x2={x2 - 3} y2={contactY - 6} stroke={ink} strokeWidth="2.4"/>
+                )}
+
+                {/* Output Terminal Labels 1 and 2 */}
+                <Txt x={x1 - 4} y={5.7 * GRID} textAnchor="end" className="term-lab">1</Txt>
+                <Txt x={x2 + 4} y={5.7 * GRID} textAnchor="start" className="term-lab">2</Txt>
             </S>
         );
     }

@@ -73,6 +73,14 @@ export function App() {
   }, [circuit, docName, process]);
 
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      useLab.getState().persistDraft();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  useEffect(() => {
     if (!notice) return;
     const id = window.setTimeout(() => useLab.getState().setNotice(null), 2600);
     return () => window.clearTimeout(id);

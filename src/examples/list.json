@@ -96,16 +96,6 @@
       "blurb": "接近開關與光電感測器輸送帶自動計數、批量完成氣動分揀推料。"
     },
     {
-      "id": "19-ats-dual-power",
-      "title": "19# Automatic Transfer Switch (ATS)",
-      "blurb": "市電與柴油發電機雙電源自動切換 ATS 系統，即時電壓與負載監測。"
-    },
-    {
-      "id": "20-automated-cell",
-      "title": "20# Automated Manufacturing Machine Cell",
-      "blurb": "全功能工業自動化多工位加工單元：工程圖框、雙電壓、安全光柵、雙馬達與液壓夾緊。"
-    },
-    {
       "id": "transformer",
       "title": "Transformer",
       "blurb": "三相電源經變壓器降壓，驅動綠色指示燈。"

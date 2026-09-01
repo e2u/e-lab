@@ -77,6 +77,87 @@ describe("schematic interact dispatcher", () => {
     expect(useLab.getState().process.photoHit).toBe(true);
   });
 
+  it("handles multiple float switches with independent setpoints and level adjustment", () => {
+    useLab.setState({
+      circuit: {
+        devices: [
+          { id: "fl1", kind: "float", tag: "SL1", params: { setpoint: 30 } },
+          { id: "fl2", kind: "float", tag: "SL2", params: { setpoint: 80 } },
+        ],
+        symbols: [
+          { id: "sfl1", deviceId: "fl1", variant: "contact-no", x: 10, y: 10, rot: 0 },
+          { id: "sfl2", deviceId: "fl2", variant: "contact-no", x: 20, y: 10, rot: 0 },
+        ],
+        wires: [],
+      },
+      process: {
+        temperature: 20,
+        pressure: 1,
+        level: 10,
+        flow: 0,
+        limitHit: false,
+        proxHit: false,
+        photoHit: false,
+      },
+    });
+
+    // Initial state: level=10, both SL1 (sp=30) and SL2 (sp=80) are below threshold
+    expect(useLab.getState().process.level).toBe(10);
+
+    // Clicking SL1 sets level to 30 (triggering SL1)
+    interact("float", "fl1", true);
+    expect(useLab.getState().process.level).toBe(30);
+
+    // Clicking SL2 sets level to 80 (triggering both SL1 and SL2)
+    interact("float", "fl2", true);
+    expect(useLab.getState().process.level).toBe(80);
+
+    // Clicking SL2 again resets level below 80 (to 70)
+    interact("float", "fl2", true);
+    expect(useLab.getState().process.level).toBe(70);
+  });
+
+  it("handles temperature, pressure and flow switch setpoints and process variables", () => {
+    useLab.setState({
+      circuit: {
+        devices: [
+          { id: "ts1", kind: "temp-no", tag: "ST1", params: { setpoint: 150 } },
+          { id: "ps1", kind: "pressure-no", tag: "SP1", params: { setpoint: 6 } },
+          { id: "fs1", kind: "flow-no", tag: "SF1", params: { setpoint: 45 } },
+        ],
+        symbols: [],
+        wires: [],
+      },
+      process: {
+        temperature: 75,
+        pressure: 1,
+        level: 0,
+        flow: 10,
+        limitHit: false,
+        proxHit: false,
+        photoHit: false,
+      },
+    });
+
+    // Temperature switch interaction
+    interact("temp-no", "ts1", true);
+    expect(useLab.getState().process.temperature).toBe(150);
+    interact("temp-no", "ts1", true);
+    expect(useLab.getState().process.temperature).toBe(140);
+
+    // Pressure switch interaction
+    interact("pressure-no", "ps1", true);
+    expect(useLab.getState().process.pressure).toBe(6);
+    interact("pressure-no", "ps1", true);
+    expect(useLab.getState().process.pressure).toBe(5);
+
+    // Flow switch interaction
+    interact("flow-no", "fs1", true);
+    expect(useLab.getState().process.flow).toBe(45);
+    interact("flow-no", "fs1", true);
+    expect(useLab.getState().process.flow).toBe(35);
+  });
+
   it("aligns selected symbols in store without side effects", () => {
     useLab.setState({
       mode: "edit",

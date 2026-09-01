@@ -122,6 +122,7 @@ export function Inspector() {
   const circuit = useLab((s) => s.circuit);
   const runtime = useLab((s) => s.snapshot.runtime);
   const meterHistory = useLab((s) => s.meterHistory);
+  const process = useLab((s) => s.process);
 
   const injected = [
     ...circuit.wires.filter((w) => w.broken).map((w) => ({ id: w.id, type: "wire" as const, label: t("inspector.broken") })),
@@ -622,54 +623,62 @@ export function Inspector() {
               <option value="delta">{t("inspector.delta")}</option>
             </select>
           </label>
-          <label>
-            <span>{t("inspector.voltageSetting")} ({dev.params.voltage ?? 480}V)</span>
-            <div style={{ display: "flex", gap: "4px", margin: "4px 0", flexWrap: "wrap" }}>
+          <div className="inspector-field-group">
+            <div className="inspector-field-title">
+              <span>{t("inspector.voltageSetting")} ({dev.params.voltage ?? 480}V)</span>
+            </div>
+            <div className="inspector-preset-row">
               {[208, 240, 380, 480, 600].map((v) => (
                 <button
                   key={v}
                   type="button"
                   className={`btn ${(dev.params.voltage ?? 480) === v ? "primary" : ""}`}
-                  style={{ padding: "3px 7px", fontSize: "11px" }}
                   onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, voltage: v } })}
                 >
                   {v}V
                 </button>
               ))}
             </div>
-            <input
-              type="number"
-              min="100"
-              max="1000"
-              step="10"
-              value={dev.params.voltage ?? 480}
-              onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, voltage: Number(e.target.value) || 480 } })}
-            />
-          </label>
-          <label>
-            <span>{t("inspector.maxCurrentSetting")} ({dev.params.maxCurrent ?? 400}A)</span>
-            <div style={{ display: "flex", gap: "4px", margin: "4px 0", flexWrap: "wrap" }}>
+            <div className="inspector-slider-row">
+              <input
+                type="number"
+                min="100"
+                max="1000"
+                step="10"
+                style={{ width: "100%" }}
+                value={dev.params.voltage ?? 480}
+                onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, voltage: Number(e.target.value) || 480 } })}
+              />
+            </div>
+          </div>
+          <div className="inspector-field-group">
+            <div className="inspector-field-title">
+              <span>{t("inspector.maxCurrentSetting")} ({dev.params.maxCurrent ?? 400}A)</span>
+            </div>
+            <div className="inspector-preset-row">
               {[50, 100, 200, 400, 600, 800].map((a) => (
                 <button
                   key={a}
                   type="button"
                   className={`btn ${(dev.params.maxCurrent ?? 400) === a ? "primary" : ""}`}
-                  style={{ padding: "3px 7px", fontSize: "11px" }}
                   onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, maxCurrent: a } })}
                 >
                   {a}A
                 </button>
               ))}
             </div>
-            <input
-              type="number"
-              min="5"
-              max="2000"
-              step="5"
-              value={dev.params.maxCurrent ?? 400}
-              onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, maxCurrent: Number(e.target.value) || 400 } })}
-            />
-          </label>
+            <div className="inspector-slider-row">
+              <input
+                type="number"
+                min="5"
+                max="2000"
+                step="5"
+                style={{ width: "100%" }}
+                value={dev.params.maxCurrent ?? 400}
+                onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, maxCurrent: Number(e.target.value) || 400 } })}
+              />
+            </div>
+          </div>
         </>
       )}
       {dev.kind === "ammeter" && (
@@ -748,36 +757,544 @@ export function Inspector() {
         </label>
       )}
       {dev.kind === "counter" && (
-        <label>
-          {t("inspector.preset")}
-          <input
-            type="number"
-            value={dev.params.preset ?? 5}
-            onChange={(e) => useLab.getState().updateDevice(dev.id, { preset: Number(e.target.value) })}
-          />
-        </label>
+        <div className="inspector-field-group">
+          <div className="inspector-field-title">
+            <span>{t("inspector.preset")} ({dev.params.preset ?? 5})</span>
+            {rt && (
+              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    fontWeight: "bold",
+                    background: rt.done ? "rgba(234, 179, 8, 0.2)" : "rgba(100, 116, 139, 0.15)",
+                    color: rt.done ? "#ca8a04" : "var(--text-dim, #64748b)",
+                    border: `1px solid ${rt.done ? "#fde047" : "transparent"}`,
+                  }}
+                >
+                  {rt.done ? `✅ ${t("inspector.actuated")}` : `⏳ ${rt.count ?? 0}/${dev.params.preset ?? 5}`}
+                </span>
+                <button
+                  type="button"
+                  className="btn"
+                  style={{ fontSize: "11px", padding: "2px 6px" }}
+                  onClick={() => {
+                    const snap = useLab.getState().simSnapshot;
+                    if (snap?.runtime[dev.id]) {
+                      snap.runtime[dev.id].count = 0;
+                      snap.runtime[dev.id].done = false;
+                      snap.runtime[dev.id].prevPulse = false;
+                    }
+                  }}
+                  title="Reset Counter"
+                >
+                  🔄 Reset
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="inspector-preset-row">
+            {[1, 2, 3, 5, 10, 20, 50, 100].map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={`btn ${(dev.params.preset ?? 5) === v ? "primary" : ""}`}
+                onClick={() => useLab.getState().updateDevice(dev.id, { preset: v, params: { ...dev.params, preset: v } })}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          <div className="inspector-slider-row">
+            <input
+              type="range"
+              min="1"
+              max="100"
+              step="1"
+              value={dev.params.preset ?? 5}
+              onChange={(e) => {
+                const v = Math.max(1, Number(e.target.value) || 1);
+                useLab.getState().updateDevice(dev.id, { preset: v, params: { ...dev.params, preset: v } });
+              }}
+            />
+            <input
+              type="number"
+              min="1"
+              max="9999"
+              step="1"
+              value={dev.params.preset ?? 5}
+              onChange={(e) => {
+                const v = Math.max(1, Number(e.target.value) || 1);
+                useLab.getState().updateDevice(dev.id, { preset: v, params: { ...dev.params, preset: v } });
+              }}
+            />
+          </div>
+        </div>
       )}
-      {(dev.kind.startsWith("temp") || dev.kind.startsWith("pressure") || dev.kind.startsWith("flow") || dev.kind === "float") && (
-        <label>
-          {t("inspector.setpoint")}
-          <input
-            type="number"
-            value={dev.params.setpoint ?? 0}
-            onChange={(e) => useLab.getState().updateDevice(dev.id, { setpoint: Number(e.target.value) })}
-          />
-        </label>
+      {dev.kind === "float" && (
+        <>
+          <div className="inspector-field-group">
+            <div className="inspector-field-title">
+              <span>{t("inspector.setpoint")} ({dev.params.setpoint ?? 50}%)</span>
+            </div>
+            <div className="inspector-preset-row">
+              {[10, 25, 40, 50, 60, 75, 90].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`btn ${(dev.params.setpoint ?? 50) === v ? "primary" : ""}`}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } })}
+                >
+                  {v}%
+                </button>
+              ))}
+            </div>
+            <div className="inspector-slider-row">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={dev.params.setpoint ?? 50}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } });
+                }}
+              />
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={dev.params.setpoint ?? 50}
+                onChange={(e) => {
+                  const v = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                  useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } });
+                }}
+              />
+              <span style={{ fontSize: "12px", color: "var(--text-dim, #7d8973)" }}>%</span>
+            </div>
+          </div>
+
+          <div className="inspector-process-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "12px", fontWeight: "bold" }}>💧 {t("inspector.currentLevel")}</span>
+              <span
+                style={{
+                  fontSize: "11px",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  fontWeight: "bold",
+                  background: rt?.actuated ? "rgba(37, 99, 235, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                  color: rt?.actuated ? "#2563eb" : "var(--text-dim, #64748b)",
+                  border: `1px solid ${rt?.actuated ? "#93c5fd" : "transparent"}`
+                }}
+              >
+                {rt?.actuated ? `💧 ${t("inspector.actuated")}` : `⚪ ${t("inspector.normal")}`} ({process.level}%)
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={process.level}
+              onChange={(e) => useLab.getState().setProcess({ level: Number(e.target.value) })}
+            />
+            <div className="inspector-card-actions">
+              <button
+                type="button"
+                className="btn"
+                title={`<${dev.params.setpoint ?? 50}%`}
+                onClick={() => useLab.getState().setProcess({ level: Math.max(0, (dev.params.setpoint ?? 50) - 10) })}
+              >
+                ⬇️ &lt;{dev.params.setpoint ?? 50}%
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                title={`≥${dev.params.setpoint ?? 50}%`}
+                onClick={() => useLab.getState().setProcess({ level: dev.params.setpoint ?? 50 })}
+              >
+                ⬆️ ≥{dev.params.setpoint ?? 50}%
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      {(dev.kind === "temp-no" || dev.kind === "temp-nc") && (
+        <>
+          <div className="inspector-field-group">
+            <div className="inspector-field-title">
+              <span>{t("inspector.setpoint")} ({dev.params.setpoint ?? 140}°F)</span>
+            </div>
+            <div className="inspector-preset-row">
+              {[80, 100, 120, 140, 160, 180, 200].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`btn ${(dev.params.setpoint ?? 140) === v ? "primary" : ""}`}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } })}
+                >
+                  {v}°F
+                </button>
+              ))}
+            </div>
+            <div className="inspector-slider-row">
+              <input
+                type="range"
+                min="0"
+                max="250"
+                step="1"
+                value={dev.params.setpoint ?? 140}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } });
+                }}
+              />
+              <input
+                type="number"
+                min="0"
+                max="250"
+                step="1"
+                value={dev.params.setpoint ?? 140}
+                onChange={(e) => {
+                  const v = Math.max(0, Math.min(250, Number(e.target.value) || 0));
+                  useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } });
+                }}
+              />
+              <span style={{ fontSize: "12px", color: "var(--text-dim, #7d8973)" }}>°F</span>
+            </div>
+          </div>
+
+          <div className="inspector-process-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "12px", fontWeight: "bold" }}>🌡️ {t("inspector.currentTemperature")}</span>
+              <span
+                style={{
+                  fontSize: "11px",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  fontWeight: "bold",
+                  background: rt?.actuated ? "rgba(239, 68, 68, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                  color: rt?.actuated ? "#dc2626" : "var(--text-dim, #64748b)",
+                  border: `1px solid ${rt?.actuated ? "#fca5a5" : "transparent"}`
+                }}
+              >
+                {rt?.actuated ? `🔥 ${t("inspector.actuated")}` : `⚪ ${t("inspector.normal")}`} ({process.temperature}°F)
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="250"
+              step="1"
+              value={process.temperature}
+              onChange={(e) => useLab.getState().setProcess({ temperature: Number(e.target.value) })}
+            />
+            <div className="inspector-card-actions">
+              <button
+                type="button"
+                className="btn"
+                title={`<${dev.params.setpoint ?? 140}°F`}
+                onClick={() => useLab.getState().setProcess({ temperature: Math.max(0, (dev.params.setpoint ?? 140) - 10) })}
+              >
+                ❄️ &lt;{dev.params.setpoint ?? 140}°F
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                title={`≥${dev.params.setpoint ?? 140}°F`}
+                onClick={() => useLab.getState().setProcess({ temperature: dev.params.setpoint ?? 140 })}
+              >
+                🔥 ≥{dev.params.setpoint ?? 140}°F
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      {(dev.kind === "pressure-no" || dev.kind === "pressure-nc") && (
+        <>
+          <div className="inspector-field-group">
+            <div className="inspector-field-title">
+              <span>{t("inspector.setpoint")} ({dev.params.setpoint ?? 4} bar)</span>
+            </div>
+            <div className="inspector-preset-row">
+              {[1, 2, 4, 6, 8, 10, 12].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`btn ${(dev.params.setpoint ?? 4) === v ? "primary" : ""}`}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } })}
+                >
+                  {v} bar
+                </button>
+              ))}
+            </div>
+            <div className="inspector-slider-row">
+              <input
+                type="range"
+                min="0"
+                max="16"
+                step="0.1"
+                value={dev.params.setpoint ?? 4}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } });
+                }}
+              />
+              <input
+                type="number"
+                min="0"
+                max="16"
+                step="0.1"
+                value={dev.params.setpoint ?? 4}
+                onChange={(e) => {
+                  const v = Math.max(0, Math.min(16, Number(e.target.value) || 0));
+                  useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } });
+                }}
+              />
+              <span style={{ fontSize: "12px", color: "var(--text-dim, #7d8973)" }}>bar</span>
+            </div>
+          </div>
+
+          <div className="inspector-process-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "12px", fontWeight: "bold" }}>💨 {t("inspector.currentPressure")}</span>
+              <span
+                style={{
+                  fontSize: "11px",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  fontWeight: "bold",
+                  background: rt?.actuated ? "rgba(245, 158, 11, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                  color: rt?.actuated ? "#d97706" : "var(--text-dim, #64748b)",
+                  border: `1px solid ${rt?.actuated ? "#fde68a" : "transparent"}`
+                }}
+              >
+                {rt?.actuated ? `💨 ${t("inspector.actuated")}` : `⚪ ${t("inspector.normal")}`} ({process.pressure.toFixed(1)} bar)
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="16"
+              step="0.1"
+              value={process.pressure}
+              onChange={(e) => useLab.getState().setProcess({ pressure: Number(e.target.value) })}
+            />
+            <div className="inspector-card-actions">
+              <button
+                type="button"
+                className="btn"
+                title={`<${dev.params.setpoint ?? 4} bar`}
+                onClick={() => useLab.getState().setProcess({ pressure: Math.max(0, Math.round(((dev.params.setpoint ?? 4) - 1) * 10) / 10) })}
+              >
+                ⬇️ &lt;{dev.params.setpoint ?? 4} bar
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                title={`≥${dev.params.setpoint ?? 4} bar`}
+                onClick={() => useLab.getState().setProcess({ pressure: dev.params.setpoint ?? 4 })}
+              >
+                ⬆️ ≥{dev.params.setpoint ?? 4} bar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      {(dev.kind === "flow-no" || dev.kind === "flow-nc") && (
+        <>
+          <div className="inspector-field-group">
+            <div className="inspector-field-title">
+              <span>{t("inspector.setpoint")} ({dev.params.setpoint ?? 40}%)</span>
+            </div>
+            <div className="inspector-preset-row">
+              {[10, 20, 30, 40, 50, 60, 80].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`btn ${(dev.params.setpoint ?? 40) === v ? "primary" : ""}`}
+                  onClick={() => useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } })}
+                >
+                  {v}%
+                </button>
+              ))}
+            </div>
+            <div className="inspector-slider-row">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={dev.params.setpoint ?? 40}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } });
+                }}
+              />
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={dev.params.setpoint ?? 40}
+                onChange={(e) => {
+                  const v = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                  useLab.getState().updateDevice(dev.id, { setpoint: v, params: { ...dev.params, setpoint: v } });
+                }}
+              />
+              <span style={{ fontSize: "12px", color: "var(--text-dim, #7d8973)" }}>%</span>
+            </div>
+          </div>
+
+          <div className="inspector-process-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "12px", fontWeight: "bold" }}>🌊 {t("inspector.currentFlow")}</span>
+              <span
+                style={{
+                  fontSize: "11px",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  fontWeight: "bold",
+                  background: rt?.actuated ? "rgba(14, 165, 233, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                  color: rt?.actuated ? "#0284c7" : "var(--text-dim, #64748b)",
+                  border: `1px solid ${rt?.actuated ? "#7dd3fc" : "transparent"}`
+                }}
+              >
+                {rt?.actuated ? `🌊 ${t("inspector.actuated")}` : `⚪ ${t("inspector.normal")}`} ({process.flow}%)
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={process.flow}
+              onChange={(e) => useLab.getState().setProcess({ flow: Number(e.target.value) })}
+            />
+            <div className="inspector-card-actions">
+              <button
+                type="button"
+                className="btn"
+                title={`<${dev.params.setpoint ?? 40}%`}
+                onClick={() => useLab.getState().setProcess({ flow: Math.max(0, (dev.params.setpoint ?? 40) - 10) })}
+              >
+                ⬇️ &lt;{dev.params.setpoint ?? 40}%
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                title={`≥${dev.params.setpoint ?? 40}%`}
+                onClick={() => useLab.getState().setProcess({ flow: dev.params.setpoint ?? 40 })}
+              >
+                ⬆️ ≥{dev.params.setpoint ?? 40}%
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      {(dev.kind === "limit-no" || dev.kind === "limit-nc") && (
+        <div className="inspector-process-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "12px", fontWeight: "bold" }}>🛑 {t("inspector.sensorState")}</span>
+            <span
+              style={{
+                fontSize: "11px",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontWeight: "bold",
+                background: (rt?.actuated || process.limitHit) ? "rgba(239, 68, 68, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                color: (rt?.actuated || process.limitHit) ? "#dc2626" : "var(--text-dim, #64748b)",
+                border: `1px solid ${(rt?.actuated || process.limitHit) ? "#fca5a5" : "transparent"}`
+              }}
+            >
+              {(rt?.actuated || process.limitHit) ? `🛑 ${t("inspector.actuated")}` : `⚪ ${t("inspector.normal")}`}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={`btn ${(rt?.actuated || process.limitHit) ? "primary" : ""}`}
+            style={{ width: "100%", fontSize: "11px", padding: "5px 8px", marginTop: "4px" }}
+            onClick={() => {
+              useLab.getState().toggleIo(dev.id, "actuated");
+              useLab.getState().setProcess({ limitHit: !process.limitHit });
+            }}
+          >
+            {(rt?.actuated || process.limitHit) ? `⚪ ${t("inspector.clearLimit")}` : `🛑 ${t("inspector.hitLimit")}`}
+          </button>
+        </div>
+      )}
+      {dev.kind === "prox" && (
+        <div className="inspector-process-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "12px", fontWeight: "bold" }}>🧲 {t("inspector.sensorState")}</span>
+            <span
+              style={{
+                fontSize: "11px",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontWeight: "bold",
+                background: process.proxHit ? "rgba(16, 185, 129, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                color: process.proxHit ? "#059669" : "var(--text-dim, #64748b)",
+                border: `1px solid ${process.proxHit ? "#6ee7b7" : "transparent"}`
+              }}
+            >
+              {process.proxHit ? `🧲 ${t("inspector.actuated")}` : `⚪ ${t("inspector.normal")}`}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={`btn ${process.proxHit ? "primary" : ""}`}
+            style={{ width: "100%", fontSize: "11px", padding: "5px 8px", marginTop: "4px" }}
+            onClick={() => useLab.getState().setProcess({ proxHit: !process.proxHit })}
+          >
+            {process.proxHit ? `⚪ ${t("inspector.clearMetal")}` : `🧲 ${t("inspector.detectMetal")}`}
+          </button>
+        </div>
+      )}
+      {dev.kind === "photo" && (
+        <div className="inspector-process-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "12px", fontWeight: "bold" }}>💡 {t("inspector.sensorState")}</span>
+            <span
+              style={{
+                fontSize: "11px",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontWeight: "bold",
+                background: process.photoHit ? "rgba(234, 179, 8, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                color: process.photoHit ? "#ca8a04" : "var(--text-dim, #64748b)",
+                border: `1px solid ${process.photoHit ? "#fde047" : "transparent"}`
+              }}
+            >
+              {process.photoHit ? `💡 ${t("inspector.actuated")}` : `⚪ ${t("inspector.normal")}`}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={`btn ${process.photoHit ? "primary" : ""}`}
+            style={{ width: "100%", fontSize: "11px", padding: "5px 8px", marginTop: "4px" }}
+            onClick={() => useLab.getState().setProcess({ photoHit: !process.photoHit })}
+          >
+            {process.photoHit ? `⚪ ${t("inspector.clearBeam")}` : `💡 ${t("inspector.blockBeam")}`}
+          </button>
+        </div>
       )}
       {dev.kind === "transformer" && (
         <>
-          <label>
-            <span>{t("inspector.primaryVolts")} ({dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480)}V)</span>
-            <div style={{ display: "flex", gap: "4px", margin: "4px 0", flexWrap: "wrap" }}>
+          <div className="inspector-field-group">
+            <div className="inspector-field-title">
+              <span>{t("inspector.primaryVolts")} ({dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480)}V)</span>
+            </div>
+            <div className="inspector-preset-row">
               {[120, 208, 240, 380, 480, 600].map((v) => (
                 <button
                   key={v}
                   type="button"
                   className={`btn ${(dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480)) === v ? "primary" : ""}`}
-                  style={{ padding: "3px 7px", fontSize: "11px" }}
                   onClick={() => {
                     const sec = dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120);
                     useLab.getState().updateDevice(dev.id, {
@@ -794,36 +1311,40 @@ export function Inspector() {
                 </button>
               ))}
             </div>
-            <input
-              type="number"
-              min="10"
-              max="10000"
-              step="10"
-              value={dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480)}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                const v = !isNaN(val) && val > 0 ? val : 480;
-                const sec = dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120);
-                useLab.getState().updateDevice(dev.id, {
-                  params: {
-                    ...dev.params,
-                    primaryVoltage: v,
-                    primaryVolts: String(v),
-                    ratio: `${v}/${sec}`,
-                  },
-                });
-              }}
-            />
-          </label>
-          <label>
-            <span>{t("inspector.secondaryVolts")} ({dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120)}V)</span>
-            <div style={{ display: "flex", gap: "4px", margin: "4px 0", flexWrap: "wrap" }}>
+            <div className="inspector-slider-row">
+              <input
+                type="number"
+                min="10"
+                max="10000"
+                step="10"
+                style={{ width: "100%" }}
+                value={dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480)}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  const v = !isNaN(val) && val > 0 ? val : 480;
+                  const sec = dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120);
+                  useLab.getState().updateDevice(dev.id, {
+                    params: {
+                      ...dev.params,
+                      primaryVoltage: v,
+                      primaryVolts: String(v),
+                      ratio: `${v}/${sec}`,
+                    },
+                  });
+                }}
+              />
+            </div>
+          </div>
+          <div className="inspector-field-group">
+            <div className="inspector-field-title">
+              <span>{t("inspector.secondaryVolts")} ({dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120)}V)</span>
+            </div>
+            <div className="inspector-preset-row">
               {[12, 24, 48, 120, 208, 220, 240].map((v) => (
                 <button
                   key={v}
                   type="button"
                   className={`btn ${(dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120)) === v ? "primary" : ""}`}
-                  style={{ padding: "3px 7px", fontSize: "11px" }}
                   onClick={() => {
                     const pri = dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480);
                     useLab.getState().updateDevice(dev.id, {
@@ -840,27 +1361,30 @@ export function Inspector() {
                 </button>
               ))}
             </div>
-            <input
-              type="number"
-              min="1"
-              max="10000"
-              step="1"
-              value={dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120)}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                const v = !isNaN(val) && val > 0 ? val : 120;
-                const pri = dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480);
-                useLab.getState().updateDevice(dev.id, {
-                  params: {
-                    ...dev.params,
-                    secondaryVoltage: v,
-                    secondaryVolts: String(v),
-                    ratio: `${pri}/${v}`,
-                  },
-                });
-              }}
-            />
-          </label>
+            <div className="inspector-slider-row">
+              <input
+                type="number"
+                min="1"
+                max="10000"
+                step="1"
+                style={{ width: "100%" }}
+                value={dev.params.secondaryVoltage ?? (dev.params.secondaryVolts ? Number(dev.params.secondaryVolts) : 120)}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  const v = !isNaN(val) && val > 0 ? val : 120;
+                  const pri = dev.params.primaryVoltage ?? (dev.params.primaryVolts ? Number(dev.params.primaryVolts) : 480);
+                  useLab.getState().updateDevice(dev.id, {
+                    params: {
+                      ...dev.params,
+                      secondaryVoltage: v,
+                      secondaryVolts: String(v),
+                      ratio: `${pri}/${v}`,
+                    },
+                  });
+                }}
+              />
+            </div>
+          </div>
         </>
       )}
       {(dev.kind === "motor-3ph" ||
@@ -870,21 +1394,22 @@ export function Inspector() {
         dev.kind === "starter-fwd" ||
         dev.kind === "starter-rev" ||
         dev.kind === "starter-rev-combo") && (
-        <label>
-          <span>
-            {t("inspector.motorPower")} ({dev.params.power ?? (dev.kind === "motor-1ph" ? 1.5 : dev.kind === "motor-dc" ? 0.75 : 5.5)} kW / {((dev.params.power ?? (dev.kind === "motor-1ph" ? 1.5 : dev.kind === "motor-dc" ? 0.75 : 5.5)) * 1.341).toFixed(1)} HP)
-          </span>
-          <div style={{ display: "flex", gap: "4px", margin: "4px 0", flexWrap: "wrap" }}>
+        <div className="inspector-field-group">
+          <div className="inspector-field-title">
+            <span>
+              {t("inspector.motorPower")} ({dev.params.power ?? (dev.kind === "motor-1ph" ? 1.5 : dev.kind === "motor-dc" ? 0.75 : 5.5)} kW / {((dev.params.power ?? (dev.kind === "motor-1ph" ? 1.5 : dev.kind === "motor-dc" ? 0.75 : 5.5)) * 1.341).toFixed(1)} HP)
+            </span>
+          </div>
+          <div className="inspector-preset-row">
             {dev.kind === "motor-1ph" ? (
               [0.37, 0.75, 1.1, 1.5, 2.2, 3.0].map((kw) => (
                 <button
                   key={kw}
                   type="button"
                   className={`btn ${(dev.params.power ?? 1.5) === kw ? "primary" : ""}`}
-                  style={{ padding: "3px 7px", fontSize: "11px" }}
                   onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, power: kw } })}
                 >
-                  {kw}kW ({kw === 0.37 ? "0.5" : kw === 0.75 ? "1" : kw === 1.1 ? "1.5" : kw === 1.5 ? "2" : kw === 2.2 ? "3" : kw === 3.0 ? "4" : (kw * 1.341).toFixed(1)}HP)
+                  {kw}kW
                 </button>
               ))
             ) : dev.kind === "motor-dc" ? (
@@ -893,10 +1418,9 @@ export function Inspector() {
                   key={kw}
                   type="button"
                   className={`btn ${(dev.params.power ?? 0.75) === kw ? "primary" : ""}`}
-                  style={{ padding: "3px 7px", fontSize: "11px" }}
                   onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, power: kw } })}
                 >
-                  {kw}kW ({kw === 0.37 ? "0.5" : kw === 0.75 ? "1" : kw === 1.5 ? "2" : kw === 2.2 ? "3" : kw === 3.7 ? "5" : kw === 5.5 ? "7.5" : (kw * 1.341).toFixed(1)}HP)
+                  {kw}kW
                 </button>
               ))
             ) : (
@@ -905,21 +1429,19 @@ export function Inspector() {
                   key={kw}
                   type="button"
                   className={`btn ${(dev.params.power ?? 5.5) === kw ? "primary" : ""}`}
-                  style={{ padding: "3px 7px", fontSize: "11px" }}
                   onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, power: kw } })}
                 >
-                  {kw}kW ({kw === 0.75 ? "1" : kw === 1.5 ? "2" : kw === 2.2 ? "3" : kw === 3.7 ? "5" : kw === 5.5 ? "7.5" : kw === 7.5 ? "10" : kw === 11 ? "15" : kw === 15 ? "20" : kw === 22 ? "30" : kw === 30 ? "40" : (kw * 1.341).toFixed(1)}HP)
+                  {kw}kW
                 </button>
               ))
             )}
           </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <div className="inspector-slider-row">
             <input
               type="number"
               min="0.1"
               max="1000"
               step="0.1"
-              style={{ flex: 1 }}
               value={dev.params.power ?? (dev.kind === "motor-1ph" ? 1.5 : dev.kind === "motor-dc" ? 0.75 : 5.5)}
               onChange={(e) => {
                 const val = parseFloat(e.target.value);
@@ -933,7 +1455,7 @@ export function Inspector() {
             />
             <span style={{ fontSize: "12px", color: "var(--text-dim, #7d8973)" }}>kW</span>
           </div>
-        </label>
+        </div>
       )}
       {(dev.kind === "gen-ac" || dev.kind === "gen-dc") && (
         <>

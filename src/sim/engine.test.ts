@@ -887,4 +887,72 @@ describe("sim engine", () => {
       expect(snap2.runtime[hl2.device.id].lit).toBe(false);
     });
   });
+
+  describe("preset counter and reset terminals", () => {
+    it("counts pulses on rising edges of A1-A2, trips output contact 1-2, and resets via R1-R2", () => {
+      const c = emptyCircuit();
+      const g = addDevice(c, "dc-supply", "G1", "body", 0, 0);
+      const pbPulse = addDevice(c, "pb-no", "SB_PULSE", "body", 6, 0);
+      const pbReset = addDevice(c, "pb-no", "SB_RST", "body", 6, 6);
+      const ct = addDevice(c, "counter", "CT1", "body", 12, 0, { preset: 3 });
+      const hlDone = addDevice(c, "lamp", "HL_DONE", "body", 18, 0);
+
+      // Pulse circuit (A1 - A2)
+      addWire(c, g.symbol, "+", pbPulse.symbol, "1");
+      addWire(c, pbPulse.symbol, "2", ct.symbol, "A1");
+      addWire(c, ct.symbol, "A2", g.symbol, "-");
+
+      // Reset circuit (R1 - R2)
+      addWire(c, g.symbol, "+", pbReset.symbol, "1");
+      addWire(c, pbReset.symbol, "2", ct.symbol, "R1");
+      addWire(c, ct.symbol, "R2", g.symbol, "-");
+
+      // Output load circuit (1 - 2)
+      addWire(c, g.symbol, "+", ct.symbol, "1");
+      addWire(c, ct.symbol, "2", hlDone.symbol, "1");
+      addWire(c, hlDone.symbol, "2", g.symbol, "-");
+
+      let snap = tick(c, createRuntime(c), { held: new Set(), process }, 50, 0);
+      expect(snap.runtime[ct.device.id].count).toBe(0);
+      expect(snap.runtime[ct.device.id].done).toBe(false);
+      expect(snap.runtime[hlDone.device.id].lit).toBe(false);
+
+      // Pulse 1: press & release
+      snap = tick(c, snap.runtime, { held: new Set([pbPulse.device.id]), process }, 50, 50);
+      expect(snap.runtime[ct.device.id].count).toBe(1);
+      expect(snap.runtime[ct.device.id].done).toBe(false);
+      snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 100);
+      expect(snap.runtime[ct.device.id].count).toBe(1);
+
+      // Pulse 2: press & release
+      snap = tick(c, snap.runtime, { held: new Set([pbPulse.device.id]), process }, 50, 150);
+      expect(snap.runtime[ct.device.id].count).toBe(2);
+      snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 200);
+
+      // Pulse 3: target reached (preset=3) -> done = true
+      snap = tick(c, snap.runtime, { held: new Set([pbPulse.device.id]), process }, 50, 250);
+      expect(snap.runtime[ct.device.id].count).toBe(3);
+      expect(snap.runtime[ct.device.id].done).toBe(true);
+
+      // Next tick (bridges update): output contact 1-2 closes, HL_DONE lights up
+      snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 300);
+      expect(snap.runtime[ct.device.id].done).toBe(true);
+      expect(snap.runtime[hlDone.device.id].lit).toBe(true);
+
+      // Energize Reset input via R1-R2 (press SB_RST): clears count to 0, done to false
+      snap = tick(c, snap.runtime, { held: new Set([pbReset.device.id]), process }, 50, 350);
+      expect(snap.runtime[ct.device.id].count).toBe(0);
+      expect(snap.runtime[ct.device.id].done).toBe(false);
+
+      // Next tick: contact 1-2 opens and HL_DONE turns off
+      snap = tick(c, snap.runtime, { held: new Set([pbReset.device.id]), process }, 50, 400);
+      expect(snap.runtime[hlDone.device.id].lit).toBe(false);
+
+      // Release reset button: ready for next cycle
+      snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 450);
+      expect(snap.runtime[ct.device.id].count).toBe(0);
+      expect(snap.runtime[ct.device.id].done).toBe(false);
+      expect(snap.runtime[hlDone.device.id].lit).toBe(false);
+    });
+  });
 });

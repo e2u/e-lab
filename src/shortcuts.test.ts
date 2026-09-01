@@ -20,7 +20,7 @@ function fireKey(key: string, code: string, options: { metaKey?: boolean; ctrlKe
 describe("Keyboard Shortcuts & Store Handlers", () => {
   beforeEach(() => {
     useLab.getState().loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
-    useLab.setState({ history: [], future: [], mode: "edit", editSubMode: "editing", placing: null, wiringFrom: null, selected: null, selectedIds: [] });
+    useLab.setState({ history: [], future: [], mode: "edit", editSubMode: "editing", layoutMode: "schematic", placing: null, wiringFrom: null, selected: null, selectedIds: [] });
   });
 
   it("handles nudgeSelected with single selected symbol when selectedIds is empty", () => {

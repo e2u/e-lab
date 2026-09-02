@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { useLab } from "./store";
 import { COLS, ZOOM_LEVELS } from "./types";
 
 describe("canvas width and zoom features", () => {
+  beforeEach(() => {
+    useLab.setState({ zoom: 1 });
+  });
+
   it("has doubled canvas width (COLS = 168)", () => {
     expect(COLS).toBe(168);
   });

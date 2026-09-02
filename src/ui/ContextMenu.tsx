@@ -4,6 +4,7 @@ import { selectionHasGroup } from "../groups";
 import { areWiresConnected } from "../geometry";
 import { useLab } from "../store";
 import { GRID } from "../types";
+import { ENABLE_AUTO_LAYOUT } from "../features";
 
 export interface MenuPos {
   x: number;
@@ -289,6 +290,11 @@ export function ContextMenu({
             <button type="button" onClick={() => run(() => useLab.getState().selectAll())}>
               {t("ctx.selectAll")} <kbd>⌘A</kbd>
             </button>
+            {ENABLE_AUTO_LAYOUT && (
+              <button type="button" onClick={() => run(() => useLab.getState().autoLayout())}>
+                🪄 {t("toolbar.autoLayout") || "自動排版"} <kbd>⇧L</kbd>
+              </button>
+            )}
             <button
               type="button"
               disabled={!clipboard?.symbols.length}

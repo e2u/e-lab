@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { t, tOr } from "../i18n";
 import { listSaves } from "../persist";
 import { useLab } from "../store";
+import { ENABLE_AUTO_LAYOUT } from "../features";
 
 interface ExampleItem {
   id: string;
@@ -257,7 +258,7 @@ export function MobileMenuModal({
           <section className="mobile-menu-section">
             <div className="mobile-menu-section-title">{t("mobileMenu.preferences") || "Preferences & View"}</div>
 
-            {/* Sub-mode Switch */}
+            {/* Sub-mode Switch & Auto Layout */}
             {mode === "edit" && (
               <div className="mobile-pref-row">
                 <span className="mobile-pref-label">{t("toolbar.edit")}</span>
@@ -276,6 +277,18 @@ export function MobileMenuModal({
                   >
                     🔌 {t("toolbar.wiring")}
                   </button>
+                  {ENABLE_AUTO_LAYOUT && (
+                    <button
+                      type="button"
+                      className="mobile-segment-btn"
+                      onClick={() => {
+                        useLab.getState().autoLayout();
+                        onClose();
+                      }}
+                    >
+                      🪄 {t("toolbar.autoLayout") || "排版"}
+                    </button>
+                  )}
                 </div>
               </div>
             )}

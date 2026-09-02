@@ -21,6 +21,7 @@ import {
 } from "./persist";
 import { defaultRuntime, emptySnapshot, tick } from "./sim/engine";
 import { buildLadderDiagram } from "./ladder/ladderLayout";
+import { autoLayoutCircuit, type AutoLayoutOptions } from "./layout/autoLayout";
 import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type Rot, type SimSnapshot, type Theme, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 import {
@@ -213,6 +214,7 @@ export interface LabState {
   flipSelected: (axis: "h" | "v") => void;
   nudgeSelected: (dx: number, dy: number) => void;
   alignSelected: (edge: "left" | "right" | "top" | "bottom" | "hcenter" | "vcenter" | "distribute-h" | "distribute-v") => void;
+  autoLayout: (options?: AutoLayoutOptions) => void;
   snapSelected: () => void;
   duplicateSelected: () => void;
   copySelected: () => void;
@@ -1740,6 +1742,22 @@ export const useLab = create<LabState>((set, get) => ({
     set({ circuit: next, isDirty: true });
   },
 
+  autoLayout: (options) => {
+    const { circuit } = get();
+    if (!circuit.symbols.length) return;
+    get().pushHistory();
+    const next = autoLayoutCircuit(circuit, options);
+    set({
+      circuit: next,
+      snapshot: emptySnapshot(next),
+      selected: null,
+      selectedIds: [],
+      selectedWireIds: [],
+      isDirty: true,
+      notice: t("toolbar.autoLayout") || "Auto Layout Completed",
+    });
+  },
+
   flipSelected: (axis) => {
     const { selected, selectedIds, circuit } = get();
     const ids = selectedIds.length
@@ -1760,39 +1778,69 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   nudgeSelected: (dx, dy) => {
-    const { selected, selectedIds } = get();
+    const { selected, selectedIds, selectedWireIds, circuit } = get();
     const ids = selectedIds.length ? selectedIds : selected?.type === "symbol" ? [selected.id] : [];
-    if (!ids.length) {
-      if (selected?.type === "wire") {
-        get().pushHistory();
-        const next = clone(get().circuit);
-        const w = next.wires.find((wire) => wire.id === selected.id);
-        if (w) {
-          if (!w.jog) {
-            w.jog = {
-              axis: dx !== 0 ? "x" : "y",
-              pos: 0,
-            };
+    const wireIds = selectedWireIds.length ? selectedWireIds : selected?.type === "wire" ? [selected.id] : [];
+    if (!ids.length && wireIds.length > 0) {
+      get().pushHistory();
+      const next = clone(circuit);
+      for (const wireId of wireIds) {
+        const w = next.wires.find((wire) => wire.id === wireId);
+        if (!w) continue;
+        const pts = wireRoute(next, w.a, w.b, w.jog);
+        if (dx !== 0) {
+          let curX = w.jog?.x ?? (w.jog?.axis === "x" ? w.jog.pos : undefined);
+          if (curX === undefined) {
+            for (let i = 0; i < pts.length - 1; i++) {
+              if (Math.abs(pts[i].x - pts[i + 1].x) < 0.8 && Math.abs(pts[i].y - pts[i + 1].y) > 0.8) {
+                curX = Math.round(pts[i].x / GRID) * GRID;
+                break;
+              }
+            }
+            if (curX === undefined && pts.length >= 2) {
+              curX = Math.round(((pts[0].x + pts[pts.length - 1].x) / 2) / GRID) * GRID;
+            }
           }
-          if (dx !== 0) {
-            const curX = w.jog.x ?? (w.jog.axis === "x" ? w.jog.pos ?? 0 : 0);
-            const nx = curX + dx * GRID;
-            w.jog.x = nx;
-            if (w.jog.axis === "x") w.jog.pos = nx;
+          const nextX = Math.round(((curX ?? 0) + dx * GRID) / GRID) * GRID;
+          const oldY = w.jog?.y ?? (w.jog?.axis === "y" ? w.jog.pos : undefined);
+          const jogObj: WireJog = {
+            axis: "x",
+            pos: nextX,
+            x: nextX,
+          };
+          if (oldY !== undefined) jogObj.y = oldY;
+          w.jog = jogObj;
+        }
+        if (dy !== 0) {
+          let curY = w.jog?.y ?? (w.jog?.axis === "y" ? w.jog.pos : undefined);
+          if (curY === undefined) {
+            for (let i = 0; i < pts.length - 1; i++) {
+              if (Math.abs(pts[i].y - pts[i + 1].y) < 0.8 && Math.abs(pts[i].x - pts[i + 1].x) > 0.8) {
+                curY = Math.round(pts[i].y / GRID) * GRID;
+                break;
+              }
+            }
+            if (curY === undefined && pts.length >= 2) {
+              curY = Math.round(((pts[0].y + pts[pts.length - 1].y) / 2) / GRID) * GRID;
+            }
           }
-          if (dy !== 0) {
-            const curY = w.jog.y ?? (w.jog.axis === "y" ? w.jog.pos ?? 0 : 0);
-            const ny = curY + dy * GRID;
-            w.jog.y = ny;
-            if (w.jog.axis === "y") w.jog.pos = ny;
-          }
-          set({ circuit: next, isDirty: true });
+          const nextY = Math.round(((curY ?? 0) + dy * GRID) / GRID) * GRID;
+          const oldX = w.jog?.x ?? (w.jog?.axis === "x" ? w.jog.pos : undefined);
+          const jogObj: WireJog = {
+            axis: "y",
+            pos: nextY,
+            y: nextY,
+          };
+          if (oldX !== undefined) jogObj.x = oldX;
+          w.jog = jogObj;
         }
       }
+      set({ circuit: next, isDirty: true });
       return;
     }
+    if (!ids.length) return;
     get().pushHistory();
-    const next = clone(get().circuit);
+    const next = clone(circuit);
     const movedIds = new Set(ids);
     for (const id of ids) {
       const sym = next.symbols.find((s) => s.id === id);
@@ -1844,11 +1892,24 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   snapSelected: () => {
-    const { selected, selectedIds, circuit } = get();
+    const { selected, selectedIds, selectedWireIds, circuit } = get();
     const ids = selectedIds.length ? selectedIds : selected?.type === "symbol" ? [selected.id] : [];
-    if (!ids.length) return;
+    const wireIds = selectedWireIds.length ? selectedWireIds : selected?.type === "wire" ? [selected.id] : [];
+    if (!ids.length && !wireIds.length) return;
     get().pushHistory();
     const next = clone(circuit);
+    if (!ids.length && wireIds.length > 0) {
+      for (const wireId of wireIds) {
+        const w = next.wires.find((x) => x.id === wireId);
+        if (w?.jog) {
+          if (w.jog.x !== undefined) w.jog.x = Math.round(w.jog.x / GRID) * GRID;
+          if (w.jog.y !== undefined) w.jog.y = Math.round(w.jog.y / GRID) * GRID;
+          if (w.jog.pos !== undefined) w.jog.pos = Math.round(w.jog.pos / GRID) * GRID;
+        }
+      }
+      set({ circuit: next, isDirty: true });
+      return;
+    }
     const movedIds = new Set(ids);
     const deltas = new Map<string, { dx: number; dy: number }>();
     for (const id of ids) {
@@ -2335,4 +2396,8 @@ export const useLab = create<LabState>((set, get) => ({
 
 export function rotateSelected(dir: 1 | -1 = 1) {
   useLab.getState().rotateSelected(dir);
+}
+
+export function autoLayout(options?: AutoLayoutOptions) {
+  useLab.getState().autoLayout(options);
 }

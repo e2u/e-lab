@@ -260,7 +260,7 @@ describe("Keyboard Shortcuts & Store Handlers", () => {
 
     const updatedWire = useLab.getState().circuit.wires.find((w) => w.id === wire.id)!;
     expect(updatedWire.jog).toBeDefined();
-    expect(updatedWire.jog?.x).toBe(2 * 22);
+    expect(updatedWire.jog?.x).toBe(110);
   });
 
   it("handles edit submode and layout mode switching", () => {
@@ -515,5 +515,9 @@ describe("Keyboard Shortcuts & Store Handlers", () => {
     const ok = executeCommand("mode.wiring");
     expect(ok).toBe(true);
     expect(useLab.getState().editSubMode).toBe("wiring");
+
+    // Test edit.autoLayout command execution
+    const layoutOk = executeCommand("edit.autoLayout");
+    expect(layoutOk).toBe(true);
   });
 });

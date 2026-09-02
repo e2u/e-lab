@@ -278,24 +278,37 @@ export const SymbolLayer = memo(function SymbolLayer({
       {circuit.symbols.map((sym) => {
         if (!isJunction(sym.id, circuit)) return null;
         const connectedWires = circuit.wires.filter((w) => w.a.symbolId === sym.id || w.b.symbolId === sym.id);
-        if (connectedWires.length < 3) return null;
+        const sel = selectedIds.includes(sym.id);
+        if (connectedWires.length < 2 && !sel) return null;
         const p = terminalWorld(circuit, { symbolId: sym.id, term: "1" });
         if (!p) return null;
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
         const hot = Boolean(dev && snapshot.runtime[dev.id]?.energized);
-        const sel = selectedIds.includes(sym.id);
         const isConnectedJunction = highlightedWireIds ? connectedWires.some((w) => highlightedWireIds.has(w.id)) : false;
+        const rOuter = hot || sel || isConnectedJunction ? 6 : 5;
+        const rInner = hot || sel || isConnectedJunction ? 2.5 : 2;
+        const greenColor = "#16a34a";
+        const strokeColor = hot || isConnectedJunction ? "#e6c11e" : sel ? "#3b82f6" : greenColor;
+        const fillColor = hot || isConnectedJunction ? "rgba(230, 193, 30, 0.25)" : sel ? "rgba(59, 130, 246, 0.2)" : "rgba(22, 163, 74, 0.2)";
+        const dotColor = hot || isConnectedJunction ? "#e6c11e" : sel ? "#3b82f6" : greenColor;
         return (
-          <circle
-            key={`jdot-${sym.id}`}
-            cx={p.x}
-            cy={p.y}
-            r={hot || sel || isConnectedJunction ? 5.6 : 4.8}
-            fill={hot || isConnectedJunction ? "#e6c11e" : "#1b1a16"}
-            stroke="#efe6d0"
-            strokeWidth="1.2"
-            pointerEvents="none"
-          />
+          <g key={`jdot-${sym.id}`} pointerEvents="none">
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={rOuter}
+              fill={fillColor}
+              stroke={strokeColor}
+              strokeWidth="1.5"
+              strokeDasharray="2.5 2"
+            />
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={rInner}
+              fill={dotColor}
+            />
+          </g>
         );
       })}
 

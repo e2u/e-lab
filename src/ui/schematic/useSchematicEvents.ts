@@ -383,9 +383,18 @@ export function useSchematicEvents({
       const jogPayload: WireJog = {
         axis,
         pos,
-        x: axis === "x" ? pos : wireDrag.current.otherAxisJog,
-        y: axis === "y" ? pos : wireDrag.current.otherAxisJog,
       };
+      if (axis === "x") {
+        jogPayload.x = pos;
+        if (wireDrag.current.otherAxisJog !== undefined) {
+          jogPayload.y = wireDrag.current.otherAxisJog;
+        }
+      } else {
+        jogPayload.y = pos;
+        if (wireDrag.current.otherAxisJog !== undefined) {
+          jogPayload.x = wireDrag.current.otherAxisJog;
+        }
+      }
       useLab.getState().setWireJog(wireDrag.current.id, jogPayload);
       return;
     }
@@ -616,12 +625,7 @@ export function useSchematicEvents({
     if (hit) {
       const existingJogX = wire.jog?.x ?? (wire.jog?.axis === "x" ? wire.jog.pos : undefined);
       const existingJogY = wire.jog?.y ?? (wire.jog?.axis === "y" ? wire.jog.pos : undefined);
-      let otherAxisJog: number | undefined = undefined;
-      if (hit.axis === "x") {
-        otherAxisJog = existingJogY !== undefined ? existingJogY : findComplementaryJogFromPolyline(pts, "x", hit.index);
-      } else {
-        otherAxisJog = existingJogX !== undefined ? existingJogX : findComplementaryJogFromPolyline(pts, "y", hit.index);
-      }
+      const otherAxisJog = hit.axis === "x" ? existingJogY : existingJogX;
 
       wireDrag.current = {
         id: wire.id,

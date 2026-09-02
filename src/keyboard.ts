@@ -601,6 +601,17 @@ function initCoreCommands() {
     },
   });
 
+  registry.register({
+    id: "edit.autoLayout",
+    category: "edit",
+    titleKey: "toolbar.autoLayout",
+    shortcuts: ["Shift+KeyL", "Shift+l", "Mod+Shift+KeyL", "Mod+Shift+l"],
+    when: ({ state }) => state.mode === "edit",
+    run: ({ state }) => {
+      state.autoLayout();
+    },
+  });
+
   // Nudge Selection Commands
   registry.register({
     id: "edit.nudgeLeft",

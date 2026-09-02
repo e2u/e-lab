@@ -1,6 +1,7 @@
 import { rotateSelected, useLab } from "../store";
 import { t } from "../i18n";
 import { triggerHaptic } from "./schematic/interact";
+import { ENABLE_AUTO_LAYOUT } from "../features";
 
 export function FloatingActionBar() {
   const mode = useLab((s) => s.mode);
@@ -117,6 +118,18 @@ export function FloatingActionBar() {
           >
             <span className="floating-btn-icon">⇄</span>
           </button>
+
+          {ENABLE_AUTO_LAYOUT && (
+            <button
+              type="button"
+              className="floating-btn"
+              onClick={() => handleAction(() => useLab.getState().autoLayout())}
+              title={t("toolbar.autoLayoutTip") || t("toolbar.autoLayout") || "Auto Layout"}
+              aria-label={t("toolbar.autoLayout") || "Auto Layout"}
+            >
+              <span className="floating-btn-icon">🪄</span>
+            </button>
+          )}
         </>
       )}
 

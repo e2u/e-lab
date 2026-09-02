@@ -167,17 +167,51 @@ function betweenStubs(
     }
 
     if (exitH) {
-      return [a1, { x: jogX, y: a1.y }, { x: jogX, y: jogY }, { x: b1.x, y: jogY }, b1];
+      const turnAy = oa && oa.y !== 0 ? Math.round((a1.y + oa.y * GRID) / GRID) * GRID : a1.y;
+      const turnBx = ob && ob.x !== 0 ? Math.round((b1.x + ob.x * GRID) / GRID) * GRID : b1.x;
+      const pts: { x: number; y: number }[] = [a1];
+      if (oa && oa.y !== 0) pts.push({ x: a1.x, y: turnAy });
+      pts.push({ x: jogX, y: turnAy });
+      pts.push({ x: jogX, y: jogY });
+      pts.push({ x: turnBx, y: jogY });
+      if (ob && ob.x !== 0) pts.push({ x: turnBx, y: b1.y });
+      pts.push(b1);
+      return pts;
     } else {
-      return [a1, { x: a1.x, y: jogY }, { x: jogX, y: jogY }, { x: jogX, y: b1.y }, b1];
+      const turnAx = oa && oa.x !== 0 ? Math.round((a1.x + oa.x * GRID) / GRID) * GRID : a1.x;
+      const turnBy = ob && ob.y !== 0 ? Math.round((b1.y + ob.y * GRID) / GRID) * GRID : b1.y;
+      const pts: { x: number; y: number }[] = [a1];
+      if (oa && oa.x !== 0) pts.push({ x: turnAx, y: a1.y });
+      pts.push({ x: turnAx, y: jogY });
+      pts.push({ x: jogX, y: jogY });
+      pts.push({ x: jogX, y: turnBy });
+      if (ob && ob.y !== 0) pts.push({ x: b1.x, y: turnBy });
+      pts.push(b1);
+      return pts;
     }
   }
 
   if (jogY !== undefined) {
-    return [a1, { x: a1.x, y: jogY }, { x: b1.x, y: jogY }, b1];
+    const turnAx = oa && oa.x !== 0 ? Math.round((a1.x + oa.x * GRID) / GRID) * GRID : a1.x;
+    const turnBx = ob && ob.x !== 0 ? Math.round((b1.x + ob.x * GRID) / GRID) * GRID : b1.x;
+    const pts: { x: number; y: number }[] = [a1];
+    if (oa && oa.x !== 0) pts.push({ x: turnAx, y: a1.y });
+    pts.push({ x: turnAx, y: jogY });
+    pts.push({ x: turnBx, y: jogY });
+    if (ob && ob.x !== 0) pts.push({ x: turnBx, y: b1.y });
+    pts.push(b1);
+    return pts;
   }
   if (jogX !== undefined) {
-    return [a1, { x: jogX, y: a1.y }, { x: jogX, y: b1.y }, b1];
+    const turnAy = oa && oa.y !== 0 ? Math.round((a1.y + oa.y * GRID) / GRID) * GRID : a1.y;
+    const turnBy = ob && ob.y !== 0 ? Math.round((b1.y + ob.y * GRID) / GRID) * GRID : b1.y;
+    const pts: { x: number; y: number }[] = [a1];
+    if (oa && oa.y !== 0) pts.push({ x: a1.x, y: turnAy });
+    pts.push({ x: jogX, y: turnAy });
+    pts.push({ x: jogX, y: turnBy });
+    if (ob && ob.y !== 0) pts.push({ x: b1.x, y: turnBy });
+    pts.push(b1);
+    return pts;
   }
 
   // If not on the same symbol, collinear stubs connect directly
@@ -225,7 +259,9 @@ function betweenStubs(
       // Crossed over / facing away -> route around in Y snapped to grid
       const rawOutY = a1.y <= b1.y ? Math.min(a1.y, b1.y) - GRID : Math.max(a1.y, b1.y) + GRID;
       const outY = Math.round(rawOutY / GRID) * GRID;
-      return [a1, { x: a1.x, y: outY }, { x: b1.x, y: outY }, b1];
+      const turnAx = Math.round((a1.x + oaX * GRID) / GRID) * GRID;
+      const turnBx = Math.round((b1.x + obX * GRID) / GRID) * GRID;
+      return [a1, { x: turnAx, y: a1.y }, { x: turnAx, y: outY }, { x: turnBx, y: outY }, { x: turnBx, y: b1.y }, b1];
     }
     // Facing same horizontal direction (C-shape / U-turn) snapped to grid
     const rawOutX = oaX > 0 ? Math.max(a1.x, b1.x) + GRID : Math.min(a1.x, b1.x) - GRID;
@@ -245,7 +281,9 @@ function betweenStubs(
       // Crossed over -> route around in X snapped to grid
       const rawOutX = a1.x <= b1.x ? Math.min(a1.x, b1.x) - GRID : Math.max(a1.x, b1.x) + GRID;
       const outX = Math.round(rawOutX / GRID) * GRID;
-      return [a1, { x: outX, y: a1.y }, { x: outX, y: b1.y }, b1];
+      const turnAy = Math.round((a1.y + oaY * GRID) / GRID) * GRID;
+      const turnBy = Math.round((b1.y + obY * GRID) / GRID) * GRID;
+      return [a1, { x: a1.x, y: turnAy }, { x: outX, y: turnAy }, { x: outX, y: turnBy }, { x: b1.x, y: turnBy }, b1];
     }
     // Facing same vertical direction snapped to grid
     const rawOutY = oaY > 0 ? Math.max(a1.y, b1.y) + GRID : Math.min(a1.y, b1.y) - GRID;
@@ -260,7 +298,8 @@ function betweenStubs(
     }
     const rawTurnX = oaX > 0 ? Math.max(a1.x, b1.x) + GRID : Math.min(a1.x, b1.x) - GRID;
     const turnX = Math.round(rawTurnX / GRID) * GRID;
-    return [a1, { x: turnX, y: a1.y }, { x: turnX, y: b1.y }, b1];
+    const turnBy = Math.round((b1.y + obY * GRID) / GRID) * GRID;
+    return [a1, { x: turnX, y: a1.y }, { x: turnX, y: turnBy }, { x: b1.x, y: turnBy }, b1];
   }
 
   // If oa is vertical and ob is horizontal
@@ -270,7 +309,8 @@ function betweenStubs(
     }
     const rawTurnY = oaY > 0 ? Math.max(a1.y, b1.y) + GRID : Math.min(a1.y, b1.y) - GRID;
     const turnY = Math.round(rawTurnY / GRID) * GRID;
-    return [a1, { x: a1.x, y: turnY }, { x: b1.x, y: turnY }, b1];
+    const turnBx = Math.round((b1.x + obX * GRID) / GRID) * GRID;
+    return [a1, { x: a1.x, y: turnY }, { x: turnBx, y: turnY }, { x: turnBx, y: b1.y }, b1];
   }
 
   return manhattan(a1, b1);

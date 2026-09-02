@@ -16,6 +16,7 @@ import { MobileMenuModal } from "./ui/MobileMenuModal";
 import { PrintModal } from "./ui/PrintModal";
 import { TutorialOverlay } from "./tutorial/TutorialOverlay";
 import { setupKeyboardShortcuts } from "./keyboard";
+import { ENABLE_AUTO_LAYOUT, ENABLE_LADDER } from "./features";
 
 
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
@@ -267,14 +268,26 @@ export function App() {
                 </button>
               )}
               {mode === "edit" && layoutMode !== "ladder" && (
-                <button
-                  type="button"
-                  className={`btn submode-mobile-btn ${editSubMode === "wiring" ? "active" : ""}`}
-                  onClick={() => useLab.getState().toggleEditSubMode()}
-                  title={editSubMode === "wiring" ? t("toolbar.wiringTip") : t("toolbar.editingTip")}
-                >
-                  {editSubMode === "wiring" ? `🔌 ${t("toolbar.wiring")}` : `✋ ${t("toolbar.editing")}`}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={`btn submode-mobile-btn ${editSubMode === "wiring" ? "active" : ""}`}
+                    onClick={() => useLab.getState().toggleEditSubMode()}
+                    title={editSubMode === "wiring" ? t("toolbar.wiringTip") : t("toolbar.editingTip")}
+                  >
+                    {editSubMode === "wiring" ? `🔌 ${t("toolbar.wiring")}` : `✋ ${t("toolbar.editing")}`}
+                  </button>
+                  {ENABLE_AUTO_LAYOUT && (
+                    <button
+                      type="button"
+                      className="btn submode-mobile-btn"
+                      onClick={() => useLab.getState().autoLayout()}
+                      title={t("toolbar.autoLayoutTip") || "Auto Layout"}
+                    >
+                      🪄 {t("toolbar.autoLayout") || "排版"}
+                    </button>
+                  )}
+                </>
               )}
               <button className={`btn ${mode === "run" ? "active" : ""}`} onClick={() => useLab.getState().setMode("run")}>
                 {t("toolbar.run")}
@@ -395,28 +408,41 @@ export function App() {
                 </button>
               </div>
 
-              {/* Edit Sub-Mode Segmented Switch (Editing / Wiring) */}
+              {/* Edit Sub-Mode Segmented Switch (Editing / Wiring) & Auto Layout */}
               {mode === "edit" && layoutMode !== "ladder" && (
-                <div className="segmented-group submode-switch">
-                  <button
-                    type="button"
-                    className={`seg-btn ${editSubMode === "editing" ? "active" : ""}`}
-                    onClick={() => useLab.getState().setEditSubMode("editing")}
-                    title={t("toolbar.editingTip")}
-                  >
-                    <span className="seg-icon">✋</span>
-                    <span>{t("toolbar.editing")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`seg-btn ${editSubMode === "wiring" ? "active" : ""}`}
-                    onClick={() => useLab.getState().setEditSubMode("wiring")}
-                    title={t("toolbar.wiringTip")}
-                  >
-                    <span className="seg-icon">🔌</span>
-                    <span>{t("toolbar.wiring")}</span>
-                  </button>
-                </div>
+                <>
+                  <div className="segmented-group submode-switch">
+                    <button
+                      type="button"
+                      className={`seg-btn ${editSubMode === "editing" ? "active" : ""}`}
+                      onClick={() => useLab.getState().setEditSubMode("editing")}
+                      title={t("toolbar.editingTip")}
+                    >
+                      <span className="seg-icon">✋</span>
+                      <span>{t("toolbar.editing")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`seg-btn ${editSubMode === "wiring" ? "active" : ""}`}
+                      onClick={() => useLab.getState().setEditSubMode("wiring")}
+                      title={t("toolbar.wiringTip")}
+                    >
+                      <span className="seg-icon">🔌</span>
+                      <span>{t("toolbar.wiring")}</span>
+                    </button>
+                  </div>
+                  {ENABLE_AUTO_LAYOUT && (
+                    <button
+                      type="button"
+                      className="btn btn-auto-layout"
+                      onClick={() => useLab.getState().autoLayout()}
+                      title={t("toolbar.autoLayoutTip") || "Auto Layout (Shift+L)"}
+                    >
+                      <span>🪄</span>
+                      <span>{t("toolbar.autoLayout") || "自動排版"}</span>
+                    </button>
+                  )}
+                </>
               )}
 
               {/* Run Mode Probe Tools */}
@@ -443,8 +469,8 @@ export function App() {
 
               <div className="topbar-divider" />
 
-              {/* Only show Layout Mode switch button when showLadderMenu is true */}
-              {showLadderMenu && (
+              {/* Only show Layout Mode switch button when ENABLE_LADDER and showLadderMenu are true */}
+              {ENABLE_LADDER && showLadderMenu && (
                 <>
                   {/* Layout Mode Toggle - Schematic / Ladder */}
                   <div className="segmented-group layout-mode-switch">
@@ -535,15 +561,17 @@ export function App() {
               </div>
 
               {/* Ladder menu toggle */}
-              <button
-                type="button"
-                className={`btn-icon ${showLadderMenu ? "active" : ""}`}
-                onClick={() => useLab.getState().toggleShowLadderMenu()}
-                title={showLadderMenu ? t("toolbar.hideLadder") || "隱藏梯形圖菜單" : t("toolbar.showLadder") || "顯示梯形圖菜單"}
-                aria-label={t("toolbar.ladderToggle") || "T ladder menu toggle"}
-              >
-                🪜
-              </button>
+              {ENABLE_LADDER && (
+                <button
+                  type="button"
+                  className={`btn-icon ${showLadderMenu ? "active" : ""}`}
+                  onClick={() => useLab.getState().toggleShowLadderMenu()}
+                  title={showLadderMenu ? t("toolbar.hideLadder") || "隱藏梯形圖菜單" : t("toolbar.showLadder") || "顯示梯形圖菜單"}
+                  aria-label={t("toolbar.ladderToggle") || "T ladder menu toggle"}
+                >
+                  🪜
+                </button>
+              )}
             </div>
           </>
         )}
@@ -626,7 +654,7 @@ export function App() {
         )}
 
         {/* Ladder diagram conditional rendering: switch canvas based on layoutMode */}
-        {layoutMode === "ladder" ? (
+        {ENABLE_LADDER && layoutMode === "ladder" ? (
           <LadderSchematic />
         ) : (
           <>

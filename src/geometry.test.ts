@@ -592,4 +592,134 @@ describe("wire merge and optimal junction point", () => {
     const hit = hitWireSegment(pts, { x: midPt.x, y: midPt.y + 1 });
     expect(hit).not.toBeNull();
   });
+
+  it("strictly aligns all vertices to GRID during autorouting", () => {
+    const c = emptyCircuit();
+    const tc = addDevice(c, "transformer", "TC1", "body", 2, 10);
+    const fr = addDevice(c, "overload", "FR1", "body", 12, 2);
+    addWire(c, tc.symbol, "X1", fr.symbol, "95");
+    const w = c.wires[0];
+
+    const pts = wireRoute(c, w.a, w.b);
+    expect(pts.length).toBeGreaterThanOrEqual(4);
+    for (const p of pts) {
+      expect(p.x % GRID).toBe(0);
+      expect(p.y % GRID).toBe(0);
+    }
+  });
+
+  it("left/right wire jog movement does not affect horizontal segments and stays grid aligned", () => {
+    const c = emptyCircuit();
+    const tc = addDevice(c, "transformer", "TC1", "body", 2, 10);
+    const fr = addDevice(c, "overload", "FR1", "body", 12, 2);
+    addWire(c, tc.symbol, "X1", fr.symbol, "95");
+    const w = c.wires[0];
+
+    const start = terminalWorld(c, w.a)!;
+    const end = terminalWorld(c, w.b)!;
+
+    // Moving vertical segment left/right to x = 10 * GRID (in between start.x=176 and end.x=264)
+    const jogX = 10 * GRID;
+    const pts = wireRoute(c, w.a, w.b, { axis: "x", pos: jogX });
+
+    // Every point must be strictly on grid
+    for (const p of pts) {
+      expect(p.x % GRID).toBe(0);
+      expect(p.y % GRID).toBe(0);
+    }
+
+    // Horizontal segments must remain at the exact heights of the terminals
+    const horizSegments = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (Math.abs(pts[i].y - pts[i + 1].y) < 0.5) {
+        horizSegments.push(pts[i].y);
+      }
+    }
+    expect(horizSegments).toContain(start.y);
+    expect(horizSegments).toContain(end.y);
+
+    // Vertical segment is strictly at jogX
+    const vertSegments = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (Math.abs(pts[i].x - pts[i + 1].x) < 0.5) {
+        vertSegments.push(pts[i].x);
+      }
+    }
+    expect(vertSegments).toContain(jogX);
+  });
+
+  it("horizontal / up-down wire jog movement does not affect vertical segments and stays grid aligned", () => {
+    const c = emptyCircuit();
+    const fu1 = addDevice(c, "fuse", "FU1", "body", 4, 4);
+    const fu2 = addDevice(c, "fuse", "FU2", "body", 12, 12);
+    // Connect vertical terminals (FU1 terminal 2 exits down, FU2 terminal 1 exits up)
+    addWire(c, fu1.symbol, "2", fu2.symbol, "1");
+    const w = c.wires[0];
+
+    const start = terminalWorld(c, w.a)!;
+    const end = terminalWorld(c, w.b)!;
+
+    // Moving horizontal segment to y = 10 * GRID (in between start.y=176 and end.y=264)
+    const jogY = 10 * GRID;
+    const pts = wireRoute(c, w.a, w.b, { axis: "y", pos: jogY });
+
+    // Every point must be strictly on grid
+    for (const p of pts) {
+      expect(p.x % GRID).toBe(0);
+      expect(p.y % GRID).toBe(0);
+    }
+
+    // Vertical segments must remain at the exact x of the terminals
+    const vertSegments = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (Math.abs(pts[i].x - pts[i + 1].x) < 0.5) {
+        vertSegments.push(pts[i].x);
+      }
+    }
+    expect(vertSegments).toContain(start.x);
+    expect(vertSegments).toContain(end.x);
+
+    // Horizontal segment is strictly at jogY
+    const horizSegments = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (Math.abs(pts[i].y - pts[i + 1].y) < 0.5) {
+        horizSegments.push(pts[i].y);
+      }
+    }
+    expect(horizSegments).toContain(jogY);
+  });
+
+  it("ensures no wire route ever contains diagonal lines (all segments are purely horizontal or vertical)", () => {
+    const c = emptyCircuit();
+    const fr = addDevice(c, "overload", "FR1", "body", 22, 4);
+    const sb = addDevice(c, "pb-nc", "SB1", "body", 16, 17);
+    // FR1 terminal 96 faces RIGHT; SB1 terminal 1 faces LEFT and is located to the left and lower than FR1
+    addWire(c, fr.symbol, "96", sb.symbol, "1");
+    const w = c.wires[0];
+
+    const pts = wireRoute(c, w.a, w.b);
+    expect(pts.length).toBeGreaterThanOrEqual(4);
+
+    for (let i = 0; i < pts.length - 1; i++) {
+      const isHorizontal = Math.abs(pts[i].y - pts[i + 1].y) < 0.01;
+      const isVertical = Math.abs(pts[i].x - pts[i + 1].x) < 0.01;
+      expect(isHorizontal || isVertical).toBe(true);
+    }
+  });
+
+  it("ensures vertical-to-horizontal crossed-over routes contain no diagonal lines", () => {
+    const c = emptyCircuit();
+    const fu = addDevice(c, "fuse", "FU1", "body", 10, 4); // term 2 exits DOWN
+    const sb = addDevice(c, "pb-nc", "SB1", "body", 4, 2); // term 1 exits LEFT
+    addWire(c, fu.symbol, "2", sb.symbol, "1");
+    const w = c.wires[0];
+
+    const pts = wireRoute(c, w.a, w.b);
+    expect(pts.length).toBeGreaterThanOrEqual(3);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const isHorizontal = Math.abs(pts[i].y - pts[i + 1].y) < 0.01;
+      const isVertical = Math.abs(pts[i].x - pts[i + 1].x) < 0.01;
+      expect(isHorizontal || isVertical).toBe(true);
+    }
+  });
 });

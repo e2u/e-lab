@@ -114,24 +114,24 @@
         "id": "s_7i_38a4ef11",
         "deviceId": "d_7h_47d753ca",
         "variant": "wye",
-        "x": 1,
-        "y": 5,
+        "x": 7,
+        "y": 13,
         "rot": 0
       },
       {
         "id": "s_7k_1daaa4b3",
         "deviceId": "d_7j_5447be62",
         "variant": "body",
-        "x": 7,
-        "y": 5,
+        "x": 13,
+        "y": 13,
         "rot": 270
       },
       {
         "id": "s_7m_df71d089",
         "deviceId": "d_7l_13e5a809",
         "variant": "coil",
-        "x": 31,
-        "y": 13,
+        "x": 35,
+        "y": 21,
         "rot": 0,
         "tagOffset": {
           "dx": 4.225,
@@ -142,24 +142,24 @@
         "id": "s_7n_40ec4b75",
         "deviceId": "d_7l_13e5a809",
         "variant": "main",
-        "x": 22,
-        "y": 5,
+        "x": 28,
+        "y": 7,
         "rot": 0
       },
       {
         "id": "s_7o_4488eca5",
         "deviceId": "d_7l_13e5a809",
         "variant": "aux-no",
-        "x": 22,
-        "y": 25,
+        "x": 28,
+        "y": 33,
         "rot": 0
       },
       {
         "id": "s_7q_5cdda6ce",
         "deviceId": "d_7p_5624fa03",
         "variant": "body",
-        "x": 42,
-        "y": 5,
+        "x": 48,
+        "y": 7,
         "rot": 270,
         "tagOffset": {
           "dx": 5.562,
@@ -170,40 +170,40 @@
         "id": "s_7s_2e06eaba",
         "deviceId": "d_7r_a33f53c6",
         "variant": "body",
-        "x": 13,
-        "y": 14,
+        "x": 19,
+        "y": 22,
         "rot": 0
       },
       {
         "id": "s_7u_a2c318e4",
         "deviceId": "d_7t_dfdb2d00",
         "variant": "body",
-        "x": 22,
-        "y": 13,
+        "x": 28,
+        "y": 21,
         "rot": 0
       },
       {
         "id": "s_7w_528a7e52",
         "deviceId": "d_7v_b40b2171",
         "variant": "body",
-        "x": 22,
-        "y": 17,
+        "x": 28,
+        "y": 25,
         "rot": 0
       },
       {
         "id": "s_7y_47f1a304",
         "deviceId": "d_7x_fc950826",
         "variant": "body",
-        "x": 32,
-        "y": 25,
+        "x": 38,
+        "y": 33,
         "rot": 0
       },
       {
         "id": "s_80_71c96e77",
         "deviceId": "d_7z_3822345c",
         "variant": "body",
-        "x": 46,
-        "y": 22,
+        "x": 52,
+        "y": 30,
         "rot": 0,
         "tagOffset": {
           "dx": -1.944,
@@ -214,8 +214,8 @@
         "id": "s_82_dabe0417",
         "deviceId": "d_81_2f3028c2",
         "variant": "body",
-        "x": 42,
-        "y": 22,
+        "x": 48,
+        "y": 30,
         "rot": 0,
         "tagOffset": {
           "dx": -2.585,
@@ -226,48 +226,48 @@
         "id": "s_84_88178e23",
         "deviceId": "d_83_9703a876",
         "variant": "body",
-        "x": 3,
-        "y": 20,
+        "x": 9,
+        "y": 28,
         "rot": 0
       },
       {
         "id": "s_dv_38c0ef83",
         "deviceId": "d_du_f9fe0645",
         "variant": "body",
-        "x": 11,
-        "y": 15,
+        "x": 17,
+        "y": 23,
         "rot": 0
       },
       {
         "id": "s_e3_36b9716f",
         "deviceId": "d_e2_970df2e5",
         "variant": "body",
-        "x": 22,
-        "y": 15,
+        "x": 28,
+        "y": 23,
         "rot": 0
       },
       {
         "id": "s_ed_3822fefc",
         "deviceId": "d_ec_72673c3a",
         "variant": "body",
-        "x": 35,
-        "y": 12,
+        "x": 41,
+        "y": 20,
         "rot": 0
       },
       {
         "id": "s_f7_5048a0ab",
         "deviceId": "d_f6_5bb6784b",
         "variant": "body",
-        "x": 17,
-        "y": 18,
+        "x": 23,
+        "y": 26,
         "rot": 0
       },
       {
         "id": "s_fg_e139616e",
         "deviceId": "d_ff_7a7a1cbb",
         "variant": "body",
-        "x": 18,
-        "y": 12,
+        "x": 26,
+        "y": 20,
         "rot": 0
       }
     ],
@@ -306,9 +306,9 @@
         },
         "jog": {
           "axis": "y",
-          "pos": 308,
-          "x": 638,
-          "y": 308
+          "pos": 484,
+          "x": 770,
+          "y": 484
         }
       },
       {
@@ -400,9 +400,9 @@
         },
         "jog": {
           "axis": "y",
-          "pos": 572,
-          "x": 1034,
-          "y": 572
+          "pos": 748,
+          "x": 1166,
+          "y": 748
         }
       },
       {
@@ -450,9 +450,9 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 110,
-          "x": 110,
-          "y": 308
+          "pos": 242,
+          "x": 242,
+          "y": 484
         }
       },
       {
@@ -468,9 +468,9 @@
         "broken": false,
         "jog": {
           "axis": "y",
-          "pos": 484,
-          "x": 374,
-          "y": 484
+          "pos": 660,
+          "x": 506,
+          "y": 660
         }
       },
       {
@@ -531,9 +531,9 @@
         "broken": false,
         "jog": {
           "axis": "x",
-          "pos": 1100,
-          "x": 1100,
-          "y": 572
+          "pos": 1232,
+          "x": 1232,
+          "y": 748
         }
       },
       {
@@ -567,6 +567,11 @@
         "b": {
           "symbolId": "s_fg_e139616e",
           "term": "1"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 572,
+          "x": 572
         }
       }
     ],
@@ -575,7 +580,7 @@
   "process": {
     "temperature": 34,
     "pressure": 0,
-    "level": 17,
+    "level": 50,
     "flow": 0,
     "limitHit": false,
     "proxHit": false,

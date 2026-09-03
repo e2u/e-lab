@@ -61,7 +61,7 @@
         "params": {}
       },
       {
-        "id": "d_1r_42ec93d0",
+        "id": "d_25_bece367b",
         "kind": "junction",
         "tag": "",
         "params": {}
@@ -120,8 +120,8 @@
         "id": "s_16_13bb17a3",
         "deviceId": "d_15_c609de4a",
         "variant": "body",
-        "x": 9,
-        "y": 11.0625,
+        "x": 7,
+        "y": 19,
         "rot": 0
       },
       {
@@ -133,11 +133,11 @@
         "rot": 0
       },
       {
-        "id": "s_1s_275705ec",
-        "deviceId": "d_1r_42ec93d0",
+        "id": "s_26_17b3be34",
+        "deviceId": "d_25_bece367b",
         "variant": "body",
-        "x": 30,
-        "y": 7,
+        "x": 8,
+        "y": 16,
         "rot": 0
       }
     ],
@@ -176,17 +176,6 @@
         }
       },
       {
-        "id": "w_1a_33136fff",
-        "a": {
-          "symbolId": "s_w_e9055a7d",
-          "term": "2"
-        },
-        "b": {
-          "symbolId": "s_y_6bb501db",
-          "term": "H2"
-        }
-      },
-      {
         "id": "w_1b_f6447384",
         "a": {
           "symbolId": "s_y_6bb501db",
@@ -194,50 +183,6 @@
         },
         "b": {
           "symbolId": "s_10_5fb4fbf7",
-          "term": "1"
-        }
-      },
-      {
-        "id": "w_1h_8c0d4bb3",
-        "a": {
-          "symbolId": "s_s_d61ddaf5",
-          "term": "PE"
-        },
-        "b": {
-          "symbolId": "s_16_13bb17a3",
-          "term": "1"
-        }
-      },
-      {
-        "id": "w_1q_625d9a35",
-        "a": {
-          "symbolId": "s_16_13bb17a3",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_1p_5b2f726c",
-          "term": "1"
-        }
-      },
-      {
-        "id": "w_1t_c374dc53",
-        "a": {
-          "symbolId": "s_1s_275705ec",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_y_6bb501db",
-          "term": "X2"
-        }
-      },
-      {
-        "id": "w_1u_aa6a626d",
-        "a": {
-          "symbolId": "s_1p_5b2f726c",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_1s_275705ec",
           "term": "1"
         }
       },
@@ -260,6 +205,98 @@
         },
         "b": {
           "symbolId": "s_1p_5b2f726c",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_1y_ba1fd871",
+        "a": {
+          "symbolId": "s_y_6bb501db",
+          "term": "X2"
+        },
+        "b": {
+          "symbolId": "s_1p_5b2f726c",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_20_801c7b7b",
+        "a": {
+          "symbolId": "s_w_e9055a7d",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_y_6bb501db",
+          "term": "H4"
+        },
+        "jog": {
+          "axis": "y",
+          "pos": 242,
+          "y": 242
+        }
+      },
+      {
+        "id": "w_22_af7b68f1",
+        "a": {
+          "symbolId": "s_y_6bb501db",
+          "term": "H3"
+        },
+        "b": {
+          "symbolId": "s_y_6bb501db",
+          "term": "H4"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 484,
+          "x": 484
+        }
+      },
+      {
+        "id": "w_23_6fd62a14",
+        "a": {
+          "symbolId": "s_y_6bb501db",
+          "term": "H1"
+        },
+        "b": {
+          "symbolId": "s_y_6bb501db",
+          "term": "H2"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 484,
+          "x": 484
+        }
+      },
+      {
+        "id": "w_24_733e7d2d",
+        "a": {
+          "symbolId": "s_s_d61ddaf5",
+          "term": "PE"
+        },
+        "b": {
+          "symbolId": "s_26_17b3be34",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_27_31e9a069",
+        "a": {
+          "symbolId": "s_26_17b3be34",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_16_13bb17a3",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_28_25721bea",
+        "a": {
+          "symbolId": "s_1p_5b2f726c",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_26_17b3be34",
           "term": "1"
         }
       }

@@ -955,4 +955,11 @@ describe("sim engine", () => {
       expect(snap.runtime[hlDone.device.id].lit).toBe(false);
     });
   });
+
+  it("runs ex06 with isolator properly", async () => {
+    const { ex06Motor3phDol } = await import("../examplesBuilder");
+    const c = ex06Motor3phDol();
+    const snap0 = run(c, [], 2);
+    expect(snap0.faults).toEqual([]);
+  });
 });

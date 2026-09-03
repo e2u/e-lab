@@ -26,7 +26,7 @@ describe("autoLayoutCircuit", () => {
     });
     const brkSym = layout.symbols.find((s) => {
       const dev = layout.devices.find((d) => d.id === s.deviceId);
-      return dev?.kind === "breaker-3p";
+      return dev?.kind === "breaker-3p" || dev?.kind === "overload";
     });
 
     expect(mainsSym).toBeDefined();

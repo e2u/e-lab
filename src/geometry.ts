@@ -62,21 +62,37 @@ export function applyFlip(
 
 function lookupTerminal(v: VariantDef, kind: string, termId: string): TerminalDef | undefined {
   let term = v.terminals.find((t) => t.id === termId);
-  if (!term && (kind === "breaker-3p" || kind === "isolator" || kind === "overload")) {
-    const aliasMap: Record<string, string> = {
-      "1": "L1",
-      "3": "L2",
-      "5": "L3",
-      "2": "T1",
-      "4": "T2",
-      "6": "T3",
-      L1: "1",
-      L2: "3",
-      L3: "5",
-      T1: "2",
-      T2: "4",
-      T3: "6",
-    };
+  if (!term && (kind === "breaker-3p" || kind === "isolator" || kind === "overload" || kind === "contactor")) {
+    const aliasMap: Record<string, string> =
+      kind === "isolator"
+        ? {
+            "1": "L1",
+            "3": "L2",
+            "5": "L3",
+            "2": "T1",
+            "4": "T2",
+            "6": "T3",
+            L1: "1",
+            L2: "3",
+            L3: "5",
+            T1: "2",
+            T2: "4",
+            T3: "6",
+          }
+        : {
+            "5": "L3",
+            "3": "L2",
+            "1": "L1",
+            "6": "T3",
+            "4": "T2",
+            "2": "T1",
+            L3: "5",
+            L2: "3",
+            L1: "1",
+            T3: "6",
+            T2: "4",
+            T1: "2",
+          };
     const mapped = aliasMap[termId];
     if (mapped) term = v.terminals.find((t) => t.id === mapped);
   }

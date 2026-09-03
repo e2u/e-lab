@@ -123,7 +123,11 @@
         "variant": "coil",
         "x": 34,
         "y": 7,
-        "rot": 90
+        "rot": 90,
+        "tagOffset": {
+          "dx": 1.109,
+          "dy": -0.708
+        }
       },
       {
         "id": "s_1q_c89d1cd1",
@@ -147,7 +151,11 @@
         "variant": "body",
         "x": 31,
         "y": 7,
-        "rot": 0
+        "rot": 0,
+        "tagOffset": {
+          "dx": -2.305,
+          "dy": -2.655
+        }
       },
       {
         "id": "s_1v_ff74f208",
@@ -155,7 +163,11 @@
         "variant": "body",
         "x": 15,
         "y": 11,
-        "rot": 270
+        "rot": 270,
+        "tagOffset": {
+          "dx": 0.904,
+          "dy": -1.882
+        }
       },
       {
         "id": "s_29_14fc3b7d",

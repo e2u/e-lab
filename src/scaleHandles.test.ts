@@ -182,35 +182,73 @@ describe("Symbol Scale & Control Handles", () => {
     const b = symbolBounds(c, symbol);
     expect(b).toEqual({ x: 5, y: 5, w: 6, h: 4 });
 
-    // Primary terminals: L1(1, 0), L2(3, 0), L3(5, 0), T1(1, 4), T2(3, 4), T3(5, 4)
-    const tL1 = terminalWorld(c, { symbolId: symbol.id, term: "L1" });
-    const tL2 = terminalWorld(c, { symbolId: symbol.id, term: "L2" });
+    // Primary terminals: L3(1, 0), L2(3, 0), L1(5, 0), T3(1, 4), T2(3, 4), T1(5, 4)
     const tL3 = terminalWorld(c, { symbolId: symbol.id, term: "L3" });
-    const tT1 = terminalWorld(c, { symbolId: symbol.id, term: "T1" });
-    const tT2 = terminalWorld(c, { symbolId: symbol.id, term: "T2" });
+    const tL2 = terminalWorld(c, { symbolId: symbol.id, term: "L2" });
+    const tL1 = terminalWorld(c, { symbolId: symbol.id, term: "L1" });
     const tT3 = terminalWorld(c, { symbolId: symbol.id, term: "T3" });
+    const tT2 = terminalWorld(c, { symbolId: symbol.id, term: "T2" });
+    const tT1 = terminalWorld(c, { symbolId: symbol.id, term: "T1" });
 
-    expect(tL1).toEqual({ x: (5 + 1) * 22, y: (5 + 0) * 22 });
+    expect(tL3).toEqual({ x: (5 + 1) * 22, y: (5 + 0) * 22 });
     expect(tL2).toEqual({ x: (5 + 3) * 22, y: (5 + 0) * 22 });
-    expect(tL3).toEqual({ x: (5 + 5) * 22, y: (5 + 0) * 22 });
-    expect(tT1).toEqual({ x: (5 + 1) * 22, y: (5 + 4) * 22 });
+    expect(tL1).toEqual({ x: (5 + 5) * 22, y: (5 + 0) * 22 });
+    expect(tT3).toEqual({ x: (5 + 1) * 22, y: (5 + 4) * 22 });
     expect(tT2).toEqual({ x: (5 + 3) * 22, y: (5 + 4) * 22 });
-    expect(tT3).toEqual({ x: (5 + 5) * 22, y: (5 + 4) * 22 });
+    expect(tT1).toEqual({ x: (5 + 5) * 22, y: (5 + 4) * 22 });
 
-    // Numeric aliases: 1->L1, 3->L2, 5->L3, 2->T1, 4->T2, 6->T3
-    const t1 = terminalWorld(c, { symbolId: symbol.id, term: "1" });
-    const t3 = terminalWorld(c, { symbolId: symbol.id, term: "3" });
+    // Numeric aliases: 5->L3, 3->L2, 1->L1, 6->T3, 4->T2, 2->T1
     const t5 = terminalWorld(c, { symbolId: symbol.id, term: "5" });
-    const t2 = terminalWorld(c, { symbolId: symbol.id, term: "2" });
-    const t4 = terminalWorld(c, { symbolId: symbol.id, term: "4" });
+    const t3 = terminalWorld(c, { symbolId: symbol.id, term: "3" });
+    const t1 = terminalWorld(c, { symbolId: symbol.id, term: "1" });
     const t6 = terminalWorld(c, { symbolId: symbol.id, term: "6" });
+    const t4 = terminalWorld(c, { symbolId: symbol.id, term: "4" });
+    const t2 = terminalWorld(c, { symbolId: symbol.id, term: "2" });
 
-    expect(t1).toEqual(tL1);
-    expect(t3).toEqual(tL2);
     expect(t5).toEqual(tL3);
-    expect(t2).toEqual(tT1);
-    expect(t4).toEqual(tT2);
+    expect(t3).toEqual(tL2);
+    expect(t1).toEqual(tL1);
     expect(t6).toEqual(tT3);
+    expect(t4).toEqual(tT2);
+    expect(t2).toEqual(tT1);
+  });
+
+  it("handles breaker-3p and contactor main terminals and aliases properly", () => {
+    const c = emptyCircuit();
+    const cb = addDevice(c, "breaker-3p", "CB1", "body", 5, 5);
+    const bCb = symbolBounds(c, cb.symbol);
+    expect(bCb).toEqual({ x: 5, y: 5, w: 6, h: 4 });
+
+    // Breaker 3p terminals: L3(1, 0), L2(3, 0), L1(5, 0), T3(1, 4), T2(3, 4), T1(5, 4)
+    const cbL3 = terminalWorld(c, { symbolId: cb.symbol.id, term: "L3" });
+    const cbL2 = terminalWorld(c, { symbolId: cb.symbol.id, term: "L2" });
+    const cbL1 = terminalWorld(c, { symbolId: cb.symbol.id, term: "L1" });
+    const cbT3 = terminalWorld(c, { symbolId: cb.symbol.id, term: "T3" });
+    const cbT2 = terminalWorld(c, { symbolId: cb.symbol.id, term: "T2" });
+    const cbT1 = terminalWorld(c, { symbolId: cb.symbol.id, term: "T1" });
+
+    expect(cbL3).toEqual({ x: (5 + 1) * 22, y: (5 + 0) * 22 });
+    expect(cbL2).toEqual({ x: (5 + 3) * 22, y: (5 + 0) * 22 });
+    expect(cbL1).toEqual({ x: (5 + 5) * 22, y: (5 + 0) * 22 });
+    expect(cbT3).toEqual({ x: (5 + 1) * 22, y: (5 + 4) * 22 });
+    expect(cbT2).toEqual({ x: (5 + 3) * 22, y: (5 + 4) * 22 });
+    expect(cbT1).toEqual({ x: (5 + 5) * 22, y: (5 + 4) * 22 });
+
+    // Contactor main terminals: L1(0, 1), L2(0, 3), L3(0, 5), T1(6, 1), T2(6, 3), T3(6, 5)
+    const km = addDevice(c, "contactor", "KM1", "main", 10, 10);
+    const kmL1 = terminalWorld(c, { symbolId: km.symbol.id, term: "L1" });
+    const kmL2 = terminalWorld(c, { symbolId: km.symbol.id, term: "L2" });
+    const kmL3 = terminalWorld(c, { symbolId: km.symbol.id, term: "L3" });
+    const kmT1 = terminalWorld(c, { symbolId: km.symbol.id, term: "T1" });
+    const kmT2 = terminalWorld(c, { symbolId: km.symbol.id, term: "T2" });
+    const kmT3 = terminalWorld(c, { symbolId: km.symbol.id, term: "T3" });
+
+    expect(kmL1).toEqual({ x: (10 + 0) * 22, y: (10 + 1) * 22 });
+    expect(kmL2).toEqual({ x: (10 + 0) * 22, y: (10 + 3) * 22 });
+    expect(kmL3).toEqual({ x: (10 + 0) * 22, y: (10 + 5) * 22 });
+    expect(kmT1).toEqual({ x: (10 + 6) * 22, y: (10 + 1) * 22 });
+    expect(kmT2).toEqual({ x: (10 + 6) * 22, y: (10 + 3) * 22 });
+    expect(kmT3).toEqual({ x: (10 + 6) * 22, y: (10 + 5) * 22 });
   });
 
   it("scales rotated symbols (90, 180, 270 deg) keeping opposite anchor fixed", () => {

@@ -647,8 +647,8 @@ function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
       break;
     case "breaker-3p":
       if (on) {
-        out.push(["L1", "T1"], ["L2", "T2"], ["L3", "T3"]);
-        out.push(["1", "2"], ["3", "4"], ["5", "6"]);
+        out.push(["L3", "T3"], ["L2", "T2"], ["L1", "T1"]);
+        out.push(["5", "6"], ["3", "4"], ["1", "2"]);
       }
       break;
     case "isolator":
@@ -665,15 +665,18 @@ function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
       break;
     case "overload":
       if (!trip) {
-        add3(out);
-        out.push(["1", "2"], ["3", "4"], ["5", "6"]);
+        out.push(["L3", "T3"], ["L2", "T2"], ["L1", "T1"]);
+        out.push(["5", "6"], ["3", "4"], ["1", "2"]);
         out.push(["95", "96"]);
       } else {
         out.push(["97", "98"]);
       }
       break;
     case "contactor":
-      if (e) add3(out);
+      if (e) {
+        out.push(["L1", "T1"], ["L2", "T2"], ["L3", "T3"]);
+        out.push(["1", "2"], ["3", "4"], ["5", "6"]);
+      }
       if (rt.energized) {
         out.push(["13", "14"], ["43", "44"]);
       } else {

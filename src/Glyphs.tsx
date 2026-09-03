@@ -19,6 +19,18 @@ function Txt({x = 0, y = 0, transform, ...rest}: SVGProps<SVGTextElement>) {
     return <text x={x} y={y} transform={t} {...rest} />;
 }
 
+function UnflipGroup({cx = 0, cy = 0, transform, children, ...rest}: SVGProps<SVGGElement> & { cx?: number; cy?: number }) {
+    const {fx, fy, rot} = useContext(FlipCtx);
+    const ncx = Number(cx);
+    const ncy = Number(cy);
+    const unflip =
+        fx === 1 && fy === 1 && (!rot || rot === 0)
+            ? undefined
+            : `translate(${ncx} ${ncy}) scale(${fx} ${fy}) rotate(${-rot}) translate(${-ncx} ${-ncy})`;
+    const t = [unflip, transform].filter(Boolean).join(" ") || undefined;
+    return <g transform={t} {...rest}>{children}</g>;
+}
+
 function SVGBase(props: SVGProps<SVGSVGElement> & { w: number; h: number; baseW?: number; baseH?: number }) {
     const {w, h, baseW, baseH, children, ...rest} = props;
     const viewW = (baseW ?? w) * GRID;
@@ -1345,9 +1357,9 @@ function GlyphBody({
         }
         const stroke = tripped ? "#c4391d" : (hot ? "#c45a12" : ink);
         const polesData = [
-            { cx: 1 * GRID, topLab: "L1", botLab: "T1" },
+            { cx: 1 * GRID, topLab: "L3", botLab: "T3" },
             { cx: 3 * GRID, topLab: "L2", botLab: "T2" },
-            { cx: 5 * GRID, topLab: "L3", botLab: "T3" },
+            { cx: 5 * GRID, topLab: "L1", botLab: "T1" },
         ];
         return (
             <S w={w} h={h}>
@@ -1393,9 +1405,9 @@ function GlyphBody({
         const yTop = y1 + r + gap;
         const yBot = y2 - r - gap;
         const polesData = [
-            { cx: 1 * GRID, topLab: "L1", botLab: "T1" },
+            { cx: 1 * GRID, topLab: "L3", botLab: "T3" },
             { cx: 3 * GRID, topLab: "L2", botLab: "T2" },
-            { cx: 5 * GRID, topLab: "L3", botLab: "T3" },
+            { cx: 5 * GRID, topLab: "L1", botLab: "T1" },
         ];
 
         return (
@@ -2327,12 +2339,14 @@ function GlyphBody({
                         />
                     </g>
                 )}
-                <Txt x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="central" fontSize="24" fill={ink} fontWeight="700">
-                    M
-                </Txt>
-                <Txt x={cx} y={cy + 16} textAnchor="middle" dominantBaseline="central" fontSize="10.5" fill={ink} fontWeight="600" opacity="0.9">
-                    3~ {powerText}
-                </Txt>
+                <UnflipGroup cx={cx} cy={cy}>
+                    <text x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="central" fontSize="24" fill={ink} fontWeight="700">
+                        M
+                    </text>
+                    <text x={cx} y={cy + 16} textAnchor="middle" dominantBaseline="central" fontSize="10.5" fill={ink} fontWeight="600" opacity="0.9">
+                        3~ {powerText}
+                    </text>
+                </UnflipGroup>
             </S>
         );
     }
@@ -2382,12 +2396,14 @@ function GlyphBody({
                         />
                     </g>
                 )}
-                <Txt x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="central" fontSize="24" fill={ink} fontWeight="700">
-                    M
-                </Txt>
-                <Txt x={cx} y={cy + 16} textAnchor="middle" dominantBaseline="central" fontSize="10.5" fill={ink} fontWeight="600" opacity="0.9">
-                    1~ {powerText}
-                </Txt>
+                <UnflipGroup cx={cx} cy={cy}>
+                    <text x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="central" fontSize="24" fill={ink} fontWeight="700">
+                        M
+                    </text>
+                    <text x={cx} y={cy + 16} textAnchor="middle" dominantBaseline="central" fontSize="10.5" fill={ink} fontWeight="600" opacity="0.9">
+                        1~ {powerText}
+                    </text>
+                </UnflipGroup>
             </S>
         );
     }
@@ -2433,9 +2449,11 @@ function GlyphBody({
                     </g>
                 )}
                 <circle cx={cx} cy={cy} r="8" fill="#1b1a16"/>
-                <Txt x={cx} y={cy + 36} textAnchor="middle" dominantBaseline="central" className="sym-tag">
-                    M DC {powerText}
-                </Txt>
+                <UnflipGroup cx={cx} cy={cy}>
+                    <text x={cx} y={cy + 36} textAnchor="middle" dominantBaseline="central" className="sym-tag">
+                        M DC {powerText}
+                    </text>
+                </UnflipGroup>
             </S>
         );
     }

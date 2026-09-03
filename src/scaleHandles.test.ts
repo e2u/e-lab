@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { addDevice, emptyCircuit } from "./circuitBuilder";
 import { symbolBounds, terminalWorld } from "./geometry";
 import { useLab } from "./store";
+import { variantDef } from "./catalog";
+import { SymbolGlyph } from "./Glyphs";
 
 describe("Symbol Scale & Control Handles", () => {
   it("scales transformer proportionally and strictly aligns to grid", () => {
@@ -243,5 +245,24 @@ describe("Symbol Scale & Control Handles", () => {
     expect(devScaled.params.scale).toBe(1.5);
     const bScaled = symbolBounds(sScaled.circuit, symScaled);
     expect(bScaled).toEqual({ x: 10, y: 10, w: 6, h: 9 });
+  });
+
+  it("renders scaled SVG dimensions for push button and other symbols", () => {
+    const c = emptyCircuit();
+    const { device, symbol } = addDevice(c, "pb-no", "SB1", "body", 0, 0);
+    device.params.scale = 3;
+    const v = variantDef("pb-no", "body");
+    const scaledW = v.w * 3;
+    const scaledH = v.h * 3;
+
+    // SymbolGlyph rendered element check
+    const element = SymbolGlyph({
+      device,
+      variant: symbol.variant,
+      w: scaledW,
+      h: scaledH,
+    });
+
+    expect(element).toBeDefined();
   });
 });

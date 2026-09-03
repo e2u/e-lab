@@ -999,15 +999,18 @@ function GlyphBody({
     const w = bw;
     const h = bh;
 
-    const S = (p: SVGProps<SVGSVGElement> & { w?: number; h?: number; baseW?: number; baseH?: number }) => (
-        <SVGBase
-            w={scaledW}
-            h={scaledH}
-            baseW={p.baseW ?? p.w ?? bw}
-            baseH={p.baseH ?? p.h ?? bh}
-            {...p}
-        />
-    );
+    const S = (p: SVGProps<SVGSVGElement> & { w?: number; h?: number; baseW?: number; baseH?: number }) => {
+        const { w: _pw, h: _ph, baseW: _pbw, baseH: _pbh, ...rest } = p;
+        return (
+            <SVGBase
+                w={scaledW}
+                h={scaledH}
+                baseW={p.baseW ?? p.w ?? bw}
+                baseH={p.baseH ?? p.h ?? bh}
+                {...rest}
+            />
+        );
+    };
 
     const hot = Boolean(rt?.energized);
     const closed = Boolean(rt && (kind.includes("nc") || kind === "estop" || kind === "estop-nc" ? !rt.actuated : rt.actuated));

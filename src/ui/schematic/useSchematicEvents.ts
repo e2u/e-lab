@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type R
 import { findComplementaryJogFromPolyline, findPortAtPoint, findWireAtPoint, hitWireSegment, portsEqual, wireRoute, wiresInRect } from "../../geometry";
 import { normalizeRect, symbolsInRect } from "../../groups";
 import { useLab } from "../../store";
+import { variantDef } from "../../catalog";
 import { GRID, type Circuit, type Device, type Mode, type PortRef, type SymbolInst, type Wire, type WireJog } from "../../types";
 import type { MenuPos } from "../ContextMenu";
 import { interact, triggerHaptic } from "./interact";
@@ -32,6 +33,17 @@ export function useSchematicEvents({
     dy: number;
     origins: Record<string, { x: number; y: number }>;
     wireJogOrigins: Record<string, WireJog>;
+    pushedHistory?: boolean;
+  } | null>(null);
+  const resizeDrag = useRef<{
+    symbolId: string;
+    deviceId: string;
+    corner: "tl" | "tr" | "br" | "bl";
+    baseW: number;
+    baseH: number;
+    anchorX: number;
+    anchorY: number;
+    rot: number;
     pushedHistory?: boolean;
   } | null>(null);
   const wireDrag = useRef<{
@@ -74,6 +86,7 @@ export function useSchematicEvents({
     const handleGlobalPointerUp = () => {
       cancelLongPress();
       drag.current = null;
+      resizeDrag.current = null;
       wireDrag.current = null;
       tagDrag.current = null;
       junctionClick.current = null;
@@ -343,6 +356,68 @@ export function useSchematicEvents({
     }
 
     const world = { x: p.x * GRID, y: p.y * GRID };
+    if (resizeDrag.current && mode === "edit") {
+      const rd = resizeDrag.current;
+      if (!rd.pushedHistory) {
+        useLab.getState().pushHistory();
+        rd.pushedHistory = true;
+      }
+      let dx = 0;
+      let dy = 0;
+      if (rd.corner === "br") {
+        dx = p.x - rd.anchorX;
+        dy = p.y - rd.anchorY;
+      } else if (rd.corner === "bl") {
+        dx = rd.anchorX - p.x;
+        dy = p.y - rd.anchorY;
+      } else if (rd.corner === "tr") {
+        dx = p.x - rd.anchorX;
+        dy = rd.anchorY - p.y;
+      } else if (rd.corner === "tl") {
+        dx = rd.anchorX - p.x;
+        dy = rd.anchorY - p.y;
+      }
+
+      const gcd = (a: number, b: number): number => {
+        a = Math.round(Math.abs(a));
+        b = Math.round(Math.abs(b));
+        while (b) {
+          const t = b;
+          b = a % b;
+          a = t;
+        }
+        return a || 1;
+      };
+      const g = gcd(rd.baseW, rd.baseH);
+
+      const sw = dx / rd.baseW;
+      const sh = dy / rd.baseH;
+      const sRaw = (sw + sh) / 2;
+      const k = Math.max(1, Math.min(20 * g, Math.round(sRaw * g)));
+      const s = k / g;
+
+      const newW = rd.baseW * s;
+      const newH = rd.baseH * s;
+
+      let newX = rd.anchorX;
+      let newY = rd.anchorY;
+      if (rd.corner === "br") {
+        newX = rd.anchorX;
+        newY = rd.anchorY;
+      } else if (rd.corner === "bl") {
+        newX = rd.anchorX - newW;
+        newY = rd.anchorY;
+      } else if (rd.corner === "tr") {
+        newX = rd.anchorX;
+        newY = rd.anchorY - newH;
+      } else if (rd.corner === "tl") {
+        newX = rd.anchorX - newW;
+        newY = rd.anchorY - newH;
+      }
+
+      useLab.getState().scaleSymbol(rd.symbolId, s, newX, newY);
+      return;
+    }
     if (marqueeRef.current) {
       marqueeRef.current = { ...marqueeRef.current, x1: p.x, y1: p.y };
       setMarqueeView({
@@ -483,6 +558,7 @@ export function useSchematicEvents({
     if (marqueeRef.current) {
       finishMarquee();
       drag.current = null;
+      resizeDrag.current = null;
       wireDrag.current = null;
       tagDrag.current = null;
       junctionClick.current = null;
@@ -514,6 +590,7 @@ export function useSchematicEvents({
     const jc = junctionClick.current;
     junctionClick.current = null;
     drag.current = null;
+    resizeDrag.current = null;
     wireDrag.current = null;
     tagDrag.current = null;
     if (jc && Math.hypot(e.clientX - jc.x, e.clientY - jc.y) < 6) {
@@ -895,6 +972,65 @@ export function useSchematicEvents({
     useLab.getState().setHoverPort(null);
   };
 
+  const onResizeHandlePointerDown = (
+    e: PointerEvent<SVGElement>,
+    sym: SymbolInst,
+    dev: Device,
+    corner: "tl" | "tr" | "br" | "bl",
+  ) => {
+    blurActiveInput();
+    pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
+    e.stopPropagation();
+    const lab = useLab.getState();
+    if (lab.mode !== "edit" || lab.placing) return;
+    cancelLongPress();
+    drag.current = null;
+    wireDrag.current = null;
+    tagDrag.current = null;
+
+    const v = variantDef(dev.kind, sym.variant);
+    const initialScale = dev.params?.scale ?? 1;
+    const isRot = sym.rot === 90 || sym.rot === 270;
+    const Bw = isRot ? v.h : v.w;
+    const Bh = isRot ? v.w : v.h;
+    const W0 = Bw * initialScale;
+    const H0 = Bh * initialScale;
+    const X0 = sym.x;
+    const Y0 = sym.y;
+
+    let anchorX = X0;
+    let anchorY = Y0;
+    if (corner === "br") {
+      anchorX = X0;
+      anchorY = Y0;
+    } else if (corner === "bl") {
+      anchorX = X0 + W0;
+      anchorY = Y0;
+    } else if (corner === "tr") {
+      anchorX = X0;
+      anchorY = Y0 + H0;
+    } else if (corner === "tl") {
+      anchorX = X0 + W0;
+      anchorY = Y0 + H0;
+    }
+
+    resizeDrag.current = {
+      symbolId: sym.id,
+      deviceId: dev.id,
+      corner,
+      baseW: Bw,
+      baseH: Bh,
+      anchorX,
+      anchorY,
+      rot: sym.rot,
+      pushedHistory: false,
+    };
+
+    try {
+      svgRef.current?.setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
   const onPlaceOverlayPointerDown = (e: PointerEvent<SVGRectElement>) => {
     blurActiveInput();
     e.stopPropagation();
@@ -933,6 +1069,7 @@ export function useSchematicEvents({
     onTagPointerDown,
     onTagDoubleClick,
     onTagContextMenu,
+    onResizeHandlePointerDown,
     onSymbolPointerUp,
     onSymbolPointerLeave,
     onPortPointerDown,

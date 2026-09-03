@@ -23,6 +23,8 @@ export function Schematic() {
   const editSubMode = useLab((s) => s.editSubMode);
   const placing = useLab((s) => s.placing);
   const placingRot = useLab((s) => s.placingRot);
+  const placingFlipX = useLab((s) => s.placingFlipX);
+  const placingFlipY = useLab((s) => s.placingFlipY);
   const selected = useLab((s) => s.selected);
   const selectedIds = useLab((s) => s.selectedIds);
   const selectedWireIds = useLab((s) => s.selectedWireIds);
@@ -105,6 +107,7 @@ export function Schematic() {
     onTagPointerDown,
     onTagDoubleClick,
     onTagContextMenu,
+    onResizeHandlePointerDown,
     onSymbolPointerUp,
     onSymbolPointerLeave,
     onPortPointerDown,
@@ -176,6 +179,7 @@ export function Schematic() {
             onTagPointerDown={onTagPointerDown}
             onTagDoubleClick={onTagDoubleClick}
             onTagContextMenu={onTagContextMenu}
+            onResizeHandlePointerDown={onResizeHandlePointerDown}
             onSymbolPointerUp={onSymbolPointerUp}
             onSymbolPointerLeave={onSymbolPointerLeave}
           />
@@ -210,6 +214,8 @@ export function Schematic() {
             cursor={cursor}
             placing={placing}
             placingRot={placingRot}
+            placingFlipX={placingFlipX}
+            placingFlipY={placingFlipY}
             selected={selected}
             routes={routes}
             marqueeView={marqueeView}

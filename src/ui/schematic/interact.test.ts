@@ -182,4 +182,32 @@ describe("schematic interact dispatcher", () => {
     expect(s1?.y).toBe(10);
     expect(s2?.y).toBe(10);
   });
+
+  it("places breaker-1p and breaker-3p with default vertical orientation and right-facing arc", () => {
+    useLab.setState({
+      mode: "edit",
+      circuit: {
+        devices: [],
+        symbols: [],
+        wires: [],
+      },
+    });
+
+    useLab.getState().setPlacing("breaker-1p");
+    expect(useLab.getState().placingFlipX).toBe(false);
+    expect(useLab.getState().placingFlipY).toBe(false);
+    expect(useLab.getState().placingRot).toBe(0);
+
+    useLab.getState().placeAt(5, 5);
+    const sym1 = useLab.getState().circuit.symbols[0];
+    expect(sym1.flipX).toBe(false);
+    expect(sym1.rot).toBe(0);
+
+    useLab.getState().setPlacing("breaker-3p");
+    expect(useLab.getState().placingRot).toBe(0);
+
+    useLab.getState().placeAt(15, 15);
+    const sym2 = useLab.getState().circuit.symbols[1];
+    expect(sym2.rot).toBe(0);
+  });
 });

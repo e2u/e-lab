@@ -57,8 +57,8 @@ export function Bench() {
       d.kind.startsWith("temp-") ||
       d.kind.startsWith("pressure-") ||
       d.kind.startsWith("flow-") ||
-      d.kind === "prox" ||
-      d.kind === "photo"
+      d.kind.startsWith("prox") ||
+      d.kind.startsWith("photo")
     );
   });
 
@@ -429,7 +429,7 @@ export function Bench() {
             }
 
             // Proximity Sensors
-            if (d.kind === "prox") {
+            if (d.kind === "prox" || d.kind === "prox-no" || d.kind === "prox-nc") {
               const isHit = Boolean(process.proxHit);
               return (
                 <div
@@ -457,7 +457,7 @@ export function Bench() {
             }
 
             // Photoelectric Sensors
-            if (d.kind === "photo") {
+            if (d.kind === "photo" || d.kind === "photo-no" || d.kind === "photo-nc") {
               const isHit = Boolean(process.photoHit);
               return (
                 <div

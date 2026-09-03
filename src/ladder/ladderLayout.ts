@@ -67,9 +67,15 @@ export function isContactClosed(
     case "limit-nc":
       return !(rt?.actuated ?? Boolean(process.limitHit));
     case "prox":
+    case "prox-no":
       return Boolean(process.proxHit);
+    case "prox-nc":
+      return !Boolean(process.proxHit);
     case "photo":
+    case "photo-no":
       return Boolean(process.photoHit);
+    case "photo-nc":
+      return !Boolean(process.photoHit);
     case "temp-no":
       return (process.temperature ?? 25) >= (device.params.setpoint ?? 50);
     case "temp-nc":
@@ -151,8 +157,12 @@ function getContactType(kind: DeviceKind, variant?: string): LadderContactType {
     case "foot":
       return "foot-nc";
     case "prox":
+    case "prox-no":
+    case "prox-nc":
       return "prox";
     case "photo":
+    case "photo-no":
+    case "photo-nc":
       return "photo";
     case "selector-2":
     case "selector-3":
@@ -780,8 +790,8 @@ export function buildLadderDiagram(
       dev.kind === "flow-no" ||
       dev.kind === "flow-nc" ||
       dev.kind === "float" ||
-      dev.kind === "prox" ||
-      dev.kind === "photo" ||
+      dev.kind.startsWith("prox") ||
+      dev.kind.startsWith("photo") ||
       dev.kind === "toggle" ||
       dev.kind.startsWith("toggle-") ||
       dev.kind === "breaker-1p" ||
@@ -1108,7 +1118,11 @@ export function buildLadderDiagram(
       case "float":
       case "foot-no":
       case "prox":
+      case "prox-no":
+      case "prox-nc":
       case "photo":
+      case "photo-no":
+      case "photo-nc":
         return "13-14";
       case "nc":
       case "timer-nc":

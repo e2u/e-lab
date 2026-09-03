@@ -58,8 +58,8 @@ export function LadderContactGlyph({
       device.kind === "rcd" ||
       device.kind === "fuse" ||
       device.kind === "overload" ||
-      device.kind === "prox" ||
-      device.kind === "photo");
+      device.kind.startsWith("prox") ||
+      device.kind.startsWith("photo"));
 
   const wireColor = isRungLive ? "#f59e0b" : "var(--ladder-wire, #64748b)";
   const conductingColor = isClosed && isRungLive ? "#10b981" : isClosed ? "#3b82f6" : "#ef4444";

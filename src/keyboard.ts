@@ -575,7 +575,11 @@ function initCoreCommands() {
     shortcuts: ["KeyH", "h"],
     when: ({ state }) => state.mode === "edit",
     run: ({ state }) => {
-      state.flipSelected("h");
+      if (state.placing) {
+        state.flipPlacing?.("h");
+      } else {
+        state.flipSelected("h");
+      }
     },
   });
 
@@ -586,7 +590,11 @@ function initCoreCommands() {
     shortcuts: ["KeyV", "v"],
     when: ({ state }) => state.mode === "edit",
     run: ({ state }) => {
-      state.flipSelected("v");
+      if (state.placing) {
+        state.flipPlacing?.("v");
+      } else {
+        state.flipSelected("v");
+      }
     },
   });
 

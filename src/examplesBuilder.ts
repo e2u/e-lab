@@ -191,6 +191,8 @@ export function ex07OverloadAlarm(): Circuit {
   const kmMain = addSymbol(c, km.device.id, "main", 22, 4);
   const kmNo = addSymbol(c, km.device.id, "aux-no", 26, 18);
   const fr = addDevice(c, "overload", "FR1", "body", 30, 4);
+  const frNc = addSymbol(c, fr.device.id, "aux-nc", 15, 14);
+  const frNo = addSymbol(c, fr.device.id, "aux-no", 20, 22.5);
   const m = addDevice(c, "motor-3ph", "M1", "body", 38, 4, { power: 7.5 });
 
   const tc = addDevice(c, "transformer", "TC1", "body", 10, 14, { ratio: "480/120" });
@@ -219,8 +221,8 @@ export function ex07OverloadAlarm(): Circuit {
   // Control (Y=15 straight line)
   addWire(c, qf.symbol, "T1", tc.symbol, "H1");
   addWire(c, qf.symbol, "T2", tc.symbol, "H2");
-  addWire(c, tc.symbol, "X1", fr.symbol, "95");
-  addWire(c, fr.symbol, "96", stop.symbol, "1");
+  addWire(c, tc.symbol, "X1", frNc, "95");
+  addWire(c, frNc, "96", stop.symbol, "1");
   addWire(c, stop.symbol, "2", start.symbol, "1");
   addWire(c, stop.symbol, "2", kmNo, "13");
   addWire(c, start.symbol, "2", km.symbol, "A1");
@@ -233,9 +235,9 @@ export function ex07OverloadAlarm(): Circuit {
   addWire(c, hlRun.symbol, "2", tc.symbol, "X2");
 
   // Trip Alarm Branch via 97-98 (Y=24)
-  addWire(c, tc.symbol, "X1", fr.symbol, "97");
-  addWire(c, fr.symbol, "98", alTrip.symbol, "1");
-  addWire(c, fr.symbol, "98", horn.symbol, "1");
+  addWire(c, tc.symbol, "X1", frNo, "97");
+  addWire(c, frNo, "98", alTrip.symbol, "1");
+  addWire(c, frNo, "98", horn.symbol, "1");
   addWire(c, alTrip.symbol, "2", tc.symbol, "X2");
   addWire(c, horn.symbol, "2", tc.symbol, "X2");
   return c;
@@ -376,6 +378,7 @@ export function ex10DualStation(): Circuit {
   const kmMain = addSymbol(c, km.device.id, "main", 30, 4);
   const kmNo = addSymbol(c, km.device.id, "aux-no", 28, 22);
   const fr = addDevice(c, "overload", "FR1", "body", 38, 4);
+  const frNc = addSymbol(c, fr.device.id, "aux-nc", 12, 14);
   const m = addDevice(c, "motor-3ph", "M1", "body", 46, 4, { power: 5.5 });
 
   const tc = addDevice(c, "transformer", "TC1", "body", 8, 14, { ratio: "480/120" });
@@ -410,8 +413,8 @@ export function ex10DualStation(): Circuit {
   addWire(c, tc.symbol, "X2", pe.symbol, "1");
 
   // Series Stops (Y=15)
-  addWire(c, tc.symbol, "X1", fr.symbol, "95");
-  addWire(c, fr.symbol, "96", sb1Loc.symbol, "1");
+  addWire(c, tc.symbol, "X1", frNc, "95");
+  addWire(c, frNc, "96", sb1Loc.symbol, "1");
   addWire(c, sb1Loc.symbol, "2", sb2Rem.symbol, "1");
 
   // Parallel Starts & Self-Holding
@@ -449,6 +452,7 @@ export function ex11FwdRevInterlock(): Circuit {
   const kmRevLock = addSymbol(c, kmRev.device.id, "aux-nc", 28, 18);
 
   const fr = addDevice(c, "overload", "FR1", "body", 34, 4);
+  const frNc = addSymbol(c, fr.device.id, "aux-nc", 12, 18);
   const m = addDevice(c, "motor-3ph", "M1", "body", 42, 4, { power: 7.5 });
 
   const tc = addDevice(c, "transformer", "TC1", "body", 8, 18, { ratio: "480/120" });
@@ -491,8 +495,8 @@ export function ex11FwdRevInterlock(): Circuit {
   addWire(c, tc.symbol, "X2", pe.symbol, "1");
 
   // Control Circuit
-  addWire(c, tc.symbol, "X1", fr.symbol, "95");
-  addWire(c, fr.symbol, "96", stop.symbol, "1");
+  addWire(c, tc.symbol, "X1", frNc, "95");
+  addWire(c, frNc, "96", stop.symbol, "1");
 
   // Forward Branch (Y=19 straight line)
   addWire(c, stop.symbol, "2", fwd.symbol, "1");
@@ -772,6 +776,7 @@ export function ex15StarDeltaStarter(): Circuit {
   const ktNo = addSymbol(c, kt.device.id, "delayed-no", 22, 34);
 
   const fr = addDevice(c, "overload", "FR1", "body", 30, 4);
+  const frNc = addSymbol(c, fr.device.id, "aux-nc", 12, 18);
   const m = addDevice(c, "motor-3ph", "M1", "body", 38, 4, { power: 11 });
 
   const tc = addDevice(c, "transformer", "TC1", "body", 8, 18, { ratio: "480/120" });
@@ -809,8 +814,8 @@ export function ex15StarDeltaStarter(): Circuit {
   addWire(c, tc.symbol, "X2", pe.symbol, "1");
 
   // Main Rung (Y=19 straight line)
-  addWire(c, tc.symbol, "X1", fr.symbol, "95");
-  addWire(c, fr.symbol, "96", stop.symbol, "1");
+  addWire(c, tc.symbol, "X1", frNc, "95");
+  addWire(c, frNc, "96", stop.symbol, "1");
   addWire(c, stop.symbol, "2", start.symbol, "1");
   addWire(c, stop.symbol, "2", kmMainNo, "13");
   addWire(c, start.symbol, "2", kmMain.symbol, "A1");
@@ -1107,6 +1112,8 @@ export function ex20AutomatedCell(): Circuit {
   const kmSpindleMain = addSymbol(c, kmSpindle.device.id, "main", 30, 14);
   const kmSpindleNo = addSymbol(c, kmSpindle.device.id, "aux-no", 38, 34);
   const frSpindle = addDevice(c, "overload", "Spindle OL", "body", 38, 14);
+  const frSpindleNc = addSymbol(c, frSpindle.device.id, "aux-nc", 28, 30);
+  const frSpindleNo = addSymbol(c, frSpindle.device.id, "aux-no", 38, 48);
   const mSpindle = addDevice(c, "motor-3ph", "Main Spindle 15kW", "body", 46, 14, { power: 15 });
 
   // 4. Feed Axis Motor Branch (3.7kW, Y=22)
@@ -1194,8 +1201,8 @@ export function ex20AutomatedCell(): Circuit {
   // 120V Control Loop (Y=31 straight line across all switches)
   addWire(c, tc.symbol, "X1", estop.symbol, "11");
   addWire(c, estop.symbol, "12", temp.symbol, "1");
-  addWire(c, temp.symbol, "2", frSpindle.symbol, "95");
-  addWire(c, frSpindle.symbol, "96", stop.symbol, "1");
+  addWire(c, temp.symbol, "2", frSpindleNc, "95");
+  addWire(c, frSpindleNc, "96", stop.symbol, "1");
 
   addWire(c, stop.symbol, "2", start.symbol, "1");
   addWire(c, stop.symbol, "2", kmSpindleNo, "13");
@@ -1217,9 +1224,9 @@ export function ex20AutomatedCell(): Circuit {
   addWire(c, hlRun.symbol, "2", tc.symbol, "X2");
 
   // Overload trip alarm (Y=49)
-  addWire(c, tc.symbol, "X1", frSpindle.symbol, "97");
-  addWire(c, frSpindle.symbol, "98", horn.symbol, "1");
-  addWire(c, frSpindle.symbol, "98", al.symbol, "1");
+  addWire(c, tc.symbol, "X1", frSpindleNo, "97");
+  addWire(c, frSpindleNo, "98", horn.symbol, "1");
+  addWire(c, frSpindleNo, "98", al.symbol, "1");
   addWire(c, horn.symbol, "2", tc.symbol, "X2");
   addWire(c, al.symbol, "2", tc.symbol, "X2");
   return c;

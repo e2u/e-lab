@@ -12,6 +12,8 @@ interface InteractionOverlayProps {
   cursor: { x: number; y: number } | null;
   placing: string | null;
   placingRot?: Rot;
+  placingFlipX?: boolean;
+  placingFlipY?: boolean;
   selected: Selection | null;
   routes: Map<string, { x: number; y: number }[]>;
   marqueeView: { x0: number; y0: number; x1: number; y1: number } | null;
@@ -32,6 +34,8 @@ export const InteractionOverlay = memo(function InteractionOverlay({
   cursor,
   placing,
   placingRot = 0,
+  placingFlipX = false,
+  placingFlipY = false,
   selected,
   routes,
   marqueeView,
@@ -134,6 +138,8 @@ export const InteractionOverlay = memo(function InteractionOverlay({
           x: gx,
           y: gy,
           rot: placingRot,
+          flipX: placingFlipX,
+          flipY: placingFlipY,
         };
         return (
           <g
@@ -141,7 +147,15 @@ export const InteractionOverlay = memo(function InteractionOverlay({
             transform={glyphTransform(ghostSym, boxW, boxH)}
             pointerEvents="none"
           >
-            <SymbolGlyph device={ghost} variant={item.variant} w={boxW} h={boxH} />
+            <SymbolGlyph
+              device={ghost}
+              variant={item.variant}
+              w={boxW}
+              h={boxH}
+              flipX={ghostSym.flipX}
+              flipY={ghostSym.flipY}
+              rot={ghostSym.rot}
+            />
           </g>
         );
       })()}

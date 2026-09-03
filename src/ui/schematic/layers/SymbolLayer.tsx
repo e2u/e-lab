@@ -24,6 +24,13 @@ interface SymbolLayerProps {
   onTagPointerDown?: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onTagDoubleClick?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onTagContextMenu?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
+  onResizeHandlePointerDown?: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device, corner: "tl" | "tr" | "br" | "bl") => void;
+}
+
+function getCornerCursor(corner: "tl" | "tr" | "br" | "bl", rot: number = 0): string {
+  const isNwSe = corner === "tl" || corner === "br";
+  const isRotated = rot === 90 || rot === 270;
+  return isNwSe !== isRotated ? "nwse-resize" : "nesw-resize";
 }
 
 export const SymbolLayer = memo(function SymbolLayer({
@@ -42,6 +49,7 @@ export const SymbolLayer = memo(function SymbolLayer({
   onTagPointerDown,
   onTagDoubleClick,
   onTagContextMenu,
+  onResizeHandlePointerDown,
 }: SymbolLayerProps) {
   const selectedSym = selected?.type === "symbol" ? circuit.symbols.find((s) => s.id === selected.id) : null;
   const selectedDev = selectedSym ? circuit.devices.find((d) => d.id === selectedSym.deviceId) : null;
@@ -125,6 +133,39 @@ export const SymbolLayer = memo(function SymbolLayer({
                       pointerEvents="none"
                     />
                   )}
+                  {sel && dev.kind !== "junction" && (
+                    <g className="resize-handles">
+                      {([
+                        { corner: "tl" as const, cx: -4, cy: -4 },
+                        { corner: "tr" as const, cx: boxW * GRID + 4, cy: -4 },
+                        { corner: "br" as const, cx: boxW * GRID + 4, cy: boxH * GRID + 4 },
+                        { corner: "bl" as const, cx: -4, cy: boxH * GRID + 4 },
+                      ]).map(({ corner, cx, cy }) => (
+                        <g key={corner}>
+                          <rect
+                            x={cx - 3.5}
+                            y={cy - 3.5}
+                            width={7}
+                            height={7}
+                            fill="#ffffff"
+                            stroke="#2ca02c"
+                            strokeWidth={1.5}
+                            rx={1}
+                            pointerEvents="none"
+                          />
+                          <rect
+                            x={cx - 8}
+                            y={cy - 8}
+                            width={16}
+                            height={16}
+                            fill="transparent"
+                            style={{ cursor: getCornerCursor(corner, sym.rot) }}
+                            onPointerDown={(e) => onResizeHandlePointerDown?.(e, sym, dev, corner)}
+                          />
+                        </g>
+                      ))}
+                    </g>
+                  )}
                   {rt?.short && (
                     <rect
                       x={-6}
@@ -147,6 +188,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                 pressed={held.includes(dev.id) || Boolean(rt?.actuated)}
                 flipX={sym.flipX}
                 flipY={sym.flipY}
+                rot={sym.rot}
               />
               {dev.params.welded && (
                 <text x={4} y={-6} className="weld-tag" transform={textUnflipTransform(4, -6, sym.flipX, sym.flipY)}>

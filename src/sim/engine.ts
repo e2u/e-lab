@@ -519,8 +519,12 @@ function sensorActuated(device: Device, process: ProcessVars): boolean {
     case "flow-nc":
       return process.flow >= (set ?? 40);
     case "prox":
+    case "prox-no":
+    case "prox-nc":
       return process.proxHit;
     case "photo":
+    case "photo-no":
+    case "photo-nc":
       return process.photoHit;
     default:
       return false;
@@ -536,7 +540,9 @@ function isNc(kind: DeviceKind): boolean {
     kind === "temp-nc" ||
     kind === "pressure-nc" ||
     kind === "flow-nc" ||
-    kind === "foot-nc"
+    kind === "foot-nc" ||
+    kind === "prox-nc" ||
+    kind === "photo-nc"
   );
 }
 
@@ -577,7 +583,11 @@ function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
     case "flow-no":
     case "flow-nc":
     case "prox":
+    case "prox-no":
+    case "prox-nc":
     case "photo":
+    case "photo-no":
+    case "photo-nc":
       if (closedSwitch(device, rt)) {
         out.push(["1", "2"], ["3", "4"], ["11", "12"], ["13", "14"]);
       }
@@ -636,8 +646,16 @@ function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
       if (on) out.push(["1", "2"]);
       break;
     case "breaker-3p":
+      if (on) {
+        out.push(["L1", "T1"], ["L2", "T2"], ["L3", "T3"]);
+        out.push(["1", "2"], ["3", "4"], ["5", "6"]);
+      }
+      break;
     case "isolator":
-      if (on) add3(out);
+      if (on) {
+        add3(out);
+        out.push(["1", "2"], ["3", "4"], ["5", "6"]);
+      }
       break;
     case "rcd":
       if (on) {
@@ -648,6 +666,7 @@ function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
     case "overload":
       if (!trip) {
         add3(out);
+        out.push(["1", "2"], ["3", "4"], ["5", "6"]);
         out.push(["95", "96"]);
       } else {
         out.push(["97", "98"]);
@@ -736,6 +755,11 @@ function coilTerms(kind: DeviceKind): [string, string][] {
     case "transformer":
       return [
         ["H1", "H2"],
+        ["H1", "H3"],
+        ["H1", "H4"],
+        ["H2", "H3"],
+        ["H2", "H4"],
+        ["H3", "H4"],
         ["P1", "P2"],
       ];
     default:
@@ -983,10 +1007,18 @@ export function tick(
     guard += 1;
     for (const d of circuit.devices) {
       if (d.kind === "transformer") {
-        // Single-phase transformer: H1/H2 (or legacy P1/P2) -> X1/X2 (or legacy S1/S2)
+        // Single-phase transformer: Primary (H1..H4, P1/P2) -> Secondary (X1/X2, S1/S2)
         const in1Pots = nodePots(stamp, uf, nk(d.id, "H1")).length > 0 ? nodePots(stamp, uf, nk(d.id, "H1")) : nodePots(stamp, uf, nk(d.id, "P1"));
         const in2Pots = nodePots(stamp, uf, nk(d.id, "H2")).length > 0 ? nodePots(stamp, uf, nk(d.id, "H2")) : nodePots(stamp, uf, nk(d.id, "P2"));
-        if (hasVoltageBetween(in1Pots, in2Pots)) {
+        const in3Pots = nodePots(stamp, uf, nk(d.id, "H3"));
+        const in4Pots = nodePots(stamp, uf, nk(d.id, "H4"));
+        const energized =
+          hasVoltageBetween(in1Pots, in2Pots) ||
+          hasVoltageBetween(in1Pots, in4Pots) ||
+          hasVoltageBetween(in1Pots, in3Pots) ||
+          hasVoltageBetween(in2Pots, in4Pots) ||
+          hasVoltageBetween(in3Pots, in4Pots);
+        if (energized) {
           const x1Pots = nodePots(stamp, uf, nk(d.id, "X1"));
           const s1Pots = nodePots(stamp, uf, nk(d.id, "S1"));
           const alreadyStamped = x1Pots.some((p) => p.sourceId === `xf-${d.id}`) || s1Pots.some((p) => p.sourceId === `xf-${d.id}`);

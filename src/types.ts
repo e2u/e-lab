@@ -52,7 +52,11 @@ export type DeviceKind =
   | "flow-no"
   | "flow-nc"
   | "prox"
+  | "prox-no"
+  | "prox-nc"
   | "photo"
+  | "photo-no"
+  | "photo-nc"
   | "contactor"
   | "relay"
   | "timer-on"
@@ -270,4 +274,6 @@ export interface CatalogItem {
   prefix: string;
   creates: "device" | "attach";
   defaultRot?: Rot;
+  defaultFlipX?: boolean;
+  defaultFlipY?: boolean;
 }

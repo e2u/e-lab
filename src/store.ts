@@ -166,6 +166,8 @@ export interface LabState {
   clipboard: Circuit | null;
   placing: string | null;
   placingRot: Rot;
+  placingFlipX: boolean;
+  placingFlipY: boolean;
   wiringFrom: PortRef | null;
   history: Circuit[];
   future: Circuit[];
@@ -200,6 +202,7 @@ export interface LabState {
   setPlacing: (id: string | null) => void;
   setPlacingRot: (rot: Rot) => void;
   rotatePlacing: (dir?: 1 | -1) => void;
+  flipPlacing: (axis?: "h" | "v") => void;
   setHoverPort: (port: PortRef | null) => void;
   select: (sel: Selection | null, isolate?: boolean) => void;
   selectToggle: (id: string) => void;
@@ -222,6 +225,7 @@ export interface LabState {
   placeAt: (x: number, y: number, extraParams?: Partial<DeviceParams>) => void;
   quickAttachClampMeter: (wireId: string) => void;
   addCommentForSymbol: (symbolId: string) => void;
+  scaleSymbol: (symbolId: string, scale: number, x?: number, y?: number) => void;
   moveSymbol: (id: string, x: number, y: number) => void;
   moveGroup: (
     updates: { id: string; x: number; y: number }[],
@@ -397,6 +401,8 @@ export const useLab = create<LabState>((set, get) => ({
   clipboard: null,
   placing: null,
   placingRot: 0,
+  placingFlipX: false,
+  placingFlipY: false,
   wiringFrom: null,
   history: [],
   future: [],
@@ -549,12 +555,26 @@ export const useLab = create<LabState>((set, get) => ({
   },
   setPlacing: (id) => {
     let defaultRot: Rot = 0;
+    let defaultFlipX = false;
+    let defaultFlipY = false;
     if (id) {
       try {
-        defaultRot = catalogItem(id).defaultRot ?? 0;
+        const item = catalogItem(id);
+        defaultRot = item.defaultRot ?? 0;
+        defaultFlipX = Boolean(item.defaultFlipX);
+        defaultFlipY = Boolean(item.defaultFlipY);
       } catch {}
     }
-    set({ placing: id, placingRot: defaultRot, wiringFrom: null, selected: null, selectedIds: [], selectedWireIds: [] });
+    set({
+      placing: id,
+      placingRot: defaultRot,
+      placingFlipX: defaultFlipX,
+      placingFlipY: defaultFlipY,
+      wiringFrom: null,
+      selected: null,
+      selectedIds: [],
+      selectedWireIds: [],
+    });
   },
   setPlacingRot: (rot) => set({ placingRot: rot }),
   rotatePlacing: (dir = 1) => {
@@ -562,6 +582,21 @@ export const useLab = create<LabState>((set, get) => ({
     const step = dir === 1 ? 90 : 270;
     const next = (((cur + step) % 360) as Rot);
     set({ placingRot: next });
+  },
+  flipPlacing: (axis = "h") => {
+    const rot = get().placingRot ?? 0;
+    const localX = rot === 0 || rot === 180;
+    let flipX = Boolean(get().placingFlipX);
+    let flipY = Boolean(get().placingFlipY);
+    if (axis === "h") {
+      if (localX) flipX = !flipX;
+      else flipY = !flipY;
+    } else if (localX) {
+      flipY = !flipY;
+    } else {
+      flipX = !flipX;
+    }
+    set({ placingFlipX: flipX, placingFlipY: flipY });
   },
   setHoverPort: (port) => set({ hoverPort: port }),
   select: (sel, isolate = false) => {
@@ -705,6 +740,8 @@ export const useLab = create<LabState>((set, get) => ({
     if (!placing) return;
     const item = catalogItem(placing);
     const rotToUse = placingRot ?? item.defaultRot ?? 0;
+    const flipXToUse = get().placingFlipX ?? item.defaultFlipX;
+    const flipYToUse = get().placingFlipY ?? item.defaultFlipY;
     get().pushHistory();
     const next = clone(circuit);
     const gx = Math.round(x);
@@ -721,10 +758,12 @@ export const useLab = create<LabState>((set, get) => ({
           gy,
           extraParams ?? {},
           rotToUse,
+          flipXToUse,
+          flipYToUse,
         );
         host = created.device.id;
       } else {
-        addSymbol(next, host, item.variant, gx, gy, rotToUse);
+        addSymbol(next, host, item.variant, gx, gy, rotToUse, flipXToUse, flipYToUse);
       }
       const placed = next.symbols[next.symbols.length - 1];
       trackComponentPlaced(item.kind, item.group, next.symbols.length);
@@ -734,6 +773,8 @@ export const useLab = create<LabState>((set, get) => ({
         selectedIds: [placed.id],
         placing: null,
         placingRot: 0,
+        placingFlipX: false,
+        placingFlipY: false,
         wiringFrom: null,
         snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
         isDirty: true,
@@ -810,6 +851,8 @@ export const useLab = create<LabState>((set, get) => ({
       gy,
       { ...defaultParams, ...extraParams },
       rotToUse,
+      flipXToUse,
+      flipYToUse,
     );
     trackComponentPlaced(item.kind, item.group, next.symbols.length);
     set({
@@ -818,6 +861,8 @@ export const useLab = create<LabState>((set, get) => ({
       selectedIds: [created.symbol.id],
       placing: null,
       placingRot: 0,
+      placingFlipX: false,
+      placingFlipY: false,
       wiringFrom: null,
       snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
       isDirty: true,
@@ -901,6 +946,20 @@ export const useLab = create<LabState>((set, get) => ({
       snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
       isDirty: true,
     });
+  },
+
+  scaleSymbol: (symbolId, scale, x, y) => {
+    const next = clone(get().circuit);
+    const sym = next.symbols.find((s) => s.id === symbolId);
+    if (!sym) return;
+    if (x !== undefined) sym.x = Math.round(x);
+    if (y !== undefined) sym.y = Math.round(y);
+    const dev = next.devices.find((d) => d.id === sym.deviceId);
+    if (dev) {
+      if (!dev.params) dev.params = {};
+      dev.params.scale = scale;
+    }
+    set({ circuit: next, isDirty: true });
   },
 
   moveSymbol: (id, x, y) => {

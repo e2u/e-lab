@@ -111,6 +111,13 @@ function getVariantDisplayName(kind: string, variantKey: string): string {
       case "aux-no2": return t("comp.relayAuxNo2");
       case "aux-nc2": return t("comp.relayAuxNc2");
     }
+  } else if (kind === "overload") {
+    switch (variantKey) {
+      case "body":
+      case "main": return t("comp.overloadMain");
+      case "aux-no": return t("comp.overloadAuxNo");
+      case "aux-nc": return t("comp.overloadAuxNc");
+    }
   }
   return variantKey;
 }
@@ -1227,7 +1234,7 @@ export function Inspector() {
           </button>
         </div>
       )}
-      {dev.kind === "prox" && (
+      {(dev.kind === "prox" || dev.kind === "prox-no" || dev.kind === "prox-nc") && (
         <div className="inspector-process-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: "12px", fontWeight: "bold" }}>🧲 {t("inspector.sensorState")}</span>
@@ -1255,7 +1262,7 @@ export function Inspector() {
           </button>
         </div>
       )}
-      {dev.kind === "photo" && (
+      {(dev.kind === "photo" || dev.kind === "photo-no" || dev.kind === "photo-nc") && (
         <div className="inspector-process-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: "12px", fontWeight: "bold" }}>💡 {t("inspector.sensorState")}</span>

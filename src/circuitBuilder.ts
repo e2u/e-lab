@@ -17,6 +17,8 @@ export function addDevice(
   y: number,
   params: DeviceParams = {},
   rot: Rot = 0,
+  flipX?: boolean,
+  flipY?: boolean,
 ): { device: Device; symbol: SymbolInst } {
   const device: Device = { id: uid("d"), kind, tag, params };
   const symbol: SymbolInst = {
@@ -26,6 +28,8 @@ export function addDevice(
     x,
     y,
     rot,
+    ...(flipX !== undefined ? { flipX } : {}),
+    ...(flipY !== undefined ? { flipY } : {}),
   };
   circuit.devices.push(device);
   circuit.symbols.push(symbol);
@@ -39,6 +43,8 @@ export function addSymbol(
   x: number,
   y: number,
   rot: Rot = 0,
+  flipX?: boolean,
+  flipY?: boolean,
 ): SymbolInst {
   const device = circuit.devices.find((d) => d.id === deviceId);
   if (!device) throw new Error("device not found");
@@ -50,6 +56,8 @@ export function addSymbol(
     x,
     y,
     rot,
+    ...(flipX !== undefined ? { flipX } : {}),
+    ...(flipY !== undefined ? { flipY } : {}),
   };
   circuit.symbols.push(symbol);
   return symbol;

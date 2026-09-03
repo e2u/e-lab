@@ -1,30 +1,33 @@
 import {createContext, useContext, type SVGProps} from "react";
 import type {Device, DeviceRuntime} from "./types";
 import {GRID} from "./types";
+import {variantDef} from "./catalog.ts";
 
 const ink = "#1b1a16";
 
-const FlipCtx = createContext({fx: 1, fy: 1});
+const FlipCtx = createContext({fx: 1, fy: 1, rot: 0});
 
 function Txt({x = 0, y = 0, transform, ...rest}: SVGProps<SVGTextElement>) {
-    const {fx, fy} = useContext(FlipCtx);
+    const {fx, fy, rot} = useContext(FlipCtx);
     const nx = Number(x);
     const ny = Number(y);
     const unflip =
-        fx === 1 && fy === 1
+        fx === 1 && fy === 1 && (!rot || rot === 0)
             ? undefined
-            : `translate(${nx} ${ny}) scale(${fx} ${fy}) translate(${-nx} ${-ny})`;
+            : `translate(${nx} ${ny}) scale(${fx} ${fy}) rotate(${-rot}) translate(${-nx} ${-ny})`;
     const t = [unflip, transform].filter(Boolean).join(" ") || undefined;
     return <text x={x} y={y} transform={t} {...rest} />;
 }
 
-function S(props: SVGProps<SVGSVGElement> & { w: number; h: number }) {
-    const {w, h, children, ...rest} = props;
+function SVGBase(props: SVGProps<SVGSVGElement> & { w: number; h: number; baseW?: number; baseH?: number }) {
+    const {w, h, baseW, baseH, children, ...rest} = props;
+    const viewW = (baseW ?? w) * GRID;
+    const viewH = (baseH ?? h) * GRID;
     return (
         <svg
             width={w * GRID}
             height={h * GRID}
-            viewBox={`0 0 ${w * GRID} ${h * GRID}`}
+            viewBox={`0 0 ${viewW} ${viewH}`}
             overflow="visible"
             {...rest}
         >
@@ -55,42 +58,42 @@ function contactOperator(
     }
     if (extra === "temp") {
         return (
-            <Txt x={cx + 12} y={mid} fontSize="11" fill={ink}>
+            <Txt x={cx + 12} y={mid} dominantBaseline="central" fontSize="11" fill={ink}>
                 θ
             </Txt>
         );
     }
     if (extra === "press") {
         return (
-            <Txt x={cx + 12} y={mid} fontSize="10" fill={ink}>
+            <Txt x={cx + 12} y={mid} dominantBaseline="central" fontSize="10" fill={ink}>
                 P
             </Txt>
         );
     }
     if (extra === "float") {
         return (
-            <Txt x={cx + 12} y={mid} fontSize="10" fill={ink}>
+            <Txt x={cx + 12} y={mid} dominantBaseline="central" fontSize="10" fill={ink}>
                 ∇
             </Txt>
         );
     }
     if (extra === "prox") {
         return (
-            <Txt x={cx + 12} y={mid} fontSize="10" fill={ink}>
+            <Txt x={cx + 12} y={mid} dominantBaseline="central" fontSize="10" fill={ink}>
                 PR
             </Txt>
         );
     }
     if (extra === "photo") {
         return (
-            <Txt x={cx + 12} y={mid} fontSize="10" fill={ink}>
+            <Txt x={cx + 12} y={mid} dominantBaseline="central" fontSize="10" fill={ink}>
                 PE
             </Txt>
         );
     }
     if (extra === "foot") {
         return (
-            <Txt x={cx + 10} y={mid - 14} fontSize="9" fill={ink}>
+            <Txt x={cx + 10} y={mid - 14} dominantBaseline="central" fontSize="9" fill={ink}>
                 FS
             </Txt>
         );
@@ -117,47 +120,56 @@ function closedSlash(xL: number, xR: number, cy: number, barH: number) {
 const OPEN_DROP = 16;
 const OPEN_GAP = 3;
 
-/** NEMA timed contact: N.O.T.C (open lever) / N.C.T.O (closed bar), optional Y delay mark. */
-function timedContact(w: number, closed: boolean, timed: boolean, offDelay = false, labL?: string, labR?: string) {
-    const xL = 0;
-    const xR = w * GRID;
+/** NEMA timed contact: N.O.T.C (open lever) / N.C.T.O (closed bar), with delay mark. */
+function timedContact(w: number, closed: boolean, timed: boolean, offDelay = false) {
     const y = 1 * GRID;
-    const r = 4.4;
+    const xL = 1 * GRID;
+    const xR = w * GRID - 1 * GRID;
+    const r = 4.5;
     const cx = (xL + xR) / 2;
-    const xArm = closed ? xR : xR - OPEN_GAP;
-    const yArm = closed ? y : y + OPEN_DROP;
+    const xArm = closed ? xR : xR - 2;
+    const yArm = closed ? y : y + 10;
     const t = (cx - xL) / Math.max(1, xArm - xL);
     const yJoin = y + (yArm - y) * Math.min(1, t);
-    const yFork = yJoin + 15;
+    const stemLen = 14 + GRID * 0.5;
+    const yStem = yJoin + stemLen;
+
     return (
         <>
+            {/* Terminal leads */}
+            <line x1={0} y1={y} x2={xL - r} y2={y} stroke={ink} strokeWidth="2"/>
+            <line x1={xR + r} y1={y} x2={w * GRID} y2={y} stroke={ink} strokeWidth="2"/>
+
+            {/* Contact blade */}
             <line
                 x1={xL}
                 y1={y}
                 x2={xArm}
                 y2={yArm}
                 stroke={ink}
-                strokeWidth="2.6"
+                strokeWidth="2.2"
                 strokeLinecap="round"
             />
+
+            {/* Delay Operator attached to blade */}
             {timed && (
                 offDelay ? (
                     <>
-                        <line x1={cx} y1={yJoin} x2={cx} y2={yJoin + 36} stroke={ink} strokeWidth="2"/>
+                        <line x1={cx} y1={yJoin} x2={cx} y2={yStem} stroke={ink} strokeWidth="2"/>
                         <line
                             x1={cx}
-                            y1={yJoin + 36}
-                            x2={cx - 8}
-                            y2={yJoin + 26}
+                            y1={yStem}
+                            x2={cx - 6}
+                            y2={yStem - 6}
                             stroke={ink}
                             strokeWidth="2"
                             strokeLinecap="round"
                         />
                         <line
                             x1={cx}
-                            y1={yJoin + 36}
-                            x2={cx + 8}
-                            y2={yJoin + 26}
+                            y1={yStem}
+                            x2={cx + 6}
+                            y2={yStem - 6}
                             stroke={ink}
                             strokeWidth="2"
                             strokeLinecap="round"
@@ -165,21 +177,21 @@ function timedContact(w: number, closed: boolean, timed: boolean, offDelay = fal
                     </>
                 ) : (
                     <>
-                        <line x1={cx} y1={yJoin} x2={cx} y2={yFork} stroke={ink} strokeWidth="2"/>
+                        <line x1={cx} y1={yJoin} x2={cx} y2={yStem - 6} stroke={ink} strokeWidth="2"/>
                         <line
                             x1={cx}
-                            y1={yFork}
-                            x2={cx - 8}
-                            y2={yFork + 10}
+                            y1={yStem - 6}
+                            x2={cx - 6}
+                            y2={yStem}
                             stroke={ink}
                             strokeWidth="2"
                             strokeLinecap="round"
                         />
                         <line
                             x1={cx}
-                            y1={yFork}
-                            x2={cx + 8}
-                            y2={yFork + 10}
+                            y1={yStem - 6}
+                            x2={cx + 6}
+                            y2={yStem}
                             stroke={ink}
                             strokeWidth="2"
                             strokeLinecap="round"
@@ -187,18 +199,10 @@ function timedContact(w: number, closed: boolean, timed: boolean, offDelay = fal
                     </>
                 )
             )}
-            <circle cx={xL} cy={y} r={r} fill={ink}/>
-            <circle cx={xR} cy={y} r={r} fill={ink}/>
-            {labL && (
-                <Txt x={8} y={y - 6} className="term-lab">
-                    {labL}
-                </Txt>
-            )}
-            {labR && (
-                <Txt x={w * GRID - 8} y={y - 6} textAnchor="end" className="term-lab">
-                    {labR}
-                </Txt>
-            )}
+
+            {/* Hollow Terminal Circles */}
+            <circle cx={xL} cy={y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8"/>
+            <circle cx={xR} cy={y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8"/>
         </>
     );
 }
@@ -371,7 +375,7 @@ function coilBox(w: number, h: number, label: string, hot: boolean, labL = "A1",
                     {labR}
                 </Txt>
             )}
-            <Txt x={cx} y={cy + 4} textAnchor="middle" className="sym-tag">
+            <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="sym-tag">
                 {label}
             </Txt>
         </>
@@ -533,20 +537,12 @@ function togglePoles(w: number, _h: number, n: number, doubleThrow: boolean, thr
             const xB = thrown ? xThrow : xThrow - 8;
             const yB = thrown ? cy : cy - 11;
             pivots.push(cy);
-            const labL = n > 1 ? `${i * 2 + 1}` : "1";
-            const labR = n > 1 ? `${i * 2 + 2}` : "2";
             items.push(
                 <line key={`c${i}`} x1={0} y1={cy} x2={xPivot} y2={cy} stroke={ink} strokeWidth="2.2"/>,
                 <circle key={`p${i}`} cx={xPivot} cy={cy} r={3.6} fill={ink}/>,
                 <line key={`b${i}`} x1={xPivot} y1={cy} x2={xB} y2={yB} stroke={ink} strokeWidth="2.4"/>,
                 <circle key={`t${i}`} cx={xThrow} cy={cy} r={3.6} fill={ink}/>,
                 <line key={`r${i}`} x1={xThrow} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2.2"/>,
-                <Txt key={`llab${i}`} x={6} y={cy - 4} className="term-lab">
-                    {labL}
-                </Txt>,
-                <Txt key={`rlab${i}`} x={w * GRID - 6} y={cy - 4} textAnchor="end" className="term-lab">
-                    {labR}
-                </Txt>,
             );
         }
     }
@@ -574,6 +570,170 @@ function sensorDots(w: number, y: number, xL: number, xR: number, r: number) {
             <line x1={xR} y1={y} x2={w * GRID} y2={y} stroke={ink} strokeWidth="2"/>
             <circle cx={xL} cy={y} r={r} fill={ink}/>
             <circle cx={xR} cy={y} r={r} fill={ink}/>
+        </>
+    );
+}
+
+function proxSwitch(w: number, _h: number, nc: boolean, closed: boolean) {
+    const cy = 1 * GRID;
+    const cx = (w * GRID) / 2;
+    const dr = 16;
+    const dotL = cx - 11;
+    const dotR = cx + 11;
+
+    const bladeEndX = closed ? dotR : dotR - 2;
+    const bladeEndY = closed ? cy : (nc ? cy - 8 : cy + 8);
+
+    return (
+        <>
+            {/* Diamond shape */}
+            <polygon
+                points={`${cx},${cy - dr} ${cx + dr},${cy} ${cx},${cy + dr} ${cx - dr},${cy}`}
+                fill="none"
+                stroke="#888888"
+                strokeWidth="1.6"
+            />
+            {/* "prox" label at top-right corner */}
+            <Txt
+                x={cx + dr + 2}
+                y={cy - dr + 6}
+                fontSize="9"
+                fontWeight="bold"
+                fontFamily="Red Hat Mono, monospace"
+                fill={ink}
+            >
+                prox
+            </Txt>
+
+            {/* Terminal leads */}
+            <line x1={0} y1={cy} x2={dotL} y2={cy} stroke={ink} strokeWidth="2" />
+            <line x1={dotR} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2" />
+
+            {/* Terminal Dots */}
+            <circle cx={dotL} cy={cy} r={2.8} fill={ink} />
+            <circle cx={dotR} cy={cy} r={2.8} fill={ink} />
+
+            {/* Contact Blade */}
+            <line
+                x1={dotL}
+                y1={cy}
+                x2={bladeEndX}
+                y2={bladeEndY}
+                stroke={ink}
+                strokeWidth="2.2"
+                strokeLinecap="round"
+            />
+
+            {/* Actuator Wedge Triangle attached to blade */}
+            {nc ? (
+                closed ? (
+                    <polygon
+                        points={`${cx - 3},${cy} ${cx + 7},${cy} ${cx + 5},${cy - 5.5}`}
+                        fill="none"
+                        stroke={ink}
+                        strokeWidth="1.6"
+                    />
+                ) : (
+                    <polygon
+                        points={`${cx - 3},${cy - 3} ${cx + 6},${cy - 7} ${cx + 4},${cy - 12}`}
+                        fill="none"
+                        stroke={ink}
+                        strokeWidth="1.6"
+                    />
+                )
+            ) : (
+                closed ? (
+                    <polygon
+                        points={`${cx - 3},${cy} ${cx + 7},${cy} ${cx + 5},${cy + 5.5}`}
+                        fill="none"
+                        stroke={ink}
+                        strokeWidth="1.6"
+                    />
+                ) : (
+                    <polygon
+                        points={`${cx - 3},${cy + 3} ${cx + 6},${cy + 7} ${cx + 4},${cy + 12}`}
+                        fill="none"
+                        stroke={ink}
+                        strokeWidth="1.6"
+                    />
+                )
+            )}
+        </>
+    );
+}
+
+function photoArrow(tx: number, ty: number) {
+    return (
+        <g>
+            <line
+                x1={tx + 6.5}
+                y1={ty - 6.5}
+                x2={tx + 1.5}
+                y2={ty - 1.5}
+                stroke={ink}
+                strokeWidth="1.8"
+                strokeLinecap="round"
+            />
+            <polygon
+                points={`${tx},${ty} ${tx + 4.5},${ty - 1.2} ${tx + 1.2},${ty - 4.5}`}
+                fill={ink}
+            />
+        </g>
+    );
+}
+
+function photoSwitch(w: number, _h: number, nc: boolean, closed: boolean) {
+    const cy = 1 * GRID;
+    const cx = (w * GRID) / 2;
+    const dr = 16;
+    const xBarL = cx - 4;
+    const xBarR = cx + 4;
+    const barH = 8.5;
+
+    return (
+        <>
+            {/* Diamond shape */}
+            <polygon
+                points={`${cx},${cy - dr} ${cx + dr},${cy} ${cx},${cy + dr} ${cx - dr},${cy}`}
+                fill="none"
+                stroke={ink}
+                strokeWidth="1.6"
+            />
+
+            {/* Terminal Leads */}
+            <line x1={0} y1={cy} x2={xBarL} y2={cy} stroke={ink} strokeWidth="2" />
+            <line x1={xBarR} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2" />
+
+            {/* Vertical Contact Bars */}
+            <line x1={xBarL} y1={cy - barH} x2={xBarL} y2={cy + barH} stroke={ink} strokeWidth="2.4" />
+            <line x1={xBarR} y1={cy - barH} x2={xBarR} y2={cy + barH} stroke={ink} strokeWidth="2.4" />
+
+            {/* NC Closed Slash */}
+            {closed && nc && (
+                <line
+                    x1={xBarL - 2.5}
+                    y1={cy + barH + 1}
+                    x2={xBarR + 2.5}
+                    y2={cy - barH - 1}
+                    stroke={ink}
+                    strokeWidth="2"
+                />
+            )}
+            {/* NO Closed bridge when actuated */}
+            {closed && !nc && (
+                <line
+                    x1={xBarL}
+                    y1={cy}
+                    x2={xBarR}
+                    y2={cy}
+                    stroke={ink}
+                    strokeWidth="2.2"
+                />
+            )}
+
+            {/* Incoming Light Rays (2 parallel arrows pointing down-left at the upper-right face) */}
+            {photoArrow(47, 9)}
+            {photoArrow(53, 15)}
         </>
     );
 }
@@ -791,6 +951,7 @@ export function SymbolGlyph({
                                 pressed,
                                 flipX,
                                 flipY,
+                                rot,
                             }: {
     device: Device;
     variant: string;
@@ -800,9 +961,10 @@ export function SymbolGlyph({
     pressed?: boolean;
     flipX?: boolean;
     flipY?: boolean;
+    rot?: number;
 }) {
     return (
-        <FlipCtx.Provider value={{fx: flipX ? -1 : 1, fy: flipY ? -1 : 1}}>
+        <FlipCtx.Provider value={{fx: flipX ? -1 : 1, fy: flipY ? -1 : 1, rot: rot ?? 0}}>
             <GlyphBody
                 device={device}
                 variant={variant}
@@ -818,8 +980,8 @@ export function SymbolGlyph({
 function GlyphBody({
                        device,
                        variant,
-                       w,
-                       h,
+                       w: scaledW,
+                       h: scaledH,
                        rt,
                        pressed,
                    }: {
@@ -831,6 +993,22 @@ function GlyphBody({
     pressed?: boolean;
 }) {
     const kind = device.kind;
+    const v = variantDef(kind, variant);
+    const bw = kind === "comment" && device.params?.width ? device.params.width : (v ? v.w : scaledW);
+    const bh = kind === "comment" && device.params?.height ? device.params.height : (v ? v.h : scaledH);
+    const w = bw;
+    const h = bh;
+
+    const S = (p: SVGProps<SVGSVGElement> & { w?: number; h?: number; baseW?: number; baseH?: number }) => (
+        <SVGBase
+            w={p.w ?? scaledW}
+            h={p.h ?? scaledH}
+            baseW={p.baseW ?? bw}
+            baseH={p.baseH ?? bh}
+            {...p}
+        />
+    );
+
     const hot = Boolean(rt?.energized);
     const closed = Boolean(rt && (kind.includes("nc") || kind === "estop" || kind === "estop-nc" ? !rt.actuated : rt.actuated));
     const key = `${kind}:${variant}`;
@@ -839,14 +1017,14 @@ function GlyphBody({
     if (kind === "pb-no") {
         return (
             <S w={w} h={h}>
-                {contactLines(w, h, false, "pb", isPressed, undefined, "13", "14")}
+                {contactLines(w, h, false, "pb", isPressed)}
             </S>
         );
     }
     if (kind === "pb-nc") {
         return (
             <S w={w} h={h}>
-                {contactLines(w, h, true, "pb", isPressed, undefined, "11", "12")}
+                {contactLines(w, h, true, "pb", isPressed)}
             </S>
         );
     }
@@ -854,15 +1032,15 @@ function GlyphBody({
         const isNo = kind === "estop-no";
         return (
             <S w={w} h={h}>
-                {contactLines(w, h, !isNo, "estop", isPressed, undefined, isNo ? "13" : "11", isNo ? "14" : "12")}
+                {contactLines(w, h, !isNo, "estop", isPressed)}
             </S>
         );
     }
     if (kind === "toggle") {
         return (
             <S w={w} h={h}>
-                {contactPair(w, 1 * GRID, false, Boolean(rt?.actuated), "1", "2")}
-                {contactPair(w, 3 * GRID, true, !rt?.actuated, "3", "4")}
+                {contactPair(w, 1 * GRID, false, Boolean(rt?.actuated))}
+                {contactPair(w, 3 * GRID, true, !rt?.actuated)}
                 <line x1={w * GRID / 2 - 8} y1={8} x2={w * GRID / 2 + 8} y2={2} stroke={ink} strokeWidth="2"/>
 
             </S>
@@ -958,11 +1136,21 @@ function GlyphBody({
             </S>
         );
     }
-    if (kind === "prox" || kind === "photo") {
+    if (kind === "prox" || kind === "prox-no" || kind === "prox-nc") {
+        const isNc = kind === "prox-nc";
+        const isClosed = isNc ? !rt?.actuated : Boolean(rt?.actuated);
         return (
             <S w={w} h={h}>
-                {contactLines(w, h, false, kind)}
-
+                {proxSwitch(w, h, isNc, isClosed)}
+            </S>
+        );
+    }
+    if (kind === "photo" || kind === "photo-no" || kind === "photo-nc") {
+        const isNc = kind === "photo-nc";
+        const isClosed = isNc ? !rt?.actuated : Boolean(rt?.actuated);
+        return (
+            <S w={w} h={h}>
+                {photoSwitch(w, h, isNc, isClosed)}
             </S>
         );
     }
@@ -981,15 +1169,6 @@ function GlyphBody({
         ];
         return (
             <S w={w} h={h}>
-                <rect
-                    x="1"
-                    y="1"
-                    width={w * GRID - 2}
-                    height={h * GRID - 2}
-                    fill="#efe6d0"
-                    stroke={ink}
-                    strokeWidth="1.5"
-                />
                 {poles.map((p) => (
                     <g key={p.l}>{barContact(w, p.y * GRID, hot, p.l, p.t)}</g>
                 ))}
@@ -1070,7 +1249,7 @@ function GlyphBody({
                     const y2 = cy + Math.sin(a) * 20;
                     return <line key={deg} x1={x1} y1={y1} x2={x2} y2={y2} stroke={ink} strokeWidth="2"/>;
                 })}
-                <Txt x={cx} y={cy + 4} textAnchor="middle" className="sym-tag">
+                <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="sym-tag">
                     {letter}
                 </Txt>
             </S>
@@ -1094,78 +1273,234 @@ function GlyphBody({
             </S>
         );
     }
-    if (kind === "breaker-1p" || kind === "fuse") {
+    if (kind === "fuse") {
         const cx = (w * GRID) / 2;
+        const cy = (h * GRID) / 2;
         const live = Boolean(rt?.on && !rt?.tripped);
         return (
             <S w={w} h={h}>
                 <line x1={cx} y1={0} x2={cx} y2={h * GRID} stroke={ink} strokeWidth="2"/>
-                {kind === "fuse" ? (
-                    <rect
-                        x={cx - 9}
-                        y={h * GRID * 0.28}
-                        width="18"
-                        height={h * GRID * 0.44}
-                        rx="2"
-                        fill={live ? "#cfe8c4" : "#e8c4c4"}
-                        stroke={ink}
-                        strokeWidth="2"
-                    />
-                ) : (
-                    <rect
-                        x={cx - 8}
-                        y={h * GRID * 0.3}
-                        width="16"
-                        height={h * GRID * 0.4}
-                        fill={live ? "#cfe8c4" : "#e8c4c4"}
-                        stroke={ink}
-                        strokeWidth="2"
-                    />
-                )}
-                <Txt x={cx} y={h * GRID * 0.52} textAnchor="middle" className="term-lab">
-                    {kind === "fuse" ? "FU" : "CB"}
+                <rect
+                    x={cx - 9}
+                    y={h * GRID * 0.28}
+                    width="18"
+                    height={h * GRID * 0.44}
+                    rx="2"
+                    fill={live ? "#cfe8c4" : "#e8c4c4"}
+                    stroke={ink}
+                    strokeWidth="2"
+                />
+                <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="term-lab">
+                    FU
                 </Txt>
+            </S>
+        );
+    }
+    if (kind === "breaker-1p") {
+        const cx = (w * GRID) / 2;
+        const y1 = 1 * GRID;
+        const y2 = 3 * GRID;
+        const closed = Boolean(rt?.on && !rt?.tripped);
+        const stroke = closed ? (hot ? "#c45a12" : ink) : "#c4391d";
+        const openGap = closed ? 0 : 5;
+        const r = 4;
+        const gap = 2;
+        const yTop = y1 + r + gap;
+        const yBot = y2 - r - gap;
+        return (
+            <S w={w} h={h}>
+                <line x1={cx} y1={0} x2={cx} y2={y1} stroke={ink} strokeWidth="2"/>
+                <line x1={cx} y1={y2} x2={cx} y2={h * GRID} stroke={ink} strokeWidth="2"/>
+                <path
+                    d={`M ${cx} ${yBot} A 16 16 0 0 0 ${cx - openGap} ${yTop + openGap}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    className={!closed ? "contact-broken" : ""}
+                />
+                <circle cx={cx} cy={y1} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8"/>
+                <circle cx={cx} cy={y2} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8"/>
             </S>
         );
     }
     if (kind === "overload") {
         const tripped = Boolean(rt?.tripped);
+        if (variant === "aux-nc") {
+            return (
+                <S w={w} h={h}>
+                    {contactLines(w, h, true, undefined, false, !tripped, "95", "96")}
+                </S>
+            );
+        }
+        if (variant === "aux-no") {
+            return (
+                <S w={w} h={h}>
+                    {contactLines(w, h, false, undefined, false, tripped, "97", "98")}
+                </S>
+            );
+        }
+        const stroke = tripped ? "#c4391d" : (hot ? "#c45a12" : ink);
+        const polesData = [
+            { cx: 1 * GRID, topLab: "L1", botLab: "T1" },
+            { cx: 3 * GRID, topLab: "L2", botLab: "T2" },
+            { cx: 5 * GRID, topLab: "L3", botLab: "T3" },
+        ];
         return (
             <S w={w} h={h}>
-                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink}
-                      strokeWidth="1.5"/>
-                {poles(w, 6, 3, !tripped, [["L1", "T1"], ["L2", "T2"], ["L3", "T3"]] as [string, string][], "thermal")}
-                {barContact(w, 7 * GRID, !tripped, "95", "96")}
-                {barContact(w, 9 * GRID, tripped, "97", "98")}
-
+                {polesData.map((p) => (
+                    <g key={p.topLab}>
+                        <line x1={p.cx} y1={0} x2={p.cx} y2={26} stroke={ink} strokeWidth="2" />
+                        <line x1={p.cx} y1={62} x2={p.cx} y2={h * GRID} stroke={ink} strokeWidth="2" />
+                        <path
+                            d={`M ${p.cx} 26 A 9 9 0 1 0 ${p.cx + 6.4} 41.4`}
+                            fill="none"
+                            stroke={stroke}
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            className={tripped ? "contact-broken" : ""}
+                        />
+                        <path
+                            d={`M ${p.cx} 62 A 9 9 0 1 0 ${p.cx - 6.4} 46.6`}
+                            fill="none"
+                            stroke={stroke}
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            className={tripped ? "contact-broken" : ""}
+                        />
+                        <Txt x={p.cx + 7} y={16} className="term-lab">
+                            {p.topLab}
+                        </Txt>
+                        <Txt x={p.cx + 7} y={h * GRID - 8} className="term-lab">
+                            {p.botLab}
+                        </Txt>
+                    </g>
+                ))}
             </S>
         );
     }
-    if (kind === "breaker-3p" || kind === "isolator" || kind === "rcd") {
-        const n = kind === "rcd" ? 4 : 3;
-        // L1/L2/L3 and T1/T2/T3 for breaker-3p and isolator, plus N/TN for rcd
-        const labels = (kind === "breaker-3p" || kind === "isolator")
-            ? [["L1", "T1"], ["L2", "T2"], ["L3", "T3"]] as [string, string][]
-            : [["L1", "T1"], ["L2", "T2"], ["L3", "T3"], ["N", "N"]] as [string, string][];
-        
-        // Determine border color based on contact state
+    if (kind === "breaker-3p") {
         const closed = Boolean(rt?.on && !rt?.tripped);
-        const borderColor = (kind === "breaker-3p" || kind === "isolator") && !closed ? "#c4391d" : ink;
-        
+        const stroke = closed ? (hot ? "#c45a12" : ink) : "#c4391d";
+        const openGap = closed ? 0 : 5;
+        const r = 4;
+        const gap = 2;
+        const y1 = 1 * GRID;
+        const y2 = 3 * GRID;
+        const yTop = y1 + r + gap;
+        const yBot = y2 - r - gap;
+        const polesData = [
+            { cx: 1 * GRID, topLab: "L1", botLab: "T1" },
+            { cx: 3 * GRID, topLab: "L2", botLab: "T2" },
+            { cx: 5 * GRID, topLab: "L3", botLab: "T3" },
+        ];
+
         return (
             <S w={w} h={h}>
-                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={borderColor}
-                      strokeWidth="1.5"/>
-                {poles(
-                    w,
-                    h,
-                    n,
-                    closed,
-                    labels,
-                    kind === "breaker-3p" || kind === "isolator" ? "arc" : "bar",
-                    kind === "breaker-3p" || kind === "isolator",
-                )}
+                {polesData.map((p) => (
+                    <g key={p.topLab}>
+                        <line x1={p.cx} y1={0} x2={p.cx} y2={y1} stroke={ink} strokeWidth="2" />
+                        <line x1={p.cx} y1={y2} x2={p.cx} y2={h * GRID} stroke={ink} strokeWidth="2" />
+                        <path
+                            d={`M ${p.cx} ${yBot} A 16 16 0 0 0 ${p.cx - openGap} ${yTop + openGap}`}
+                            fill="none"
+                            stroke={stroke}
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            className={!closed ? "contact-broken" : ""}
+                        />
+                        <circle cx={p.cx} cy={y1} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                        <circle cx={p.cx} cy={y2} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                        <Txt x={p.cx + 7} y={y1 - 4} className="term-lab">
+                            {p.topLab}
+                        </Txt>
+                        <Txt x={p.cx + 7} y={y2 + 10} className="term-lab">
+                            {p.botLab}
+                        </Txt>
+                    </g>
+                ))}
+                <line
+                    x1={polesData[0].cx - 14}
+                    y1={2 * GRID}
+                    x2={polesData[2].cx + 10}
+                    y2={2 * GRID}
+                    stroke={ink}
+                    strokeWidth="1.5"
+                    strokeDasharray="4 3"
+                />
+            </S>
+        );
+    }
+    if (kind === "isolator") {
+        const closed = Boolean(rt?.on && !rt?.tripped);
+        const stroke = closed ? (hot ? "#c45a12" : ink) : "#c4391d";
+        const r = 4;
+        const x1 = 1 * GRID;
+        const x2 = 3 * GRID;
+        const cx = (w * GRID) / 2;
+        const polesData = [
+            { y: 1 * GRID, leftLab: "L1", rightLab: "T1" },
+            { y: 3 * GRID, leftLab: "L2", rightLab: "T2" },
+            { y: 5 * GRID, leftLab: "L3", rightLab: "T3" },
+        ];
+        const bladeLeftX = closed ? x1 : x1 - 2;
+        const bladeLeftY = (y: number) => (closed ? y : y - 6);
 
+        return (
+            <S w={w} h={h}>
+                {polesData.map((p) => (
+                    <g key={p.leftLab}>
+                        <line x1={0} y1={p.y} x2={x1} y2={p.y} stroke={ink} strokeWidth="2" />
+                        <line x1={x2} y1={p.y} x2={w * GRID} y2={p.y} stroke={ink} strokeWidth="2" />
+                        <line
+                            x1={bladeLeftX}
+                            y1={bladeLeftY(p.y)}
+                            x2={x2}
+                            y2={p.y}
+                            stroke={stroke}
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            className={!closed ? "contact-broken" : ""}
+                        />
+                        <circle cx={x1} cy={p.y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                        <circle cx={x2} cy={p.y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                        <Txt x={x1} y={p.y - 7} textAnchor="middle" className="term-lab">
+                            {p.leftLab}
+                        </Txt>
+                        <Txt x={x2} y={p.y - 7} textAnchor="middle" className="term-lab">
+                            {p.rightLab}
+                        </Txt>
+                    </g>
+                ))}
+                {/* Vertical ganged linkage dashed line */}
+                <line
+                    x1={cx}
+                    y1={8}
+                    x2={cx}
+                    y2={5 * GRID}
+                    stroke={ink}
+                    strokeWidth="1.5"
+                    strokeDasharray="4 3"
+                />
+                {/* Top T-handle */}
+                <line
+                    x1={cx - 8}
+                    y1={8}
+                    x2={cx + 8}
+                    y2={8}
+                    stroke={ink}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                />
+            </S>
+        );
+    }
+    if (kind === "rcd") {
+        const labels = [["L1", "T1"], ["L2", "T2"], ["L3", "T3"], ["N", "N"]] as [string, string][];
+        const closed = Boolean(rt?.on && !rt?.tripped);
+        return (
+            <S w={w} h={h}>
+                {poles(w, h, 4, closed, labels, "bar", false)}
             </S>
         );
     }
@@ -1205,7 +1540,7 @@ function GlyphBody({
                     style={isLive ? { filter: `drop-shadow(0 0 6px ${accentCol}40)` } : undefined}
                 />
                 <circle cx={cx} cy={cy} r={r - 3} fill="none" stroke={ink} strokeWidth="0.8" strokeDasharray="2 3" opacity="0.6" />
-                <Txt x={cx} y={cy - 5} textAnchor="middle" fontSize="13" fontWeight="bold" fill={accentCol}>
+                <Txt x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="bold" fill={accentCol}>
                     V
                 </Txt>
                 {/* LCD Digital Readout Box */}
@@ -1221,8 +1556,9 @@ function GlyphBody({
                 />
                 <Txt
                     x={cx}
-                    y={cy + 14}
+                    y={cy + 11}
                     textAnchor="middle"
+                    dominantBaseline="central"
                     fontSize="9.5"
                     fontFamily="monospace"
                     fontWeight="bold"
@@ -1295,7 +1631,7 @@ function GlyphBody({
                 />
 
                 {/* Unit label */}
-                <Txt x={cx + 10} y={cy + 9} textAnchor="middle" fontSize="10" fontWeight="bold" fill={accentCol}>
+                <Txt x={cx + 10} y={cy + 5} textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="bold" fill={accentCol}>
                     ~A
                 </Txt>
 
@@ -1312,8 +1648,9 @@ function GlyphBody({
                 />
                 <Txt
                     x={cx}
-                    y={cy + 26.5}
+                    y={cy + 23}
                     textAnchor="middle"
+                    dominantBaseline="central"
                     fontSize="9.5"
                     fontFamily="monospace"
                     fontWeight="bold"
@@ -1325,7 +1662,7 @@ function GlyphBody({
         );
     }
     if (kind === "title-block") {
-        const scale = device.params.scale ?? 1;
+        //const scale = device.params.scale ?? 1;
         const p = device.params;
         const projectName = (p.projectName ?? "").toUpperCase();
         const projectNo = (p.projectNo ?? "").toUpperCase();
@@ -1340,8 +1677,8 @@ function GlyphBody({
         const baseH = 5 * GRID;
 
         return (
-            <S w={w} h={h}>
-                <g transform={scale !== 1 ? `scale(${scale})` : undefined}>
+            <S w={w} h={h} baseW={16} baseH={5}>
+                <g>
                     {/* Background & Outer Border */}
                     <rect x={0} y={0} width={baseW} height={baseH} fill="#ffffff" stroke={ink} strokeWidth="1.6" />
 
@@ -1553,8 +1890,9 @@ function GlyphBody({
                 />
                 <Txt
                     x={boxX + 8 + (boxW - 8) / 2}
-                    y={cy + 4}
+                    y={cy}
                     textAnchor="middle"
+                    dominantBaseline="central"
                     className="sym-tag"
                     fill="#ffffff"
                 >
@@ -1586,21 +1924,20 @@ function GlyphBody({
               ];
         return (
             <S w={w} h={h}>
-                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#1c2416" stroke="#e6c11e"
-                      strokeWidth="2"/>
+                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="none" stroke={ink} strokeWidth="1.5"/>
                 {positions.map((pos, i) => (
                     <g key={pos.label}>
                         <circle cx={termX} cy={pos.y} r="8" fill={cols[i]}/>
-                        <Txt x={termX - 16} y={pos.y + 3} textAnchor="end" fill="#efe6d0" fontSize="11" fontFamily="Red Hat Mono, monospace">
+                        <Txt x={termX - 16} y={pos.y + 3} textAnchor="end" fill={ink} fontSize="11" fontFamily="Red Hat Mono, monospace" fontWeight="bold">
                             {pos.label}
                         </Txt>
                     </g>
                 ))}
-                <Txt x={14} y={14} textAnchor="start" fill="#ffffff" fontSize="12" fontWeight="bold"
+                <Txt x={14} y={14} textAnchor="start" fill={ink} fontSize="12" fontWeight="bold"
                      fontFamily="Red Hat Mono, monospace">
                     {device.tag}
                 </Txt>
-                <Txt x={14} y={h * GRID - 8} textAnchor="start" fill="#889980" fontSize="10" fontFamily="Red Hat Mono, monospace">
+                <Txt x={14} y={h * GRID - 8} textAnchor="start" fill="#5a5648" fontSize="10" fontFamily="Red Hat Mono, monospace">
                     {isDelta ? "Δ 3P+PE" : "Y 3P+N+PE"}
                 </Txt>
             </S>
@@ -1611,22 +1948,21 @@ function GlyphBody({
         const cy = (h * GRID) / 2;
         return (
             <S w={w} h={h}>
-                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#1c2416" stroke="#e07020"
-                      strokeWidth="2"/>
-                <Txt x={cx} y={cy - 1} textAnchor="middle" fill="#e07020" fontSize="25" fontFamily="Teko, sans-serif">
+                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="none" stroke={ink} strokeWidth="1.5"/>
+                <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fill="#e07020" fontSize="25" fontFamily="Teko, sans-serif">
                     DC
                 </Txt>
                 {/* Positive terminal */}
-                <circle cx={w * GRID - 15} cy={1 * GRID} r="6" fill="#ffffff"/>
-                <Txt x={w * GRID - 15} y={1 * GRID + 5} textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1b1a16">
+                <circle cx={w * GRID - 15} cy={1 * GRID} r="6" fill="none" stroke={ink} strokeWidth="1.5"/>
+                <Txt x={w * GRID - 15} y={1 * GRID} textAnchor="middle" dominantBaseline="central" fontSize="18" fontWeight="bold" fill={ink}>
                     +
                 </Txt>
                 {/* Negative terminal */}
-                <circle cx={w * GRID - 15} cy={3 * GRID} r="6" fill="#ffffff"/>
-                <Txt x={w * GRID - 15} y={3 * GRID + 5} textAnchor="middle" fontSize="18" fontWeight="bold" fill="#1b1a16">
+                <circle cx={w * GRID - 15} cy={3 * GRID} r="6" fill="none" stroke={ink} strokeWidth="1.5"/>
+                <Txt x={w * GRID - 15} y={3 * GRID} textAnchor="middle" dominantBaseline="central" fontSize="18" fontWeight="bold" fill={ink}>
                     -
                 </Txt>
-                <Txt x={18} y={14} textAnchor="start" fill="#ffffff" fontSize="12" fontWeight="bold"
+                <Txt x={18} y={14} textAnchor="start" fill={ink} fontSize="12" fontWeight="bold"
                      fontFamily="Red Hat Mono, monospace">
                     {device.tag}
                 </Txt>
@@ -1636,88 +1972,98 @@ function GlyphBody({
 
     if (kind === "transformer") {
         const cx = (w * GRID) / 2;
-        const coilTop = 1 * GRID;
-        const coilBottom = 3 * GRID;
-        const loopH = (coilBottom - coilTop) / 3;
         const coilColor = hot ? "#c45a12" : ink; // Red/orange when energized, black when de-energized
-        // Primary coil (left side)
-        const primaryCoil = (
-            <path
-                d={`
-      M ${cx - 8} ${coilTop}
-      c -14 0 -14 ${loopH} 0 ${loopH}
-      c -14 0 -14 ${loopH} 0 ${loopH}
-      c -14 0 -14 ${loopH} 0 ${loopH}
-      M 4 ${coilTop}
-      L ${cx - 8} ${coilTop}
-      M 4 ${coilBottom}
-      L ${cx - 8} ${coilBottom}
-    `}
-                fill="none"
-                stroke={coilColor}
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        );
-
-        // Secondary coil (right side)
-        const secondaryCoil = (
-            <path
-                d={`
-      M ${cx + 8} ${coilTop}
-      c 14 0 14 ${loopH} 0 ${loopH}
-      c 14 0 14 ${loopH} 0 ${loopH}
-      c 14 0 14 ${loopH} 0 ${loopH}
-      M ${w * GRID - 4} ${coilTop}
-      L ${cx + 8} ${coilTop}
-      M ${w * GRID - 4} ${coilBottom}
-      L ${cx + 8} ${coilBottom}
-    `}
-                fill="none"
-                stroke={coilColor}
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        );
+        const priV = device.params.primaryVoltage ?? (device.params.primaryVolts ? Number(device.params.primaryVolts) : 480);
+        const secV = device.params.secondaryVoltage ?? (device.params.secondaryVolts ? Number(device.params.secondaryVolts) : 120);
 
         return (
             <S w={w} h={h}>
-                {/* Border */}
-                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="none" stroke={ink} strokeWidth="1.5" />
-                {primaryCoil}
-                {secondaryCoil}
-                {/* Core - two parallel lines */}
-                <line x1={cx - 2} y1={coilTop} x2={cx - 2} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
-                <line x1={cx + 2} y1={coilTop} x2={cx + 2} y2={coilBottom} stroke={ink} strokeWidth="1.6" />
+                {/* Center Core (Vertical rectangular bar) */}
+                <rect x={cx - 10} y={18} width={12} height={136} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
 
-                {/* Primary terminal labels (Left) */}
-                <Txt x={6} y={coilTop - 4} className="term-lab">
+                {/* Left Side (Primary Windings / 480V) */}
+                {/* External leads */}
+                <line x1={0} y1={20} x2={20} y2={20} stroke={ink} strokeWidth="2" />
+                <line x1={0} y1={60} x2={20} y2={60} stroke={ink} strokeWidth="2" />
+                <line x1={0} y1={100} x2={20} y2={100} stroke={ink} strokeWidth="2" />
+                <line x1={0} y1={155} x2={20} y2={155} stroke={ink} strokeWidth="2" />
+
+                {/* Upper Coil (H1 -> H3) */}
+                <line x1={28} y1={20} x2={44} y2={20} stroke={coilColor} strokeWidth="1.8" />
+                <path
+                    d="M 44 20 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10"
+                    fill="none"
+                    stroke={coilColor}
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+                <line x1={44} y1={60} x2={28} y2={100} stroke={coilColor} strokeWidth="1.8" />
+
+                {/* Lower Coil (H2 -> H4) */}
+                <line x1={28} y1={60} x2={44} y2={100} stroke={coilColor} strokeWidth="1.8" />
+                <path
+                    d="M 44 100 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10   c -12 0 -12 14 0 14 "
+                    fill="none"
+                    stroke={coilColor}
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+                <line x1={44} y1={155} x2={28} y2={155} stroke={coilColor} strokeWidth="1.8" />
+
+                {/* Primary Terminal Circles */}
+                <circle cx={24} cy={20} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                <circle cx={24} cy={60} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                <circle cx={24} cy={100} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                <circle cx={24} cy={154} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+
+                {/* Primary Labels */}
+                <Txt x={16} y={16} textAnchor="end" className="term-lab" fontWeight="bold">
                     H1
                 </Txt>
-                <Txt x={6} y={coilBottom - 4} className="term-lab">
+                <Txt x={16} y={56} textAnchor="end" className="term-lab" fontWeight="bold">
                     H2
                 </Txt>
+                <Txt x={16} y={108} textAnchor="end" className="term-lab" fontWeight="bold">
+                    H3
+                </Txt>
+                <Txt x={16} y={150} textAnchor="end" className="term-lab" fontWeight="bold">
+                    H4
+                </Txt>
+                <Txt x={10} y={88} textAnchor="middle" fontSize="12" fontWeight="bold" fill="#5a5648" fontFamily="Red Hat Mono, monospace">
+                    {priV}V
+                </Txt>
 
-                {/* Secondary terminal labels (Right) */}
-                <Txt x={w * GRID - 6} y={coilTop - 4} textAnchor="end" className="term-lab">
+                {/* Right Side (Secondary Winding / 120V) */}
+                {/* External leads */}
+                <line x1={100} y1={20} x2={120} y2={20} stroke={ink} strokeWidth="2" />
+                <line x1={100} y1={154} x2={120} y2={154} stroke={ink} strokeWidth="2" />
+                {/* Internal leads to coil */}
+                <line x1={76} y1={20} x2={128} y2={20} stroke={coilColor} strokeWidth="1.8" />
+                <line x1={76} y1={154} x2={128} y2={154} stroke={coilColor} strokeWidth="1.8" />
+                {/* Secondary coil */}
+                <path
+                    d="M 76 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20    c 14 0 14 14 0 14"
+                    fill="none"
+                    stroke={coilColor}
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+                {/* Secondary Terminal Circles */}
+                <circle cx={96} cy={20} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                <circle cx={96} cy={155} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                {/* Secondary Labels */}
+                <Txt x={104} y={14} textAnchor="start" className="term-lab" fontWeight="bold">
                     X1
                 </Txt>
-                <Txt x={w * GRID - 6} y={coilBottom - 4} textAnchor="end" className="term-lab">
+                <Txt x={104} y={150} textAnchor="start" className="term-lab" fontWeight="bold">
                     X2
                 </Txt>
-
-                {(() => {
-                    const priV = device.params.primaryVoltage ?? (device.params.primaryVolts ? Number(device.params.primaryVolts) : 480);
-                    const secV = device.params.secondaryVoltage ?? (device.params.secondaryVolts ? Number(device.params.secondaryVolts) : 120);
-                    const ratioText = device.params.ratio ?? `${priV}/${secV}`;
-                    return (
-                        <Txt x={cx} y={h * GRID - 4} textAnchor="middle" fontSize="16">
-                            {ratioText}
-                        </Txt>
-                    );
-                })()}
+                <Txt x={110} y={88} textAnchor="middle" fontSize="12" fontWeight="bold" fill="#5a5648" fontFamily="Red Hat Mono, monospace">
+                    {secV}V
+                </Txt>
             </S>
         );
     }
@@ -1732,23 +2078,23 @@ function GlyphBody({
         }
         const delayed = variant === "delayed-nc" || variant === "delayed-no";
         const nc = variant === "delayed-nc" || variant === "inst-nc";
-        const conducting = delayed
-            ? nc
-                ? !Boolean(rt?.done)
-                : Boolean(rt?.done)
-            : nc
-                ? !hot
-                : hot;
-        const timerLabs: Record<string, [string, string]> = {
-            "delayed-nc": ["15", "16"],
-            "delayed-no": ["15", "18"],
-            "inst-nc": ["21", "22"],
-            "inst-no": ["21", "24"],
-        };
-        const [tLabL, tLabR] = timerLabs[variant] ?? ["15", "18"];
+
+        if (!delayed) {
+            // Instantaneous auxiliary contacts: same style as relay NO / NC
+            const conducting = nc ? !hot : hot;
+            return (
+                <S w={w} h={h}>
+                    {contactLines(w, h, nc, undefined, false, conducting)}
+                </S>
+            );
+        }
+
+        const conducting = nc
+            ? !Boolean(rt?.done)
+            : Boolean(rt?.done);
         return (
             <S w={w} h={h}>
-                {timedContact(w, conducting, delayed, kind === "timer-off", tLabL, tLabR)}
+                {timedContact(w, conducting, true, kind === "timer-off")}
             </S>
         );
     }
@@ -1764,9 +2110,6 @@ function GlyphBody({
         const preset = device.params.preset ?? 5;
         return (
             <S w={w} h={h}>
-                {/* Main Enclosure Box */}
-                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink} strokeWidth="1.5" rx="2" />
-
                 {/* Top Coil / Pulse Circuit (A1 - A2) */}
                 <line x1={0} y1={cy} x2={cx - 15} y2={cy} stroke={ink} strokeWidth="2"/>
                 <line x1={cx + 15} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2"/>
@@ -1781,7 +2124,7 @@ function GlyphBody({
                 {/* Pulse Terminals A1, A2 */}
                 <Txt x={6} y={cy - 5} className="term-lab">A1</Txt>
                 <Txt x={w * GRID - 6} y={cy - 5} textAnchor="end" className="term-lab">A2</Txt>
-                <Txt x={cx} y={cy + 4} textAnchor="middle" className="sym-tag">
+                <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="sym-tag">
                     {device.tag}
                 </Txt>
 
@@ -1796,7 +2139,7 @@ function GlyphBody({
                     stroke={ink}
                     strokeWidth="0.8"
                 />
-                <Txt x={cx} y={2.9 * GRID + 3} textAnchor="middle" className="term-lab" fontSize="8" fontWeight="bold">
+                <Txt x={cx} y={2.9 * GRID} textAnchor="middle" dominantBaseline="central" className="term-lab" fontSize="8" fontWeight="bold">
                     {rt ? `${rt.count ?? 0}/${preset}` : `PV:${preset}`}
                 </Txt>
 
@@ -1813,7 +2156,7 @@ function GlyphBody({
                     stroke={ink}
                     strokeWidth="1.2"
                 />
-                <Txt x={cx} y={rstY + 3.5} textAnchor="middle" className="term-lab" fontSize="8.5" fontWeight="bold">
+                <Txt x={cx} y={rstY} textAnchor="middle" dominantBaseline="central" className="term-lab" fontSize="8.5" fontWeight="bold">
                     RST
                 </Txt>
                 {/* Reset Terminals R1, R2 */}
@@ -1904,9 +2247,25 @@ function GlyphBody({
         );
     }
     if (kind === "heater") {
+        const y = 1 * GRID;
+        const stroke = hot ? "#c45a12" : ink;
         return (
             <S w={w} h={h}>
-                {coilBox(w, h, device.tag, hot, "1", "2")}
+                <polyline
+                    points={`0,${y} 12,${y} 19,29 26,11 33,29 40,11 47,29 54,11 61,29 68,${y} ${w * GRID},${y}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth="2.2"
+                    strokeLinejoin="miter"
+                    strokeMiterlimit="6"
+                    strokeLinecap="round"
+                />
+                <Txt x={6} y={y - 6} className="term-lab">
+                    1
+                </Txt>
+                <Txt x={w * GRID - 6} y={y - 6} textAnchor="end" className="term-lab">
+                    2
+                </Txt>
             </S>
         );
     }
@@ -1915,24 +2274,29 @@ function GlyphBody({
         const rO = 2.2 * GRID;
         const rI = 1.6 * GRID;
         const cy = h * GRID - rO;
-        const leadXs = [1 * GRID, 3 * GRID, 5 * GRID];
-        const yTop = 0;
-        const yJoin = cy - rO;
         const fill = hot ? "#fef3c7" : "#efe6d0";
         const powerText = device.params.power !== undefined ? `${device.params.power}kW` : "5.5kW";
         return (
             <S w={w} h={h}>
-                {leadXs.map((x, i) => {
-                    const lab = ["U", "V", "W"][i];
-                    return (
-                        <g key={i}>
-                            <line x1={x} y1={yTop} x2={x} y2={yJoin} stroke={ink} strokeWidth="2.2"/>
-                            <Txt x={x} y={yTop + 11} textAnchor="middle" className="term-lab">
-                                {lab}
-                            </Txt>
-                        </g>
-                    );
-                })}
+                {/* U Lead */}
+                <line x1={1 * GRID} y1={0} x2={1 * GRID} y2={1 * GRID} stroke={ink} strokeWidth="2.2"/>
+                <line x1={1 * GRID} y1={1 * GRID} x2={38} y2={38} stroke={ink} strokeWidth="2.2"/>
+                <Txt x={1 * GRID} y={11} textAnchor="middle" className="term-lab">
+                    U
+                </Txt>
+
+                {/* V Lead */}
+                <line x1={3 * GRID} y1={0} x2={3 * GRID} y2={cy - rO} stroke={ink} strokeWidth="2.2"/>
+                <Txt x={3 * GRID} y={11} textAnchor="middle" className="term-lab">
+                    V
+                </Txt>
+
+                {/* W Lead */}
+                <line x1={5 * GRID} y1={0} x2={5 * GRID} y2={1 * GRID} stroke={ink} strokeWidth="2.2"/>
+                <line x1={5 * GRID} y1={1 * GRID} x2={82} y2={38} stroke={ink} strokeWidth="2.2"/>
+                <Txt x={5 * GRID} y={11} textAnchor="middle" className="term-lab">
+                    W
+                </Txt>
                 <circle
                     cx={cx}
                     cy={cy}
@@ -1960,10 +2324,10 @@ function GlyphBody({
                         />
                     </g>
                 )}
-                <Txt x={cx} y={cy - 2} textAnchor="middle" fontSize="24" fill={ink} fontWeight="700">
+                <Txt x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="central" fontSize="24" fill={ink} fontWeight="700">
                     M
                 </Txt>
-                <Txt x={cx} y={cy + 16} textAnchor="middle" fontSize="10.5" fill={ink} fontWeight="600" opacity="0.9">
+                <Txt x={cx} y={cy + 16} textAnchor="middle" dominantBaseline="central" fontSize="10.5" fill={ink} fontWeight="600" opacity="0.9">
                     3~ {powerText}
                 </Txt>
             </S>
@@ -2015,10 +2379,10 @@ function GlyphBody({
                         />
                     </g>
                 )}
-                <Txt x={cx} y={cy - 4} textAnchor="middle" fontSize="24" fill={ink} fontWeight="700">
+                <Txt x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="central" fontSize="24" fill={ink} fontWeight="700">
                     M
                 </Txt>
-                <Txt x={cx} y={cy + 16} textAnchor="middle" fontSize="10.5" fill={ink} fontWeight="600" opacity="0.9">
+                <Txt x={cx} y={cy + 16} textAnchor="middle" dominantBaseline="central" fontSize="10.5" fill={ink} fontWeight="600" opacity="0.9">
                     1~ {powerText}
                 </Txt>
             </S>
@@ -2066,7 +2430,7 @@ function GlyphBody({
                     </g>
                 )}
                 <circle cx={cx} cy={cy} r="8" fill="#1b1a16"/>
-                <Txt x={cx} y={cy + 36} textAnchor="middle" className="sym-tag">
+                <Txt x={cx} y={cy + 36} textAnchor="middle" dominantBaseline="central" className="sym-tag">
                     M DC {powerText}
                 </Txt>
             </S>
@@ -2097,7 +2461,7 @@ function GlyphBody({
                     </>
                 )}
                 <circle cx={cx} cy={cy} r="24" fill={hot ? "#cfe0f5" : "#efe6d0"} stroke={ink} strokeWidth="2.5"/>
-                <Txt x={cx} y={cy + 4} textAnchor="middle" className="sym-tag">
+                <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="sym-tag">
                     {kind === "gen-ac" ? "G~" : "G="}
                 </Txt>
             </S>
@@ -2124,15 +2488,6 @@ function GlyphBody({
         };
         return (
             <S w={w} h={h}>
-                <rect
-                    x="1"
-                    y="1"
-                    width={w * GRID - 2}
-                    height={h * GRID - 2}
-                    fill="#efe6d0"
-                    stroke={ink}
-                    strokeWidth="1.5"
-                />
                 <Txt x={xF} y={0.8 * GRID} textAnchor="middle" className="term-lab">
                     F
                 </Txt>
@@ -2211,7 +2566,7 @@ function GlyphBody({
                                 stroke={ink}
                                 strokeWidth="2"
                             />
-                            <Txt x={c.cx} y={cy + 4} textAnchor="middle" className="sym-tag">
+                            <Txt x={c.cx} y={cy} textAnchor="middle" dominantBaseline="central" className="sym-tag">
                                 {c.lab}
                             </Txt>
                             <Txt x={c.lx} y={y1 - 6} textAnchor={c.anchor} className="term-lab">
@@ -2254,8 +2609,6 @@ function GlyphBody({
     if (kind.startsWith("starter")) {
         return (
             <S w={w} h={h}>
-                <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink}
-                      strokeWidth="2"/>
                 {poles(w, 6, 3, hot || Boolean(rt?.energizedAlt), [["L1", "T1"], ["L2", "T2"], ["L3", "T3"]] as [string, string][])}
                 {[
                     {id: "13", x: 1, lab: "13"},
@@ -2298,7 +2651,7 @@ function GlyphBody({
         const cx = (w * GRID) / 2;
         const cr = 5.5;
         const shaftTop = y1 - 10;
-        const row = (y: number, closed: boolean, labL: string, labR: string) => (
+        const row = (y: number, closed: boolean, labL?: string, labR?: string) => (
             <>
                 <line x1={0} y1={y} x2={xL - cr} y2={y} stroke={ink} strokeWidth="2"/>
                 <line x1={xR + cr} y1={y} x2={w * GRID} y2={y} stroke={ink} strokeWidth="2"/>
@@ -2317,12 +2670,16 @@ function GlyphBody({
                         strokeDasharray="4 3"
                     />
                 )}
-                <Txt x={6} y={y - 5} className="term-lab">
-                    {labL}
-                </Txt>
-                <Txt x={w * GRID - 6} y={y - 5} textAnchor="end" className="term-lab">
-                    {labR}
-                </Txt>
+                {labL && (
+                    <Txt x={6} y={y - 5} className="term-lab">
+                        {labL}
+                    </Txt>
+                )}
+                {labR && (
+                    <Txt x={w * GRID - 6} y={y - 5} textAnchor="end" className="term-lab">
+                        {labR}
+                    </Txt>
+                )}
             </>
         );
         const arm = (dx: number, dy: number, on: boolean) => (
@@ -2344,8 +2701,8 @@ function GlyphBody({
                         <path d="M0,0 L6,3 L0,6 Z" fill={ink}/>
                     </marker>
                 </defs>
-                {row(y1, pos === 0, "1", "2")}
-                {row(y2, pos === 1, "3", "4")}
+                {row(y1, pos === 0)}
+                {row(y2, pos === 1)}
                 <line x1={cx} y1={shaftTop} x2={cx} y2={y2} stroke={ink} strokeWidth="2"/>
                 {arm(-14, -12, pos === 0)}
                 {arm(14, -12, pos === 1)}
@@ -2432,8 +2789,6 @@ function GlyphBody({
     void key;
     void closed;
     return (
-        <S w={w} h={h}>
-            <rect x="1" y="1" width={w * GRID - 2} height={h * GRID - 2} fill="#efe6d0" stroke={ink} strokeWidth="1.5"/>
-        </S>
+        <S w={w} h={h} />
     );
 }

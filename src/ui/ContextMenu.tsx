@@ -140,6 +140,9 @@ export function ContextMenu({
                   if (v === "aux-nc") return "aux-no";
                   if (v === "aux-no2") return "aux-nc2";
                   if (v === "aux-nc2") return "aux-no2";
+                } else if (k === "overload") {
+                  if (v === "aux-no") return "aux-nc";
+                  if (v === "aux-nc") return "aux-no";
                 }
                 return null;
               };

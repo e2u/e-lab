@@ -27,3 +27,5 @@ SESSION_HANDOVER.md
 e-lab-docs
 .env.*
 !.env.example
+
+.junie

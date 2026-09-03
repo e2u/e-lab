@@ -97,16 +97,54 @@ const twoTermHoriz: VariantDef = {
   terminals: [t("1", 0, 1), t("2", 4, 1)],
 };
 
+const breaker3pBody: VariantDef = {
+  w: 6,
+  h: 4,
+  terminals: [
+    t("L1", 1, 0, "L1"),
+    t("L2", 3, 0, "L2"),
+    t("L3", 5, 0, "L3"),
+    t("T1", 1, 4, "T1"),
+    t("T2", 3, 4, "T2"),
+    t("T3", 5, 4, "T3"),
+    t("1", 1, 0, "L1"),
+    t("3", 3, 0, "L2"),
+    t("5", 5, 0, "L3"),
+    t("2", 1, 4, "T1"),
+    t("4", 3, 4, "T2"),
+    t("6", 5, 4, "T3"),
+  ],
+};
+
+const isolatorBody: VariantDef = {
+  w: 4,
+  h: 6,
+  terminals: [
+    t("L1", 0, 1, "L1"),
+    t("L2", 0, 3, "L2"),
+    t("L3", 0, 5, "L3"),
+    t("T1", 4, 1, "T1"),
+    t("T2", 4, 3, "T2"),
+    t("T3", 4, 5, "T3"),
+    t("1", 0, 1, "L1"),
+    t("3", 0, 3, "L2"),
+    t("5", 0, 5, "L3"),
+    t("2", 4, 1, "T1"),
+    t("4", 4, 3, "T2"),
+    t("6", 4, 5, "T3"),
+  ],
+};
+
 const pole3: VariantDef = {
-  w: 5,
+  w: 6,
   h: 6,
   terminals: [
     t("L1", 0, 1),
     t("L2", 0, 3),
     t("L3", 0, 5),
-    t("T1", 5, 1),
-    t("T2", 5, 3),
-    t("T3", 5, 5),
+    t("T1", 6, 1),
+    t("T2", 6, 3),
+    t("T3", 6, 5),
   ],
 };
 
@@ -183,12 +221,14 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 6,
-        h: 4,
+        h: 8,
         terminals: [
           t("H1", 0, 1, "H1"),
           t("H2", 0, 3, "H2"),
+          t("H3", 0, 5, "H3"),
+          t("H4", 0, 7, "H4"),
           t("X1", 6, 1, "X1"),
-          t("X2", 6, 3, "X2"),
+          t("X2", 6, 7, "X2"),
         ],
       },
     },
@@ -207,24 +247,24 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
   "breaker-3p": {
     prefix: "CB",
     label: "三極斷路器",
-    variants: { body: pole3 },
+    variants: { body: breaker3pBody },
   },
   rcd: {
     prefix: "GFCI",
     label: "接地故障斷路器",
     variants: {
       body: {
-        w: 5,
+        w: 6,
         h: 8,
         terminals: [
           t("L1", 0, 1),
           t("L2", 0, 3),
           t("L3", 0, 5),
           t("N", 0, 7),
-          t("T1", 5, 1),
-          t("T2", 5, 3),
-          t("T3", 5, 5),
-          t("TN", 5, 7, "N"),
+          t("T1", 6, 1),
+          t("T2", 6, 3),
+          t("T3", 6, 5),
+          t("TN", 6, 7, "N"),
         ],
       },
     },
@@ -237,27 +277,57 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
   isolator: {
     prefix: "DISC",
     label: "隔離開關",
-    variants: { body: pole3 },
+    variants: { body: isolatorBody },
   },
   overload: {
     prefix: "FR",
     label: "熱繼電器",
     variants: {
       body: {
-        w: 5,
-        h: 10,
+        w: 6,
+        h: 4,
         terminals: [
-          t("L1", 0, 1),
-          t("L2", 0, 3),
-          t("L3", 0, 5),
-          t("T1", 5, 1),
-          t("T2", 5, 3),
-          t("T3", 5, 5),
-          t("95", 0, 7),
-          t("96", 5, 7),
-          t("97", 0, 9),
-          t("98", 5, 9),
+          t("L1", 1, 0, "L1"),
+          t("L2", 3, 0, "L2"),
+          t("L3", 5, 0, "L3"),
+          t("T1", 1, 4, "T1"),
+          t("T2", 3, 4, "T2"),
+          t("T3", 5, 4, "T3"),
+          t("1", 1, 0, "L1"),
+          t("3", 3, 0, "L2"),
+          t("5", 5, 0, "L3"),
+          t("2", 1, 4, "T1"),
+          t("4", 3, 4, "T2"),
+          t("6", 5, 4, "T3"),
         ],
+      },
+      main: {
+        w: 6,
+        h: 4,
+        terminals: [
+          t("L1", 1, 0, "L1"),
+          t("L2", 3, 0, "L2"),
+          t("L3", 5, 0, "L3"),
+          t("T1", 1, 4, "T1"),
+          t("T2", 3, 4, "T2"),
+          t("T3", 5, 4, "T3"),
+          t("1", 1, 0, "L1"),
+          t("3", 3, 0, "L2"),
+          t("5", 5, 0, "L3"),
+          t("2", 1, 4, "T1"),
+          t("4", 3, 4, "T2"),
+          t("6", 5, 4, "T3"),
+        ],
+      },
+      "aux-nc": {
+        w: CONTACT_W,
+        h: 2,
+        terminals: [t("95", 0, 1, "95"), t("96", CONTACT_W, 1, "96")],
+      },
+      "aux-no": {
+        w: CONTACT_W,
+        h: 2,
+        terminals: [t("97", 0, 1, "97"), t("98", CONTACT_W, 1, "98")],
       },
     },
   },
@@ -428,7 +498,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 3,
+        h: 2,
         terminals: [t("1", 0, 1), t("2", 4, 1)],
       },
     },
@@ -463,7 +533,11 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "流量開關 常閉",
     variants: { body: { w: 4, h: 2, terminals: [t("1", 0, 1), t("2", 4, 1)] } },
   },
+  "prox-no": { prefix: "SQ", label: "接近開關 常開", variants: { body: contactBody } },
+  "prox-nc": { prefix: "SQ", label: "接近開關 常閉", variants: { body: contactBody } },
   prox: { prefix: "SQ", label: "接近開關", variants: { body: contactBody } },
+  "photo-no": { prefix: "SQ", label: "光電開關 常開", variants: { body: contactBody } },
+  "photo-nc": { prefix: "SQ", label: "光電開關 常閉", variants: { body: contactBody } },
   photo: { prefix: "SQ", label: "光電開關", variants: { body: contactBody } },
   contactor: {
     prefix: "KM",
@@ -471,15 +545,15 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       coil: coilBody,
       main: {
-        w: 5,
+        w: 6,
         h: 6,
         terminals: [
           t("L1", 0, 1),
           t("L2", 0, 3),
           t("L3", 0, 5),
-          t("T1", 5, 1),
-          t("T2", 5, 3),
-          t("T3", 5, 5),
+          t("T1", 6, 1),
+          t("T2", 6, 3),
+          t("T3", 6, 5),
         ],
       },
       "aux-no": {
@@ -626,7 +700,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "直流電機",
     variants: {
       body: {
-        w: 5,
+        w: 6,
         h: 4,
         terminals: [t("A1", 0, 1, "A+"), t("A2", 0, 3, "A−")],
       },
@@ -653,9 +727,9 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "直流發電機",
     variants: {
       body: {
-        w: 5,
+        w: 6,
         h: 4,
-        terminals: [t("+", 5, 1, "+"), t("-", 5, 3, "−")],
+        terminals: [t("+", 6, 1, "+"), t("-", 6, 3, "−")],
       },
     },
   },
@@ -773,6 +847,8 @@ export const CATALOG: CatalogItem[] = [
   { id: "fuse", kind: "fuse", variant: "body", group: "電源與保護", label: "熔斷器", labelEn: "Fuse", prefix: "FU", creates: "device" },
   { id: "isolator", kind: "isolator", variant: "body", group: "電源與保護", label: "隔離開關", labelEn: "Isolator", prefix: "DISC", creates: "device" },
   { id: "overload", kind: "overload", variant: "body", group: "電源與保護", label: "熱繼電器", labelEn: "Overload FR", prefix: "OL", creates: "device" },
+  { id: "fr-nc", kind: "overload", variant: "aux-nc", group: "電源與保護", label: "熱過載常閉 95-96", labelEn: "Overload Aux NC 95-96", prefix: "OL", creates: "attach", defaultRot: 0 },
+  { id: "fr-no", kind: "overload", variant: "aux-no", group: "電源與保護", label: "熱過載常開 97-98", labelEn: "Overload Aux NO 97-98", prefix: "OL", creates: "attach", defaultRot: 0 },
 
   { id: "net-label", kind: "net-label", variant: "body", group: "接線", label: "標籤端子", labelEn: "Net label", prefix: "L1", creates: "device" },
   { id: "ground", kind: "ground", variant: "body", group: "接線", label: "接地", labelEn: "Ground", prefix: "PE", creates: "device" },
@@ -800,8 +876,10 @@ export const CATALOG: CatalogItem[] = [
   { id: "flow-nc", kind: "flow-nc", variant: "body", group: "感測器", label: "流量常閉", labelEn: "Flow NC", prefix: "FS", creates: "device" },
   { id: "pressure-no", kind: "pressure-no", variant: "body", group: "感測器", label: "壓力常開", labelEn: "Press NO", prefix: "SP", creates: "device" },
   { id: "pressure-nc", kind: "pressure-nc", variant: "body", group: "感測器", label: "壓力常閉", labelEn: "Press NC", prefix: "SP", creates: "device" },
-  { id: "prox", kind: "prox", variant: "body", group: "感測器", label: "接近開關", labelEn: "Prox Sensor", prefix: "SQ", creates: "device" },
-  { id: "photo", kind: "photo", variant: "body", group: "感測器", label: "光電開關", labelEn: "Photo Sensor", prefix: "SQ", creates: "device" },
+  { id: "prox-no", kind: "prox-no", variant: "body", group: "感測器", label: "接近開關常開", labelEn: "Prox Sensor NO", prefix: "SQ", creates: "device" },
+  { id: "prox-nc", kind: "prox-nc", variant: "body", group: "感測器", label: "接近開關常閉", labelEn: "Prox Sensor NC", prefix: "SQ", creates: "device" },
+  { id: "photo-no", kind: "photo-no", variant: "body", group: "感測器", label: "光電開關常開", labelEn: "Photo Sensor NO", prefix: "SQ", creates: "device" },
+  { id: "photo-nc", kind: "photo-nc", variant: "body", group: "感測器", label: "光電開關常閉", labelEn: "Photo Sensor NC", prefix: "SQ", creates: "device" },
 
   { id: "km-coil", kind: "contactor", variant: "coil", group: "Relays / Contactors", label: "Contactor Coil", labelEn: "Contactor Coil", prefix: "KM", creates: "device" },
   { id: "km-main", kind: "contactor", variant: "main", group: "Relays / Contactors", label: "Contactor Main", labelEn: "Contactor Main", prefix: "KM", creates: "attach" },

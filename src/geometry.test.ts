@@ -359,7 +359,7 @@ describe("wire crossovers", () => {
       const tc1 = addDevice(c, "transformer", "TC1", "body", 4, 4);
       const tc2 = addDevice(c, "transformer", "TC2", "body", 16, 4 + dy);
       addWire(c, tc1.symbol, "X1", tc2.symbol, "H1");
-      addWire(c, tc1.symbol, "X2", tc2.symbol, "H2");
+      addWire(c, tc1.symbol, "X2", tc2.symbol, "H4");
       const routes = allWireRoutes(c);
       const crossovers = findWireCrossovers(c, routes);
       expect(crossovers).toHaveLength(0);
@@ -371,7 +371,7 @@ describe("wire crossovers", () => {
       const c = emptyCircuit();
       const tc1 = addDevice(c, "transformer", "TC1", "body", 4, 4);
       const tc2 = addDevice(c, "transformer", "TC2", "body", 16, 4 + dy);
-      addWire(c, tc1.symbol, "X1", tc2.symbol, "H2");
+      addWire(c, tc1.symbol, "X1", tc2.symbol, "H4");
       addWire(c, tc1.symbol, "X2", tc2.symbol, "H1");
       const routes = allWireRoutes(c);
       const crossovers = findWireCrossovers(c, routes);
@@ -596,7 +596,7 @@ describe("wire merge and optimal junction point", () => {
   it("strictly aligns all vertices to GRID during autorouting", () => {
     const c = emptyCircuit();
     const tc = addDevice(c, "transformer", "TC1", "body", 2, 10);
-    const fr = addDevice(c, "overload", "FR1", "body", 12, 2);
+    const fr = addDevice(c, "overload", "FR1", "aux-nc", 12, 2);
     addWire(c, tc.symbol, "X1", fr.symbol, "95");
     const w = c.wires[0];
 
@@ -611,7 +611,7 @@ describe("wire merge and optimal junction point", () => {
   it("left/right wire jog movement does not affect horizontal segments and stays grid aligned", () => {
     const c = emptyCircuit();
     const tc = addDevice(c, "transformer", "TC1", "body", 2, 10);
-    const fr = addDevice(c, "overload", "FR1", "body", 12, 2);
+    const fr = addDevice(c, "overload", "FR1", "aux-nc", 12, 2);
     addWire(c, tc.symbol, "X1", fr.symbol, "95");
     const w = c.wires[0];
 
@@ -691,9 +691,9 @@ describe("wire merge and optimal junction point", () => {
 
   it("ensures no wire route ever contains diagonal lines (all segments are purely horizontal or vertical)", () => {
     const c = emptyCircuit();
-    const fr = addDevice(c, "overload", "FR1", "body", 22, 4);
+    const fr = addDevice(c, "overload", "FR1", "aux-nc", 22, 4);
     const sb = addDevice(c, "pb-nc", "SB1", "body", 16, 17);
-    // FR1 terminal 96 faces RIGHT; SB1 terminal 1 faces LEFT and is located to the left and lower than FR1
+    // FR1 aux-nc terminal 96 faces RIGHT; SB1 terminal 1 faces LEFT and is located to the left and lower than FR1
     addWire(c, fr.symbol, "96", sb.symbol, "1");
     const w = c.wires[0];
 

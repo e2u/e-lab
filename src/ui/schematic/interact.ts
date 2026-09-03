@@ -79,7 +79,7 @@ export function interact(kind: string, id: string, down: boolean) {
       lab.setProcess({ flow: sp });
     }
   }
-  if (kind === "prox") lab.setProcess({ proxHit: !lab.process.proxHit });
-  if (kind === "photo") lab.setProcess({ photoHit: !lab.process.photoHit });
+  if (kind.startsWith("prox")) lab.setProcess({ proxHit: !lab.process.proxHit });
+  if (kind.startsWith("photo")) lab.setProcess({ photoHit: !lab.process.photoHit });
   if (kind === "gen-ac" || kind === "gen-dc") lab.toggleIo(id, "prime");
 }

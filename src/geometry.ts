@@ -60,6 +60,29 @@ export function applyFlip(
   };
 }
 
+function lookupTerminal(v: VariantDef, kind: string, termId: string): TerminalDef | undefined {
+  let term = v.terminals.find((t) => t.id === termId);
+  if (!term && (kind === "breaker-3p" || kind === "isolator" || kind === "overload")) {
+    const aliasMap: Record<string, string> = {
+      "1": "L1",
+      "3": "L2",
+      "5": "L3",
+      "2": "T1",
+      "4": "T2",
+      "6": "T3",
+      L1: "1",
+      L2: "3",
+      L3: "5",
+      T1: "2",
+      T2: "4",
+      T3: "6",
+    };
+    const mapped = aliasMap[termId];
+    if (mapped) term = v.terminals.find((t) => t.id === mapped);
+  }
+  return term;
+}
+
 export function terminalWorld(
   circuit: Circuit,
   ref: PortRef,
@@ -69,10 +92,15 @@ export function terminalWorld(
   const dev = circuit.devices.find((d) => d.id === sym.deviceId);
   if (!dev) return null;
   const v = variantDef(dev.kind, sym.variant);
-  const term = v.terminals.find((t) => t.id === ref.term);
+  const term = lookupTerminal(v, dev.kind, ref.term);
   if (!term) return null;
-  const flipped = applyFlip(term.x, term.y, v.w, v.h, sym.flipX, sym.flipY);
-  const p = rotatePoint(flipped.x, flipped.y, v.w, v.h, sym.rot);
+  const s = dev.params?.scale ?? 1;
+  const termX = term.x * s;
+  const termY = term.y * s;
+  const vw = v.w * s;
+  const vh = v.h * s;
+  const flipped = applyFlip(termX, termY, vw, vh, sym.flipX, sym.flipY);
+  const p = rotatePoint(flipped.x, flipped.y, vw, vh, sym.rot);
   return { x: (sym.x + p.x) * GRID, y: (sym.y + p.y) * GRID };
 }
 
@@ -113,13 +141,14 @@ export function terminalOutward(
     return { x: 0, y: 0 };
   }
   const v = variantDef(dev.kind, sym.variant);
-  const term = v.terminals.find((t) => t.id === ref.term);
+  const term = lookupTerminal(v, dev.kind, ref.term);
   if (!term) return { x: 0, y: 0 };
-  const p = applyFlip(term.x, term.y, v.w, v.h, sym.flipX, sym.flipY);
+  const s = dev.params?.scale ?? 1;
+  const p = applyFlip(term.x * s, term.y * s, v.w * s, v.h * s, sym.flipX, sym.flipY);
   const dl = p.x;
-  const dr = v.w - p.x;
+  const dr = v.w * s - p.x;
   const dt = p.y;
-  const db = v.h - p.y;
+  const db = v.h * s - p.y;
   const nearest = Math.min(dl, dr, dt, db);
   let local = { x: 0, y: 1 };
   if (nearest === dl) local = { x: -1, y: 0 };

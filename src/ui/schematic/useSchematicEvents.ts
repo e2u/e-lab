@@ -39,10 +39,11 @@ export function useSchematicEvents({
     symbolId: string;
     deviceId: string;
     corner: "tl" | "tr" | "br" | "bl";
+    anchorLocal: "tl" | "tr" | "br" | "bl";
     baseW: number;
     baseH: number;
-    anchorX: number;
-    anchorY: number;
+    anchorWorldX: number;
+    anchorWorldY: number;
     rot: number;
     pushedHistory?: boolean;
   } | null>(null);
@@ -362,20 +363,40 @@ export function useSchematicEvents({
         useLab.getState().pushHistory();
         rd.pushedHistory = true;
       }
-      let dx = 0;
-      let dy = 0;
+
+      // Mouse vector relative to the fixed world anchor
+      const dxWorld = p.x - rd.anchorWorldX;
+      const dyWorld = p.y - rd.anchorWorldY;
+
+      // Transform world delta to local symbol coordinate delta
+      let dxLocal = dxWorld;
+      let dyLocal = dyWorld;
+      if (rd.rot === 90) {
+        dxLocal = dyWorld;
+        dyLocal = -dxWorld;
+      } else if (rd.rot === 180) {
+        dxLocal = -dxWorld;
+        dyLocal = -dyWorld;
+      } else if (rd.rot === 270) {
+        dxLocal = -dyWorld;
+        dyLocal = dxWorld;
+      }
+
+      // Determine local width and height based on dragged corner
+      let targetW = dxLocal;
+      let targetH = dyLocal;
       if (rd.corner === "br") {
-        dx = p.x - rd.anchorX;
-        dy = p.y - rd.anchorY;
-      } else if (rd.corner === "bl") {
-        dx = rd.anchorX - p.x;
-        dy = p.y - rd.anchorY;
-      } else if (rd.corner === "tr") {
-        dx = p.x - rd.anchorX;
-        dy = rd.anchorY - p.y;
+        targetW = dxLocal;
+        targetH = dyLocal;
       } else if (rd.corner === "tl") {
-        dx = rd.anchorX - p.x;
-        dy = rd.anchorY - p.y;
+        targetW = -dxLocal;
+        targetH = -dyLocal;
+      } else if (rd.corner === "tr") {
+        targetW = dxLocal;
+        targetH = -dyLocal;
+      } else if (rd.corner === "bl") {
+        targetW = -dxLocal;
+        targetH = dyLocal;
       }
 
       const gcd = (a: number, b: number): number => {
@@ -390,8 +411,8 @@ export function useSchematicEvents({
       };
       const g = gcd(rd.baseW, rd.baseH);
 
-      const sw = dx / rd.baseW;
-      const sh = dy / rd.baseH;
+      const sw = targetW / rd.baseW;
+      const sh = targetH / rd.baseH;
       const sRaw = (sw + sh) / 2;
       const k = Math.max(1, Math.min(20 * g, Math.round(sRaw * g)));
       const s = k / g;
@@ -399,20 +420,66 @@ export function useSchematicEvents({
       const newW = rd.baseW * s;
       const newH = rd.baseH * s;
 
-      let newX = rd.anchorX;
-      let newY = rd.anchorY;
-      if (rd.corner === "br") {
-        newX = rd.anchorX;
-        newY = rd.anchorY;
-      } else if (rd.corner === "bl") {
-        newX = rd.anchorX - newW;
-        newY = rd.anchorY;
-      } else if (rd.corner === "tr") {
-        newX = rd.anchorX;
-        newY = rd.anchorY - newH;
-      } else if (rd.corner === "tl") {
-        newX = rd.anchorX - newW;
-        newY = rd.anchorY - newH;
+      // Recompute symbol top-left (sym.x, sym.y) so that anchorWorld remains fixed
+      let newX = rd.anchorWorldX;
+      let newY = rd.anchorWorldY;
+
+      if (rd.anchorLocal === "tl") {
+        if (rd.rot === 0) {
+          newX = rd.anchorWorldX;
+          newY = rd.anchorWorldY;
+        } else if (rd.rot === 90) {
+          newX = rd.anchorWorldX - newH;
+          newY = rd.anchorWorldY;
+        } else if (rd.rot === 180) {
+          newX = rd.anchorWorldX - newW;
+          newY = rd.anchorWorldY - newH;
+        } else if (rd.rot === 270) {
+          newX = rd.anchorWorldX;
+          newY = rd.anchorWorldY - newW;
+        }
+      } else if (rd.anchorLocal === "br") {
+        if (rd.rot === 0) {
+          newX = rd.anchorWorldX - newW;
+          newY = rd.anchorWorldY - newH;
+        } else if (rd.rot === 90) {
+          newX = rd.anchorWorldX;
+          newY = rd.anchorWorldY - newW;
+        } else if (rd.rot === 180) {
+          newX = rd.anchorWorldX;
+          newY = rd.anchorWorldY;
+        } else if (rd.rot === 270) {
+          newX = rd.anchorWorldX - newH;
+          newY = rd.anchorWorldY;
+        }
+      } else if (rd.anchorLocal === "bl") {
+        if (rd.rot === 0) {
+          newX = rd.anchorWorldX;
+          newY = rd.anchorWorldY - newH;
+        } else if (rd.rot === 90) {
+          newX = rd.anchorWorldX;
+          newY = rd.anchorWorldY;
+        } else if (rd.rot === 180) {
+          newX = rd.anchorWorldX - newW;
+          newY = rd.anchorWorldY;
+        } else if (rd.rot === 270) {
+          newX = rd.anchorWorldX - newH;
+          newY = rd.anchorWorldY - newW;
+        }
+      } else if (rd.anchorLocal === "tr") {
+        if (rd.rot === 0) {
+          newX = rd.anchorWorldX - newW;
+          newY = rd.anchorWorldY;
+        } else if (rd.rot === 90) {
+          newX = rd.anchorWorldX - newH;
+          newY = rd.anchorWorldY - newW;
+        } else if (rd.rot === 180) {
+          newX = rd.anchorWorldX;
+          newY = rd.anchorWorldY - newH;
+        } else if (rd.rot === 270) {
+          newX = rd.anchorWorldX;
+          newY = rd.anchorWorldY;
+        }
       }
 
       useLab.getState().scaleSymbol(rd.symbolId, s, newX, newY);
@@ -990,38 +1057,89 @@ export function useSchematicEvents({
 
     const v = variantDef(dev.kind, sym.variant);
     const initialScale = dev.params?.scale ?? 1;
-    const isRot = sym.rot === 90 || sym.rot === 270;
-    const Bw = isRot ? v.h : v.w;
-    const Bh = isRot ? v.w : v.h;
-    const W0 = Bw * initialScale;
-    const H0 = Bh * initialScale;
-    const X0 = sym.x;
-    const Y0 = sym.y;
+    const baseW = v.w;
+    const baseH = v.h;
+    const w0 = baseW * initialScale;
+    const h0 = baseH * initialScale;
 
-    let anchorX = X0;
-    let anchorY = Y0;
-    if (corner === "br") {
-      anchorX = X0;
-      anchorY = Y0;
-    } else if (corner === "bl") {
-      anchorX = X0 + W0;
-      anchorY = Y0;
-    } else if (corner === "tr") {
-      anchorX = X0;
-      anchorY = Y0 + H0;
-    } else if (corner === "tl") {
-      anchorX = X0 + W0;
-      anchorY = Y0 + H0;
+    // Determine the fixed anchor in local coordinates (the corner opposite to the dragged corner)
+    let anchorLocal: "tl" | "tr" | "br" | "bl" = "tl";
+    if (corner === "br") anchorLocal = "tl";
+    else if (corner === "tl") anchorLocal = "br";
+    else if (corner === "tr") anchorLocal = "bl";
+    else if (corner === "bl") anchorLocal = "tr";
+
+    // Compute the anchor's world grid position based on symbol rotation and initial dimensions
+    let anchorWorldX = sym.x;
+    let anchorWorldY = sym.y;
+
+    if (anchorLocal === "tl") {
+      if (sym.rot === 0) {
+        anchorWorldX = sym.x;
+        anchorWorldY = sym.y;
+      } else if (sym.rot === 90) {
+        anchorWorldX = sym.x + h0;
+        anchorWorldY = sym.y;
+      } else if (sym.rot === 180) {
+        anchorWorldX = sym.x + w0;
+        anchorWorldY = sym.y + h0;
+      } else if (sym.rot === 270) {
+        anchorWorldX = sym.x;
+        anchorWorldY = sym.y + w0;
+      }
+    } else if (anchorLocal === "br") {
+      if (sym.rot === 0) {
+        anchorWorldX = sym.x + w0;
+        anchorWorldY = sym.y + h0;
+      } else if (sym.rot === 90) {
+        anchorWorldX = sym.x;
+        anchorWorldY = sym.y + w0;
+      } else if (sym.rot === 180) {
+        anchorWorldX = sym.x;
+        anchorWorldY = sym.y;
+      } else if (sym.rot === 270) {
+        anchorWorldX = sym.x + h0;
+        anchorWorldY = sym.y;
+      }
+    } else if (anchorLocal === "bl") {
+      if (sym.rot === 0) {
+        anchorWorldX = sym.x;
+        anchorWorldY = sym.y + h0;
+      } else if (sym.rot === 90) {
+        anchorWorldX = sym.x;
+        anchorWorldY = sym.y;
+      } else if (sym.rot === 180) {
+        anchorWorldX = sym.x + w0;
+        anchorWorldY = sym.y;
+      } else if (sym.rot === 270) {
+        anchorWorldX = sym.x + h0;
+        anchorWorldY = sym.y + w0;
+      }
+    } else if (anchorLocal === "tr") {
+      if (sym.rot === 0) {
+        anchorWorldX = sym.x + w0;
+        anchorWorldY = sym.y;
+      } else if (sym.rot === 90) {
+        anchorWorldX = sym.x + h0;
+        anchorWorldY = sym.y + w0;
+      } else if (sym.rot === 180) {
+        anchorWorldX = sym.x;
+        anchorWorldY = sym.y + h0;
+      } else if (sym.rot === 270) {
+        anchorWorldX = sym.x;
+        anchorWorldY = sym.y;
+      }
     }
 
     resizeDrag.current = {
       symbolId: sym.id,
       deviceId: dev.id,
       corner,
-      baseW: Bw,
-      baseH: Bh,
-      anchorX,
-      anchorY,
+      anchorLocal,
+      baseW,
+      baseH,
+      anchorWorldX,
+      anchorWorldY,
       rot: sym.rot,
       pushedHistory: false,
     };

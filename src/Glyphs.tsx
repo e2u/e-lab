@@ -1001,10 +1001,10 @@ function GlyphBody({
 
     const S = (p: SVGProps<SVGSVGElement> & { w?: number; h?: number; baseW?: number; baseH?: number }) => (
         <SVGBase
-            w={p.w ?? scaledW}
-            h={p.h ?? scaledH}
-            baseW={p.baseW ?? bw}
-            baseH={p.baseH ?? bh}
+            w={scaledW}
+            h={scaledH}
+            baseW={p.baseW ?? p.w ?? bw}
+            baseH={p.baseH ?? p.h ?? bh}
             {...p}
         />
     );

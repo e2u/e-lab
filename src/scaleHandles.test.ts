@@ -210,4 +210,38 @@ describe("Symbol Scale & Control Handles", () => {
     expect(t4).toEqual(tT2);
     expect(t6).toEqual(tT3);
   });
+
+  it("scales rotated symbols (90, 180, 270 deg) keeping opposite anchor fixed", () => {
+    useLab.getState().loadBlankTemplate(true);
+    const lab = useLab.getState();
+    lab.setPlacing("breaker-3p");
+    lab.placeAt(10, 10);
+
+    const s1 = useLab.getState();
+    const dev = s1.circuit.devices.find((d) => d.kind === "breaker-3p")!;
+    const sym = s1.circuit.symbols.find((s) => s.deviceId === dev.id)!;
+
+    // Select and rotate 90 degrees: base size 6x4 becomes 4x6 in world bounding box
+    lab.select({ type: "symbol", id: sym.id });
+    lab.rotateSelected(1);
+    const sRot90 = useLab.getState();
+    const symRot90 = sRot90.circuit.symbols.find((s) => s.id === sym.id)!;
+    expect(symRot90.rot).toBe(90);
+
+    // Initial world bounds: x: 10, y: 10, w: 4, h: 6 (world TL is at (10, 10))
+    const b1 = symbolBounds(sRot90.circuit, symRot90);
+    expect(b1).toEqual({ x: 10, y: 10, w: 4, h: 6 });
+
+    // Scale 1.5x with anchor at world TL (10, 10) -> new world bounds: x: 10, y: 10, w: 6, h: 9
+    // Breaker 3p baseW=6, baseH=4 -> at 1.5x, baseW=9, baseH=6.
+    // For rot 90, anchor bl (local 0, h0) is world TL (10, 10).
+    // Under rot 90 with anchor bl, newSymX = anchorWorldX = 10, newSymY = anchorWorldY = 10.
+    useLab.getState().scaleSymbol(sym.id, 1.5, 10, 10);
+    const sScaled = useLab.getState();
+    const symScaled = sScaled.circuit.symbols.find((s) => s.id === sym.id)!;
+    const devScaled = sScaled.circuit.devices.find((d) => d.id === dev.id)!;
+    expect(devScaled.params.scale).toBe(1.5);
+    const bScaled = symbolBounds(sScaled.circuit, symScaled);
+    expect(bScaled).toEqual({ x: 10, y: 10, w: 6, h: 9 });
+  });
 });

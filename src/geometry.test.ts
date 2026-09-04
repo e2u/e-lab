@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { addDevice, addJunction, addWire, emptyCircuit, mergeWires } from "./circuitBuilder";
+import { addDevice, addJunction, addWire, emptyCircuit, mergeWires, removeJunction } from "./circuitBuilder";
 import { GRID } from "./types";
-import { allWireRoutes, areWiresConnected, cleanPolyline, findOptimalJunctionForWires, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute, wiresInRect } from "./geometry";
+import { allWireRoutes, areWiresConnected, cleanPolyline, deriveJogToMatchPolyline, findOptimalJunctionForWires, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute, wiresInRect } from "./geometry";
 
 describe("wire routing stubs", () => {
   it("leaves a coil terminal in a straight stub before turning", () => {
@@ -721,5 +721,95 @@ describe("wire merge and optimal junction point", () => {
       const isVertical = Math.abs(pts[i].x - pts[i + 1].x) < 0.01;
       expect(isHorizontal || isVertical).toBe(true);
     }
+  });
+
+  describe("junction deletion preserves wire layout", () => {
+    it("preserves layout when deleting junction on a straight horizontal line", () => {
+      const c = emptyCircuit();
+      const left = addDevice(c, "lamp", "HL1", "body", 4, 4);
+      const mid = addJunction(c, 10, 5);
+      const right = addDevice(c, "lamp", "HL2", "body", 16, 4);
+
+      addWire(c, left.symbol, "2", mid.symbol, "1");
+      addWire(c, mid.symbol, "1", right.symbol, "1");
+
+      const pts0 = wireRoute(c, c.wires[0].a, c.wires[0].b);
+      const pts1 = wireRoute(c, c.wires[1].a, c.wires[1].b);
+      const originalPath = cleanPolyline([...pts0, ...pts1.slice(1)]);
+
+      removeJunction(c, mid.symbol.id);
+
+      expect(c.wires.length).toBe(1);
+      const newPath = wireRoute(c, c.wires[0].a, c.wires[0].b, c.wires[0].jog);
+      expect(cleanPolyline(newPath)).toEqual(originalPath);
+    });
+
+    it("preserves layout when deleting junction at an L-shaped corner", () => {
+      const c = emptyCircuit();
+      const top = addDevice(c, "fuse", "FU1", "body", 4, 2); // term 2 exits DOWN at (4, 4)*GRID
+      const corner = addJunction(c, 4, 10);
+      const right = addDevice(c, "pb-no", "SB1", "body", 12, 10); // term 1 exits LEFT at (12, 10)*GRID
+
+      addWire(c, top.symbol, "2", corner.symbol, "1");
+      addWire(c, corner.symbol, "1", right.symbol, "1");
+
+      const pts0 = wireRoute(c, c.wires[0].a, c.wires[0].b);
+      const pts1 = wireRoute(c, c.wires[1].a, c.wires[1].b);
+      const originalPath = cleanPolyline([...pts0, ...pts1.slice(1)]);
+
+      removeJunction(c, corner.symbol.id);
+
+      expect(c.wires.length).toBe(1);
+      const newPath = wireRoute(c, c.wires[0].a, c.wires[0].b, c.wires[0].jog);
+      expect(cleanPolyline(newPath)).toEqual(originalPath);
+    });
+
+    it("preserves layout when deleting junction on a jogged wire", () => {
+      const c = emptyCircuit();
+      const top = addDevice(c, "fuse", "FU1", "body", 4, 2);
+      const mid = addJunction(c, 10, 6);
+      const bot = addDevice(c, "fuse", "FU2", "body", 16, 12);
+
+      // Wire 1 with a jog
+      const w1 = addWire(c, top.symbol, "2", mid.symbol, "1");
+      w1.jog = { axis: "y", pos: 6 * GRID };
+      // Wire 2 straight
+      addWire(c, mid.symbol, "1", bot.symbol, "1");
+
+      const pts0 = wireRoute(c, c.wires[0].a, c.wires[0].b, c.wires[0].jog);
+      const pts1 = wireRoute(c, c.wires[1].a, c.wires[1].b, c.wires[1].jog);
+      const originalPath = cleanPolyline([...pts0, ...pts1.slice(1)]);
+
+      removeJunction(c, mid.symbol.id);
+
+      expect(c.wires.length).toBe(1);
+      const newPath = wireRoute(c, c.wires[0].a, c.wires[0].b, c.wires[0].jog);
+      expect(cleanPolyline(newPath)).toEqual(originalPath);
+    });
+
+    it("preserves through-wire layout when deleting a T-junction with 3 legs", () => {
+      const c = emptyCircuit();
+      const left = addDevice(c, "lamp", "HL1", "body", 2, 4);
+      const mid = addJunction(c, 8, 5);
+      const right = addDevice(c, "lamp", "HL2", "body", 14, 4);
+      const tap = addDevice(c, "lamp", "HL3", "body", 8, 12);
+
+      // Left to mid (horizontal through)
+      addWire(c, left.symbol, "2", mid.symbol, "1");
+      // Mid to right (horizontal through)
+      addWire(c, mid.symbol, "1", right.symbol, "1");
+      // Mid to tap (vertical branch)
+      addWire(c, mid.symbol, "1", tap.symbol, "1");
+
+      const pts0 = wireRoute(c, c.wires[0].a, c.wires[0].b);
+      const pts1 = wireRoute(c, c.wires[1].a, c.wires[1].b);
+      const throughPath = cleanPolyline([...pts0, ...pts1.slice(1)]);
+
+      removeJunction(c, mid.symbol.id);
+
+      expect(c.wires.length).toBe(1);
+      const newPath = wireRoute(c, c.wires[0].a, c.wires[0].b, c.wires[0].jog);
+      expect(cleanPolyline(newPath)).toEqual(throughPath);
+    });
   });
 });

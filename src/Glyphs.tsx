@@ -7,7 +7,7 @@ const ink = "#1b1a16";
 
 const FlipCtx = createContext({fx: 1, fy: 1, rot: 0});
 
-function Txt({x = 0, y = 0, transform, ...rest}: SVGProps<SVGTextElement>) {
+function Txt({x = 0, y = 0, transform, textAnchor, ...rest}: SVGProps<SVGTextElement>) {
     const {fx, fy, rot} = useContext(FlipCtx);
     const nx = Number(x);
     const ny = Number(y);
@@ -16,7 +16,12 @@ function Txt({x = 0, y = 0, transform, ...rest}: SVGProps<SVGTextElement>) {
             ? undefined
             : `translate(${nx} ${ny}) scale(${fx} ${fy}) rotate(${-rot}) translate(${-nx} ${-ny})`;
     const t = [unflip, transform].filter(Boolean).join(" ") || undefined;
-    return <text x={x} y={y} transform={t} {...rest} />;
+    const isWorldFlippedH = (rot === 0 || rot === 180) ? (fx === -1) : (fy === -1);
+    const effectiveAnchor =
+        isWorldFlippedH && textAnchor !== "middle"
+            ? (textAnchor === "end" ? "start" : "end")
+            : textAnchor;
+    return <text x={x} y={y} transform={t} textAnchor={effectiveAnchor} {...rest} />;
 }
 
 function UnflipGroup({cx = 0, cy = 0, transform, children, ...rest}: SVGProps<SVGGElement> & { cx?: number; cy?: number }) {
@@ -244,7 +249,7 @@ function barContact(
                 </Txt>
             )}
             {labR && (
-                <Txt x={w * GRID - 10} y={y - 6} textAnchor="end" className="term-lab">
+                <Txt x={w * GRID - 20} y={y - 6} className="term-lab">
                     {labR}
                 </Txt>
             )}
@@ -1479,10 +1484,10 @@ function GlyphBody({
                         />
                         <circle cx={x1} cy={p.y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
                         <circle cx={x2} cy={p.y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                        <Txt x={x1} y={p.y - 7} textAnchor="middle" className="term-lab">
+                        <Txt x={6} y={p.y - 7} className="term-lab">
                             {p.leftLab}
                         </Txt>
-                        <Txt x={x2} y={p.y - 7} textAnchor="middle" className="term-lab">
+                        <Txt x={w * GRID - 16} y={p.y - 7} className="term-lab">
                             {p.rightLab}
                         </Txt>
                     </g>

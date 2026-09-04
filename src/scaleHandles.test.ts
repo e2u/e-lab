@@ -303,4 +303,43 @@ describe("Symbol Scale & Control Handles", () => {
 
     expect(element).toBeDefined();
   });
+
+  it("renders horizontally flipped symbols with terminal tags properly", () => {
+    const c = emptyCircuit();
+    const kinds = ["breaker-3p", "isolator", "overload", "contactor"] as const;
+    for (const kind of kinds) {
+      const variant = kind === "contactor" ? "main" : "body";
+      const { device } = addDevice(c, kind, "DEV1", variant, 0, 0);
+      const v = variantDef(kind, variant);
+      const elNormal = SymbolGlyph({
+        device,
+        variant,
+        w: v.w,
+        h: v.h,
+        flipX: false,
+        rot: 0,
+      });
+      expect(elNormal).toBeDefined();
+
+      const elFlipped = SymbolGlyph({
+        device,
+        variant,
+        w: v.w,
+        h: v.h,
+        flipX: true,
+        rot: 0,
+      });
+      expect(elFlipped).toBeDefined();
+
+      const elRotFlipped = SymbolGlyph({
+        device,
+        variant,
+        w: v.w,
+        h: v.h,
+        flipY: true,
+        rot: 90,
+      });
+      expect(elRotFlipped).toBeDefined();
+    }
+  });
 });

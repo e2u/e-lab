@@ -1,6 +1,6 @@
 import { variantDef } from "./catalog";
 import { GRID } from "./types";
-import { findOptimalJunctionForWires, portsEqual, terminalWorld } from "./geometry";
+import { cleanPolyline, deriveJogToMatchPolyline, findOptimalJunctionForWires, portsEqual, terminalWorld, wireRoute } from "./geometry";
 import { uid } from "./ids";
 import type { Circuit, Device, DeviceKind, DeviceParams, PortRef, Rot, SymbolInst, Wire } from "./types";
 
@@ -160,32 +160,128 @@ export function deleteWireAndCleanJunctions(circuit: Circuit, wireId: string): v
   pruneOrphanJunctions(circuit);
 }
 
-/** Remove a junction. If two remaining legs are spliced, preserve the junction coordinate as jog so the wire does not shift. */
+/** Remove a junction. If remaining legs are spliced, preserve the junction coordinate / layout so the wire does not shift. */
 export function removeJunction(circuit: Circuit, symbolId: string): void {
+  const sym = circuit.symbols.find((s) => s.id === symbolId);
+  if (!sym) return;
+
   const legs = circuit.wires.filter((w) => w.a.symbolId === symbolId || w.b.symbolId === symbolId);
   const far = (w: Circuit["wires"][0]): PortRef => (w.a.symbolId === symbolId ? w.b : w.a);
-  const sym = circuit.symbols.find((s) => s.id === symbolId);
-  if (legs.length === 2 && sym) {
+
+  if (legs.length === 2) {
     const p1 = far(legs[0]);
     const p2 = far(legs[1]);
+
+    const pts0 = wireRoute(circuit, legs[0].a, legs[0].b, legs[0].jog);
+    const ordered0 = legs[0].a.symbolId === symbolId ? [...pts0].reverse() : pts0;
+
+    const pts1 = wireRoute(circuit, legs[1].a, legs[1].b, legs[1].jog);
+    const ordered1 = legs[1].b.symbolId === symbolId ? [...pts1].reverse() : pts1;
+
+    const targetPts = cleanPolyline([...ordered0, ...ordered1.slice(1)]);
+
     circuit.wires = circuit.wires.filter((w) => w.id !== legs[0].id && w.id !== legs[1].id);
-    if (!portsEqual(p1, p2) && !circuit.wires.some((w) => (portsEqual(w.a, p1) && portsEqual(w.b, p2)) || (portsEqual(w.a, p2) && portsEqual(w.b, p1)))) {
+    circuit.symbols = circuit.symbols.filter((s) => s.id !== symbolId);
+    if (!circuit.symbols.some((s) => s.deviceId === sym.deviceId)) {
+      circuit.devices = circuit.devices.filter((d) => d.id !== sym.deviceId);
+    }
+
+    if (
+      !portsEqual(p1, p2) &&
+      !circuit.wires.some((w) => (portsEqual(w.a, p1) && portsEqual(w.b, p2)) || (portsEqual(w.a, p2) && portsEqual(w.b, p1)))
+    ) {
+      const jog = deriveJogToMatchPolyline(circuit, p1, p2, targetPts);
       circuit.wires.push({
         id: uid("w"),
         a: p1,
         b: p2,
         broken: Boolean(legs[0].broken || legs[1].broken),
         label: legs[0].label || legs[1].label,
-        jog: { x: sym.x, y: sym.y },
+        jog,
       });
+    }
+  } else if (legs.length > 2) {
+    // Check if there is a straight/through pair among legs
+    let pair: [Circuit["wires"][0], Circuit["wires"][0]] | null = null;
+
+    for (let i = 0; i < legs.length; i++) {
+      for (let j = i + 1; j < legs.length; j++) {
+        const l0 = legs[i];
+        const l1 = legs[j];
+        const pts0 = wireRoute(circuit, l0.a, l0.b, l0.jog);
+        const ord0 = l0.a.symbolId === symbolId ? [...pts0].reverse() : pts0;
+        const pts1 = wireRoute(circuit, l1.a, l1.b, l1.jog);
+        const ord1 = l1.b.symbolId === symbolId ? [...pts1].reverse() : pts1;
+
+        if (ord0.length >= 2 && ord1.length >= 2) {
+          const v0 = {
+            x: ord0[ord0.length - 1].x - ord0[ord0.length - 2].x,
+            y: ord0[ord0.length - 1].y - ord0[ord0.length - 2].y,
+          };
+          const v1 = {
+            x: ord1[1].x - ord1[0].x,
+            y: ord1[1].y - ord1[0].y,
+          };
+          // Check if collinear in same direction
+          if (
+            (Math.abs(v0.y) < 0.5 && Math.abs(v1.y) < 0.5 && v0.x * v1.x > 0) ||
+            (Math.abs(v0.x) < 0.5 && Math.abs(v1.x) < 0.5 && v0.y * v1.y > 0)
+          ) {
+            pair = [l0, l1];
+            break;
+          }
+        }
+      }
+      if (pair) break;
+    }
+
+    if (pair) {
+      const [l0, l1] = pair;
+      const p1 = far(l0);
+      const p2 = far(l1);
+
+      const pts0 = wireRoute(circuit, l0.a, l0.b, l0.jog);
+      const ordered0 = l0.a.symbolId === symbolId ? [...pts0].reverse() : pts0;
+      const pts1 = wireRoute(circuit, l1.a, l1.b, l1.jog);
+      const ordered1 = l1.b.symbolId === symbolId ? [...pts1].reverse() : pts1;
+      const targetPts = cleanPolyline([...ordered0, ...ordered1.slice(1)]);
+
+      const legIds = new Set(legs.map((w) => w.id));
+      circuit.wires = circuit.wires.filter((w) => !legIds.has(w.id));
+      circuit.symbols = circuit.symbols.filter((s) => s.id !== symbolId);
+      if (!circuit.symbols.some((s) => s.deviceId === sym.deviceId)) {
+        circuit.devices = circuit.devices.filter((d) => d.id !== sym.deviceId);
+      }
+
+      if (
+        !portsEqual(p1, p2) &&
+        !circuit.wires.some((w) => (portsEqual(w.a, p1) && portsEqual(w.b, p2)) || (portsEqual(w.a, p2) && portsEqual(w.b, p1)))
+      ) {
+        const jog = deriveJogToMatchPolyline(circuit, p1, p2, targetPts);
+        circuit.wires.push({
+          id: uid("w"),
+          a: p1,
+          b: p2,
+          broken: Boolean(l0.broken || l1.broken),
+          label: l0.label || l1.label,
+          jog,
+        });
+      }
+    } else {
+      const ids = new Set(legs.map((w) => w.id));
+      circuit.wires = circuit.wires.filter((w) => !ids.has(w.id));
+      circuit.symbols = circuit.symbols.filter((s) => s.id !== symbolId);
+      if (!circuit.symbols.some((s) => s.deviceId === sym.deviceId)) {
+        circuit.devices = circuit.devices.filter((d) => d.id !== sym.deviceId);
+      }
     }
   } else {
     const ids = new Set(legs.map((w) => w.id));
     circuit.wires = circuit.wires.filter((w) => !ids.has(w.id));
-  }
-  circuit.symbols = circuit.symbols.filter((s) => s.id !== symbolId);
-  if (sym && !circuit.symbols.some((s) => s.deviceId === sym.deviceId)) {
-    circuit.devices = circuit.devices.filter((d) => d.id !== sym.deviceId);
+    circuit.symbols = circuit.symbols.filter((s) => s.id !== symbolId);
+    if (!circuit.symbols.some((s) => s.deviceId === sym.deviceId)) {
+      circuit.devices = circuit.devices.filter((d) => d.id !== sym.deviceId);
+    }
   }
 }
 

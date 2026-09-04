@@ -1403,23 +1403,37 @@ export const useLab = create<LabState>((set, get) => ({
       }
     } else {
       const ids = new Set(selectedIds.length ? selectedIds : selected ? [selected.id] : []);
-      const onlyJunction =
-        ids.size === 1 && [...ids].every((id) => isJunctionSymbol(next, id));
-      if (onlyJunction) {
-        removeJunction(next, [...ids][0]);
-        trackComponentDeleted("junction");
-      } else {
-        next.wires = next.wires.filter((w) => !ids.has(w.a.symbolId) && !ids.has(w.b.symbolId));
-        const removed = next.symbols.filter((s) => ids.has(s.id));
-        next.symbols = next.symbols.filter((s) => !ids.has(s.id));
+      const junctionIds: string[] = [];
+      const nonJunctionIds: string[] = [];
+      for (const id of ids) {
+        if (isJunctionSymbol(next, id)) {
+          junctionIds.push(id);
+        } else {
+          nonJunctionIds.push(id);
+        }
+      }
+
+      if (nonJunctionIds.length > 0) {
+        const nonJuncSet = new Set(nonJunctionIds);
+        next.wires = next.wires.filter((w) => !nonJuncSet.has(w.a.symbolId) && !nonJuncSet.has(w.b.symbolId));
+        const removed = next.symbols.filter((s) => nonJuncSet.has(s.id));
+        next.symbols = next.symbols.filter((s) => !nonJuncSet.has(s.id));
         for (const sym of removed) {
           const dev = circuit.devices.find((d) => d.id === sym.deviceId);
           trackComponentDeleted(dev?.kind);
           const leftovers = next.symbols.some((s) => s.deviceId === sym.deviceId);
           if (!leftovers) next.devices = next.devices.filter((d) => d.id !== sym.deviceId);
         }
-        pruneOrphanJunctions(next);
       }
+
+      for (const jId of junctionIds) {
+        if (next.symbols.some((s) => s.id === jId)) {
+          removeJunction(next, jId);
+          trackComponentDeleted("junction");
+        }
+      }
+
+      pruneOrphanJunctions(next);
       pruneGroups(next);
     }
     set({

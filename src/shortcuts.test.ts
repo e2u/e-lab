@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useLab } from "./store";
 import { handleGlobalKeyDown, executeCommand, getRegisteredCommands } from "./keyboard";
+import { cleanPolyline, wireRoute } from "./geometry";
 
 function fireKey(key: string, code: string, options: { metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean; target?: any } = {}) {
   const evt = {
@@ -195,6 +196,43 @@ describe("Keyboard Shortcuts & Store Handlers", () => {
     for (const leg of mainLegs) {
       expect(useLab.getState().circuit.wires.some((w) => w.id === leg.id)).toBe(true);
     }
+  });
+
+  it("deleting a junction on a wire preserves the wire layout before deletion", () => {
+    const s = useLab.getState();
+    s.setPlacing("km-coil");
+    s.placeAt(4, 4);
+    s.setPlacing("km-coil");
+    s.placeAt(14, 14);
+
+    const [s1, s2] = useLab.getState().circuit.symbols;
+    s.setEditSubMode("wiring");
+    s.clickPort({ symbolId: s1.id, term: "A1" });
+    s.addJunctionAndConnect(8, 4);
+    s.clickPort({ symbolId: s2.id, term: "A1" });
+
+    // 1 junction created at (8, 4)
+    const juncSym = useLab.getState().circuit.symbols.find((sym) => sym.x === 8 && sym.y === 4)!;
+    expect(juncSym).toBeDefined();
+
+    // Compute original composite wire route
+    const circuitBefore = useLab.getState().circuit;
+    const pts0 = wireRoute(circuitBefore, circuitBefore.wires[0].a, circuitBefore.wires[0].b, circuitBefore.wires[0].jog);
+    const pts1 = wireRoute(circuitBefore, circuitBefore.wires[1].a, circuitBefore.wires[1].b, circuitBefore.wires[1].jog);
+    const originalPath = cleanPolyline([...pts0, ...pts1.slice(1)]);
+
+    // Select the junction and delete it
+    useLab.setState({ selected: { type: "symbol", id: juncSym.id }, selectedIds: [juncSym.id] });
+    fireKey("Delete", "Delete");
+
+    // Junction is deleted, the 2 wire legs are merged into 1
+    const circuitAfter = useLab.getState().circuit;
+    expect(circuitAfter.symbols.some((sym) => sym.id === juncSym.id)).toBe(false);
+    expect(circuitAfter.wires.length).toBe(1);
+
+    const mergedWire = circuitAfter.wires[0];
+    const newPath = cleanPolyline(wireRoute(circuitAfter, mergedWire.a, mergedWire.b, mergedWire.jog));
+    expect(newPath).toEqual(originalPath);
   });
 
   it("handles copy, paste, and duplicate", () => {

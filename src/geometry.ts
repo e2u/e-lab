@@ -561,7 +561,7 @@ function colorLanes(comp: Occ[]): Map<string, number> {
   return lanes;
 }
 
-export function cleanPolyline(pts: Pt[]): Pt[] {
+function cleanPolyline(pts: Pt[]): Pt[] {
   if (pts.length <= 2) return pts;
   const out: Pt[] = [pts[0]];
   for (let i = 1; i < pts.length; i += 1) {
@@ -593,6 +593,150 @@ export function cleanPolyline(pts: Pt[]): Pt[] {
   }
   return out;
 }
+
+function polylineMatches(a: Pt[], b: Pt[], tol = 0.5): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (Math.abs(a[i].x - b[i].x) > tol || Math.abs(a[i].y - b[i].y) > tol) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function polylineDistance(a: Pt[], b: Pt[]): number {
+  if (a.length === 0 || b.length === 0) return Infinity;
+  if (a.length === b.length) {
+    let maxD = 0;
+    for (let i = 0; i < a.length; i++) {
+      const d = Math.hypot(a[i].x - b[i].x, a[i].y - b[i].y);
+      if (d > maxD) maxD = d;
+    }
+    return maxD;
+  }
+  let maxD = 0;
+  for (const p of a) {
+    let minD = Infinity;
+    for (let j = 0; j < b.length - 1; j++) {
+      const d = distToSegment(p, b[j], b[j + 1]);
+      if (d < minD) minD = d;
+    }
+    if (minD > maxD) maxD = minD;
+  }
+  for (const p of b) {
+    let minD = Infinity;
+    for (let j = 0; j < a.length - 1; j++) {
+      const d = distToSegment(p, a[j], a[j + 1]);
+      if (d < minD) minD = d;
+    }
+    if (minD > maxD) maxD = minD;
+  }
+  return maxD + Math.abs(a.length - b.length) * 10;
+}
+
+function jogSimplicityScore(jog: WireJog | undefined): number {
+  if (!jog) return 0;
+  let score = 0;
+  if (jog.axis !== undefined) score += 1;
+  if (jog.pos !== undefined) score += 1;
+  if (jog.x !== undefined) score += 2;
+  if (jog.y !== undefined) score += 2;
+  return score;
+}
+
+/**
+ * Given a circuit, two port endpoints (from, to), and a desired polyline route (targetPts),
+ * derives the WireJog (if any) that makes wireRoute(circuit, from, to, jog) reproduce targetPts.
+ */
+export function deriveJogToMatchPolyline(
+  circuit: Circuit,
+  from: PortRef,
+  to: PortRef,
+  targetPts: Pt[],
+): WireJog | undefined {
+  const cleanTarget = cleanPolyline(targetPts);
+  if (cleanTarget.length <= 1) return undefined;
+
+  const candidates: (WireJog | undefined)[] = [undefined];
+
+  const xs = new Set<number>();
+  const ys = new Set<number>();
+  for (const p of cleanTarget) {
+    xs.add(Math.round(p.x / GRID) * GRID);
+    ys.add(Math.round(p.y / GRID) * GRID);
+    xs.add(p.x);
+    ys.add(p.y);
+  }
+
+  // Single axis / coord candidates
+  for (const x of xs) {
+    candidates.push({ x });
+    candidates.push({ axis: "x", pos: x });
+    candidates.push({ axis: "x", pos: x, x });
+  }
+  for (const y of ys) {
+    candidates.push({ y });
+    candidates.push({ axis: "y", pos: y });
+    candidates.push({ axis: "y", pos: y, y });
+  }
+
+  // Intermediate corners from cleanTarget
+  for (let i = 1; i < cleanTarget.length - 1; i++) {
+    const p = cleanTarget[i];
+    candidates.push({ x: p.x, y: p.y });
+    candidates.push({ axis: "x", pos: p.x, x: p.x, y: p.y });
+    candidates.push({ axis: "y", pos: p.y, x: p.x, y: p.y });
+  }
+
+  // Cross pairs of X and Y
+  for (const x of xs) {
+    for (const y of ys) {
+      candidates.push({ x, y });
+      candidates.push({ axis: "x", pos: x, x, y });
+      candidates.push({ axis: "y", pos: y, x, y });
+    }
+  }
+
+  // Deduplicate candidates
+  const candidateMap = new Map<string, WireJog | undefined>();
+  for (const cand of candidates) {
+    const key = cand ? `${cand.axis}:${cand.pos}:${cand.x}:${cand.y}` : "none";
+    if (!candidateMap.has(key)) {
+      candidateMap.set(key, cand);
+    }
+  }
+
+  let bestExact: WireJog | undefined = undefined;
+  let bestExactScore = Infinity;
+
+  let bestApprox: WireJog | undefined = undefined;
+  let bestApproxDist = Infinity;
+
+  for (const cand of candidateMap.values()) {
+    const route = cleanPolyline(wireRoute(circuit, from, to, cand));
+    if (polylineMatches(route, cleanTarget)) {
+      const score = jogSimplicityScore(cand);
+      if (score < bestExactScore) {
+        bestExactScore = score;
+        bestExact = cand;
+      }
+    } else if (bestExactScore === Infinity) {
+      const dist = polylineDistance(route, cleanTarget);
+      if (dist < bestApproxDist) {
+        bestApproxDist = dist;
+        bestApprox = cand;
+      }
+    }
+  }
+
+  if (bestExactScore !== Infinity) {
+    return bestExact;
+  }
+
+  return bestApprox;
+}
+
+export { cleanPolyline };
 
 /** Routes every wire, then nudges overlapping parallel runs apart. Terminals stay put. */
 export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {

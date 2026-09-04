@@ -133,7 +133,7 @@ export function TutorialOverlay({ isOpen, onClose, defaultVersion = "pc" }: Tuto
         <div className="tutorial-header">
           <div className="tutorial-badge-group">
             <span className="tutorial-step-badge">
-              {t("tutorial.step") || "Step"} {currentStep.stepNumber} / {currentStep.totalSteps}
+              {t("tutorial.step")} {currentStep.stepNumber} / {currentStep.totalSteps}
             </span>
             <span className="tutorial-topic-badge">
               {tOr(currentStep.badgeKey || "", currentStep.badgeFallback || "")}
@@ -165,8 +165,8 @@ export function TutorialOverlay({ isOpen, onClose, defaultVersion = "pc" }: Tuto
               type="button"
               className="tutorial-close-btn"
               onClick={onClose}
-              title={t("tutorial.skip") || "Skip / Close"}
-              aria-label={t("tutorial.skip") || "Close"}
+              title={t("tutorial.skip")}
+              aria-label={t("tutorial.skip")}
             >
               ✕
             </button>
@@ -200,18 +200,18 @@ export function TutorialOverlay({ isOpen, onClose, defaultVersion = "pc" }: Tuto
                 type="button"
                 className="tutorial-action-btn demo-btn"
                 onClick={handleApplyStage}
-                title={t("tutorial.applyStage") || "Apply this step's circuit to canvas"}
+                title={t("tutorial.applyStage")}
               >
-                ⚡ {t("tutorial.applyStage") || "載入/演示本步電路"}
+                ⚡ {t("tutorial.applyStage")}
               </button>
             )}
             <button
               type="button"
               className="tutorial-text-btn"
               onClick={restartTutorial}
-              title={t("tutorial.restart") || "Restart"}
+              title={t("tutorial.restart")}
             >
-              ↻ {t("tutorial.restart") || "重頭開始"}
+              ↻ {t("tutorial.restart")}
             </button>
           </div>
 
@@ -222,7 +222,7 @@ export function TutorialOverlay({ isOpen, onClose, defaultVersion = "pc" }: Tuto
                 className="tutorial-nav-btn prev"
                 onClick={handlePrev}
               >
-                {t("tutorial.prev") || "上一步"}
+                {t("tutorial.prev")}
               </button>
             )}
 
@@ -231,7 +231,7 @@ export function TutorialOverlay({ isOpen, onClose, defaultVersion = "pc" }: Tuto
               className={`tutorial-nav-btn next ${isLast ? "finish" : "primary"}`}
               onClick={handleNext}
             >
-              {isLast ? (t("tutorial.finish") || "完成指引 ✓") : (t("tutorial.next") || "下一步 →")}
+              {isLast ? (t("tutorial.finish")) : (t("tutorial.next"))}
             </button>
           </div>
         </div>

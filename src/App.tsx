@@ -282,9 +282,9 @@ export function App() {
                       type="button"
                       className="btn submode-mobile-btn"
                       onClick={() => useLab.getState().autoLayout()}
-                      title={t("toolbar.autoLayoutTip") || "Auto Layout"}
+                      title={t("toolbar.autoLayoutTip")}
                     >
-                      🪄 {t("toolbar.autoLayout") || "排版"}
+                      🪄 {t("toolbar.autoLayout")}
                     </button>
                   )}
                 </>
@@ -301,10 +301,10 @@ export function App() {
                 type="button"
                 className="btn-tutorial-mobile-highlight"
                 onClick={() => useLab.getState().openTutorial("mobile")}
-                title={t("tutorial.buttonTooltip") || "Start Guide"}
-                aria-label={t("tutorial.button") || "Guide"}
+                title={t("tutorial.buttonTooltip")}
+                aria-label={t("tutorial.button")}
               >
-                ✨ {t("tutorial.button") || "指引"}
+                ✨ {t("tutorial.button")}
               </button>
               <button
                 type="button"
@@ -338,8 +338,8 @@ export function App() {
                 type="button"
                 className={`btn-icon mobile-header-btn ${mobileMenuOpen ? "active" : ""}`}
                 onClick={() => setMobileMenuOpen(true)}
-                title={t("toolbar.menu") || "Menu"}
-                aria-label={t("toolbar.menu") || "Menu"}
+                title={t("toolbar.menu")}
+                aria-label={t("toolbar.menu")}
               >
                 ⋯
               </button>
@@ -359,18 +359,18 @@ export function App() {
                 type="button"
                 className="btn btn-new-doc"
                 onClick={() => handleRequestNewDiagram()}
-                title={t("lib.newDiagram") || "New Diagram"}
+                title={t("lib.newDiagram")}
               >
                 <span className="btn-plus-icon">+</span>
-                <span>{t("lib.newDiagram") || "New"}</span>
+                <span>{t("lib.newDiagram")}</span>
               </button>
-              <div className="doc-title-wrapper" title={t("files.docName") || "Diagram Title"}>
+              <div className="doc-title-wrapper" title={t("files.docName")}>
                 <input
                   type="text"
                   className="diagram-name"
                   value={docName}
                   onChange={(e) => useLab.getState().setDocName(e.target.value)}
-                  placeholder={t("lib.diagramNamePlaceholder") || "Enter diagram name..."}
+                  placeholder={t("lib.diagramNamePlaceholder")}
                 />
               </div>
             </div>
@@ -436,10 +436,10 @@ export function App() {
                       type="button"
                       className="btn btn-auto-layout"
                       onClick={() => useLab.getState().autoLayout()}
-                      title={t("toolbar.autoLayoutTip") || "Auto Layout (Shift+L)"}
+                      title={t("toolbar.autoLayoutTip")}
                     >
                       <span>🪄</span>
-                      <span>{t("toolbar.autoLayout") || "自動排版"}</span>
+                      <span>{t("toolbar.autoLayout")}</span>
                     </button>
                   )}
                 </>
@@ -478,19 +478,19 @@ export function App() {
                       type="button"
                       className={`seg-btn ${layoutMode === "schematic" ? "active" : ""}`}
                       onClick={() => useLab.getState().setLayoutMode("schematic")}
-                      title={t("toolbar.schematic") || "Schematic View"}
+                      title={t("toolbar.schematic")}
                     >
                       <span className="seg-icon">📐</span>
-                      <span>{t("toolbar.schematic") || "原理圖"}</span>
+                      <span>{t("toolbar.schematic")}</span>
                     </button>
                     <button
                       type="button"
                       className={`seg-btn ${layoutMode === "ladder" ? "active" : ""}`}
                       onClick={() => useLab.getState().setLayoutMode("ladder")}
-                      title={t("toolbar.ladder") || "Ladder Diagram View"}
+                      title={t("toolbar.ladder")}
                     >
                       <span className="seg-icon">🪜</span>
-                      <span>{t("toolbar.ladder") || "梯形圖"}</span>
+                      <span>{t("toolbar.ladder")}</span>
                     </button>
                   </div>
 
@@ -503,10 +503,10 @@ export function App() {
                 type="button"
                 className="btn-tutorial-highlight"
                 onClick={() => useLab.getState().openTutorial("pc")}
-                title={t("tutorial.buttonTooltip") || "Start Interactive Tutorial"}
+                title={t("tutorial.buttonTooltip")}
               >
                 <span className="btn-tutorial-icon">✨</span>
-                <span>{t("tutorial.button") || "新手指引"}</span>
+                <span>{t("tutorial.button")}</span>
               </button>
 
               {/* Example Selector */}
@@ -537,8 +537,8 @@ export function App() {
                 type="button"
                 className="btn-icon btn-theme-toggle"
                 onClick={() => useLab.getState().toggleTheme()}
-                title={theme === "dark" ? (t("theme.switchToLight") || "Switch to Light Theme") : (t("theme.switchToDark") || "Switch to Dark Theme")}
-                aria-label={t("theme.theme") || "Theme"}
+                title={theme === "dark" ? (t("theme.switchToLight")) : (t("theme.switchToDark"))}
+                aria-label={t("theme.theme")}
               >
                 {theme === "dark" ? "🌙" : "☀️"}
               </button>
@@ -566,8 +566,8 @@ export function App() {
                   type="button"
                   className={`btn-icon ${showLadderMenu ? "active" : ""}`}
                   onClick={() => useLab.getState().toggleShowLadderMenu()}
-                  title={showLadderMenu ? t("toolbar.hideLadder") || "隱藏梯形圖菜單" : t("toolbar.showLadder") || "顯示梯形圖菜單"}
-                  aria-label={t("toolbar.ladderToggle") || "T ladder menu toggle"}
+                  title={showLadderMenu ? t("toolbar.hideLadder") : t("toolbar.showLadder")}
+                  aria-label={t("toolbar.ladderToggle")}
                 >
                   🪜
                 </button>

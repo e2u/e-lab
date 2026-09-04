@@ -1,4 +1,5 @@
 import React, { Component, type ReactNode } from "react";
+import { t } from "../i18n";
 import { reportError } from "../errorLogger";
 
 interface Props {
@@ -58,7 +59,7 @@ export class ErrorBoundary extends Component<Props, State> {
             系統發生非預期錯誤 / An unexpected error occurred
           </h2>
           <p style={{ maxWidth: 600, marginBottom: "1.5rem", color: "#94a3b8", fontSize: "0.95rem" }}>
-            {this.state.error?.message || "Something went wrong while rendering the canvas."}
+            {t("error.canvasFallback")}
           </p>
           <div style={{ display: "flex", gap: "1rem" }}>
             <button

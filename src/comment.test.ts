@@ -47,7 +47,7 @@ describe("Comment Component & Binding", () => {
     const commentDev = circuit.devices.find((d) => d.kind === "comment");
     expect(commentDev).toBeDefined();
     expect(commentDev?.tag).toMatch(/^REM/);
-    expect(commentDev?.params.text).toBe("備註說明 / Note");
+    expect(commentDev?.params.text).toBe(t("comment.defaultText"));
     expect(commentDev?.params.showLeaderLine).toBe(true);
     expect(commentDev?.params.bgColor).toBe("#fef9c3");
     expect(commentDev?.params.fontSize).toBe(12);

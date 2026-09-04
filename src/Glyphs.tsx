@@ -1784,7 +1784,7 @@ function GlyphBody({
         const customH = (device.params.height ?? h) * GRID;
         
         // Split text into lines
-        const rawLines = text ? text.split("\n") : ["(備註內容 / Note)"];
+        const rawLines = text ? text.split("\n") : ["(Note)"];
         const lines: string[] = [];
         for (const line of rawLines) {
             if (line.length > 28) {

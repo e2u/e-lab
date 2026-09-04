@@ -924,7 +924,6 @@ export const CATALOG: CatalogItem[] = [
   { id: "voltmeter", kind: "voltmeter", variant: "body", group: "儀表與測量", label: "電壓表", labelEn: "Voltmeter", prefix: "VM", creates: "device" },
   { id: "ammeter", kind: "ammeter", variant: "body", group: "儀表與測量", label: "鉗形電流表", labelEn: "Clamp Meter", prefix: "CM", creates: "device" },
 
-  { id: "starter-rev-combo", kind: "starter-rev-combo", variant: "body", group: "起動器", label: "正反轉組合起動器", labelEn: "Reversing Starter", prefix: "KMR", creates: "device" },
   { id: "title-block", kind: "title-block", variant: "body", group: "圖紙標註", label: "圖紙標題欄", labelEn: "Title Block", prefix: "TB", creates: "device" },
   { id: "comment", kind: "comment", variant: "body", group: "圖紙標註", label: "註釋文字框", labelEn: "Comment Box", prefix: "REM", creates: "device" },
 ];
@@ -939,7 +938,6 @@ export const GROUPS = [
   { id: "Timer_Counter", label: "計時與計數", labelEn: "Timers & Counters" },
   { id: "Lighting_Load", label: "指示與負載", labelEn: "Lighting / Load" },
   { id: "Motor_Generator", label: "電機", labelEn: "Motors" },
-  { id: "Starter", label: "起動器", labelEn: "Starter" },
   { id: "Annotations", label: "圖紙標註", labelEn: "Annotations" },
 ] as const;
 

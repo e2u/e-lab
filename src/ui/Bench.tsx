@@ -69,7 +69,7 @@ export function Bench() {
           <h3>{t("bench.title") || t("lib.title")}</h3>
           {activeDevices.length > 0 && (
             <span className="bench-count-badge">
-              {activeDevices.length} {t("bench.items") || "items"}
+              {activeDevices.length} {t("bench.items")}
             </span>
           )}
         </div>
@@ -120,7 +120,7 @@ export function Bench() {
             if (d.kind === "lamp") {
               const col = lampHex[d.params.color ?? "green"] ?? lampHex.green;
               return (
-                <div className="widget" key={d.id} title={`${d.tag} (Lamp ${d.params.color || "green"})`}>
+                <div className="widget" key={d.id} title={t("bench.lampTitle",{tag:d.tag,color:(d.params.color||"green").toUpperCase()})}>
                   <div
                     className="pilot"
                     style={{

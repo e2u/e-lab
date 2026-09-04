@@ -276,7 +276,7 @@ export function ContextMenu({
                       const gx = Math.round(pos.world!.x / GRID);
                       const gy = Math.round(pos.world!.y / GRID);
                       useLab.getState().placeAt(gx, gy, {
-                        text: "備註說明 / Note",
+                        text: t("comment.defaultText"),
                         showLeaderLine: true,
                         bgColor: "#fef9c3",
                         fontSize: 12,

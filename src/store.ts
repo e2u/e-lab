@@ -824,7 +824,7 @@ export const useLab = create<LabState>((set, get) => ({
                                 }
                               : item.kind === "comment"
                                 ? {
-                                    text: "備註說明 / Note",
+                                    text: t("comment.defaultText"),
                                     showLeaderLine: true,
                                     bgColor: "#fef9c3",
                                     fontSize: 12,

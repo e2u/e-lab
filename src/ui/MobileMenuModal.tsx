@@ -216,7 +216,7 @@ export function MobileMenuModal({
 
           {/* Section 2: Examples */}
           <section className="mobile-menu-section">
-            <div className="mobile-menu-section-title">{t("mobileMenu.examples") || t("lib.example") || "Examples"}</div>
+            <div className="mobile-menu-section-title">{t("mobileMenu.examples")}</div>
             <div className="mobile-examples-list">
               {examples.map((ex) => {
                 const isSelected = selectedExample === ex.id;

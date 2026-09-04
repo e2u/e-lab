@@ -439,7 +439,7 @@ export function Inspector() {
             <span>{t("inspector.projectName")}</span>
             <input
               value={dev.params.projectName ?? ""}
-              placeholder="PROJECT NAME"
+              placeholder={t("inspector.tbProjectName")}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, projectName: e.target.value } })}
             />
           </label>
@@ -447,7 +447,7 @@ export function Inspector() {
             <span>{t("inspector.projectNo")}</span>
             <input
               value={dev.params.projectNo ?? ""}
-              placeholder="DWG-001"
+              placeholder={t("inspector.tbDwgNo")}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, projectNo: e.target.value } })}
             />
           </label>
@@ -483,7 +483,7 @@ export function Inspector() {
             <span>{t("inspector.description")}</span>
             <input
               value={dev.params.description ?? ""}
-              placeholder="SCHEMATIC DIAGRAM"
+              placeholder={t("inspector.tbDescription")}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, description: e.target.value } })}
             />
           </label>
@@ -492,7 +492,7 @@ export function Inspector() {
               <span>{t("inspector.designedBy")}</span>
               <input
                 value={dev.params.designedBy ?? ""}
-                placeholder="ENGINEER"
+                placeholder={t("inspector.tbEngineer")}
                 onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, designedBy: e.target.value } })}
               />
             </label>
@@ -500,7 +500,7 @@ export function Inspector() {
               <span>{t("inspector.date")}</span>
               <input
                 value={dev.params.date ?? ""}
-                placeholder="MM/DD/YYYY"
+                placeholder={t("inspector.tbDate")}
                 onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, date: e.target.value } })}
               />
             </label>
@@ -794,7 +794,7 @@ export function Inspector() {
                       snap.runtime[dev.id].prevPulse = false;
                     }
                   }}
-                  title="Reset Counter"
+                  title={t("inspector.resetCounter")}
                 >
                   🔄 Reset
                 </button>

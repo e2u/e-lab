@@ -142,14 +142,14 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
           <div className="print-modal-header">
             <div className="print-modal-title">
               <span className="print-icon">🖨️</span>
-              <h3>{t("print.title") || "Print Diagram"}</h3>
-              <span className="print-doc-badge">{docName || "Untitled"}</span>
+              <h3>{t("print.title")}</h3>
+              <span className="print-doc-badge">{docName || t("print.untitled")}</span>
             </div>
             <button
               type="button"
               className="modal-close-btn"
               onClick={onClose}
-              aria-label={t("print.cancel") || "Close"}
+              aria-label={t("print.cancel")}
             >
               ✕
             </button>
@@ -160,7 +160,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
             {/* Left: Interactive Preview */}
             <div className="print-preview-pane">
               <div className="print-preview-header">
-                <span>{t("print.preview") || "Print Preview"}</span>
+                <span>{t("print.preview")}</span>
                 <span className="print-preview-meta">
                   {isContentScope
                     ? `${Math.round(bounds.width)} × ${Math.round(bounds.height)} px (${bounds.suggestedOrientation})`
@@ -171,7 +171,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
               <div className={`print-preview-canvas-wrap ${options.background}`}>
                 {options.includeHeader && (
                   <div className="print-preview-doc-header">
-                    <span className="doc-title">{docName || "Untitled Diagram"}</span>
+                    <span className="doc-title">{docName || t("print.untitled")}</span>
                     <span className="doc-date">{currentDateStr}</span>
                   </div>
                 )}
@@ -182,7 +182,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
 
               {!bounds.hasElements && isContentScope && (
                 <div className="print-empty-hint">
-                  {t("print.noElements") || "Diagram is empty."}
+                  {t("print.noElements")}
                 </div>
               )}
             </div>
@@ -191,7 +191,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
             <div className="print-controls-pane">
               {/* Option 1: Print Scope */}
               <div className="print-option-group">
-                <label className="print-option-label">{t("print.scope") || "Print Area"}</label>
+                <label className="print-option-label">{t("print.scope")}</label>
                 <div className="print-toggle-buttons">
                   <button
                     type="button"
@@ -199,7 +199,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
                     onClick={() => setOptions({ ...options, scope: "content" })}
                   >
                     <span className="toggle-icon">✂️</span>
-                    <span>{t("print.scopeContent") || "Auto-crop Content"}</span>
+                    <span>{t("print.scopeContent")}</span>
                   </button>
                   <button
                     type="button"
@@ -207,14 +207,14 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
                     onClick={() => setOptions({ ...options, scope: "full" })}
                   >
                     <span className="toggle-icon">📐</span>
-                    <span>{t("print.scopeFull") || "Full Canvas"}</span>
+                    <span>{t("print.scopeFull")}</span>
                   </button>
                 </div>
               </div>
 
               {/* Option 2: Background Style */}
               <div className="print-option-group">
-                <label className="print-option-label">{t("print.background") || "Background Style"}</label>
+                <label className="print-option-label">{t("print.background")}</label>
                 <div className="print-bg-options">
                   <button
                     type="button"
@@ -222,7 +222,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
                     onClick={() => setOptions({ ...options, background: "white" })}
                   >
                     <span className="bg-swatch white" />
-                    <span>{t("print.bgWhite") || "White Paper"}</span>
+                    <span>{t("print.bgWhite")}</span>
                   </button>
                   <button
                     type="button"
@@ -230,7 +230,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
                     onClick={() => setOptions({ ...options, background: "paper" })}
                   >
                     <span className="bg-swatch paper" />
-                    <span>{t("print.bgPaper") || "Warm Paper"}</span>
+                    <span>{t("print.bgPaper")}</span>
                   </button>
                   <button
                     type="button"
@@ -238,7 +238,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
                     onClick={() => setOptions({ ...options, background: "transparent" })}
                   >
                     <span className="bg-swatch transparent" />
-                    <span>{t("print.bgTransparent") || "Transparent"}</span>
+                    <span>{t("print.bgTransparent")}</span>
                   </button>
                 </div>
               </div>
@@ -251,13 +251,13 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
                     checked={options.printGrid}
                     onChange={(e) => setOptions({ ...options, printGrid: e.target.checked })}
                   />
-                  <span>{t("print.printGrid") || "Print Engineering Grid"}</span>
+                  <span>{t("print.printGrid")}</span>
                 </label>
               </div>
 
               {/* Option 4: Color Mode */}
               <div className="print-option-group">
-                <label className="print-option-label">{t("print.colorMode") || "Color Mode"}</label>
+                <label className="print-option-label">{t("print.colorMode")}</label>
                 <div className="print-toggle-buttons">
                   <button
                     type="button"
@@ -265,7 +265,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
                     onClick={() => setOptions({ ...options, colorMode: "color" })}
                   >
                     <span className="toggle-icon">🎨</span>
-                    <span>{t("print.colorFull") || "Full Color"}</span>
+                    <span>{t("print.colorFull")}</span>
                   </button>
                   <button
                     type="button"
@@ -273,7 +273,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
                     onClick={() => setOptions({ ...options, colorMode: "monochrome" })}
                   >
                     <span className="toggle-icon">🔲</span>
-                    <span>{t("print.colorMono") || "Monochrome (B&W)"}</span>
+                    <span>{t("print.colorMono")}</span>
                   </button>
                 </div>
               </div>
@@ -286,7 +286,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
                     checked={options.includeHeader}
                     onChange={(e) => setOptions({ ...options, includeHeader: e.target.checked })}
                   />
-                  <span>{t("print.includeHeader") || "Include Title & Date Header"}</span>
+                  <span>{t("print.includeHeader")}</span>
                 </label>
               </div>
 
@@ -294,11 +294,11 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
               <div className="print-orientation-tip">
                 <span className="tip-icon">💡</span>
                 <span>
-                  {t("print.orientation") || "Orientation"}:{" "}
+                  {t("print.orientation")}:{" "}
                   <strong>
                     {bounds.suggestedOrientation === "landscape"
-                      ? t("print.orientationLandscape") || "Landscape"
-                      : t("print.orientationPortrait") || "Portrait"}
+                      ? t("print.orientationLandscape")
+                      : t("print.orientationPortrait")}
                   </strong>
                 </span>
               </div>
@@ -308,11 +308,11 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
           {/* Footer Actions */}
           <div className="print-modal-footer">
             <button type="button" className="btn" onClick={onClose}>
-              {t("print.cancel") || "Cancel"}
+              {t("print.cancel")}
             </button>
             <button type="button" className="btn ok print-submit-btn" onClick={handlePrint}>
               <span>🖨️</span>
-              <span>{t("print.execute") || "Print"}</span>
+              <span>{t("print.execute")}</span>
             </button>
           </div>
         </div>
@@ -322,7 +322,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
       <div className="print-mount" aria-hidden="true">
         {options.includeHeader && (
           <div className="print-page-header">
-            <span className="print-header-title">{docName || "Untitled Diagram"}</span>
+            <span className="print-header-title">{docName || t("print.untitled")}</span>
             <span className="print-header-meta">E-LAB • {currentDateStr}</span>
           </div>
         )}

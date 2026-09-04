@@ -244,12 +244,12 @@ function barContact(
             <line x1={xBarR} y1={y - barH} x2={xBarR} y2={y + barH} stroke={ink} strokeWidth="2.4"/>
             {conducting && closedSlash(xBarL, xBarR, y, barH)}
             {labL && (
-                <Txt x={10} y={y - 6} className="term-lab">
+                <Txt x={10} y={y - 16} className="term-lab">
                     {labL}
                 </Txt>
             )}
             {labR && (
-                <Txt x={w * GRID - 20} y={y - 6} className="term-lab">
+                <Txt x={w * GRID - 20} y={y - 16} className="term-lab">
                     {labR}
                 </Txt>
             )}
@@ -301,12 +301,12 @@ function contactLines(
                     <circle cx={xL} cy={yC} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
                     <circle cx={xR} cy={yC} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
                     {labL && (
-                        <Txt x={8} y={yC - 6} className="term-lab">
+                        <Txt x={8} y={yC - 16} className="term-lab">
                             {labL}
                         </Txt>
                     )}
                     {labR && (
-                        <Txt x={w * GRID - 8} y={yC - 6} textAnchor="end" className="term-lab">
+                        <Txt x={w * GRID - 8} y={yC - 16} textAnchor="end" className="term-lab">
                             {labR}
                         </Txt>
                     )}
@@ -326,12 +326,12 @@ function contactLines(
                 <line x1={0} y1={yC} x2={xL - r} y2={yC} stroke={ink} strokeWidth="2"/>
                 <line x1={xR + r} y1={yC} x2={w * GRID} y2={yC} stroke={ink} strokeWidth="2"/>
                 {labL && (
-                    <Txt x={8} y={yC - 6} className="term-lab">
+                    <Txt x={8} y={yC - 16} className="term-lab">
                         {labL}
                     </Txt>
                 )}
                 {labR && (
-                    <Txt x={w * GRID - 8} y={yC - 6} textAnchor="end" className="term-lab">
+                    <Txt x={w * GRID - 8} y={yC - 16} textAnchor="end" className="term-lab">
                         {labR}
                     </Txt>
                 )}
@@ -354,12 +354,12 @@ function contactLines(
             {(conducting ?? nc) && closedSlash(xBarL, xBarR, cy, barH)}
             {contactOperator(cx, cy - barH, extra)}
             {labL && (
-                <Txt x={8} y={cy - 6} className="term-lab">
+                <Txt x={8} y={cy - 16} className="term-lab">
                     {labL}
                 </Txt>
             )}
             {labR && (
-                <Txt x={w * GRID - 8} y={cy - 6} textAnchor="end" className="term-lab">
+                <Txt x={w * GRID - 8} y={cy - 16} textAnchor="end" className="term-lab">
                     {labR}
                 </Txt>
             )}
@@ -383,12 +383,12 @@ function coilBox(w: number, h: number, label: string, hot: boolean, labL = "A1",
                 strokeWidth="2"
             />
             {labL && (
-                <Txt x={8} y={cy - 6} className="term-lab">
+                <Txt x={8} y={cy - 16} className="term-lab">
                     {labL}
                 </Txt>
             )}
             {labR && (
-                <Txt x={w * GRID - 8} y={cy - 6} textAnchor="end" className="term-lab">
+                <Txt x={w * GRID - 8} y={cy - 16} textAnchor="end" className="term-lab">
                     {labR}
                 </Txt>
             )}
@@ -538,13 +538,13 @@ function togglePoles(w: number, _h: number, n: number, doubleThrow: boolean, thr
                 <circle key={`no${i}`} cx={xThrow} cy={yNo} r={3.6} fill={ink}/>,
                 <line key={`lnc${i}`} x1={xThrow} y1={yNc} x2={w * GRID} y2={yNc} stroke={ink} strokeWidth="2.2"/>,
                 <line key={`lno${i}`} x1={xThrow} y1={yNo} x2={w * GRID} y2={yNo} stroke={ink} strokeWidth="2.2"/>,
-                <Txt key={`lcom${i}`} x={6} y={cy - 4} className="term-lab">
+                <Txt key={`lcom${i}`} x={2} y={cy - 4} className="term-lab">
                     {labCom}
                 </Txt>,
-                <Txt key={`lnclab${i}`} x={w * GRID - 6} y={yNc - 4} textAnchor="end" className="term-lab">
+                <Txt key={`lnclab${i}`} x={w * GRID - 16} y={yNc - 4} textAnchor="start" className="term-lab">
                     {labNc}
                 </Txt>,
-                <Txt key={`lnolab${i}`} x={w * GRID - 6} y={yNo - 4} textAnchor="end" className="term-lab">
+                <Txt key={`lnolab${i}`} x={w * GRID - 16} y={yNo - 4} textAnchor="start" className="term-lab">
                     {labNo}
                 </Txt>,
             );
@@ -1037,14 +1037,14 @@ function GlyphBody({
     if (kind === "pb-no") {
         return (
             <S w={w} h={h}>
-                {contactLines(w, h, false, "pb", isPressed)}
+                {contactLines(w, h, false, "pb", isPressed,undefined,"3","4")}
             </S>
         );
     }
     if (kind === "pb-nc") {
         return (
             <S w={w} h={h}>
-                {contactLines(w, h, true, "pb", isPressed)}
+                {contactLines(w, h, true, "pb", isPressed,undefined,"1","2")}
             </S>
         );
     }
@@ -1324,7 +1324,7 @@ function GlyphBody({
         const stroke = closed ? (hot ? "#c45a12" : ink) : "#c4391d";
         const openGap = closed ? 0 : 5;
         const r = 4;
-        const gap = 2;
+        const gap = 3;
         const yTop = y1 + r + gap;
         const yBot = y2 - r - gap;
         return (
@@ -1388,10 +1388,10 @@ function GlyphBody({
                             strokeLinecap="round"
                             className={tripped ? "contact-broken" : ""}
                         />
-                        <Txt x={p.cx + 7} y={16} className="term-lab">
+                        <Txt x={p.cx + 17} y={10} className="term-lab">
                             {p.topLab}
                         </Txt>
-                        <Txt x={p.cx + 7} y={h * GRID - 8} className="term-lab">
+                        <Txt x={p.cx + 17} y={h * GRID - 18} className="term-lab">
                             {p.botLab}
                         </Txt>
                     </g>
@@ -1404,15 +1404,15 @@ function GlyphBody({
         const stroke = closed ? (hot ? "#c45a12" : ink) : "#c4391d";
         const openGap = closed ? 0 : 5;
         const r = 4;
-        const gap = 2;
+        const gap = 3;
         const y1 = 1 * GRID;
         const y2 = 3 * GRID;
         const yTop = y1 + r + gap;
         const yBot = y2 - r - gap;
         const polesData = [
-            { cx: 1 * GRID, topLab: "L3", botLab: "T3" },
+            { cx: 1 * GRID, topLab: "L1", botLab: "T1" },
             { cx: 3 * GRID, topLab: "L2", botLab: "T2" },
-            { cx: 5 * GRID, topLab: "L1", botLab: "T1" },
+            { cx: 5 * GRID, topLab: "L3", botLab: "T3" },
         ];
 
         return (
@@ -1431,10 +1431,10 @@ function GlyphBody({
                         />
                         <circle cx={p.cx} cy={y1} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
                         <circle cx={p.cx} cy={y2} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                        <Txt x={p.cx + 7} y={y1 - 4} className="term-lab">
+                        <Txt x={p.cx + 15} y={y1 - 6} className="term-lab">
                             {p.topLab}
                         </Txt>
-                        <Txt x={p.cx + 7} y={y2 + 10} className="term-lab">
+                        <Txt x={p.cx + 15} y={y2 + 10} className="term-lab">
                             {p.botLab}
                         </Txt>
                     </g>
@@ -1484,10 +1484,10 @@ function GlyphBody({
                         />
                         <circle cx={x1} cy={p.y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
                         <circle cx={x2} cy={p.y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                        <Txt x={6} y={p.y - 7} className="term-lab">
+                        <Txt x={10} y={p.y - 14} className="term-lab">
                             {p.leftLab}
                         </Txt>
-                        <Txt x={w * GRID - 16} y={p.y - 7} className="term-lab">
+                        <Txt x={w * GRID - 16} y={p.y - 14} className="term-lab">
                             {p.rightLab}
                         </Txt>
                     </g>
@@ -2003,12 +2003,12 @@ function GlyphBody({
 
                 {/* Left Side (Primary Windings / 480V) */}
                 {/* External leads */}
-                <line x1={0} y1={20} x2={20} y2={20} stroke={ink} strokeWidth="2" />
-                <line x1={0} y1={60} x2={20} y2={60} stroke={ink} strokeWidth="2" />
-                <line x1={0} y1={100} x2={20} y2={100} stroke={ink} strokeWidth="2" />
-                <line x1={0} y1={155} x2={20} y2={155} stroke={ink} strokeWidth="2" />
+                <line x1={0} y1={22} x2={20} y2={22} stroke={ink} strokeWidth="2" />
+                <line x1={0} y1={66} x2={20} y2={66} stroke={ink} strokeWidth="2" />
+                <line x1={0} y1={110} x2={20} y2={110} stroke={ink} strokeWidth="2" />
+                <line x1={0} y1={154} x2={20} y2={154} stroke={ink} strokeWidth="2" />
 
-                {/* Upper Coil (H1 -> H3) */}
+                {/* Upper Coil (H1 -> H2) */}
                 <line x1={28} y1={20} x2={44} y2={20} stroke={coilColor} strokeWidth="1.8" />
                 <path
                     d="M 44 20 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10"
@@ -2018,10 +2018,10 @@ function GlyphBody({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                 />
-                <line x1={44} y1={60} x2={28} y2={100} stroke={coilColor} strokeWidth="1.8" />
+                <line x1={44} y1={60} x2={28} y2={110} stroke={coilColor} strokeWidth="1.8" />
 
-                {/* Lower Coil (H2 -> H4) */}
-                <line x1={28} y1={60} x2={44} y2={100} stroke={coilColor} strokeWidth="1.8" />
+                {/* Lower Coil (H3 -> H4) */}
+                <line x1={28} y1={62} x2={44} y2={100} stroke={coilColor} strokeWidth="1.8" />
                 <path
                     d="M 44 100 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10 c -12 0 -12 10 0 10   c -12 0 -12 14 0 14 "
                     fill="none"
@@ -2033,38 +2033,38 @@ function GlyphBody({
                 <line x1={44} y1={155} x2={28} y2={155} stroke={coilColor} strokeWidth="1.8" />
 
                 {/* Primary Terminal Circles */}
-                <circle cx={24} cy={20} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                <circle cx={24} cy={60} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                <circle cx={24} cy={100} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                <circle cx={24} cy={21} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                <circle cx={24} cy={65} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                <circle cx={24} cy={110} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
                 <circle cx={24} cy={154} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
 
                 {/* Primary Labels */}
-                <Txt x={16} y={16} textAnchor="end" className="term-lab" fontWeight="bold">
+                <Txt x={16} y={6} textAnchor="end" className="term-lab" fontWeight="bold">
                     H1
                 </Txt>
-                <Txt x={16} y={56} textAnchor="end" className="term-lab" fontWeight="bold">
-                    H2
-                </Txt>
-                <Txt x={16} y={108} textAnchor="end" className="term-lab" fontWeight="bold">
+                <Txt x={16} y={50} textAnchor="end" className="term-lab" fontWeight="bold">
                     H3
                 </Txt>
-                <Txt x={16} y={150} textAnchor="end" className="term-lab" fontWeight="bold">
+                <Txt x={16} y={94} textAnchor="end" className="term-lab" fontWeight="bold">
+                    H2
+                </Txt>
+                <Txt x={16} y={140} textAnchor="end" className="term-lab" fontWeight="bold">
                     H4
                 </Txt>
-                <Txt x={10} y={88} textAnchor="middle" fontSize="12" fontWeight="bold" fill="#5a5648" fontFamily="Red Hat Mono, monospace">
+                <Txt x={-10} y={88} textAnchor="middle" fontSize="12" fontWeight="bold" fill="#5a5648" fontFamily="Red Hat Mono, monospace">
                     {priV}V
                 </Txt>
 
                 {/* Right Side (Secondary Winding / 120V) */}
                 {/* External leads */}
-                <line x1={100} y1={20} x2={120} y2={20} stroke={ink} strokeWidth="2" />
+                <line x1={100} y1={22} x2={120} y2={22} stroke={ink} strokeWidth="2" />
                 <line x1={100} y1={154} x2={120} y2={154} stroke={ink} strokeWidth="2" />
                 {/* Internal leads to coil */}
-                <line x1={76} y1={20} x2={128} y2={20} stroke={coilColor} strokeWidth="1.8" />
-                <line x1={76} y1={154} x2={128} y2={154} stroke={coilColor} strokeWidth="1.8" />
+                <line x1={76} y1={22} x2={132} y2={22} stroke={coilColor} strokeWidth="1.8" />
+                <line x1={76} y1={154} x2={132} y2={154} stroke={coilColor} strokeWidth="1.8" />
                 {/* Secondary coil */}
                 <path
-                    d="M 76 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20    c 14 0 14 14 0 14"
+                    d="M 76 22 c 14 0 14 22 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20 c 14 0 14 20 0 20   c 14 0 14 14 0 13"
                     fill="none"
                     stroke={coilColor}
                     strokeWidth="1.8"
@@ -2075,10 +2075,10 @@ function GlyphBody({
                 <circle cx={96} cy={20} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
                 <circle cx={96} cy={155} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
                 {/* Secondary Labels */}
-                <Txt x={104} y={14} textAnchor="start" className="term-lab" fontWeight="bold">
+                <Txt x={104} y={6} textAnchor="start" className="term-lab" fontWeight="bold">
                     X1
                 </Txt>
-                <Txt x={104} y={150} textAnchor="start" className="term-lab" fontWeight="bold">
+                <Txt x={104} y={140} textAnchor="start" className="term-lab" fontWeight="bold">
                     X2
                 </Txt>
                 <Txt x={110} y={88} textAnchor="middle" fontSize="12" fontWeight="bold" fill="#5a5648" fontFamily="Red Hat Mono, monospace">
@@ -2211,8 +2211,8 @@ function GlyphBody({
             <S w={w} h={h}>
                 <line x1={0} y1={cy} x2={cx - 20} y2={cy} stroke={ink} strokeWidth="2"/>
                 <line x1={cx + 20} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2"/>
-                <Txt x={6} y={cy - 5} className="term-lab">U1</Txt>
-                <Txt x={w * GRID - 6} y={cy - 5} textAnchor="end" className="term-lab">U2</Txt>
+                <Txt x={6} y={cy - 16} className="term-lab">U1</Txt>
+                <Txt x={w * GRID - 6} y={cy - 16} textAnchor="end" className="term-lab">U2</Txt>
                 <circle cx={cx} cy={cy} r="20" fill="#efe6d0" stroke={ink} strokeWidth="2"/>
                 <g>
                     <path d={`M ${cx} ${cy - 16} Q ${cx + 8} ${cy} ${cx} ${cy + 16} Q ${cx - 8} ${cy} ${cx} ${cy - 16}`}
@@ -2280,10 +2280,10 @@ function GlyphBody({
                     strokeMiterlimit="6"
                     strokeLinecap="round"
                 />
-                <Txt x={6} y={y - 6} className="term-lab">
+                <Txt x={6} y={y - 16} className="term-lab">
                     1
                 </Txt>
-                <Txt x={w * GRID - 6} y={y - 6} textAnchor="end" className="term-lab">
+                <Txt x={w * GRID - 6} y={y - 16} textAnchor="end" className="term-lab">
                     2
                 </Txt>
             </S>
@@ -2301,20 +2301,20 @@ function GlyphBody({
                 {/* U Lead */}
                 <line x1={1 * GRID} y1={0} x2={1 * GRID} y2={1 * GRID} stroke={ink} strokeWidth="2.2"/>
                 <line x1={1 * GRID} y1={1 * GRID} x2={38} y2={38} stroke={ink} strokeWidth="2.2"/>
-                <Txt x={1 * GRID} y={11} textAnchor="middle" className="term-lab">
+                <Txt x={1 * GRID+8} y={12} textAnchor="middle" className="term-lab">
                     U
                 </Txt>
 
                 {/* V Lead */}
                 <line x1={3 * GRID} y1={0} x2={3 * GRID} y2={cy - rO} stroke={ink} strokeWidth="2.2"/>
-                <Txt x={3 * GRID} y={11} textAnchor="middle" className="term-lab">
+                <Txt x={3 * GRID+8} y={12} textAnchor="middle" className="term-lab">
                     V
                 </Txt>
 
                 {/* W Lead */}
                 <line x1={5 * GRID} y1={0} x2={5 * GRID} y2={1 * GRID} stroke={ink} strokeWidth="2.2"/>
                 <line x1={5 * GRID} y1={1 * GRID} x2={82} y2={38} stroke={ink} strokeWidth="2.2"/>
-                <Txt x={5 * GRID} y={11} textAnchor="middle" className="term-lab">
+                <Txt x={5 * GRID+8} y={12} textAnchor="middle" className="term-lab">
                     W
                 </Txt>
                 <circle
@@ -2369,10 +2369,10 @@ function GlyphBody({
             <S w={w} h={h}>
                 <line x1={x1} y1={yTop} x2={x1} y2={yJoin} stroke={ink} strokeWidth="2.2"/>
                 <line x1={x2} y1={yTop} x2={x2} y2={yJoin} stroke={ink} strokeWidth="2.2"/>
-                <Txt x={x1} y={yTop + 11} textAnchor="middle" className="term-lab">
+                <Txt x={x1+9} y={yTop + 12} textAnchor="middle" className="term-lab">
                     U1
                 </Txt>
-                <Txt x={x2} y={yTop + 11} textAnchor="middle" className="term-lab">
+                <Txt x={x2+9} y={yTop + 12} textAnchor="middle" className="term-lab">
                     U2
                 </Txt>
                 <circle
@@ -2755,12 +2755,12 @@ function GlyphBody({
                         <circle cx={xL} cy={y} r={cr} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
                         <circle cx={xR} cy={y} r={cr} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
                         {labL && (
-                            <Txt x={6} y={y - 5} className="term-lab">
+                            <Txt x={6} y={y - 15} className="term-lab">
                                 {labL}
                             </Txt>
                         )}
                         {labR && (
-                            <Txt x={w * GRID - 6} y={y - 5} textAnchor="end" className="term-lab">
+                            <Txt x={w * GRID - 6} y={y - 15} textAnchor="end" className="term-lab">
                                 {labR}
                             </Txt>
                         )}
@@ -2800,9 +2800,9 @@ function GlyphBody({
                         <path d="M0,0 L6,3 L0,6 Z" fill={ink}/>
                     </marker>
                 </defs>
-                {row(y1, pos === 1, true, "COM", "FWD")}
+                {row(y1, pos === 1, true, )}
                 {row(yM, false, false)}
-                {row(y2, pos === 2, true, "COM2", "REV")}
+                {row(y2, pos === 2, true, )}
                 <line x1={cx} y1={shaftTop} x2={cx} y2={y2} stroke={ink} strokeWidth="2"/>
                 {arm(-14, -10, pos === 1)}
                 {arm(0, -16, pos === 0)}

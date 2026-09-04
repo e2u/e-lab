@@ -1,4 +1,6 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { t } from "../i18n";
 import { selectionHasGroup } from "../groups";
 import { areWiresConnected } from "../geometry";
@@ -45,14 +47,35 @@ export function ContextMenu({
     onClose();
   };
 
-  const style: CSSProperties = {
-    left: Math.min(pos.x, window.innerWidth - 220),
-    top: Math.min(pos.y, window.innerHeight - 360),
-  };
+  // Clamp against the *measured* menu size after mount. Render off-screen
+  // until adjusted so no flash at the wrong spot.
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [adj, setAdj] = useState<{ left: number; top: number; maxHeight?: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const pad = 8;
+    const w = el.offsetWidth;
+    const maxH = window.innerHeight - pad * 2;
+    const h = Math.min(el.offsetHeight, maxH);
+    setAdj({
+      left: Math.min(Math.max(pos.x + 4, pad), Math.max(pad, window.innerWidth - w - pad)),
+      top: Math.min(Math.max(pos.y + 4, pad), Math.max(pad, window.innerHeight - h - pad)),
+      ...(h >= maxH ? { maxHeight: maxH } : {}),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  return (
+  const style: CSSProperties = adj
+    ? { left: adj.left, top: adj.top, ...(adj.maxHeight ? { maxHeight: adj.maxHeight, overflowY: "auto" as const } : {}) }
+    : { left: -9999, top: -9999 };
+
+  // Portal to document.body: ancestors like .paper-wrap use contain/overflow
+  // which would otherwise re-anchor position:fixed and clip the menu.
+  return createPortal(
     <div className="ctx-scrim" onPointerDown={onClose}>
       <div
+        ref={menuRef}
         className="ctx-menu"
         style={style}
         onPointerDown={(e) => e.stopPropagation()}
@@ -308,6 +331,7 @@ export function ContextMenu({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

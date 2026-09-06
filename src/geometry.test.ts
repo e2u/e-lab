@@ -277,7 +277,7 @@ describe("wire crossovers", () => {
     expect(pos).not.toBeNull();
     expect(pos!.horizontal).toBe(true);
     expect(pos!.x).toBeCloseTo(100);
-    expect(pos!.y).toBeLessThan(40);
+    expect(pos!.y).toBeGreaterThan(40);  // Label is below the wire
   });
 
   it("routes in the middle channel between horizontal terminals avoiding terminal overlap", () => {

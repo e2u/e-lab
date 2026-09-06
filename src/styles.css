@@ -791,6 +791,13 @@ body.panel-resizing * {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Promote the canvas to its own compositing layer only while actively panned, so touch/wheel
+   scrolling stays smooth on mobile. A permanently composited SVG root makes Safari/WebKit paint
+   updated symbol tags at stale offsets after text edits (ghost/misplaced labels), therefore the
+   promotion is removed as soon as scrolling settles (see paperPanning in Schematic.tsx). */
+.paper.panning {
   transform: translateZ(0);
   will-change: transform;
 }
@@ -875,9 +882,8 @@ body.panel-resizing * {
   cursor: pointer;
 }
 
-.sym-tag-group {
+.wire-label-group {
   cursor: move;
-  user-select: none;
 }
 .sym-tag-group:hover .sym-tag-bg {
   stroke: #8a7c5c;
@@ -959,8 +965,9 @@ body.panel-resizing * {
 .wire-label text {
   font-family: "Red Hat Mono", monospace;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;
   fill: #1b1a16;
+  font-style: italic;
 }
 .sym-tag {
   font-family: "Red Hat Mono", monospace;
@@ -1644,6 +1651,35 @@ input[type="range"] { width: 100%; accent-color: var(--stripe); }
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* Sheet-wide options shown in the Inspector while nothing is selected */
+.sheet-options {
+  margin: 4px 0 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.sheet-options h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.tools-section {
+  margin: 4px 0 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.tools-section .tools-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.65;
 }
 
 .color-swatches {
@@ -5254,4 +5290,8 @@ html, body {
   color: #ffffff;
   border-color: #1d4ed8;
   box-shadow: 0 0 10px rgba(37, 99, 235, 0.4);
+}
+
+.wire-label-group {
+  cursor: move;
 }

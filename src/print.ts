@@ -21,6 +21,7 @@ export interface PrintOptions {
   colorMode: "color" | "monochrome";
   includeHeader: boolean;
   padding: number; // in grid units
+  orientation: "auto" | "portrait" | "landscape";
 }
 
 export const DEFAULT_PRINT_OPTIONS: PrintOptions = {
@@ -30,6 +31,7 @@ export const DEFAULT_PRINT_OPTIONS: PrintOptions = {
   colorMode: "color",
   includeHeader: true,
   padding: 2,
+  orientation: "auto",
 };
 
 /**

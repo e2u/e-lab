@@ -799,7 +799,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "圖紙標題欄",
     variants: {
       body: {
-        w: 16,
+        w: 26,
         h: 5,
         terminals: [],
       },

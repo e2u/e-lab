@@ -33,6 +33,28 @@ function getCornerCursor(corner: "tl" | "tr" | "br" | "bl", rot: number = 0): st
   return isNwSe !== isRotated ? "nwse-resize" : "nesw-resize";
 }
 
+export function hasGlyphTag(kind: string, variant: string): boolean {
+  if (
+    kind === "junction" ||
+    kind === "mains-3ph" ||
+    kind === "dc-supply" ||
+    kind === "net-label" ||
+    kind === "title-block" ||
+    kind === "comment" ||
+    kind === "counter" ||
+    kind.startsWith("starter")
+  ) {
+    return true;
+  }
+  if (
+    (kind === "timer-on" || kind === "timer-off") &&
+    variant === "coil"
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export const SymbolLayer = memo(function SymbolLayer({
   circuit,
   snapshot,
@@ -133,7 +155,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                       pointerEvents="none"
                     />
                   )}
-                  {sel && dev.kind !== "junction" && (
+                  {sel && (
                     <g className="resize-handles">
                       {([
                         { corner: "tl" as const, cx: -4, cy: -4 },
@@ -197,122 +219,136 @@ export const SymbolLayer = memo(function SymbolLayer({
               )}
             </g>
             {/* Symbol tag - rendered separately, unrotated */}
-            {dev.kind !== "junction" && dev.kind !== "mains-3ph" && dev.kind !== "net-label" && dev.kind !== "title-block" && dev.kind !== "comment" && (
-              <g pointerEvents="all">
-                {(() => {
-                  const basePlacement = getSymbolTagPlacement(dev.kind, sym, v);
-                  const tagOffsetX = (sym.tagOffset?.dx ?? 0) * GRID;
-                  const tagOffsetY = (sym.tagOffset?.dy ?? 0) * GRID;
-                  const tagX = basePlacement.tagX + tagOffsetX;
-                  const tagY = basePlacement.tagY + tagOffsetY;
-                  const textAnchor = basePlacement.textAnchor;
-                  const tagWidth = Math.max(16, dev.tag.length * 7);
-                  const isTagHighlighted = (selected?.type === "symbol" && selected.id === sym.id) || isSameDevice;
+            {(() => {
+              const glyphHasTag = hasGlyphTag(dev.kind, sym.variant);
+              const isTimerKind = dev.kind === "timer-on" || dev.kind === "timer-off";
+              const isTimerActive = isTimerKind && Boolean(rt && (rt.energized || (dev.kind === "timer-off" && rt.elapsedMs > 0)));
 
-                  // Timer active delay display below tag
-                  const isTimerKind = dev.kind === "timer-on" || dev.kind === "timer-off";
-                  const isTimerActive = isTimerKind && Boolean(rt && (rt.energized || (dev.kind === "timer-off" && rt.elapsedMs > 0)));
+              let delayText = "";
+              let isDone = false;
+              if (isTimerActive && rt) {
+                const delayMs = dev.params.delayMs ?? 2000;
+                const elapsedMs = rt.elapsedMs ?? 0;
+                isDone = Boolean(rt.done);
 
-                  let delayText = "";
-                  let isDone = false;
-                  if (isTimerActive && rt) {
-                    const delayMs = dev.params.delayMs ?? 2000;
-                    const elapsedMs = rt.elapsedMs ?? 0;
-                    isDone = Boolean(rt.done);
-
-                    if (dev.kind === "timer-on") {
-                      if (!isDone) {
-                        const remMs = Math.max(0, delayMs - elapsedMs);
-                        const remStr = (remMs / 1000).toFixed(1) + "s";
-                        const totalStr = (delayMs / 1000).toFixed(1) + "s";
-                        delayText = `${remStr} / ${totalStr}`;
-                      } else {
-                        delayText = `${(delayMs / 1000).toFixed(1)}s`;
-                      }
-                    } else {
-                      // timer-off
-                      if (rt.energized) {
-                        delayText = `${(delayMs / 1000).toFixed(1)}s`;
-                      } else {
-                        const remMs = Math.max(0, elapsedMs);
-                        const remStr = (remMs / 1000).toFixed(1) + "s";
-                        const totalStr = (delayMs / 1000).toFixed(1) + "s";
-                        delayText = `${remStr} / ${totalStr}`;
-                      }
-                    }
+                if (dev.kind === "timer-on") {
+                  if (!isDone) {
+                    const remMs = Math.max(0, delayMs - elapsedMs);
+                    const remStr = (remMs / 1000).toFixed(1) + "s";
+                    const totalStr = (delayMs / 1000).toFixed(1) + "s";
+                    delayText = `${remStr} / ${totalStr}`;
+                  } else {
+                    delayText = `${(delayMs / 1000).toFixed(1)}s`;
                   }
+                } else {
+                  // timer-off
+                  if (rt.energized) {
+                    delayText = `${(delayMs / 1000).toFixed(1)}s`;
+                  } else {
+                    const remMs = Math.max(0, elapsedMs);
+                    const remStr = (remMs / 1000).toFixed(1) + "s";
+                    const totalStr = (delayMs / 1000).toFixed(1) + "s";
+                    delayText = `${remStr} / ${totalStr}`;
+                  }
+                }
+              }
 
-                  const delayBadgeW = Math.max(26, delayText.length * 6.2 + 8);
-                  const delayBadgeH = 14;
-                  const delayBadgeY = tagY + 8;
-                  const delayBadgeX = textAnchor === "start" ? tagX : tagX - delayBadgeW / 2;
-                  const delayTextX = textAnchor === "start" ? tagX + 4 : tagX;
-                  const delayTextAnchor = textAnchor === "start" ? "start" : "middle";
+              // For coil variants of contactor/relay, we still show external device tags
+              const isCoilWithExternalTag = 
+                (dev.kind === "contactor" || dev.kind === "relay") && 
+                sym.variant === "coil";
+              
+              if (glyphHasTag && !isCoilWithExternalTag && (!isTimerActive || !delayText)) {
+                return null;
+              }
 
-                  return (
-                    <g
-                      className="sym-tag-group"
-                      style={{ cursor: "move" }}
-                      onPointerDown={(e) => onTagPointerDown?.(e, sym, dev)}
-                      onDoubleClick={(e) => onTagDoubleClick?.(e, sym, dev)}
-                      onContextMenu={(e) => (onTagContextMenu ? onTagContextMenu(e, sym, dev) : onSymbolContextMenu(e, sym.id))}
-                    >
-                      <rect
-                        x={tagX - (textAnchor === "start" ? 4 : tagWidth / 2 + 6)}
-                        y={tagY - 10}
-                        width={textAnchor === "start" ? tagWidth + 8 : tagWidth + 12}
-                        height={16}
-                        rx="3"
-                        className={`sym-tag-bg ${isTagHighlighted ? "selected" : ""}`}
-                        fill={isTagHighlighted ? "#ffe066" : "#efe6d0"}
-                        stroke={isTagHighlighted ? "#d97706" : "#b0a588"}
-                        strokeWidth={isTagHighlighted ? 1.2 : 0.8}
-                      />
-                      <text
-                        x={tagX}
-                        y={tagY + 4}
-                        textAnchor={textAnchor}
-                        className={`sym-tag ${isTagHighlighted ? "selected" : ""}`}
-                        style={{ userSelect: "none" }}
-                      >
-                        {dev.tag}
-                      </text>
+              const basePlacement = getSymbolTagPlacement(dev.kind, sym, v);
+              const tagOffsetX = (sym.tagOffset?.dx ?? 0) * GRID;
+              const tagOffsetY = (sym.tagOffset?.dy ?? 0) * GRID;
+              const tagX = basePlacement.tagX + tagOffsetX;
+              const tagY = basePlacement.tagY + tagOffsetY;
+              const textAnchor = basePlacement.textAnchor;
+              const tagWidth = Math.max(16, dev.tag.length * 7);
+              const isTagHighlighted = (selected?.type === "symbol" && selected.id === sym.id) || isSameDevice;
 
-                      {isTimerActive && delayText && (
-                        <g className="sym-tag-delay-group">
-                          <rect
-                            x={delayBadgeX}
-                            y={delayBadgeY}
-                            width={delayBadgeW}
-                            height={delayBadgeH}
-                            rx="3"
-                            className={`sym-tag-delay-bg ${isDone ? "done" : "timing"}`}
-                            fill={isDone ? "#dcfce7" : "#fef3c7"}
-                            stroke={isDone ? "#16a34a" : "#f59e0b"}
-                            strokeWidth={0.8}
-                          />
-                          <text
-                            x={delayTextX}
-                            y={delayBadgeY + 10.5}
-                            textAnchor={delayTextAnchor}
-                            className={`sym-tag-delay-text ${isDone ? "done" : "timing"}`}
-                            style={{
-                              userSelect: "none",
-                              fontSize: "9px",
-                              fontWeight: 600,
-                              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-                              fill: isDone ? "#15803d" : "#b45309",
-                            }}
-                          >
-                            {delayText}
-                          </text>
-                        </g>
-                      )}
-                    </g>
-                  );
-                })()}
-              </g>
-            )}
+              const delayBadgeW = Math.max(26, delayText.length * 6.2 + 8);
+              const delayBadgeH = 14;
+              const delayBadgeY = glyphHasTag ? tagY : tagY + 8;
+              const delayBadgeX = textAnchor === "start" ? tagX : tagX - delayBadgeW / 2;
+              const delayTextX = textAnchor === "start" ? tagX + 4 : tagX;
+              const delayTextAnchor = textAnchor === "start" ? "start" : "middle";
+
+              return (
+                <g pointerEvents="all">
+                  <g
+                    className="sym-tag-group"
+                    style={{ cursor: "move" }}
+                    onPointerDown={(e) => onTagPointerDown?.(e, sym, dev)}
+                    onDoubleClick={(e) => onTagDoubleClick?.(e, sym, dev)}
+                    onContextMenu={(e) => (onTagContextMenu ? onTagContextMenu(e, sym, dev) : onSymbolContextMenu(e, sym.id))}
+                  >
+                    {!glyphHasTag && (
+                      // Keyed by tag+position: renaming or moving the tag replaces these nodes
+                      // wholesale instead of mutating them in place, which avoids stale-label
+                      // repaints in Safari/WebKit after tag edits.
+                      <g key={`${dev.tag}|${Math.round(tagX)}|${Math.round(tagY)}`}>
+                        <rect
+                          x={tagX - (textAnchor === "start" ? 4 : tagWidth / 2 + 6)}
+                          y={tagY - 10}
+                          width={textAnchor === "start" ? tagWidth + 8 : tagWidth + 12}
+                          height={16}
+                          rx="3"
+                          className={`sym-tag-bg ${isTagHighlighted ? "selected" : ""}`}
+                          fill={isTagHighlighted ? "#ffe066" : "#efe6d0"}
+                          stroke={isTagHighlighted ? "#d97706" : "#b0a588"}
+                          strokeWidth={isTagHighlighted ? 1.2 : 0.8}
+                        />
+                        <text
+                          x={tagX}
+                          y={tagY + 4}
+                          textAnchor={textAnchor}
+                          className={`sym-tag ${isTagHighlighted ? "selected" : ""}`}
+                          style={{ userSelect: "none" }}
+                        >
+                          {dev.tag}
+                        </text>
+                      </g>
+                    )}
+
+                    {isTimerActive && delayText && (
+                      <g className="sym-tag-delay-group">
+                        <rect
+                          x={delayBadgeX}
+                          y={delayBadgeY}
+                          width={delayBadgeW}
+                          height={delayBadgeH}
+                          rx="3"
+                          className={`sym-tag-delay-bg ${isDone ? "done" : "timing"}`}
+                          fill={isDone ? "#dcfce7" : "#fef3c7"}
+                          stroke={isDone ? "#16a34a" : "#f59e0b"}
+                          strokeWidth={0.8}
+                        />
+                        <text
+                          x={delayTextX}
+                          y={delayBadgeY + 10.5}
+                          textAnchor={delayTextAnchor}
+                          className={`sym-tag-delay-text ${isDone ? "done" : "timing"}`}
+                          style={{
+                            userSelect: "none",
+                            fontSize: "9px",
+                            fontWeight: 600,
+                            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                            fill: isDone ? "#15803d" : "#b45309",
+                          }}
+                        >
+                          {delayText}
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                </g>
+              );
+            })()}
           </g>
         );
       })}

@@ -130,6 +130,7 @@ export function Inspector() {
   const runtime = useLab((s) => s.snapshot.runtime);
   const meterHistory = useLab((s) => s.meterHistory);
   const process = useLab((s) => s.process);
+  const showWireLabels = useLab((s) => s.showWireLabels);
 
   const injected = [
     ...circuit.wires.filter((w) => w.broken).map((w) => ({ id: w.id, type: "wire" as const, label: t("inspector.broken") })),
@@ -143,7 +144,7 @@ export function Inspector() {
       selectedWireIds.length === 2 &&
       areWiresConnected(circuit, selectedWireIds[0], selectedWireIds[1]);
     return (
-      <div className="inspector">
+      <div className="inspector" key={`wires-multi-${selectedWireIds.join("-")}`}>
         <h3>{t("inspector.selectedWires", { count: selectedWireIds.length.toString() })}</h3>
         <p className="hint">{t("inspector.selectedWiresHint")}</p>
         {selectedWireIds.length === 2 && (
@@ -174,9 +175,26 @@ export function Inspector() {
 
   if (!selected) {
     return (
-      <div className="inspector">
+      <div className="inspector" key="inspector-empty">
         <h3>{t("inspector.properties")}</h3>
         <p className="hint">{t("inspector.hint.editMode")}</p>
+        <div className="sheet-options">
+          <h4>{t("inspector.sheetOptions")}</h4>
+          <label className="print-checkbox-row">
+            <input
+              type="checkbox"
+              checked={showWireLabels}
+              onChange={(e) => useLab.getState().setShowWireLabels(e.target.checked)}
+            />
+            {t("inspector.showWireLabels")}
+          </label>
+        </div>
+        <div className="tools-section">
+          <h4 className="tools-title">{t("inspector.tools")}</h4>
+          <button className="btn outline" onClick={() => useLab.getState().autoLabelWires()}>
+            {t("inspector.autoLabelWires")}
+          </button>
+        </div>
         {injected.length > 0 && (
           <>
             <h3>{t("runtime.faults")}</h3>
@@ -198,13 +216,14 @@ export function Inspector() {
     const asGroup = selectionIsGroup(circuit, selectedIds);
     const hasGroup = Boolean(asGroup) || selectionHasGroup(circuit, selectedIds);
     return (
-      <div className="inspector">
+      <div className="inspector" key={`inspector-multi-${selectedIds.join("-")}`}>
         <h3>{asGroup ? `${t("lib.group")} · ${selectedIds.length} ${t("unit.items")}` : `${t("toolbar.selected")}: ${selectedIds.length} ${t("unit.items")}`}</h3>
         {asGroup && (
           <div className="group-color-section">
             <label>
               {t("inspector.groupColor")}
               <input
+                key={`group-color-${asGroup.id}`}
                 type="color"
                 value={asGroup.color || "#3b7de0"}
                 onChange={(e) => useLab.getState().updateGroup(asGroup.id, { color: e.target.value })}
@@ -255,11 +274,12 @@ export function Inspector() {
   if (selected.type === "wire") {
     const wire = circuit.wires.find((w) => w.id === selected.id);
     return (
-      <div className="inspector">
+      <div className="inspector" key={`inspector-wire-${selected.id}`}>
         <h3>{t("inspector.wire")}</h3>
         <label>
           {t("inspector.wireLabel")}
           <input
+            key={`wire-label-${selected.id}`}
             value={wire?.label ?? ""}
             onChange={(e) => useLab.getState().updateWire(selected.id, { label: e.target.value })}
             placeholder={t("inspector.wireLabelPlaceholder")}
@@ -268,6 +288,7 @@ export function Inspector() {
         <p className="hint">{t("inspector.wireLabelHint")}</p>
         <label className="chk">
           <input
+            key={`wire-broken-${selected.id}`}
             type="checkbox"
             checked={Boolean(wire?.broken)}
             onChange={() => useLab.getState().toggleWireBroken(selected.id)}
@@ -297,7 +318,7 @@ export function Inspector() {
   if (dev.kind === "junction") {
     const n = circuit.wires.filter((w) => w.a.symbolId === sym.id || w.b.symbolId === sym.id).length;
     return (
-      <div className="inspector">
+      <div className="inspector" key={`inspector-junction-${sym.id}`}>
         <h3>{t("inspector.junction")}</h3>
         <p className="hint">{t("inspector.junctionHint")}</p>
         <p className="hint">{t("inspector.junctionWires", { count: n.toString(), hot: rt?.energized ? ` ${t("runtime.energized")}` : "" })}</p>
@@ -313,13 +334,14 @@ export function Inspector() {
   );
 
   return (
-    <div className="inspector">
+    <div className="inspector" key={`inspector-sym-${sym.id}-${dev.id}`}>
       <h3>{tOr(catalogCompKey(dev.kind), KINDS[dev.kind].label)}</h3>
       {dev.kind === "comment" ? (
         <div className="comment-editor">
           <label>
             <span>{t("inspector.commentText")}</span>
             <textarea
+              key={`comment-text-${dev.id}`}
               rows={4}
               value={dev.params.text ?? ""}
               placeholder={t("inspector.commentPlaceholder")}
@@ -330,6 +352,7 @@ export function Inspector() {
           <label>
             <span>{t("inspector.bindTarget")}</span>
             <select
+              key={`comment-bind-${dev.id}`}
               value={dev.params.targetDeviceId ?? ""}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { targetDeviceId: e.target.value })}
             >
@@ -345,6 +368,7 @@ export function Inspector() {
           </label>
           <label className="chk">
             <input
+              key={`comment-leader-${dev.id}`}
               type="checkbox"
               checked={dev.params.showLeaderLine !== false}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { showLeaderLine: e.target.checked })}
@@ -400,6 +424,7 @@ export function Inspector() {
             <label>
               <span>{t("inspector.widthGrids")}</span>
               <input
+                key={`comment-width-${dev.id}`}
                 type="number"
                 min="3"
                 max="30"
@@ -415,6 +440,7 @@ export function Inspector() {
             <label>
               <span>{t("inspector.heightGrids")}</span>
               <input
+                key={`comment-height-${dev.id}`}
                 type="number"
                 min="2"
                 max="20"
@@ -430,7 +456,11 @@ export function Inspector() {
           </div>
           <label>
             <span>{t("inspector.tag")}</span>
-            <input value={dev.tag} onChange={(e) => useLab.getState().updateDevice(dev.id, { tag: e.target.value })} />
+            <input
+              key={`comment-tag-${dev.id}`}
+              value={dev.tag}
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { tag: e.target.value })}
+            />
           </label>
         </div>
       ) : dev.kind === "title-block" ? (
@@ -438,6 +468,7 @@ export function Inspector() {
           <label>
             <span>{t("inspector.projectName")}</span>
             <input
+              key={`tb-proj-name-${dev.id}`}
               value={dev.params.projectName ?? ""}
               placeholder={t("inspector.tbProjectName")}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, projectName: e.target.value } })}
@@ -446,6 +477,7 @@ export function Inspector() {
           <label>
             <span>{t("inspector.projectNo")}</span>
             <input
+              key={`tb-proj-no-${dev.id}`}
               value={dev.params.projectNo ?? ""}
               placeholder={t("inspector.tbDwgNo")}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, projectNo: e.target.value } })}
@@ -455,6 +487,7 @@ export function Inspector() {
             <label>
               <span>{t("inspector.rev")}</span>
               <input
+                key={`tb-rev-${dev.id}`}
                 value={dev.params.rev ?? ""}
                 placeholder="A"
                 onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, rev: e.target.value } })}
@@ -464,6 +497,7 @@ export function Inspector() {
               <span>{t("inspector.sheet")}</span>
               <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
                 <input
+                  key={`tb-sheet-num-${dev.id}`}
                   style={{ width: "50%" }}
                   value={dev.params.sheetNum ?? "1"}
                   placeholder="1"
@@ -471,6 +505,7 @@ export function Inspector() {
                 />
                 <span style={{ fontSize: "11px", color: "var(--text-dim, #7d8973)" }}>OF</span>
                 <input
+                  key={`tb-sheet-total-${dev.id}`}
                   style={{ width: "50%" }}
                   value={dev.params.sheetTotal ?? "1"}
                   placeholder="1"
@@ -482,6 +517,7 @@ export function Inspector() {
           <label>
             <span>{t("inspector.description")}</span>
             <input
+              key={`tb-desc-${dev.id}`}
               value={dev.params.description ?? ""}
               placeholder={t("inspector.tbDescription")}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, description: e.target.value } })}
@@ -491,6 +527,7 @@ export function Inspector() {
             <label>
               <span>{t("inspector.designedBy")}</span>
               <input
+                key={`tb-designer-${dev.id}`}
                 value={dev.params.designedBy ?? ""}
                 placeholder={t("inspector.tbEngineer")}
                 onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, designedBy: e.target.value } })}
@@ -499,6 +536,7 @@ export function Inspector() {
             <label>
               <span>{t("inspector.date")}</span>
               <input
+                key={`tb-date-${dev.id}`}
                 value={dev.params.date ?? ""}
                 placeholder={t("inspector.tbDate")}
                 onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, date: e.target.value } })}
@@ -520,6 +558,7 @@ export function Inspector() {
               ))}
             </div>
             <input
+              key={`tb-scale-${dev.id}`}
               type="range"
               min="0.5"
               max="2.5"
@@ -534,7 +573,11 @@ export function Inspector() {
         <>
           <label>
             {dev.kind === "net-label" ? t("inspector.netLabel") : t("inspector.tag")}
-            <input value={dev.tag} onChange={(e) => useLab.getState().updateDevice(dev.id, { tag: e.target.value })} />
+            <input
+              key={`dev-tag-${dev.id}`}
+              value={dev.tag}
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { tag: e.target.value })}
+            />
           </label>
           {dev.kind === "net-label" ? (
             <NetLabelHint circuit={circuit} deviceId={dev.id} tag={dev.tag} />
@@ -787,7 +830,7 @@ export function Inspector() {
                   className="btn"
                   style={{ fontSize: "11px", padding: "2px 6px" }}
                   onClick={() => {
-                    const snap = useLab.getState().simSnapshot;
+                    const snap = useLab.getState().snapshot;
                     if (snap?.runtime[dev.id]) {
                       snap.runtime[dev.id].count = 0;
                       snap.runtime[dev.id].done = false;

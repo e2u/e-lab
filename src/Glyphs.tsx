@@ -1682,7 +1682,6 @@ function GlyphBody({
         );
     }
     if (kind === "title-block") {
-        //const scale = device.params.scale ?? 1;
         const p = device.params;
         const projectName = (p.projectName ?? "").toUpperCase();
         const projectNo = (p.projectNo ?? "").toUpperCase();
@@ -1693,84 +1692,106 @@ function GlyphBody({
         const designedBy = (p.designedBy ?? "").toUpperCase();
         const date = (p.date ?? "").toUpperCase();
 
-        const baseW = 16 * GRID;
-        const baseH = 5 * GRID;
+        // Design space: FIXED 26-cell width; total height GROWS with the wrapped DESCRIPTION lines.
+        const W = 26 * GRID;
+        const padL = 0.4 * GRID;
+        const MONO = "'Red Hat Mono', monospace, sans-serif";
+
+        // Description keeps a constant font and wraps onto as many lines as it needs;
+        // every extra line extends the block by one lead-height instead of shrinking text.
+        const DESC_FONT_BASE = 11;
+        const CHAR_W = 0.6;      // mono advance as a fraction of font size
+
+        // Per-cell internal padding keeps captions/values clear of the rules.
+        const capGap = 0.34 * GRID;   // top rule -> caption baseline
+        const valDrop = 0.92 * GRID;  // caption baseline -> value baseline
+        const botPad = 0.28 * GRID;   // value baseline -> bottom rule
+        const r1h = capGap + valDrop + botPad;                 // rows 1 & 3 height
+        const descCap = 0.34 * GRID;                           // DESCRIPTION label offset
+        const descTopPad = 0.3 * GRID;                         // DESCRIPTION caption -> first line
+        const baseDescLead = 0.72 * GRID;                      // line leading at base font
+        const descBotPad = 0.24 * GRID;                        // last line -> bottom rule
+
+        const availW = W - 2 * padL;
+        const perChar = Math.max(1, Math.floor(availW / (CHAR_W * DESC_FONT_BASE)));
+        const wrapDesc = (text: string): string[] => {
+            if (!text) return [""];
+            const ws = text.split(/\s+/);
+            const out: string[] = [];
+            let cur = "";
+            for (const wd of ws) {
+                if (!cur) { cur = wd; continue; }
+                if ((cur + " " + wd).length <= perChar) cur += " " + wd;
+                else { out.push(cur); cur = wd; }
+            }
+            if (cur) out.push(cur);
+            return out.length ? out : [""];
+        };
+        const descLines = wrapDesc(description);
+        const nLines = descLines.length;
+        const r2h = descCap + descTopPad + nLines * baseDescLead + descBotPad; // GROWS with nLines
+        const H = r1h + r2h + r1h;                                              // dynamic total height
+
+        const yR1cap = capGap;                                  // row 1 caption baselines
+        const yR1val = capGap + valDrop;                        // row 1 value baselines
+        const yR2top = r1h;                                     // description top rule
+        const yDescCap = r1h + descCap;                         // DESCRIPTION caption baseline
+        const yDescFirst = r1h + descCap + descTopPad + baseDescLead * 0.72; // first desc baseline
+        const yR3top = r1h + r2h;                               // row 3 top rule
+        const yR3cap = yR3top + capGap;                         // row 3 caption baselines
+        const yR3val = yR3top + capGap + valDrop;               // row 3 value baselines
+
+        const descFont = DESC_FONT_BASE;      // constant — length is absorbed by wrapping
+        const descLead = baseDescLead;
+
+        const cA = 13 * GRID;     // column A/B divider (Name | No)
+        const cB = 19.5 * GRID;   // column B/C divider (No | Rev)
+        const cC = 22 * GRID;     // column C/D divider (Rev | Sheet)
+        const cD = 14 * GRID;     // Designed By / Date divider in row 3
 
         return (
-            <S w={w} h={h} baseW={16} baseH={5}>
+            <S w={w} h={h} baseW={26} baseH={H / GRID}>
                 <g>
-                    {/* Background & Outer Border */}
-                    <rect x={0} y={0} width={baseW} height={baseH} fill="#ffffff" stroke={ink} strokeWidth="1.6" />
+                    {/* Background & outer border */}
+                    <rect x={0} y={0} width={W} height={H} fill="#ffffff" stroke={ink} strokeWidth="1.6" />
 
-                    {/* Row 1 Horizontal Divider */}
-                    <line x1={0} y1={40} x2={baseW} y2={40} stroke={ink} strokeWidth="1.2" />
-                    {/* Row 1 Vertical Dividers */}
-                    <line x1={220} y1={0} x2={220} y2={40} stroke={ink} strokeWidth="1.2" />
-                    <line x1={290} y1={0} x2={290} y2={40} stroke={ink} strokeWidth="1.2" />
+                    {/* Horizontal rules */}
+                    <line x1={0} y1={yR2top} x2={W} y2={yR2top} stroke={ink} strokeWidth="1.2" />
+                    <line x1={0} y1={yR3top} x2={W} y2={yR3top} stroke={ink} strokeWidth="1.2" />
 
-                    {/* PROJECT NAME */}
-                    <Txt x={6} y={13} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        PROJECT NAME:
-                    </Txt>
-                    <Txt x={6} y={30} fill="#111111" fontSize="13" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        {projectName}
-                    </Txt>
+                    {/* Row 1 vertical dividers */}
+                    <line x1={cA} y1={0} x2={cA} y2={yR2top} stroke={ink} strokeWidth="1.2" />
+                    <line x1={cB} y1={0} x2={cB} y2={yR2top} stroke={ink} strokeWidth="1.2" />
+                    <line x1={cC} y1={0} x2={cC} y2={yR2top} stroke={ink} strokeWidth="1.2" />
 
-                    {/* PROJECT NO */}
-                    <Txt x={226} y={13} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        PROJECT NO:
-                    </Txt>
-                    <Txt x={226} y={30} fill="#111111" fontSize="11" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        {projectNo}
-                    </Txt>
+                    {/* Row 3 vertical divider */}
+                    <line x1={cD} y1={yR3top} x2={cD} y2={H} stroke={ink} strokeWidth="1.2" />
 
-                    {/* REV */}
-                    <Txt x={296} y={13} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        REV:
-                    </Txt>
-                    <Txt x={296} y={30} fill="#111111" fontSize="12" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        {rev}
-                    </Txt>
+                    {/* ---- ROW 1: Project Name | Project No | Rev | Sheet ---- */}
+                    <Txt x={padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">PROJECT NAME:</Txt>
+                    <Txt x={padL} y={yR1val} fill="#111111" fontSize="12" fontFamily={MONO} fontWeight="700">{projectName}</Txt>
 
-                    {/* Row 2 Horizontal Divider */}
-                    <line x1={0} y1={75} x2={baseW} y2={75} stroke={ink} strokeWidth="1.2" />
-                    {/* Row 2 Vertical Divider */}
-                    <line x1={240} y1={40} x2={240} y2={75} stroke={ink} strokeWidth="1.2" />
+                    <Txt x={cA + padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">PROJECT NO:</Txt>
+                    <Txt x={cA + padL} y={yR1val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="700">{projectNo}</Txt>
 
-                    {/* DESCRIPTION */}
-                    <Txt x={6} y={53} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        DESCRIPTION:
-                    </Txt>
-                    <Txt x={6} y={68} fill="#111111" fontSize="11" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="600">
-                        {description}
-                    </Txt>
+                    <Txt x={cB + padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">REV:</Txt>
+                    <Txt x={cB + padL} y={yR1val} fill="#111111" fontSize="12" fontFamily={MONO} fontWeight="700">{rev}</Txt>
 
-                    {/* SHEET */}
-                    <Txt x={246} y={53} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        SHEET: __ OF ___
-                    </Txt>
-                    <Txt x={246} y={68} fill="#111111" fontSize="11" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        {sheetNum} OF {sheetTotal}
-                    </Txt>
+                    <Txt x={cC + padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">SHEET:</Txt>
+                    <Txt x={cC + padL} y={yR1val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="700">{sheetNum} OF {sheetTotal}</Txt>
 
-                    {/* Row 3 Vertical Divider */}
-                    <line x1={176} y1={75} x2={176} y2={baseH} stroke={ink} strokeWidth="1.2" />
+                    {/* ---- ROW 2: Description (fixed area, font scales to fit) ---- */}
+                    <Txt x={padL} y={yDescCap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">DESCRIPTION:</Txt>
+                    {descLines.map((ln, i) => (
+                        <Txt key={i} x={padL} y={yDescFirst + i * descLead} fill="#111111" fontSize={descFont} fontFamily={MONO} fontWeight="600">{ln || " "}</Txt>
+                    ))}
 
-                    {/* DESIGNED BY */}
-                    <Txt x={6} y={88} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        DESIGNED BY:
-                    </Txt>
-                    <Txt x={6} y={102} fill="#111111" fontSize="11" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="600">
-                        {designedBy}
-                    </Txt>
+                    {/* ---- ROW 3: Designed By | Date ---- */}
+                    <Txt x={padL} y={yR3cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">DESIGNED BY:</Txt>
+                    <Txt x={padL} y={yR3val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="600">{designedBy}</Txt>
 
-                    {/* DATE */}
-                    <Txt x={182} y={88} fill="#4a5568" fontSize="8" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="700">
-                        DATE:
-                    </Txt>
-                    <Txt x={182} y={102} fill="#111111" fontSize="11" fontFamily="'Red Hat Mono', monospace, sans-serif" fontWeight="600">
-                        {date}
-                    </Txt>
+                    <Txt x={cD + padL} y={yR3cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">DATE:</Txt>
+                    <Txt x={cD + padL} y={yR3val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="600">{date}</Txt>
                 </g>
             </S>
         );

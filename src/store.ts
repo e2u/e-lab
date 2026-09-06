@@ -5,7 +5,7 @@ import { loadExampleJson } from "./examples/index";
 import templateData from "./examples/blank-template.json";
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols } from "./groups";
 import { EXAMPLES } from "./examples";
-import { allWireRoutes, findWireAtPoint, nearestOnPolyline, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { allWireRoutes, findWireAtPoint, getConnectedWireIds, nearestOnPolyline, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   downloadJson,
@@ -22,7 +22,7 @@ import {
 import { defaultRuntime, emptySnapshot, tick } from "./sim/engine";
 import { buildLadderDiagram } from "./ladder/ladderLayout";
 import { autoLayoutCircuit, type AutoLayoutOptions } from "./layout/autoLayout";
-import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type Rot, type SimSnapshot, type Theme, type WireJog } from "./types";
+import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type Rot, type SimSnapshot, type Theme, type Wire, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 import {
   trackCircuitPause,
@@ -147,9 +147,26 @@ function readShowLadderMenu(): boolean {
   }
 }
 
+// Check settings for showing wire number labels on the schematic
+function readShowWireLabels(): boolean {
+  if (typeof localStorage === "undefined") return true;
+  try {
+    const val = localStorage.getItem("elab.showWireLabels");
+    // Default to visible (true), only hidden when explicitly set to false
+    return val === null ? true : val === "true";
+  } catch {
+    return true;
+  }
+}
+
 export interface Selection {
   type: "symbol" | "wire";
   id: string;
+}
+
+export interface WireLabelSelection {
+  type: "wire-label";
+  wireId: string;
 }
 
 export interface LabState {
@@ -180,6 +197,7 @@ export interface LabState {
   theme: Theme;
   layoutMode: LayoutMode;
   showLadderMenu: boolean; // Controls whether to show ladder diagram menu
+  showWireLabels: boolean; // Sheet option: render wire number labels on the schematic
   isDirty: boolean;
   paletteOpen: boolean;
   sideOpen: boolean;
@@ -288,7 +306,11 @@ export interface LabState {
   setNotice: (notice: string | null) => void;
   setSymbolTagOffset: (id: string, offset?: { dx: number; dy: number } | null) => void;
   resetSymbolTagOffset: (id: string) => void;
-  updateWire: (id: string, patch: { label?: string }) => void;
+  setWireLabelOffset: (id: string, offset?: { dx: number; dy: number } | null) => void;
+  resetWireLabelOffset: (id: string) => void;
+  updateWire: (id: string, patch: Partial<Wire>) => void;
+  updateConnectedWires: (wireId: string, patch: Partial<Wire>) => void;
+  getConnectedWireIds: (wireId: string) => Set<string>;
   straightenWire: (id: string) => void;
   addJunctionOnWire: (id: string, worldPos?: { x: number; y: number }) => void;
   addJunctionAt: (gx: number, gy: number) => void;
@@ -318,6 +340,8 @@ export interface LabState {
   toggleSide: () => void;
   setShowLadderMenu: (show: boolean) => void;
   toggleShowLadderMenu: () => void;
+  setShowWireLabels: (show: boolean) => void;
+  autoLabelWires: () => void;
   setZoom: (zoom: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
@@ -415,6 +439,7 @@ export const useLab = create<LabState>((set, get) => ({
   theme: readTheme(),
   layoutMode: initialLayoutMode,
   showLadderMenu: readShowLadderMenu(), // Controls whether to show ladder diagram menu
+  showWireLabels: readShowWireLabels(), // Sheet option: render wire number labels
   isDirty: false,
   paletteOpen: sidebarBoot.paletteOpen,
   sideOpen: sidebarBoot.sideOpen,
@@ -1617,14 +1642,53 @@ export const useLab = create<LabState>((set, get) => ({
     }
     set({ circuit: next, isDirty: true });
   },
+  setWireLabelOffset: (id, offset) => {
+    const next = clone(get().circuit);
+    const w = next.wires.find((x) => x.id === id);
+    if (!w) return;
+    if (!offset || (Math.abs(offset.dx) < 1e-4 && Math.abs(offset.dy) < 1e-4)) {
+      delete w.labelT;
+      delete w.labelOffset;
+    } else {
+      w.labelT = 0.5; // Default to midpoint
+      w.labelOffset = offset;
+    }
+    set({ circuit: next, isDirty: true });
+  },
+  resetWireLabelOffset: (id) => {
+    const circuit = get().circuit;
+    const w = circuit.wires.find((x) => x.id === id);
+    if (!w || (w.labelT === undefined && w.labelOffset === undefined)) return;
+    get().pushHistory();
+    const next = clone(circuit);
+    const target = next.wires.find((x) => x.id === id);
+    if (target) {
+      delete target.labelT;
+      delete target.labelOffset;
+    }
+    set({ circuit: next, isDirty: true });
+  },
 
   updateWire: (id, patch) => {
     get().pushHistory();
     const next = clone(get().circuit);
     const w = next.wires.find((x) => x.id === id);
     if (!w) return;
-    if (patch.label !== undefined) w.label = patch.label;
+    Object.assign(w, patch);
     set({ circuit: next, isDirty: true });
+  },
+  updateConnectedWires: (wireId, patch) => {
+    get().pushHistory();
+    const next = clone(get().circuit);
+    const connectedIds = getConnectedWireIds(next, wireId);
+    for (const id of connectedIds) {
+      const w = next.wires.find((x) => x.id === id);
+      if (w) Object.assign(w, patch);
+    }
+    set({ circuit: next, isDirty: true });
+  },
+  getConnectedWireIds: (wireId) => {
+    return getConnectedWireIds(get().circuit, wireId);
   },
   straightenWire: (id) => {
     const circuit = get().circuit;
@@ -1820,9 +1884,77 @@ export const useLab = create<LabState>((set, get) => ({
     if (!circuit.symbols.length) return;
     get().pushHistory();
     const next = autoLayoutCircuit(circuit, options);
+    
+    // Auto-label wires after layout to ensure connected wires have same label
+    const labeledNext = clone(next);
+    const wires = labeledNext.wires;
+    const n = wires.length;
+    if (n > 0) {
+      const parent = Array.from({ length: n }, (_, i) => i);
+      function find(i: number): number {
+        while (parent[i] !== i) {
+          parent[i] = parent[parent[i]];
+          i = parent[i];
+        }
+        return i;
+      }
+      function union(i: number, j: number) {
+        const rootI = find(i);
+        const rootJ = find(j);
+        if (rootI !== rootJ) {
+          parent[rootI] = rootJ;
+        }
+      }
+
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const w1 = wires[i];
+          const w2 = wires[j];
+          if (
+            portsEqual(w1.a, w2.a) ||
+            portsEqual(w1.a, w2.b) ||
+            portsEqual(w1.b, w2.a) ||
+            portsEqual(w1.b, w2.b)
+          ) {
+            union(i, j);
+          }
+        }
+      }
+
+      const components = new Map<number, string>();
+      let netCounter = 1;
+
+      // Collect all existing tags and terminal labels to avoid collisions
+      const reservedTags = new Set<string>();
+      labeledNext.devices.forEach(d => {
+        if (d.tag.trim()) reservedTags.add(d.tag.trim());
+      });
+      labeledNext.symbols.forEach(s => {
+        const dev = labeledNext.devices.find(d => d.id === s.deviceId);
+        if (dev) {
+          const v = variantDef(dev.kind, s.variant);
+          v.terminals.forEach(t => {
+            if (t.label.trim()) reservedTags.add(t.label.trim());
+          });
+        }
+      });
+
+      wires.forEach((w, i) => {
+        const root = find(i);
+        if (!components.has(root)) {
+          let label = `${netCounter++}`;
+          while (reservedTags.has(label)) {
+            label = `${netCounter++}`;
+          }
+          components.set(root, label);
+        }
+        w.label = components.get(root)!;
+      });
+    }
+    
     set({
-      circuit: next,
-      snapshot: emptySnapshot(next),
+      circuit: labeledNext,
+      snapshot: emptySnapshot(labeledNext),
       selected: null,
       selectedIds: [],
       selectedWireIds: [],
@@ -2253,6 +2385,219 @@ export const useLab = create<LabState>((set, get) => ({
       }
     } catch {}
     set({ showLadderMenu: show });
+  },
+
+  setShowWireLabels: (show: boolean) => {
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("elab.showWireLabels", String(show));
+      }
+    } catch {}
+    set({ showWireLabels: show });
+  },
+
+  autoLabelWires: () => {
+    get().pushHistory();
+    const next = clone(get().circuit);
+    const wires = next.wires;
+    const n = wires.length;
+    if (n === 0) {
+      set({ circuit: next, isDirty: true });
+      return;
+    }
+
+    // First pass: identify special nets and reserve their labels
+    const reservedLabels = new Map<string, string>(); // wireId -> reserved label
+    
+    for (const dev of next.devices) {
+      if (dev.kind === "transformer") {
+        // Find wires connected to X1 and X2
+        for (const sym of next.symbols) {
+          if (sym.deviceId === dev.id) {
+            const v = variantDef(dev.kind, sym.variant);
+            // Check for X1 terminal (primary side)
+            const x1Term = v.terminals.find(t => t.id === "X1" || t.id === "1");
+            const x2Term = v.terminals.find(t => t.id === "X2" || t.id === "2");
+            
+            if (x1Term) {
+              for (const w of wires) {
+                if ((w.a.symbolId === sym.id && w.a.term === x1Term.id) ||
+                    (w.b.symbolId === sym.id && w.b.term === x1Term.id)) {
+                  reservedLabels.set(w.id, "1");
+                }
+              }
+            }
+            if (x2Term) {
+              for (const w of wires) {
+                if ((w.a.symbolId === sym.id && w.a.term === x2Term.id) ||
+                    (w.b.symbolId === sym.id && w.b.term === x2Term.id)) {
+                  reservedLabels.set(w.id, "2");
+                }
+              }
+            }
+          }
+        }
+      } else if (dev.kind === "dc-supply") {
+        // Find wires connected to + and -
+        for (const sym of next.symbols) {
+          if (sym.deviceId === dev.id) {
+            const v = variantDef(dev.kind, sym.variant);
+            const posTerm = v.terminals.find(t => t.id === "+" || t.id === "POS" || t.id === "1");
+            const negTerm = v.terminals.find(t => t.id === "-" || t.id === "NEG" || t.id === "0V" || t.id === "2");
+            
+            if (posTerm) {
+              for (const w of wires) {
+                if ((w.a.symbolId === sym.id && w.a.term === posTerm.id) ||
+                    (w.b.symbolId === sym.id && w.b.term === posTerm.id)) {
+                  reservedLabels.set(w.id, "1");
+                }
+              }
+            }
+            if (negTerm) {
+              for (const w of wires) {
+                if ((w.a.symbolId === sym.id && w.a.term === negTerm.id) ||
+                    (w.b.symbolId === sym.id && w.b.term === negTerm.id)) {
+                  reservedLabels.set(w.id, "2");
+                }
+              }
+            }
+          }
+        }
+      } else if (dev.kind === "mains-3ph") {
+        // Find L1, L2, L3, N connections
+        for (const sym of next.symbols) {
+          if (sym.deviceId === dev.id) {
+            const v = variantDef(dev.kind, sym.variant);
+            for (const term of ["L1", "L2", "L3", "N"]) {
+              const t = v.terminals.find(t => t.id === term);
+              if (t) {
+                for (const w of wires) {
+                  if ((w.a.symbolId === sym.id && w.a.term === term) ||
+                      (w.b.symbolId === sym.id && w.b.term === term)) {
+                    switch(term) {
+                      case "L1": reservedLabels.set(w.id, "90"); break;
+                      case "L2": reservedLabels.set(w.id, "91"); break;
+                      case "L3": reservedLabels.set(w.id, "92"); break;
+                      case "N": reservedLabels.set(w.id, "93"); break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Collect all existing tags and terminal labels to avoid collisions
+    const reservedTags = new Set<string>();
+    next.devices.forEach(d => {
+      if (d.tag.trim()) reservedTags.add(d.tag.trim());
+    });
+    next.symbols.forEach(s => {
+      const dev = next.devices.find(d => d.id === s.deviceId);
+      if (dev) {
+        const v = variantDef(dev.kind, s.variant);
+        v.terminals.forEach(t => {
+          if (t.label.trim()) reservedTags.add(t.label.trim());
+        });
+      }
+    });
+
+    // Union-Find for grouping connected wires
+    const parent = Array.from({ length: n }, (_, i) => i);
+    function find(i: number): number {
+      while (parent[i] !== i) {
+        parent[i] = parent[parent[i]];
+        i = parent[i];
+      }
+      return i;
+    }
+    function union(i: number, j: number) {
+      const rootI = find(i);
+      const rootJ = find(j);
+      if (rootI !== rootJ) {
+        parent[rootI] = rootJ;
+      }
+    }
+
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const w1 = wires[i];
+        const w2 = wires[j];
+        if (
+          portsEqual(w1.a, w2.a) ||
+          portsEqual(w1.a, w2.b) ||
+          portsEqual(w1.b, w2.a) ||
+          portsEqual(w1.b, w2.b)
+        ) {
+          union(i, j);
+        }
+      }
+    }
+
+    const components = new Map<number, string>();
+    
+    // First pass: assign reserved labels to their connected components
+    const rootLabels = new Map<number, string>();
+    
+    for (const [wireId, label] of reservedLabels) {
+      const wireIdx = wires.findIndex(w => w.id === wireId);
+      if (wireIdx >= 0) {
+        const root = find(wireIdx);
+        if (!rootLabels.has(root)) {
+          rootLabels.set(root, label);
+        }
+      }
+    }
+
+    // Calculate bounds for sorting by position
+    const componentBounds = new Map<number, { minX: number; minY: number }>();
+    
+    wires.forEach((w, i) => {
+      const root = find(i);
+      if (!componentBounds.has(root)) {
+        // Calculate min x and y of this wire
+        const pts = wireRoute(next, w.a, w.b, w.jog);
+        let minX = Infinity, minY = Infinity;
+        for (const p of pts) {
+          minX = Math.min(minX, p.x);
+          minY = Math.min(minY, p.y);
+        }
+        componentBounds.set(root, { minX, minY });
+      }
+    });
+
+    // Sort roots by position (left to right, top to bottom)
+    const sortedRoots = Array.from(componentBounds.entries())
+      .sort((a, b) => {
+        if (a[1].minX !== b[1].minX) return a[1].minX - b[1].minX;
+        return a[1].minY - b[1].minY;
+      });
+
+    // Assign sequential labels based on sorted order
+    let netCounter = 1;  // Start from 1 (no W prefix)
+    
+    for (const [root, _] of sortedRoots) {
+      if (!components.has(root)) {
+        // Check if this component has a reserved label
+        let label = rootLabels.get(root);
+        if (!label) {
+          label = `${netCounter++}`;
+          while (reservedTags.has(label)) {
+            label = `${netCounter++}`;
+          }
+        }
+        components.set(root, label);
+      }
+    }
+
+    wires.forEach((w, i) => {
+      const root = find(i);
+      w.label = components.get(root)!;
+    });
+
+    set({ circuit: next, isDirty: true });
   },
 
   toggleShowLadderMenu: () => {

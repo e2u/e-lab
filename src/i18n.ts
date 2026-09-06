@@ -135,6 +135,10 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
 
     // Inspector labels
     "inspector.properties": "Properties",
+    "inspector.tools": "Tools",
+    "inspector.sheetOptions": "Sheet Options",
+    "inspector.showWireLabels": "Show wire numbers",
+    "inspector.autoLabelWires": "Auto label wires",
     "inspector.netLabelHint": "Terminals with the same label are connected without needing long wires. Empty labels are isolated; case-sensitive.",
     "inspector.alreadyConnected": "{count} '{tag}' terminals already connected",
     "inspector.noOtherLabels": "No other '{tag}' on the diagram",
@@ -522,6 +526,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "ctx.unbindComponent": "Unbind Component",
     "ctx.addCommentHere": "Add Comment Here",
     "ctx.resetTagPosition": "Reset Tag Position",
+    "ctx.renameWire": "Rename Wire",
     "ctx.deleteWire": "Delete Wire",
     "ctx.shiftSelect": "(Shift + Select)",
     "ctx.nothingSelected": "Nothing selected",
@@ -1036,6 +1041,10 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
 
     // Inspector labels
     "inspector.properties": "屬性",
+    "inspector.tools": "工具",
+    "inspector.sheetOptions": "圖紙選項",
+    "inspector.showWireLabels": "顯示導線編號",
+    "inspector.autoLabelWires": "自動編號導線",
     "inspector.hint.editMode": "點擊元件後按 R 旋轉，H 左右鏡像，V 上下鏡像。Shift + 點擊或拖動方框可多選；⌘G 編組，⇧⌘G 打散。Delete 刪除，⌘Z 復原。",
     "inspector.netLabelHint": "相同標籤的端子視為導通，無需拉長線。空白標籤不連通；大小寫需一致。",
     "inspector.alreadyConnected": "已連通 {count} 個「{tag}」",
@@ -1404,6 +1413,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "ctx.unbindComponent": "解除元件綁定",
     "ctx.addCommentHere": "在此處新增備註",
     "ctx.resetTagPosition": "重設標籤位置",
+    "ctx.renameWire": "重新命名導線",
     "ctx.deleteWire": "刪除導線",
     "ctx.shiftSelect": "(先 Shift 多選)",
     "ctx.nothingSelected": "未選取任何項目",

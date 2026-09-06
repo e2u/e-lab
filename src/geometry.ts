@@ -1318,6 +1318,59 @@ export function areWiresConnected(circuit: Circuit, wireId1: string, wireId2: st
   return false;
 }
 
+/** Check if a wire passes through a junction point in a straight line (no T-junction). */
+export function isWireStraightThroughJunction(
+  circuit: Circuit,
+  wireId: string,
+  junctionSymbolId: string,
+): boolean {
+  const w = circuit.wires.find(wire => wire.id === wireId);
+  if (!w) return false;
+  
+  // Check if both ends of the wire are connected to the same symbol (not the junction)
+  const symA = circuit.symbols.find(s => s.id === w.a.symbolId);
+  const symB = circuit.symbols.find(s => s.id === w.b.symbolId);
+  
+  if (!symA || !symB) return false;
+  
+  // Both ends should be connected to the same non-junction symbol
+  if (symA.deviceId !== symB.deviceId) return false;
+  
+  const dev = circuit.devices.find(d => d.id === symA.deviceId);
+  if (dev?.kind === "junction") return false;
+  
+  // Check if wire passes through the junction point in a straight line
+  const pts = wireRoute(circuit, w.a, w.b, w.jog);
+  const juncSym = circuit.symbols.find(s => s.id === junctionSymbolId);
+  if (!juncSym) return false;
+  
+  const juncX = juncSym.x * GRID;
+  const juncY = juncSym.y * GRID;
+  
+  // Find if any point on the wire is at the junction position
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p = pts[i];
+    if (Math.abs(p.x - juncX) < 0.5 && Math.abs(p.y - juncY) < 0.5) {
+      // Check if it's a straight line through the junction
+      // The points before and after should be collinear with the junction
+      const prev = pts[i - 1];
+      const next = pts[i + 1];
+      
+      // Calculate direction vectors
+      const dx1 = p.x - prev.x;
+      const dy1 = p.y - prev.y;
+      const dx2 = next.x - p.x;
+      const dy2 = next.y - p.y;
+      
+      // Check if they're collinear (same or opposite direction)
+      const cross = dx1 * dy2 - dy1 * dx2;
+      return Math.abs(cross) < 0.5; // Approximately collinear
+    }
+  }
+  
+  return false;
+}
+
 /** Find wire IDs whose route passes through or intersects the given bounding rectangle (in grid units). */
 export function wiresInRect(
   circuit: Circuit,
@@ -1621,7 +1674,7 @@ export function polylinePathD(
 /** Midpoint of the longest segment, plus a perpendicular offset for a wire label. */
 export function wireLabelPos(
   pts: { x: number; y: number }[],
-  offset = 12,
+  offset = 6,
 ): { x: number; y: number; horizontal: boolean } | null {
   if (pts.length < 2) return null;
   let best = { a: pts[0], b: pts[1], len: -1 };
@@ -1634,6 +1687,92 @@ export function wireLabelPos(
   const my = (best.a.y + best.b.y) / 2;
   const horizontal = Math.abs(best.a.y - best.b.y) < 0.8;
   return horizontal
-    ? { x: mx, y: my - offset, horizontal: true }
+    ? { x: mx, y: my + offset, horizontal: true }  // Down from wire center
     : { x: mx + offset, y: my, horizontal: false };
+}
+
+/** Find the closest progress value (0 to 1) along a polyline to a given point. */
+export function getClosestTOnPolyline(pts: { x: number; y: number }[], p: { x: number; y: number }): number {
+  if (pts.length === 0) return 0;
+  if (pts.length === 1) return 0;
+
+  let minDist = Infinity;
+  let bestT = 0;
+  let currentLen = 0;
+
+  // Calculate total length
+  const totalLen = pts.reduce((acc, pt, i) => {
+    if (i > 0) return acc + Math.hypot(pt.x - pts[i - 1].x, pt.y - pts[i - 1].y);
+    return 0;
+  }, 0);
+
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+
+    if (segLen === 0) continue;
+
+    // Project point onto segment
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy;
+
+    // Calculate t for closest point on segment (0 to 1)
+    let tLocal = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2;
+    tLocal = Math.max(0, Math.min(1, tLocal));
+
+    // Calculate distance from point to projected point
+    const px = a.x + tLocal * dx;
+    const py = a.y + tLocal * dy;
+    const dist = Math.hypot(p.x - px, p.y - py);
+
+    if (dist < minDist) {
+      minDist = dist;
+      // Convert local segment t to global polyline t
+      bestT = (currentLen + tLocal * segLen) / totalLen;
+    }
+
+    currentLen += segLen;
+  }
+
+  return Math.max(0, Math.min(1, bestT));
+}
+
+/** Get the point at a given progress value (0 to 1) along a polyline. */
+export function getPointAtProgress(pts: { x: number; y: number }[], t: number): { x: number; y: number } | null {
+  if (pts.length === 0) return null;
+  if (pts.length === 1) return { ...pts[0] };
+
+  t = Math.max(0, Math.min(1, t));
+
+  // Calculate total length
+  const totalLen = pts.reduce((acc, pt, i) => {
+    if (i > 0) return acc + Math.hypot(pt.x - pts[i - 1].x, pt.y - pts[i - 1].y);
+    return 0;
+  }, 0);
+
+  const targetDist = totalLen * t;
+  let currentDist = 0;
+
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+
+    if (currentDist + segLen >= targetDist) {
+      // Interpolate within this segment
+      const remainingDist = targetDist - currentDist;
+      const tLocal = segLen === 0 ? 0 : remainingDist / segLen;
+      return {
+        x: a.x + (b.x - a.x) * tLocal,
+        y: a.y + (b.y - a.y) * tLocal,
+      };
+    }
+
+    currentDist += segLen;
+  }
+
+  // Return last point if we've gone past the end
+  return { ...pts[pts.length - 1] };
 }

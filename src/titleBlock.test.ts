@@ -16,7 +16,7 @@ describe("title-block component", () => {
 
     const kindDef = KINDS["title-block"];
     expect(kindDef).toBeDefined();
-    expect(kindDef.variants.body.w).toBe(16);
+    expect(kindDef.variants.body.w).toBe(26);
     expect(kindDef.variants.body.h).toBe(5);
     expect(kindDef.variants.body.terminals).toHaveLength(0);
   });
@@ -54,18 +54,18 @@ describe("title-block component", () => {
     });
 
     const b1 = symbolBounds(c, symbol);
-    expect(b1).toEqual({ x: 10, y: 20, w: 16, h: 5 });
+    expect(b1).toEqual({ x: 10, y: 20, w: 26, h: 5 });
 
     // With 1.5x scale
     device.params.scale = 1.5;
     const b15 = symbolBounds(c, symbol);
-    expect(b15).toEqual({ x: 10, y: 20, w: 24, h: 7.5 });
+    expect(b15).toEqual({ x: 10, y: 20, w: 39, h: 7.5 });
 
     // With 0.75x scale and 90 deg rotation
     device.params.scale = 0.75;
     symbol.rot = 90;
     const bRot = symbolBounds(c, symbol);
-    expect(bRot).toEqual({ x: 10, y: 20, w: 3.75, h: 12 });
+    expect(bRot).toEqual({ x: 10, y: 20, w: 3.75, h: 19.5 });
   });
 
   it("does not interfere with electrical simulation", () => {

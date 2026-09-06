@@ -1,7 +1,9 @@
 import { memo, useMemo, type MouseEvent, type PointerEvent } from "react";
 import { getConnectedWireIds, hopArcD, polylinePathD, terminalWorld, wireLabelPos, wireRoute, type WireCrossover } from "../../../geometry";
+import { variantDef } from "../../../catalog";
 import { PHASE_COLOR } from "../../../sim/engine";
 import type { Selection } from "../../../store";
+import { GRID } from "../../../types";
 import type { Circuit, SimSnapshot, Wire } from "../../../types";
 
 interface WireLayerProps {
@@ -12,9 +14,14 @@ interface WireLayerProps {
   highlightedWireIds?: Set<string>;
   routes: Map<string, { x: number; y: number }[]>;
   crossovers: WireCrossover[];
+  /** Sheet option: render wire number labels (defaults to visible when omitted). */
+  showWireLabels?: boolean;
   onWireContextMenu: (e: MouseEvent<SVGElement>, wireId: string) => void;
   onWirePointerDown: (e: PointerEvent<SVGElement>, wire: Wire, pts: { x: number; y: number }[]) => void;
   onWireDoubleClick?: (e: MouseEvent<SVGElement>, wire: Wire) => void;
+  onWireLabelPointerDown?: (e: PointerEvent<SVGElement>, wireId: string) => void;
+  onWireLabelDoubleClick?: (e: MouseEvent<SVGElement>, wireId: string) => void;
+  onWireLabelContextMenu?: (e: MouseEvent<SVGElement>, wireId: string) => void;
 }
 
 export const WireLayer = memo(function WireLayer({
@@ -25,9 +32,13 @@ export const WireLayer = memo(function WireLayer({
   highlightedWireIds,
   routes,
   crossovers,
+  showWireLabels,
   onWireContextMenu,
   onWirePointerDown,
   onWireDoubleClick,
+  onWireLabelPointerDown,
+  onWireLabelDoubleClick,
+  onWireLabelContextMenu,
 }: WireLayerProps) {
   const activeHighlightedWireIds = useMemo(() => {
     if (highlightedWireIds) return highlightedWireIds;
@@ -154,25 +165,145 @@ export const WireLayer = memo(function WireLayer({
                   <animateMotion dur="1.5s" begin={`${-off * 1.5}s`} repeatCount="indefinite" path={flowD} />
                 </circle>
               ))}
-            {tag && tagPos && (
-              <g className="wire-label" pointerEvents="none">
-                <rect
-                  x={tagPos.horizontal ? tagPos.x - tag.length * 3.4 - 3 : tagPos.x - 2}
-                  y={tagPos.y - 11}
-                  width={tag.length * 6.8 + 6}
-                  height={14}
-                  rx="2"
-                  className="wire-label-bg"
-                />
-                <text
-                  x={tagPos.x}
-                  y={tagPos.y}
-                  textAnchor={tagPos.horizontal ? "middle" : "start"}
+            {showWireLabels !== false && tag && tagPos && (() => {
+              // Check if wire goes straight through a junction - skip label in that case
+              const pts = routes.get(w.id);
+              if (!pts) return null;
+              
+              // Look for junction points on this wire (excluding endpoints)
+              let hasStraightThroughJunction = false;
+              for (let i = 1; i < pts.length - 1; i++) {
+                const p = pts[i];
+                for (const sym of circuit.symbols) {
+                  const dev = circuit.devices.find(d => d.id === sym.deviceId);
+                  if (dev?.kind === "junction") {
+                    const juncX = sym.x * GRID;
+                    const juncY = sym.y * GRID;
+                    // Check if wire passes through this junction
+                    if (Math.abs(p.x - juncX) < 0.5 && Math.abs(p.y - juncY) < 0.5) {
+                      hasStraightThroughJunction = true;
+                      break;
+                    }
+                  }
+                }
+                if (hasStraightThroughJunction) break;
+              }
+              
+              // If wire goes straight through a junction, don't show label
+              if (hasStraightThroughJunction) return null;
+              
+              // Calculate circle radius based on text size
+              const textWidth = tag.length * 6.8;
+              const padding = 4;
+              const radius = Math.max(10, textWidth / 2 + padding);
+              
+              // Use tagPos as the base position (from wireLabelPos which finds longest segment midpoint)
+              // For horizontal wires: y is already offset up by 12 from the wire center
+              // For vertical wires: x is already offset right by 12 from the wire center
+              let wirePointX = tagPos.x, wirePointY = tagPos.y;
+              
+              // Check for collisions and determine best offset direction
+              let bestOffsetX = 0;
+              let bestOffsetY = 0;
+                
+              // Allow circle to touch the wire (no clearance needed)
+              // For horizontal wires: try up then down
+              if (tagPos.horizontal) {
+                // Try offset above first
+                let offsetUpGood = true;
+                for (const sym of circuit.symbols) {
+                  if (sym.id === w.a.symbolId || sym.id === w.b.symbolId) continue; // Skip connected symbols
+                  const dev = circuit.devices.find(d => d.id === sym.deviceId);
+                  if (!dev) continue;
+                  const v = variantDef(dev.kind, sym.variant);
+                  const boxW = v.w * (dev.params?.scale ?? 1);
+                  const boxH = v.h * (dev.params?.scale ?? 1);
+                  
+                  // Check collision with symbol bounds
+                  const symX = sym.x * GRID;
+                  const symY = sym.y * GRID;
+                  const tagYUp = wirePointY - radius;
+                  
+                  if (wirePointX >= symX - 2 && wirePointX <= symX + boxW * GRID + 2 &&
+                      tagYUp >= symY - 2 && tagYUp <= symY + boxH * GRID + 2) {
+                    offsetUpGood = false;
+                    break;
+                  }
+                }
+                
+                if (offsetUpGood) {
+                  bestOffsetY = -radius; // Above wire
+                } else {
+                  bestOffsetY = -radius; // Below wire
+                }
+              } 
+              // For vertical wires: try right then left
+              else {
+                // Try offset to the right first
+                let offsetRightGood = true;
+                for (const sym of circuit.symbols) {
+                  if (sym.id === w.a.symbolId || sym.id === w.b.symbolId) continue; // Skip connected symbols
+                  const dev = circuit.devices.find(d => d.id === sym.deviceId);
+                  if (!dev) continue;
+                  const v = variantDef(dev.kind, sym.variant);
+                  const boxW = v.w * (dev.params?.scale ?? 1);
+                  const boxH = v.h * (dev.params?.scale ?? 1);
+                  
+                  // Check collision with symbol bounds
+                  const symX = sym.x * GRID;
+                  const symY = sym.y * GRID;
+                  const tagXRight = wirePointX + -radius;
+                  
+                  if (tagXRight >= symX - 2 && tagXRight <= symX + boxW * GRID + 2 &&
+                      wirePointY >= symY - 2 && wirePointY <= symY + boxH * GRID + 2) {
+                    offsetRightGood = false;
+                    break;
+                  }
+                }
+                
+                if (offsetRightGood) {
+                  bestOffsetX = radius; // Right of wire, touching
+                } else {
+                  bestOffsetX = -radius; // Left of wire, touching
+                }
+              }
+              
+              const finalTagX = wirePointX + bestOffsetX;
+              const finalTagY = wirePointY + bestOffsetY;
+
+              // Check if this wire label is selected (selectedWireIds contains this wire)
+              const isSelected = selected?.type === "wire" && selected.id === w.id;
+              
+              return (
+                <g
+                  className="wire-label-group"
+                  pointerEvents="all"
+                  onPointerDown={(e) => onWireLabelPointerDown?.(e as any, w.id)}
+                  onDoubleClick={(e) => onWireLabelDoubleClick?.(e as any, w.id)}
+                  onContextMenu={(e) => onWireLabelContextMenu?.(e as any, w.id)}
                 >
-                  {tag}
-                </text>
-              </g>
-            )}
+                  <g className="wire-label" pointerEvents="none">
+                    {/* Empty circle outline only - no fill */}
+                    <circle
+                      cx={finalTagX}
+                      cy={finalTagY}
+                      r={radius}
+                      fill="none"
+                      stroke={isSelected ? "#0066cc" : "currentColor"}
+                      strokeWidth={isSelected ? 1.5 : 1.2}
+                    />
+                    <text
+                      x={finalTagX}
+                      y={finalTagY}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                    >
+                      {tag}
+                    </text>
+                  </g>
+                </g>
+              );
+            })()}
           </g>
         );
       })}

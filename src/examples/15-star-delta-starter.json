@@ -105,7 +105,7 @@
       {
         "id": "d_ik_0374c0da",
         "kind": "ground",
-        "tag": "PE1",
+        "tag": "PE2",
         "params": {}
       },
       {
@@ -163,12 +163,6 @@
         "params": {}
       },
       {
-        "id": "d_ml_2797f37f",
-        "kind": "junction",
-        "tag": "",
-        "params": {}
-      },
-      {
         "id": "d_mq_f20d7c74",
         "kind": "ground",
         "tag": "PE2",
@@ -176,6 +170,12 @@
       },
       {
         "id": "d_ms_9f1861b9",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
+      },
+      {
+        "id": "d_tw_53cc5c34",
         "kind": "junction",
         "tag": "",
         "params": {}
@@ -194,15 +194,15 @@
         "id": "s_ho_89d1a8c3",
         "deviceId": "d_hn_3571709f",
         "variant": "body",
-        "x": 9,
+        "x": 10,
         "y": 2,
-        "rot": 0
+        "rot": 270
       },
       {
         "id": "s_hq_10f713e7",
         "deviceId": "d_hp_dd19f368",
         "variant": "coil",
-        "x": 42,
+        "x": 45,
         "y": 25,
         "rot": 0,
         "tagOffset": {
@@ -214,7 +214,7 @@
         "id": "s_hr_25483d46",
         "deviceId": "d_hp_dd19f368",
         "variant": "main",
-        "x": 20,
+        "x": 24,
         "y": 2,
         "rot": 0
       },
@@ -222,7 +222,7 @@
         "id": "s_hs_076c66b1",
         "deviceId": "d_hp_dd19f368",
         "variant": "aux-no",
-        "x": 27,
+        "x": 30,
         "y": 28,
         "rot": 0
       },
@@ -230,7 +230,7 @@
         "id": "s_hu_84e30e22",
         "deviceId": "d_ht_1c857e45",
         "variant": "coil",
-        "x": 42,
+        "x": 45,
         "y": 34,
         "rot": 0,
         "tagOffset": {
@@ -242,15 +242,15 @@
         "id": "s_hv_5091cdd2",
         "deviceId": "d_ht_1c857e45",
         "variant": "main",
-        "x": 28,
-        "y": 12,
+        "x": 24,
+        "y": 9,
         "rot": 0
       },
       {
         "id": "s_hw_e2e00e0d",
         "deviceId": "d_ht_1c857e45",
         "variant": "aux-nc",
-        "x": 33,
+        "x": 36,
         "y": 41,
         "rot": 0
       },
@@ -258,7 +258,7 @@
         "id": "s_hy_c0b0a8e3",
         "deviceId": "d_hx_75e844c2",
         "variant": "coil",
-        "x": 42,
+        "x": 45,
         "y": 41,
         "rot": 0,
         "tagOffset": {
@@ -270,7 +270,7 @@
         "id": "s_hz_5dc7ab03",
         "deviceId": "d_hx_75e844c2",
         "variant": "aux-nc",
-        "x": 33,
+        "x": 36,
         "y": 34,
         "rot": 0
       },
@@ -278,7 +278,7 @@
         "id": "s_i1_1d6f69f4",
         "deviceId": "d_i0_5b19c72f",
         "variant": "coil",
-        "x": 42,
+        "x": 45,
         "y": 28,
         "rot": 0,
         "tagOffset": {
@@ -290,7 +290,7 @@
         "id": "s_i2_3f8144f9",
         "deviceId": "d_i0_5b19c72f",
         "variant": "delayed-nc",
-        "x": 27,
+        "x": 30,
         "y": 34,
         "rot": 0
       },
@@ -298,7 +298,7 @@
         "id": "s_i3_0a523d92",
         "deviceId": "d_i0_5b19c72f",
         "variant": "delayed-no",
-        "x": 27,
+        "x": 30,
         "y": 41,
         "rot": 0
       },
@@ -306,9 +306,9 @@
         "id": "s_i5_e27b2796",
         "deviceId": "d_i4_72a197f3",
         "variant": "body",
-        "x": 28,
+        "x": 34,
         "y": 2,
-        "rot": 0
+        "rot": 270
       },
       {
         "id": "s_i7_dcfcbdec",
@@ -334,7 +334,7 @@
         "id": "s_ib_dc667c4f",
         "deviceId": "d_ia_6b7726c8",
         "variant": "body",
-        "x": 19,
+        "x": 22,
         "y": 25,
         "rot": 0
       },
@@ -342,7 +342,7 @@
         "id": "s_id_a6489eaa",
         "deviceId": "d_ic_df009774",
         "variant": "body",
-        "x": 27,
+        "x": 30,
         "y": 25,
         "rot": 0
       },
@@ -350,7 +350,7 @@
         "id": "s_if_5d9f623d",
         "deviceId": "d_ie_133dfa0d",
         "variant": "body",
-        "x": 42,
+        "x": 45,
         "y": 31,
         "rot": 270,
         "tagOffset": {
@@ -362,7 +362,7 @@
         "id": "s_ih_6ea0e9c8",
         "deviceId": "d_ig_b4aab5d9",
         "variant": "body",
-        "x": 42,
+        "x": 45,
         "y": 37,
         "rot": 90,
         "tagOffset": {
@@ -374,7 +374,7 @@
         "id": "s_ij_1f0068c2",
         "deviceId": "d_ii_4dcc6e3a",
         "variant": "body",
-        "x": 42,
+        "x": 45,
         "y": 44,
         "rot": 270,
         "tagOffset": {
@@ -450,7 +450,7 @@
         "id": "s_md_c42136c5",
         "deviceId": "d_mc_22aaa678",
         "variant": "body",
-        "x": 27,
+        "x": 30,
         "y": 33,
         "rot": 0
       },
@@ -458,23 +458,15 @@
         "id": "s_mj_83474605",
         "deviceId": "d_mi_390572b2",
         "variant": "body",
-        "x": 38,
-        "y": 22,
-        "rot": 0
-      },
-      {
-        "id": "s_mm_558f19a4",
-        "deviceId": "d_ml_2797f37f",
-        "variant": "body",
-        "x": 19,
-        "y": 22,
+        "x": 17,
+        "y": 17,
         "rot": 0
       },
       {
         "id": "s_mr_80dca2cf",
         "deviceId": "d_ik_0374c0da",
         "variant": "body",
-        "x": 54,
+        "x": 57,
         "y": 20,
         "rot": 0
       },
@@ -484,6 +476,14 @@
         "variant": "body",
         "x": 46,
         "y": 19,
+        "rot": 0
+      },
+      {
+        "id": "s_tx_521ce1e9",
+        "deviceId": "d_tw_53cc5c34",
+        "variant": "body",
+        "x": 21,
+        "y": 3,
         "rot": 0
       }
     ],
@@ -497,7 +497,8 @@
         "b": {
           "symbolId": "s_ho_89d1a8c3",
           "term": "L1"
-        }
+        },
+        "label": "90"
       },
       {
         "id": "w_in_ab5531ae",
@@ -508,7 +509,8 @@
         "b": {
           "symbolId": "s_ho_89d1a8c3",
           "term": "L2"
-        }
+        },
+        "label": "91"
       },
       {
         "id": "w_io_a2120ead",
@@ -519,7 +521,8 @@
         "b": {
           "symbolId": "s_ho_89d1a8c3",
           "term": "L3"
-        }
+        },
+        "label": "92"
       },
       {
         "id": "w_ip_2cfd1840",
@@ -528,9 +531,10 @@
           "term": "T1"
         },
         "b": {
-          "symbolId": "s_hr_25483d46",
-          "term": "L1"
-        }
+          "symbolId": "s_tx_521ce1e9",
+          "term": "1"
+        },
+        "label": "3"
       },
       {
         "id": "w_iq_359bd8a9",
@@ -541,7 +545,8 @@
         "b": {
           "symbolId": "s_lx_b22b8403",
           "term": "1"
-        }
+        },
+        "label": "4"
       },
       {
         "id": "w_ir_91b54412",
@@ -552,7 +557,8 @@
         "b": {
           "symbolId": "s_lk_8320bd1e",
           "term": "1"
-        }
+        },
+        "label": "5"
       },
       {
         "id": "w_is_c8d815c2",
@@ -563,7 +569,8 @@
         "b": {
           "symbolId": "s_i5_e27b2796",
           "term": "L1"
-        }
+        },
+        "label": "6"
       },
       {
         "id": "w_it_152d3c3b",
@@ -574,7 +581,8 @@
         "b": {
           "symbolId": "s_i5_e27b2796",
           "term": "L2"
-        }
+        },
+        "label": "7"
       },
       {
         "id": "w_iu_8a1a807b",
@@ -585,7 +593,8 @@
         "b": {
           "symbolId": "s_i5_e27b2796",
           "term": "L3"
-        }
+        },
+        "label": "8"
       },
       {
         "id": "w_iw_7622c2c8",
@@ -596,7 +605,8 @@
         "b": {
           "symbolId": "s_i7_dcfcbdec",
           "term": "V"
-        }
+        },
+        "label": "9"
       },
       {
         "id": "w_iy_72bc8757",
@@ -607,6 +617,12 @@
         "b": {
           "symbolId": "s_hv_5091cdd2",
           "term": "T2"
+        },
+        "label": "10",
+        "jog": {
+          "axis": "x",
+          "pos": 660,
+          "x": 660
         }
       },
       {
@@ -618,6 +634,12 @@
         "b": {
           "symbolId": "s_hv_5091cdd2",
           "term": "T3"
+        },
+        "label": "10",
+        "jog": {
+          "axis": "x",
+          "pos": 660,
+          "x": 660
         }
       },
       {
@@ -629,7 +651,8 @@
         "b": {
           "symbolId": "s_i5_e27b2796",
           "term": "95"
-        }
+        },
+        "label": "1"
       },
       {
         "id": "w_j5_39eb41f1",
@@ -640,7 +663,8 @@
         "b": {
           "symbolId": "s_id_a6489eaa",
           "term": "1"
-        }
+        },
+        "label": "11"
       },
       {
         "id": "w_j7_0e04de70",
@@ -651,7 +675,8 @@
         "b": {
           "symbolId": "s_hq_10f713e7",
           "term": "A1"
-        }
+        },
+        "label": "12"
       },
       {
         "id": "w_j9_adda2147",
@@ -662,7 +687,8 @@
         "b": {
           "symbolId": "s_mt_45698f74",
           "term": "1"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_jd_0431e1b1",
@@ -673,7 +699,8 @@
         "b": {
           "symbolId": "s_hz_5dc7ab03",
           "term": "21"
-        }
+        },
+        "label": "17"
       },
       {
         "id": "w_je_d142c16d",
@@ -684,7 +711,8 @@
         "b": {
           "symbolId": "s_hu_84e30e22",
           "term": "A1"
-        }
+        },
+        "label": "19"
       },
       {
         "id": "w_jh_4baeb4b8",
@@ -695,7 +723,8 @@
         "b": {
           "symbolId": "s_hw_e2e00e0d",
           "term": "21"
-        }
+        },
+        "label": "20"
       },
       {
         "id": "w_lb_651b352f",
@@ -706,7 +735,8 @@
         "b": {
           "symbolId": "s_i7_dcfcbdec",
           "term": "W"
-        }
+        },
+        "label": "23"
       },
       {
         "id": "w_lc_13d7d641",
@@ -717,7 +747,8 @@
         "b": {
           "symbolId": "s_i7_dcfcbdec",
           "term": "U"
-        }
+        },
+        "label": "24"
       },
       {
         "id": "w_lf_45a91a1e",
@@ -728,7 +759,8 @@
         "b": {
           "symbolId": "s_le_fc3796df",
           "term": "1"
-        }
+        },
+        "label": "5"
       },
       {
         "id": "w_li_a87e85fd",
@@ -739,7 +771,8 @@
         "b": {
           "symbolId": "s_lh_c16ed0c6",
           "term": "1"
-        }
+        },
+        "label": "5"
       },
       {
         "id": "w_ll_8f06bcdd",
@@ -750,7 +783,8 @@
         "b": {
           "symbolId": "s_hr_25483d46",
           "term": "L3"
-        }
+        },
+        "label": "5"
       },
       {
         "id": "w_lm_e8d1d5ef",
@@ -761,7 +795,8 @@
         "b": {
           "symbolId": "s_lk_8320bd1e",
           "term": "1"
-        }
+        },
+        "label": "5"
       },
       {
         "id": "w_lp_c8e1aa1c",
@@ -772,7 +807,8 @@
         "b": {
           "symbolId": "s_lo_64c33e28",
           "term": "1"
-        }
+        },
+        "label": "4"
       },
       {
         "id": "w_ls_12efa036",
@@ -783,7 +819,8 @@
         "b": {
           "symbolId": "s_lr_e382980b",
           "term": "1"
-        }
+        },
+        "label": "4"
       },
       {
         "id": "w_lv_4aef721b",
@@ -794,7 +831,8 @@
         "b": {
           "symbolId": "s_lu_f85e5275",
           "term": "1"
-        }
+        },
+        "label": "4"
       },
       {
         "id": "w_ly_211abbd2",
@@ -805,7 +843,8 @@
         "b": {
           "symbolId": "s_hr_25483d46",
           "term": "L2"
-        }
+        },
+        "label": "4"
       },
       {
         "id": "w_lz_671887c5",
@@ -816,7 +855,8 @@
         "b": {
           "symbolId": "s_lx_b22b8403",
           "term": "1"
-        }
+        },
+        "label": "4"
       },
       {
         "id": "w_m0_8a627ff9",
@@ -827,7 +867,8 @@
         "b": {
           "symbolId": "s_hq_10f713e7",
           "term": "A2"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_m1_f4abf7b9",
@@ -838,7 +879,8 @@
         "b": {
           "symbolId": "s_hq_10f713e7",
           "term": "A1"
-        }
+        },
+        "label": "12"
       },
       {
         "id": "w_m2_39432be5",
@@ -849,7 +891,8 @@
         "b": {
           "symbolId": "s_i1_1d6f69f4",
           "term": "A2"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_m3_2f9acacd",
@@ -860,7 +903,8 @@
         "b": {
           "symbolId": "s_i1_1d6f69f4",
           "term": "A1"
-        }
+        },
+        "label": "12"
       },
       {
         "id": "w_m4_c40346f3",
@@ -871,7 +915,8 @@
         "b": {
           "symbolId": "s_ih_6ea0e9c8",
           "term": "1"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_m5_c2f4db89",
@@ -882,7 +927,8 @@
         "b": {
           "symbolId": "s_ih_6ea0e9c8",
           "term": "2"
-        }
+        },
+        "label": "19"
       },
       {
         "id": "w_m6_3e5c9d14",
@@ -893,7 +939,8 @@
         "b": {
           "symbolId": "s_if_5d9f623d",
           "term": "2"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_m8_ffb49135",
@@ -904,7 +951,8 @@
         "b": {
           "symbolId": "s_hw_e2e00e0d",
           "term": "22"
-        }
+        },
+        "label": "25"
       },
       {
         "id": "w_m9_181fc48e",
@@ -915,7 +963,8 @@
         "b": {
           "symbolId": "s_ij_1f0068c2",
           "term": "2"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_ma_2c25dd57",
@@ -926,7 +975,8 @@
         "b": {
           "symbolId": "s_ij_1f0068c2",
           "term": "1"
-        }
+        },
+        "label": "25"
       },
       {
         "id": "w_mb_8c4cf518",
@@ -940,9 +990,10 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 594,
-          "x": 594
-        }
+          "pos": 660,
+          "x": 660
+        },
+        "label": "12"
       },
       {
         "id": "w_me_33e50c58",
@@ -953,7 +1004,8 @@
         "b": {
           "symbolId": "s_md_c42136c5",
           "term": "1"
-        }
+        },
+        "label": "12"
       },
       {
         "id": "w_mf_834b5f71",
@@ -964,7 +1016,8 @@
         "b": {
           "symbolId": "s_if_5d9f623d",
           "term": "1"
-        }
+        },
+        "label": "12"
       },
       {
         "id": "w_mg_92249f75",
@@ -975,7 +1028,8 @@
         "b": {
           "symbolId": "s_id_a6489eaa",
           "term": "1"
-        }
+        },
+        "label": "11"
       },
       {
         "id": "w_mh_d7c5083b",
@@ -986,7 +1040,8 @@
         "b": {
           "symbolId": "s_id_a6489eaa",
           "term": "2"
-        }
+        },
+        "label": "12"
       },
       {
         "id": "w_mk_57c67063",
@@ -997,29 +1052,8 @@
         "b": {
           "symbolId": "s_mj_83474605",
           "term": "1"
-        }
-      },
-      {
-        "id": "w_mn_0516f9eb",
-        "a": {
-          "symbolId": "s_mj_83474605",
-          "term": "1"
         },
-        "b": {
-          "symbolId": "s_mm_558f19a4",
-          "term": "1"
-        }
-      },
-      {
-        "id": "w_mo_3646b1f9",
-        "a": {
-          "symbolId": "s_mm_558f19a4",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_ib_dc667c4f",
-          "term": "1"
-        }
+        "label": "26"
       },
       {
         "id": "w_mp_27c3d4bd",
@@ -1030,6 +1064,12 @@
         "b": {
           "symbolId": "s_il_c2b0e20a",
           "term": "1"
+        },
+        "label": "27",
+        "jog": {
+          "axis": "x",
+          "pos": 132,
+          "x": 132
         }
       },
       {
@@ -1046,7 +1086,8 @@
           "axis": "y",
           "pos": 418,
           "y": 418
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_mv_5808e6f1",
@@ -1057,7 +1098,8 @@
         "b": {
           "symbolId": "s_mt_45698f74",
           "term": "1"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_mw_6c3c9e6a",
@@ -1068,6 +1110,78 @@
         "b": {
           "symbolId": "s_ih_6ea0e9c8",
           "term": "1"
+        },
+        "label": "2"
+      },
+      {
+        "id": "w_tu_d2b3fc0a",
+        "a": {
+          "symbolId": "s_hv_5091cdd2",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_hr_25483d46",
+          "term": "5"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 528,
+          "x": 528
+        }
+      },
+      {
+        "id": "w_tv_237d4a5d",
+        "a": {
+          "symbolId": "s_hv_5091cdd2",
+          "term": "3"
+        },
+        "b": {
+          "symbolId": "s_hr_25483d46",
+          "term": "3"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 506,
+          "x": 506
+        }
+      },
+      {
+        "id": "w_ty_65a8a2ba",
+        "a": {
+          "symbolId": "s_tx_521ce1e9",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_hr_25483d46",
+          "term": "L1"
+        },
+        "label": "3"
+      },
+      {
+        "id": "w_tz_e237ecd8",
+        "a": {
+          "symbolId": "s_hv_5091cdd2",
+          "term": "5"
+        },
+        "b": {
+          "symbolId": "s_tx_521ce1e9",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_u1_ef8ac4c7",
+        "a": {
+          "symbolId": "s_mj_83474605",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_ib_dc667c4f",
+          "term": "1"
+        },
+        "broken": false,
+        "label": "26",
+        "jog": {
+          "x": 462
         }
       }
     ],

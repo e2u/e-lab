@@ -32,6 +32,7 @@ export function Schematic() {
   const hoverPort = useLab((s) => s.hoverPort);
   const held = useLab((s) => s.held);
   const zoom = useLab((s) => s.zoom);
+  const showWireLabels = useLab((s) => s.showWireLabels);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const [isDesktop, setIsDesktop] = useState(typeof window !== "undefined" ? window.innerWidth > 768 : true);
@@ -45,6 +46,33 @@ export function Schematic() {
   }, []);
 
   const showRulers = isDesktop && mode === "edit";
+
+  // GPU-promote the canvas only while it is actually being panned (smooth touch/wheel scroll).
+  // Keeping it on a permanent compositing layer makes Safari/WebKit repaint updated symbol
+  // tags at stale offsets (ghost/misplaced labels), so demote as soon as scrolling settles.
+  const [paperPanning, setPaperPanning] = useState(false);
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    let active = false;
+    let timer: number | undefined;
+    const onScrollActivity = () => {
+      if (!active) {
+        active = true;
+        setPaperPanning(true);
+      }
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        active = false;
+        setPaperPanning(false);
+      }, 150);
+    };
+    wrap.addEventListener("scroll", onScrollActivity, { passive: true });
+    return () => {
+      wrap.removeEventListener("scroll", onScrollActivity);
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -101,6 +129,9 @@ export function Schematic() {
     onWireContextMenu,
     onWirePointerDown,
     onWireDoubleClick,
+    onWireLabelPointerDown,
+    onWireLabelDoubleClick,
+    onWireLabelContextMenu,
     onSymbolContextMenu,
     onSymbolPointerDown,
     onSymbolDoubleClick,
@@ -149,7 +180,7 @@ export function Schematic() {
         )}
         <svg
           ref={svgRef}
-          className={`paper${placing ? " placing" : ""}${mode === "run" ? " run" : ""}${wiringFrom ? " wiring" : ""} submode-${editSubMode}`}
+          className={`paper${placing ? " placing" : ""}${mode === "run" ? " run" : ""}${wiringFrom ? " wiring" : ""}${paperPanning ? " panning" : ""} submode-${editSubMode}`}
           width={COLS * GRID * zoom}
           height={ROWS * GRID * zoom}
           viewBox={`0 0 ${COLS * GRID} ${ROWS * GRID}`}
@@ -192,9 +223,13 @@ export function Schematic() {
             highlightedWireIds={highlightedWireIds}
             routes={routes}
             crossovers={crossovers}
+            showWireLabels={showWireLabels}
             onWireContextMenu={onWireContextMenu}
             onWirePointerDown={onWirePointerDown}
             onWireDoubleClick={onWireDoubleClick}
+            onWireLabelPointerDown={onWireLabelPointerDown}
+            onWireLabelDoubleClick={onWireLabelDoubleClick}
+            onWireLabelContextMenu={onWireLabelContextMenu}
           />
 
           <PortLayer

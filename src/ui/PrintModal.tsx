@@ -16,6 +16,7 @@ interface PrintModalProps {
 
 export function PrintModal({ isOpen, onClose }: PrintModalProps) {
   const circuit = useLab((s) => s.circuit);
+  const showWireLabels = useLab((s) => s.showWireLabels);
   const docName = useLab((s) => s.docName);
   const [options, setOptions] = useState<PrintOptions>(DEFAULT_PRINT_OPTIONS);
 
@@ -40,6 +41,13 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
   const viewBox = isContentScope ? bounds.viewBox : `0 0 ${COLS * GRID} ${ROWS * GRID}`;
   const viewBoxParts = viewBox.split(" ").map(Number);
   const [vbX, vbY, vbW, vbH] = viewBoxParts;
+
+  const effectiveOrientation =
+    options.orientation === "portrait"
+      ? "portrait"
+      : options.orientation === "landscape"
+        ? "landscape"
+        : bounds.suggestedOrientation;
 
   const handlePrint = () => {
     trackExportImage("print");
@@ -112,6 +120,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
           selected={null}
           routes={routes}
           crossovers={crossovers}
+          showWireLabels={showWireLabels}
           onWireContextMenu={() => {}}
           onWirePointerDown={() => {}}
         />
@@ -290,16 +299,45 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
                 </label>
               </div>
 
+              {/* Option 6: Paper Orientation */}
+              <div className="print-option-group">
+                <label className="print-option-label">{t("print.orientation")}</label>
+                <div className="print-toggle-buttons">
+                  <button
+                    type="button"
+                    className={`print-toggle-btn ${options.orientation === "auto" ? "active" : ""}`}
+                    onClick={() => setOptions({ ...options, orientation: "auto" })}
+                  >
+                    <span>{t("print.orientationAuto")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`print-toggle-btn ${options.orientation === "landscape" ? "active" : ""}`}
+                    onClick={() => setOptions({ ...options, orientation: "landscape" })}
+                  >
+                    <span>{t("print.orientationLandscape")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`print-toggle-btn ${options.orientation === "portrait" ? "active" : ""}`}
+                    onClick={() => setOptions({ ...options, orientation: "portrait" })}
+                  >
+                    <span>{t("print.orientationPortrait")}</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Orientation Recommendation */}
               <div className="print-orientation-tip">
                 <span className="tip-icon">💡</span>
                 <span>
                   {t("print.orientation")}:{" "}
                   <strong>
-                    {bounds.suggestedOrientation === "landscape"
+                    {effectiveOrientation === "landscape"
                       ? t("print.orientationLandscape")
                       : t("print.orientationPortrait")}
                   </strong>
+                  {options.orientation === "auto" && ` (${t("print.orientationAuto")})`}
                 </span>
               </div>
             </div>
@@ -317,6 +355,16 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
           </div>
         </div>
       </div>
+
+      {/* Dynamic @page orientation style for browser print dialog */}
+      <style>{`
+        @media print {
+          @page {
+            size: ${effectiveOrientation};
+            margin: 8mm;
+          }
+        }
+      `}</style>
 
       {/* Media Print Mount: Only rendered when browser prints */}
       <div className="print-mount" aria-hidden="true">

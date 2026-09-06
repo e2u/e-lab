@@ -277,6 +277,38 @@ export function ContextMenu({
                 {t("ctx.brokenWire")}
               </button>
             )}
+            {nWires <= 1 && selected?.type === "wire" && (
+              <button
+                type="button"
+                onClick={() =>
+                  run(() => {
+                    const currentLabel = circuit.wires.find(w => w.id === selected.id)?.label;
+                    const input = prompt(t("msg.enterNewName"), currentLabel);
+                    if (input !== null) {
+                      const trimmedInput = input.trim();
+                      const lab = useLab.getState();
+                      
+                      // Check for conflicts with other wires
+                      if (trimmedInput) {
+                        const connectedIds = lab.getConnectedWireIds(selected.id);
+                        const conflictingWire = circuit.wires.find(w => 
+                          w.label === trimmedInput && !connectedIds.has(w.id)
+                        );
+                        
+                        if (conflictingWire) {
+                          alert(t("msg.wireLabelConflict") || "Wire label already used by another wire. Please choose a different name.");
+                          return;
+                        }
+                      }
+                      
+                      lab.updateConnectedWires(selected.id, { label: trimmedInput || undefined });
+                    }
+                  })
+                }
+              >
+                {t("ctx.renameWire")}
+              </button>
+            )}
             <button type="button" className="danger" onClick={() => run(() => useLab.getState().deleteSelected())}>
               {t("ctx.deleteWire")}
             </button>

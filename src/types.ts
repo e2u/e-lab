@@ -185,6 +185,10 @@ export interface Wire {
   jog?: WireJog;
   /** Optional text shown beside the wire on the schematic. */
   label?: string;
+  /** Progress along the wire route (0 to 1). Defaults to 0.5 (midpoint). */
+  labelT?: number;
+  /** Perpendicular offset from the wire path in grid units. */
+  labelOffset?: TagOffset;
 }
 
 export interface SymbolGroup {

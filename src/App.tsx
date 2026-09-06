@@ -253,7 +253,8 @@ export function App() {
   };
 
   return (
-    <div className="app">
+    <>
+      <div className="app">
       <header className="topbar">
         {isMobile ? (
           <>
@@ -594,12 +595,6 @@ export function App() {
         onRequestNewDiagram={handleRequestNewDiagram}
       />
 
-      {/* Print Modal */}
-      <PrintModal
-        isOpen={printOpen}
-        onClose={() => useLab.getState().closePrint()}
-      />
-
       {/* Tutorial Overlay */}
       <TutorialOverlay
         isOpen={tutorialOpen}
@@ -818,5 +813,12 @@ export function App() {
         <span className="statusbar-copyright">@2026 DW. All rights reserved.</span>
       </footer>
     </div>
+
+    {/* Print Modal - rendered outside .app so @media print .app { display: none } does not hide print-mount */}
+    <PrintModal
+      isOpen={printOpen}
+      onClose={() => useLab.getState().closePrint()}
+    />
+  </>
   );
 }

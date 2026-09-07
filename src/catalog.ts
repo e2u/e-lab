@@ -148,6 +148,30 @@ const pole3: VariantDef = {
   ],
 };
 
+const fuse2pBody: VariantDef = {
+  w: 4,
+  h: 4,
+  terminals: [
+    t("1", 1, 0),
+    t("3", 3, 0),
+    t("2", 1, 4),
+    t("4", 3, 4),
+  ],
+};
+
+const fuse3pBody: VariantDef = {
+  w: 6,
+  h: 4,
+  terminals: [
+    t("1", 1, 0),
+    t("3", 3, 0),
+    t("5", 5, 0),
+    t("2", 1, 4),
+    t("4", 3, 4),
+    t("6", 5, 4),
+  ],
+};
+
 const starterBody: VariantDef = {
   w: 8,
   h: 10,
@@ -272,7 +296,11 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
   fuse: {
     prefix: "FU",
     label: "熔斷器",
-    variants: { body: twoTermVert },
+    variants: {
+      body: twoTermVert,     // Single pole
+      body2: fuse2pBody,     // Two poles
+      body3: fuse3pBody,     // Three poles
+    },
   },
   isolator: {
     prefix: "DISC",
@@ -850,7 +878,9 @@ export const CATALOG: CatalogItem[] = [
   { id: "transformer", kind: "transformer", variant: "body", group: "電源與保護", label: "控制變壓器", labelEn: "Transformer", prefix: "TC", creates: "device" },
   { id: "breaker-1p", kind: "breaker-1p", variant: "body", group: "電源與保護", label: "單極斷路器", labelEn: "MCB 1P", prefix: "SCB", creates: "device" },
   { id: "breaker-3p", kind: "breaker-3p", variant: "body", group: "電源與保護", label: "三極斷路器", labelEn: "MCB 3P", prefix: "CB", creates: "device" },
-  { id: "fuse", kind: "fuse", variant: "body", group: "電源與保護", label: "熔斷器", labelEn: "Fuse", prefix: "FU", creates: "device" },
+  { id: "fuse", kind: "fuse", variant: "body", group: "電源與保護", label: "熔斷器 (1P)", labelEn: "Fuse 1P", prefix: "FU", creates: "device" },
+  { id: "fuse-2p", kind: "fuse", variant: "body2", group: "電源與保護", label: "熔斷器 (2P)", labelEn: "Fuse 2P", prefix: "FU", creates: "device" },
+  { id: "fuse-3p", kind: "fuse", variant: "body3", group: "電源與保護", label: "熔斷器 (3P)", labelEn: "Fuse 3P", prefix: "FU", creates: "device" },
   { id: "isolator", kind: "isolator", variant: "body", group: "電源與保護", label: "隔離開關", labelEn: "Isolator", prefix: "DISC", creates: "device" },
   { id: "overload", kind: "overload", variant: "body", group: "電源與保護", label: "熱繼電器", labelEn: "Overload FR", prefix: "OL", creates: "device" },
   { id: "fr-nc", kind: "overload", variant: "aux-nc", group: "電源與保護", label: "熱過載常閉 95-96", labelEn: "Overload Aux NC 95-96", prefix: "OL", creates: "attach", defaultRot: 0 },

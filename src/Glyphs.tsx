@@ -1294,27 +1294,64 @@ function GlyphBody({
         );
     }
     if (kind === "fuse") {
-        const cx = (w * GRID) / 2;
-        const cy = (h * GRID) / 2;
         const live = Boolean(rt?.on && !rt?.tripped);
-        return (
-            <S w={w} h={h}>
-                <line x1={cx} y1={0} x2={cx} y2={h * GRID} stroke={ink} strokeWidth="2"/>
-                <rect
-                    x={cx - 9}
-                    y={h * GRID * 0.28}
-                    width="18"
-                    height={h * GRID * 0.44}
-                    rx="2"
-                    fill={live ? "#cfe8c4" : "#e8c4c4"}
-                    stroke={ink}
-                    strokeWidth="2"
-                />
-                <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="term-lab">
-                    FU
-                </Txt>
-            </S>
-        );
+        
+        // Determine number of poles based on variant
+        const numPoles = variant === "body2" ? 2 : variant === "body3" ? 3 : 1;
+        
+        if (numPoles === 1) {
+            // Single pole fuse
+            const cx = (w * GRID) / 2;
+            const cy = (h * GRID) / 2;
+            return (
+                <S w={w} h={h}>
+                    <line x1={cx} y1={0} x2={cx} y2={h * GRID} stroke={ink} strokeWidth="2"/>
+                    <rect
+                        x={cx - 9}
+                        y={h * GRID * 0.28}
+                        width="18"
+                        height={h * GRID * 0.44}
+                        rx="2"
+                        fill={live ? "#cfe8c4" : "#e8c4c4"}
+                        stroke={ink}
+                        strokeWidth="2"
+                    />
+                    <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="term-lab">
+                        FU
+                    </Txt>
+                </S>
+            );
+        } else {
+            // Multi-pole fuse (2P or 3P)
+            // Define pole positions aligned with terminals at x=1, 3, 5 grids
+            const polesData = variant === "body2" 
+                ? [{ cx: 1 * GRID }, { cx: 3 * GRID }]
+                : [{ cx: 1 * GRID }, { cx: 3 * GRID }, { cx: 5 * GRID }];
+            
+            return (
+                <S w={w} h={h}>
+                    {polesData.map((p, i) => (
+                        <g key={`fuse-pole-${i}`}>
+                            {/* Input terminal */}
+                            <line x1={p.cx} y1={0} x2={p.cx} y2={h * GRID * 0.28} stroke={ink} strokeWidth="2"/>
+                            {/* Fuse element - same height as 1P fuse */}
+                            <rect
+                                x={p.cx - 9}
+                                y={h * GRID * 0.28}
+                                width="18"
+                                height={h * GRID * 0.44}
+                                rx="2"
+                                fill={live ? "#cfe8c4" : "#e8c4c4"}
+                                stroke={ink}
+                                strokeWidth="2"
+                            />
+                            {/* Output terminal */}
+                            <line x1={p.cx} y1={h * GRID * 0.72} x2={p.cx} y2={h * GRID} stroke={ink} strokeWidth="2"/>
+                        </g>
+                    ))}
+                </S>
+            );
+        }
     }
     if (kind === "breaker-1p") {
         const cx = (w * GRID) / 2;

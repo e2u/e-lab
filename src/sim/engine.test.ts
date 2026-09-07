@@ -962,4 +962,64 @@ describe("sim engine", () => {
     const snap0 = run(c, [], 2);
     expect(snap0.faults).toEqual([]);
   });
+
+  it("energizes lamp through fuse-2p (body2 variant)", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "dc-supply", "G1", "body", 0, 0);
+    const fu = addDevice(c, "fuse", "FU1", "body2", 6, 0); // 2-pole fuse
+    const hl = addDevice(c, "lamp", "HL1", "body", 12, 0);
+
+    // Connect DC+ to fuse pole 1 (terminal 3)
+    addWire(c, g.symbol, "+", fu.symbol, "3");
+    // Connect fuse pole 2 (terminal 2) to lamp terminal 1
+    addWire(c, fu.symbol, "2", hl.symbol, "1");
+    // Connect DC- to fuse pole 3 (terminal 1)
+    addWire(c, g.symbol, "-", fu.symbol, "1");
+    // Connect fuse pole 4 (terminal 4) to lamp terminal 2
+    addWire(c, fu.symbol, "4", hl.symbol, "2");
+
+    const snap = run(c, [], 2);
+    expect(snap.runtime[hl.device.id].lit).toBe(true);
+  });
+
+  it("energizes lamp through fuse-3p (body3 variant)", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "dc-supply", "G1", "body", 0, 0);
+    const fu = addDevice(c, "fuse", "FU1", "body3", 6, 0); // 3-pole fuse
+    const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
+
+    // Connect DC+ to fuse input pole 1 (terminal 1)
+    addWire(c, g.symbol, "+", fu.symbol, "1");
+    // Connect fuse output pole 1 (terminal 2) to lamp terminal 1
+    addWire(c, fu.symbol, "2", hl.symbol, "1");
+    // Connect DC- to fuse input pole 3 (terminal 5)
+    addWire(c, g.symbol, "-", fu.symbol, "5");
+    // Connect fuse output pole 3 (terminal 6) to lamp terminal 2
+    addWire(c, fu.symbol, "6", hl.symbol, "2");
+
+    const snap = run(c, [], 2);
+    expect(snap.runtime[hl.device.id].lit).toBe(true);
+  });
+
+  it("energizes lamp through fuse-2p with user-provided circuit configuration", () => {
+    // This test replicates the exact wiring from the user's provided circuit
+    const c = emptyCircuit();
+    const g = addDevice(c, "dc-supply", "G1", "body", 0, 0);
+    const fu = addDevice(c, "fuse", "FU1", "body2", 6, 0); // 2-pole fuse
+    const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
+
+    // User's wiring:
+    // DC+ (terminal +) -> fuse terminal 3 (input pole 2)
+    // fuse terminal 2 (output pole 2) -> lamp terminal 1
+    // DC- (terminal -) -> fuse terminal 1 (input pole 1)
+    // fuse terminal 4 (output pole 1) -> lamp terminal 2
+    
+    addWire(c, g.symbol, "+", fu.symbol, "3");
+    addWire(c, fu.symbol, "2", hl.symbol, "1");
+    addWire(c, g.symbol, "-", fu.symbol, "1");
+    addWire(c, fu.symbol, "4", hl.symbol, "2");
+
+    const snap = run(c, [], 2);
+    expect(snap.runtime[hl.device.id].lit).toBe(true);
+  });
 });

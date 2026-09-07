@@ -46,6 +46,7 @@ export function Schematic() {
   }, []);
 
   const showRulers = isDesktop && mode === "edit";
+  const hiddenWireLabels = useLab((s) => s.hiddenWireLabels);
 
   // GPU-promote the canvas only while it is actually being panned (smooth touch/wheel scroll).
   // Keeping it on a permanent compositing layer makes Safari/WebKit repaint updated symbol
@@ -224,6 +225,7 @@ export function Schematic() {
             routes={routes}
             crossovers={crossovers}
             showWireLabels={showWireLabels}
+            hiddenWireLabels={hiddenWireLabels}
             onWireContextMenu={onWireContextMenu}
             onWirePointerDown={onWirePointerDown}
             onWireDoubleClick={onWireDoubleClick}

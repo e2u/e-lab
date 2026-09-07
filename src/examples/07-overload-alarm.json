@@ -176,6 +176,12 @@
         "kind": "junction",
         "tag": "",
         "params": {}
+      },
+      {
+        "id": "d_au_140af82e",
+        "kind": "fuse",
+        "tag": "FU3",
+        "params": {}
       }
     ],
     "symbols": [
@@ -183,7 +189,7 @@
         "id": "s_48_3bc7b0d1",
         "deviceId": "d_47_3e159e3b",
         "variant": "coil",
-        "x": 48,
+        "x": 57,
         "y": 27,
         "rot": 90,
         "tagOffset": {
@@ -203,7 +209,7 @@
         "id": "s_4a_710d7363",
         "deviceId": "d_47_3e159e3b",
         "variant": "aux-no",
-        "x": 36,
+        "x": 45,
         "y": 26,
         "rot": 0
       },
@@ -231,15 +237,15 @@
         "y": 19,
         "rot": 90,
         "tagOffset": {
-          "dx": 1.059,
-          "dy": -0.482
+          "dx": 0.806,
+          "dy": -1.2
         }
       },
       {
         "id": "s_4i_783a26df",
         "deviceId": "d_4h_81b953be",
         "variant": "body",
-        "x": 28,
+        "x": 37,
         "y": 24,
         "rot": 0
       },
@@ -247,7 +253,7 @@
         "id": "s_4k_ed3ac8c2",
         "deviceId": "d_4j_4d2123d1",
         "variant": "body",
-        "x": 36,
+        "x": 45,
         "y": 24,
         "rot": 0
       },
@@ -255,7 +261,7 @@
         "id": "s_4m_98cd8de7",
         "deviceId": "d_4l_82a2d74d",
         "variant": "body",
-        "x": 45,
+        "x": 54,
         "y": 27,
         "rot": 0,
         "tagOffset": {
@@ -267,7 +273,7 @@
         "id": "s_4o_d8d4ce0a",
         "deviceId": "d_4n_1531bb21",
         "variant": "body",
-        "x": 44,
+        "x": 53,
         "y": 16,
         "rot": 0,
         "tagOffset": {
@@ -287,7 +293,7 @@
         "id": "s_6m_85b558ad",
         "deviceId": "d_6l_f629a1cf",
         "variant": "body",
-        "x": 46,
+        "x": 55,
         "y": 25,
         "rot": 0
       },
@@ -295,7 +301,7 @@
         "id": "s_6q_10a419f7",
         "deviceId": "d_6p_28b0dcc0",
         "variant": "body",
-        "x": 46,
+        "x": 55,
         "y": 33,
         "rot": 0
       },
@@ -303,7 +309,7 @@
         "id": "s_6u_f9c7b9ae",
         "deviceId": "d_6t_1dd60da8",
         "variant": "body",
-        "x": 44,
+        "x": 53,
         "y": 18,
         "rot": 90,
         "tagOffset": {
@@ -315,7 +321,7 @@
         "id": "s_74_3510f4ab",
         "deviceId": "d_73_f42adfcd",
         "variant": "body",
-        "x": 52,
+        "x": 61,
         "y": 33,
         "rot": 0
       },
@@ -323,7 +329,7 @@
         "id": "s_77_09837bdb",
         "deviceId": "d_76_0d753ef2",
         "variant": "body",
-        "x": 49,
+        "x": 58,
         "y": 33,
         "rot": 0
       },
@@ -331,7 +337,7 @@
         "id": "s_7b_51fc46a6",
         "deviceId": "d_7a_2c1ad691",
         "variant": "body",
-        "x": 28,
+        "x": 37,
         "y": 25,
         "rot": 0
       },
@@ -347,7 +353,7 @@
         "id": "s_8t_66902ac2",
         "deviceId": "d_8s_539b9550",
         "variant": "body",
-        "x": 34,
+        "x": 43,
         "y": 33,
         "rot": 0
       },
@@ -435,7 +441,7 @@
         "id": "s_an_224d69ce",
         "deviceId": "d_am_354d626e",
         "variant": "body",
-        "x": 34,
+        "x": 43,
         "y": 25,
         "rot": 0
       },
@@ -443,11 +449,25 @@
         "id": "s_aq_f5b23856",
         "deviceId": "d_4b_2e41cedc",
         "variant": "aux-no",
-        "x": 37,
+        "x": 46,
         "y": 18,
         "rot": 0,
         "flipX": false,
         "flipY": false
+      },
+      {
+        "id": "s_av_522125e3",
+        "deviceId": "d_au_140af82e",
+        "variant": "body",
+        "x": 30,
+        "y": 24,
+        "rot": 90,
+        "flipX": false,
+        "flipY": false,
+        "tagOffset": {
+          "dx": 0.844,
+          "dy": -1.209
+        }
       }
     ],
     "wires": [
@@ -460,7 +480,8 @@
         "b": {
           "symbolId": "s_an_224d69ce",
           "term": "1"
-        }
+        },
+        "label": "10"
       },
       {
         "id": "w_5o_3b3ae172",
@@ -471,7 +492,8 @@
         "b": {
           "symbolId": "s_4e_4e132dc1",
           "term": "W"
-        }
+        },
+        "label": "102"
       },
       {
         "id": "w_5p_c695cc95",
@@ -482,7 +504,8 @@
         "b": {
           "symbolId": "s_4e_4e132dc1",
           "term": "V"
-        }
+        },
+        "label": "103"
       },
       {
         "id": "w_5q_c889c6e4",
@@ -493,7 +516,8 @@
         "b": {
           "symbolId": "s_4e_4e132dc1",
           "term": "U"
-        }
+        },
+        "label": "104"
       },
       {
         "id": "w_69_1f0e8e56",
@@ -504,7 +528,8 @@
         "b": {
           "symbolId": "s_4k_ed3ac8c2",
           "term": "1"
-        }
+        },
+        "label": "10"
       },
       {
         "id": "w_6a_06229e69",
@@ -515,7 +540,8 @@
         "b": {
           "symbolId": "s_4k_ed3ac8c2",
           "term": "2"
-        }
+        },
+        "label": "11"
       },
       {
         "id": "w_6b_cb215007",
@@ -526,7 +552,8 @@
         "b": {
           "symbolId": "s_6m_85b558ad",
           "term": "1"
-        }
+        },
+        "label": "11"
       },
       {
         "id": "w_6e_273610f3",
@@ -537,7 +564,8 @@
         "b": {
           "symbolId": "s_77_09837bdb",
           "term": "1"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_6j_470ae030",
@@ -548,7 +576,8 @@
         "b": {
           "symbolId": "s_7b_51fc46a6",
           "term": "1"
-        }
+        },
+        "label": "15"
       },
       {
         "id": "w_6k_624168e3",
@@ -565,7 +594,8 @@
           "pos": 880,
           "x": 880,
           "y": 352
-        }
+        },
+        "label": "16"
       },
       {
         "id": "w_6n_ad923c4f",
@@ -576,7 +606,8 @@
         "b": {
           "symbolId": "s_4k_ed3ac8c2",
           "term": "2"
-        }
+        },
+        "label": "11"
       },
       {
         "id": "w_6o_d970c822",
@@ -587,7 +618,8 @@
         "b": {
           "symbolId": "s_6m_85b558ad",
           "term": "1"
-        }
+        },
+        "label": "11"
       },
       {
         "id": "w_6s_3876ee5e",
@@ -598,7 +630,8 @@
         "b": {
           "symbolId": "s_6q_10a419f7",
           "term": "1"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_6v_d6a4f861",
@@ -612,9 +645,10 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 1056,
-          "x": 1056
-        }
+          "pos": 1254,
+          "x": 1254
+        },
+        "label": "2"
       },
       {
         "id": "w_6w_4619d021",
@@ -625,7 +659,8 @@
         "b": {
           "symbolId": "s_6u_f9c7b9ae",
           "term": "2"
-        }
+        },
+        "label": "12"
       },
       {
         "id": "w_72_eafb850e",
@@ -636,7 +671,8 @@
         "b": {
           "symbolId": "s_4o_d8d4ce0a",
           "term": "1"
-        }
+        },
+        "label": "12"
       },
       {
         "id": "w_75_7d7832f5",
@@ -652,7 +688,8 @@
           "axis": "y",
           "pos": 418,
           "y": 418
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_78_7501d6f2",
@@ -663,7 +700,8 @@
         "b": {
           "symbolId": "s_6q_10a419f7",
           "term": "1"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_79_851c89e4",
@@ -674,24 +712,8 @@
         "b": {
           "symbolId": "s_77_09837bdb",
           "term": "1"
-        }
-      },
-      {
-        "id": "w_7c_19eaa8a0",
-        "a": {
-          "symbolId": "s_7b_51fc46a6",
-          "term": "1"
         },
-        "b": {
-          "symbolId": "s_4g_1bf33edd",
-          "term": "X1"
-        },
-        "jog": {
-          "axis": "y",
-          "pos": 550,
-          "x": 572,
-          "y": 550
-        }
+        "label": "2"
       },
       {
         "id": "w_7d_a6c713cc",
@@ -702,7 +724,8 @@
         "b": {
           "symbolId": "s_7b_51fc46a6",
           "term": "1"
-        }
+        },
+        "label": "15"
       },
       {
         "id": "w_8l_5fd920c6",
@@ -713,7 +736,8 @@
         "b": {
           "symbolId": "s_8j_d0d03003",
           "term": "1"
-        }
+        },
+        "label": "6"
       },
       {
         "id": "w_8v_83d2bd8a",
@@ -724,7 +748,8 @@
         "b": {
           "symbolId": "s_8t_66902ac2",
           "term": "1"
-        }
+        },
+        "label": "17"
       },
       {
         "id": "w_8w_90e7168b",
@@ -735,7 +760,8 @@
         "b": {
           "symbolId": "s_9r_871330f8",
           "term": "1"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_94_05c4ab0e",
@@ -746,7 +772,8 @@
         "b": {
           "symbolId": "s_93_07b100a7",
           "term": "1"
-        }
+        },
+        "label": "18"
       },
       {
         "id": "w_99_63a4ade4",
@@ -757,7 +784,8 @@
         "b": {
           "symbolId": "s_9f_553ef13e",
           "term": "1"
-        }
+        },
+        "label": "8"
       },
       {
         "id": "w_9o_e3f7fbf5",
@@ -773,7 +801,8 @@
           "axis": "y",
           "pos": 352,
           "y": 352
-        }
+        },
+        "label": "100"
       },
       {
         "id": "w_9p_95820678",
@@ -784,7 +813,8 @@
         "b": {
           "symbolId": "s_4g_1bf33edd",
           "term": "H1"
-        }
+        },
+        "label": "101"
       },
       {
         "id": "w_9s_cc934f6d",
@@ -795,7 +825,8 @@
         "b": {
           "symbolId": "s_6q_10a419f7",
           "term": "1"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_9t_ac2c3284",
@@ -806,7 +837,8 @@
         "b": {
           "symbolId": "s_9r_871330f8",
           "term": "1"
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_9z_8c9a7417",
@@ -817,7 +849,8 @@
         "b": {
           "symbolId": "s_49_fd211417",
           "term": "1"
-        }
+        },
+        "label": "3"
       },
       {
         "id": "w_a0_24eb89bd",
@@ -828,7 +861,8 @@
         "b": {
           "symbolId": "s_aj_245401b5",
           "term": "1"
-        }
+        },
+        "label": "4"
       },
       {
         "id": "w_a1_c16067f0",
@@ -839,7 +873,8 @@
         "b": {
           "symbolId": "s_af_87f770f0",
           "term": "1"
-        }
+        },
+        "label": "5"
       },
       {
         "id": "w_a4_52dcea6b",
@@ -850,7 +885,8 @@
         "b": {
           "symbolId": "s_9v_59b118c3",
           "term": "1"
-        }
+        },
+        "label": "90"
       },
       {
         "id": "w_a5_f26a99a9",
@@ -861,7 +897,8 @@
         "b": {
           "symbolId": "s_9v_59b118c3",
           "term": "3"
-        }
+        },
+        "label": "91"
       },
       {
         "id": "w_a6_caee2a91",
@@ -872,7 +909,8 @@
         "b": {
           "symbolId": "s_9v_59b118c3",
           "term": "5"
-        }
+        },
+        "label": "92"
       },
       {
         "id": "w_a7_a76d7fa0",
@@ -888,7 +926,8 @@
           "axis": "x",
           "pos": 242,
           "x": 242
-        }
+        },
+        "label": "2"
       },
       {
         "id": "w_a9_cd200785",
@@ -904,7 +943,8 @@
           "axis": "y",
           "pos": 418,
           "y": 418
-        }
+        },
+        "label": "101"
       },
       {
         "id": "w_aa_ee459486",
@@ -920,7 +960,8 @@
           "axis": "y",
           "pos": 418,
           "y": 418
-        }
+        },
+        "label": "100"
       },
       {
         "id": "w_ab_72b5f243",
@@ -931,7 +972,8 @@
         "b": {
           "symbolId": "s_4c_0ccb2d42",
           "term": "1"
-        }
+        },
+        "label": "7"
       },
       {
         "id": "w_ac_7ddac55b",
@@ -942,7 +984,8 @@
         "b": {
           "symbolId": "s_4c_0ccb2d42",
           "term": "3"
-        }
+        },
+        "label": "8"
       },
       {
         "id": "w_ad_18a07f18",
@@ -953,7 +996,8 @@
         "b": {
           "symbolId": "s_4c_0ccb2d42",
           "term": "5"
-        }
+        },
+        "label": "9"
       },
       {
         "id": "w_ag_a6a351a9",
@@ -964,7 +1008,8 @@
         "b": {
           "symbolId": "s_49_fd211417",
           "term": "5"
-        }
+        },
+        "label": "5"
       },
       {
         "id": "w_ah_620d129f",
@@ -975,7 +1020,8 @@
         "b": {
           "symbolId": "s_af_87f770f0",
           "term": "1"
-        }
+        },
+        "label": "5"
       },
       {
         "id": "w_ak_f913098c",
@@ -986,7 +1032,8 @@
         "b": {
           "symbolId": "s_49_fd211417",
           "term": "3"
-        }
+        },
+        "label": "4"
       },
       {
         "id": "w_al_02e68336",
@@ -997,7 +1044,8 @@
         "b": {
           "symbolId": "s_aj_245401b5",
           "term": "1"
-        }
+        },
+        "label": "4"
       },
       {
         "id": "w_ao_eed5efca",
@@ -1008,7 +1056,8 @@
         "b": {
           "symbolId": "s_4k_ed3ac8c2",
           "term": "1"
-        }
+        },
+        "label": "10"
       },
       {
         "id": "w_ar_8bc15b51",
@@ -1019,7 +1068,8 @@
         "b": {
           "symbolId": "s_6u_f9c7b9ae",
           "term": "2"
-        }
+        },
+        "label": "12"
       },
       {
         "id": "w_as_4a7b2f16",
@@ -1030,7 +1080,32 @@
         "b": {
           "symbolId": "s_an_224d69ce",
           "term": "1"
-        }
+        },
+        "label": "10"
+      },
+      {
+        "id": "w_aw_7de8794a",
+        "a": {
+          "symbolId": "s_4g_1bf33edd",
+          "term": "X1"
+        },
+        "b": {
+          "symbolId": "s_av_522125e3",
+          "term": "2"
+        },
+        "label": "1"
+      },
+      {
+        "id": "w_ax_5ddaa922",
+        "a": {
+          "symbolId": "s_av_522125e3",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_4i_783a26df",
+          "term": "1"
+        },
+        "label": "16"
       }
     ],
     "groups": []

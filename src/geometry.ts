@@ -1675,6 +1675,7 @@ export function polylinePathD(
 export function wireLabelPos(
   pts: { x: number; y: number }[],
   offset = 6,
+  circuit?: Circuit,
 ): { x: number; y: number; horizontal: boolean } | null {
   if (pts.length < 2) return null;
   let best = { a: pts[0], b: pts[1], len: -1 };
@@ -1686,9 +1687,51 @@ export function wireLabelPos(
   const mx = (best.a.x + best.b.x) / 2;
   const my = (best.a.y + best.b.y) / 2;
   const horizontal = Math.abs(best.a.y - best.b.y) < 0.8;
+  
+  // Check for junction collisions if circuit is provided
+  let basePos: { x: number; y: number };
+  if (horizontal) {
+    basePos = { x: mx, y: my + offset };  // Down from wire center
+  } else {
+    basePos = { x: mx + offset, y: my };   // Right from wire center
+  }
+  
+  // If label collides with junction, try opposite side
+  if (circuit) {
+    const JUNCTION_RADIUS = 6; // Slightly larger than visual radius
+    for (const sym of circuit.symbols) {
+      if (sym.kind === "junction") {
+        const juncPos = terminalWorld(circuit, { symbolId: sym.id, term: "1" });
+        if (juncPos) {
+          const dist = Math.hypot(basePos.x - juncPos.x, basePos.y - juncPos.y);
+          if (dist < JUNCTION_RADIUS + 2) { // 2 units clearance
+            if (horizontal) {
+              return { x: mx, y: my - offset, horizontal: true };  // Up from wire center
+            } else {
+              return { x: mx - offset, y: my, horizontal: false };  // Left from wire center
+            }
+          }
+        }
+      }
+    }
+  }
+  
   return horizontal
-    ? { x: mx, y: my + offset, horizontal: true }  // Down from wire center
-    : { x: mx + offset, y: my, horizontal: false };
+    ? { x: basePos.x, y: basePos.y, horizontal: true }
+    : { x: basePos.x, y: basePos.y, horizontal: false };
+}
+
+
+
+/** Calculate cumulative distance at each point along a polyline */
+export function getCumulativeDistances(pts: { x: number; y: number }[]): number[] {
+  if (pts.length === 0) return [];
+  const dists = [0];
+  for (let i = 1; i < pts.length; i++) {
+    const len = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    dists.push(dists[dists.length - 1] + len);
+  }
+  return dists;
 }
 
 /** Find the closest progress value (0 to 1) along a polyline to a given point. */

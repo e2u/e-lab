@@ -104,3 +104,47 @@ All 301 tests pass successfully:
 - Collision detection prevents assigning duplicate labels to non-connected wires
 - Auto-layout automatically assigns numbers after reorganizing circuit
 - When a wire passes straight through a junction (no T-junction), only one Wire Number is shown for that net
+
+## Wire Number Reserved Tags Fix (2026-09-07)
+
+### Problem
+Wire Numbers 13 and 14 were missing from `/Volumes/r1/10-dual-station.json`. The issue was traced to:
+- File contains an overload relay (`OL1`) with terminals labeled "13" and "14"
+- These numeric terminal labels were being added to `reservedTags`
+- When auto-labeling wires, if counter reached 13 or 14, those values were skipped
+- Result: Wire numbering had gaps (missing 13, 14, and also 23 due to displacement)
+
+### Root Cause
+The original code collected ALL terminal labels into `reservedTags`:
+```typescript
+v.terminals.forEach(t => {
+  if (t.label.trim()) reservedTags.add(t.label.trim());
+});
+```
+
+This meant any device using numeric terminal labels like "13", "14" would reserve those numbers,
+causing them to be skipped during automatic wire numbering.
+
+### Solution
+Modified `src/store.ts` to **only reserve specific universal standard terminal labels**:
+
+```typescript
+const reservedTerminalLabels = new Set(["L1", "L2", "L3", "N", "G", "PE", "X1", "X2"]);
+```
+
+These represent:
+- **Power phases**: L1, L2, L3
+- **Neutral**: N
+- **Ground/Protective Earth**: G, PE
+- **Transformer secondary outputs**: X1, X2
+
+Numeric terminal labels from other devices (like overload relays' "13", "14") are no longer reserved
+and can be used as wire numbers.
+
+### Files Modified
+- `src/store.ts` - Changed `reservedTags` collection logic to only include specific terminal labels
+- `src/store.test.ts` - Added test cases verifying sequential numbering works correctly
+
+### Test Results
+- All 310 tests pass
+- Wire numbering in `/Volumes/r1/10-dual-station.json` is now sequential (1-23 without gaps)

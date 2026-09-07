@@ -156,7 +156,10 @@ export function emptySnapshot(circuit: Circuit): SimSnapshot {
 
   for (const d of circuit.devices) {
     const rt = runtime[d.id];
-    for (const [a, b] of bridges(d, rt)) link(nk(d.id, a), nk(d.id, b));
+    // Get the symbol variant for devices that need it (like fuse)
+    const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+    const variant = sym?.variant;
+    for (const [a, b] of bridges(d, rt, variant)) link(nk(d.id, a), nk(d.id, b));
   }
 
   const stamp = new Map<string, Potential[]>();
@@ -552,7 +555,7 @@ function closedSwitch(device: Device, rt: DeviceRuntime): boolean {
   return rt.actuated;
 }
 
-function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
+function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, string][] {
   const welded = Boolean(device.params.welded);
   const e = rt.energized || welded;
   const e2 = rt.energizedAlt;
@@ -642,8 +645,20 @@ function bridges(device: Device, rt: DeviceRuntime): [string, string][] {
       }
       break;
     case "breaker-1p":
-    case "fuse":
       if (on) out.push(["1", "2"]);
+      break;
+    case "fuse":
+      // Single pole fuse (body) or multi-pole fuses (body2, body3)
+      const isOn = on && !trip;
+      if (!isOn) break;
+      const fuseVariant = variant || "body";
+      if (fuseVariant === "body") {
+        out.push(["1", "2"]);
+      } else if (fuseVariant === "body2") {
+        out.push(["1", "2"], ["3", "4"]);
+      } else if (fuseVariant === "body3") {
+        out.push(["1", "2"], ["3", "4"], ["5", "6"]);
+      }
       break;
     case "breaker-3p":
       if (on) {
@@ -889,7 +904,10 @@ export function tick(
 
   for (const d of circuit.devices) {
     const rt = runtime[d.id];
-    for (const [a, b] of bridges(d, rt)) link(nk(d.id, a), nk(d.id, b));
+    // Get the symbol variant for devices that need it (like fuse)
+    const sym = circuit.symbols.find((s) => s.deviceId === d.id);
+    const variant = sym?.variant;
+    for (const [a, b] of bridges(d, rt, variant)) link(nk(d.id, a), nk(d.id, b));
   }
 
   const faults: Fault[] = [];

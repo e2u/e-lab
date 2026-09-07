@@ -5,7 +5,7 @@ import { loadExampleJson } from "./examples/index";
 import templateData from "./examples/blank-template.json";
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols } from "./groups";
 import { EXAMPLES } from "./examples";
-import { allWireRoutes, findWireAtPoint, getConnectedWireIds, nearestOnPolyline, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { allWireRoutes, findWireAtPoint, getConnectedWireIds, nearestOnPolyline, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute, wireLabelPos } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   downloadJson,
@@ -160,7 +160,7 @@ function readShowWireLabels(): boolean {
 }
 
 export interface Selection {
-  type: "symbol" | "wire";
+  type: "symbol" | "wire" | "wire-label";
   id: string;
 }
 
@@ -198,6 +198,7 @@ export interface LabState {
   layoutMode: LayoutMode;
   showLadderMenu: boolean; // Controls whether to show ladder diagram menu
   showWireLabels: boolean; // Sheet option: render wire number labels on the schematic
+  hiddenWireLabels: Set<string>; // Wire IDs whose labels should be hidden
   isDirty: boolean;
   paletteOpen: boolean;
   sideOpen: boolean;
@@ -227,6 +228,9 @@ export interface LabState {
   selectIds: (ids: string[], additive?: boolean) => void;
   selectWireToggle: (id: string) => void;
   selectWireIds: (ids: string[], additive?: boolean) => void;
+  toggleWireLabelHidden: (wireId: string) => void;
+  hideWireLabels: (wireIds: string[]) => void;
+  showAllWireLabels: () => void;
   mergeSelectedWires: () => void;
   selectAll: () => void;
   groupSelected: () => void;
@@ -440,6 +444,7 @@ export const useLab = create<LabState>((set, get) => ({
   layoutMode: initialLayoutMode,
   showLadderMenu: readShowLadderMenu(), // Controls whether to show ladder diagram menu
   showWireLabels: readShowWireLabels(), // Sheet option: render wire number labels
+  hiddenWireLabels: new Set(),
   isDirty: false,
   paletteOpen: sidebarBoot.paletteOpen,
   sideOpen: sidebarBoot.sideOpen,
@@ -725,6 +730,28 @@ export const useLab = create<LabState>((set, get) => ({
       isDirty: true,
       notice: t("notice.wiresMerged"),
     });
+  },
+
+  toggleWireLabelHidden: (wireId) => {
+    const { hiddenWireLabels } = get();
+    const next = new Set(hiddenWireLabels);
+    if (next.has(wireId)) {
+      next.delete(wireId);
+    } else {
+      next.add(wireId);
+    }
+    set({ hiddenWireLabels: next });
+  },
+
+  hideWireLabels: (wireIds) => {
+    const { hiddenWireLabels } = get();
+    const next = new Set(hiddenWireLabels);
+    for (const id of wireIds) next.add(id);
+    set({ hiddenWireLabels: next });
+  },
+
+  showAllWireLabels: () => {
+    set({ hiddenWireLabels: new Set() });
   },
   groupSelected: () => {
     const { circuit, selectedIds } = get();
@@ -2410,15 +2437,54 @@ export const useLab = create<LabState>((set, get) => ({
     const reservedLabels = new Map<string, string>(); // wireId -> reserved label
     
     for (const dev of next.devices) {
-      if (dev.kind === "transformer") {
-        // Find wires connected to X1 and X2
+      if (dev.kind === "mains-3ph") {
+        // Find L1, L2, L3, N connections - these are reserved
         for (const sym of next.symbols) {
           if (sym.deviceId === dev.id) {
             const v = variantDef(dev.kind, sym.variant);
-            // Check for X1 terminal (primary side)
-            const x1Term = v.terminals.find(t => t.id === "X1" || t.id === "1");
-            const x2Term = v.terminals.find(t => t.id === "X2" || t.id === "2");
-            
+            for (const term of ["L1", "L2", "L3", "N"]) {
+              const t = v.terminals.find(t => t.id === term);
+              if (t) {
+                for (const w of wires) {
+                  if ((w.a.symbolId === sym.id && w.a.term === term) ||
+                      (w.b.symbolId === sym.id && w.b.term === term)) {
+                    switch(term) {
+                      case "L1": reservedLabels.set(w.id, "90"); break;
+                      case "L2": reservedLabels.set(w.id, "91"); break;
+                      case "L3": reservedLabels.set(w.id, "92"); break;
+                      case "N": reservedLabels.set(w.id, "93"); break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else if (dev.kind === "ground") {
+        // PE/Ground is reserved as 0
+        for (const sym of next.symbols) {
+          if (sym.deviceId === dev.id) {
+            const v = variantDef(dev.kind, sym.variant);
+            // Find ground terminal (usually "1" or "PE")
+            const gndTerm = v.terminals.find(t => t.id === "1" || t.id === "PE");
+            if (gndTerm) {
+              for (const w of wires) {
+                if ((w.a.symbolId === sym.id && w.a.term === gndTerm.id) ||
+                    (w.b.symbolId === sym.id && w.b.term === gndTerm.id)) {
+                  reservedLabels.set(w.id, "0");
+                }
+              }
+            }
+          }
+        }
+      } else if (dev.kind === "transformer") {
+        // Transformer output: X1 is control circuit hot (reserved 1), X2 is return/ground (reserved 2)
+        // Note: H1/H2/H3/H4 are high-voltage input and should NOT be reserved
+        for (const sym of next.symbols) {
+          if (sym.deviceId === dev.id) {
+            const v = variantDef(dev.kind, sym.variant);
+            // Check for X1 terminal (control circuit input) - reserved as 1
+            const x1Term = v.terminals.find(t => t.id === "X1");
             if (x1Term) {
               for (const w of wires) {
                 if ((w.a.symbolId === sym.id && w.a.term === x1Term.id) ||
@@ -2427,6 +2493,8 @@ export const useLab = create<LabState>((set, get) => ({
                 }
               }
             }
+            // Check for X2 terminal (return/ground line) - reserved as 2
+            const x2Term = v.terminals.find(t => t.id === "X2");
             if (x2Term) {
               for (const w of wires) {
                 if ((w.a.symbolId === sym.id && w.a.term === x2Term.id) ||
@@ -2463,33 +2531,17 @@ export const useLab = create<LabState>((set, get) => ({
             }
           }
         }
-      } else if (dev.kind === "mains-3ph") {
-        // Find L1, L2, L3, N connections
-        for (const sym of next.symbols) {
-          if (sym.deviceId === dev.id) {
-            const v = variantDef(dev.kind, sym.variant);
-            for (const term of ["L1", "L2", "L3", "N"]) {
-              const t = v.terminals.find(t => t.id === term);
-              if (t) {
-                for (const w of wires) {
-                  if ((w.a.symbolId === sym.id && w.a.term === term) ||
-                      (w.b.symbolId === sym.id && w.b.term === term)) {
-                    switch(term) {
-                      case "L1": reservedLabels.set(w.id, "90"); break;
-                      case "L2": reservedLabels.set(w.id, "91"); break;
-                      case "L3": reservedLabels.set(w.id, "92"); break;
-                      case "N": reservedLabels.set(w.id, "93"); break;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
       }
     }
 
-    // Collect all existing tags and terminal labels to avoid collisions
+    // Only reserve specific terminal labels that should NOT be used as wire numbers:
+    // - Power phase labels: L1, L2, L3
+    // - Neutral: N
+    // - Ground/Protective Earth: G, PE
+    // - Transformer secondary: X1, X2
+    // These are fixed standards that must not conflict with wire numbering
+    const reservedTerminalLabels = new Set(["L1", "L2", "L3", "N", "G", "PE", "X1", "X2"]);
+    
     const reservedTags = new Set<string>();
     next.devices.forEach(d => {
       if (d.tag.trim()) reservedTags.add(d.tag.trim());
@@ -2499,7 +2551,9 @@ export const useLab = create<LabState>((set, get) => ({
       if (dev) {
         const v = variantDef(dev.kind, s.variant);
         v.terminals.forEach(t => {
-          if (t.label.trim()) reservedTags.add(t.label.trim());
+          if (t.label.trim() && reservedTerminalLabels.has(t.label)) {
+            reservedTags.add(t.label.trim());
+          }
         });
       }
     });
@@ -2552,49 +2606,256 @@ export const useLab = create<LabState>((set, get) => ({
     }
 
     // Calculate bounds for sorting by position
-    const componentBounds = new Map<number, { minX: number; minY: number }>();
+    // Use wire route start point (from terminalWorld) to determine reading order
+    const componentBounds = new Map<number, { leftX: number; topY: number }>();
     
     wires.forEach((w, i) => {
       const root = find(i);
       if (!componentBounds.has(root)) {
-        // Calculate min x and y of this wire
-        const pts = wireRoute(next, w.a, w.b, w.jog);
-        let minX = Infinity, minY = Infinity;
-        for (const p of pts) {
-          minX = Math.min(minX, p.x);
-          minY = Math.min(minY, p.y);
+        // Get wire endpoints using terminalWorld
+        const a = terminalWorld(next, w.a);
+        const b = terminalWorld(next, w.b);
+        
+        if (a && b) {
+          // Use the topmost-leftmost point as the sorting anchor
+          // Sort by y (top to bottom), then by x (left to right)
+          let top = a, bottom = b;
+          if (b.y < a.y || (b.y === a.y && b.x < a.x)) {
+            top = b;
+            bottom = a;
+          }
+          componentBounds.set(root, { leftX: top.x, topY: top.y });
+        } else {
+          // Fallback: use min x and y of wire route
+          const pts = wireRoute(next, w.a, w.b, w.jog);
+          let minX = Infinity, minY = Infinity;
+          for (const p of pts) {
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+          }
+          componentBounds.set(root, { leftX: minX, topY: minY });
         }
-        componentBounds.set(root, { minX, minY });
       }
     });
 
-    // Sort roots by position (left to right, top to bottom)
+    // Sort roots by position (top to bottom first, then left to right)
+    // This ensures wires are numbered from top row to bottom row,
+    // and within each row, from left to right
     const sortedRoots = Array.from(componentBounds.entries())
       .sort((a, b) => {
-        if (a[1].minX !== b[1].minX) return a[1].minX - b[1].minX;
-        return a[1].minY - b[1].minY;
+        if (a[1].topY !== b[1].topY) return a[1].topY - b[1].topY;
+        return a[1].leftX - b[1].leftX;
       });
 
+    // Determine circuit type for each component (HV or control)
+    // First, identify all power sources and their connected components
+    
+    const isHVCircuitMap = new Map<number, boolean>();
+    
+    function determineCircuitType(root: number): boolean {
+      if (isHVCircuitMap.has(root)) return isHVCircuitMap.get(root)!;
+      
+      // Find a wire in this component
+      let wireInComponent: Wire | null = null;
+      for (let i = 0; i < wires.length; i++) {
+        if (find(i) === root) {
+          wireInComponent = wires[i];
+          break;
+        }
+      }
+      
+      if (!wireInComponent) {
+        isHVCircuitMap.set(root, false);
+        return false;
+      }
+      
+      // Check if this component is connected to HV power source
+      function isConnectedToHV(w: Wire, visited: Set<string>): boolean {
+        const aSym = next.symbols.find(s => s.id === w.a.symbolId);
+        const bSym = next.symbols.find(s => s.id === w.b.symbolId);
+        
+        if (!aSym || !bSym) return false;
+        
+        const devA = next.devices.find(d => d.id === aSym.deviceId);
+        const devB = next.devices.find(d => d.id === bSym.deviceId);
+        
+        // Check for HV power sources (excluding transformer)
+        if (devA && ["mains-3ph", "dc-supply", "gen-ac", "gen-dc"].includes(devA.kind)) {
+          return true;
+        }
+        if (devB && ["mains-3ph", "dc-supply", "gen-ac", "gen-dc"].includes(devB.kind)) {
+          return true;
+        }
+        
+        // Note: All transformer connections are now treated as control circuit
+        // because transformer secondary (X1/X2) supplies the control circuit
+        
+        // Recursively check connected components
+        for (const other of wires) {
+          if (other.id === w.id || visited.has(other.id)) continue;
+          if (portsEqual(w.a, other.a) || portsEqual(w.a, other.b) ||
+              portsEqual(w.b, other.a) || portsEqual(w.b, other.b)) {
+            visited.add(other.id);
+            // Don't propagate HV status through transformer connections
+            const otherSymA = next.symbols.find(s => s.id === other.a.symbolId);
+            const otherSymB = next.symbols.find(s => s.id === other.b.symbolId);
+            if (otherSymA && otherSymB) {
+              const otherDevA = next.devices.find(d => d.id === otherSymA.deviceId);
+              const otherDevB = next.devices.find(d => d.id === otherSymB.deviceId);
+              // If the wire connects to a transformer, don't propagate HV status
+              if (otherDevA?.kind === "transformer" || otherDevB?.kind === "transformer") {
+                continue;
+              }
+            }
+            if (isConnectedToHV(other, visited)) return true;
+          }
+        }
+        
+        return false;
+      }
+      
+      const result = isConnectedToHV(wireInComponent, new Set([wireInComponent.id]));
+      isHVCircuitMap.set(root, result);
+      return result;
+    }
+    
+    // Mark transformer internal jumper wires (single-phase transformers)
+    // H1 and H4 are primary input terminals, H2 and H3 are tap terminals
+    // Two common jumper configurations:
+    //   Mode 1: H1->H3 (input to tap), H2->H4 (tap to input)
+    //   Mode 2: H3->H2 (tap to tap - shorting taps together)
+    // These should not get wire numbers as they are internal connections
+    
+    const transformerInternalJumperWireIds = new Set<string>();
+    const transformerInternalJumperRoots = new Set<number>();
+    
+    for (const dev of next.devices) {
+      if (dev.kind === "transformer") {
+        // Find all transformer symbols
+        const transformerSyms = next.symbols.filter(s => s.deviceId === dev.id);
+        
+        for (const sym of transformerSyms) {
+          const v = variantDef(dev.kind, sym.variant);
+          const hasH1 = v.terminals.some(t => t.id === "H1");
+          const hasH2 = v.terminals.some(t => t.id === "H2");
+          const hasH3 = v.terminals.some(t => t.id === "H3");
+          const hasH4 = v.terminals.some(t => t.id === "H4");
+          
+          // Check H1->H3 connection (input to second tap) - Mode 1
+          if (hasH1 && hasH3) {
+            for (const w of wires) {
+              if ((w.a.symbolId === sym.id && w.a.term === "H1" && w.b.term === "H3") ||
+                  (w.a.symbolId === sym.id && w.a.term === "H3" && w.b.term === "H1") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H1" && w.a.term === "H3") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H3" && w.a.term === "H1")) {
+                transformerInternalJumperWireIds.add(w.id);
+              }
+            }
+          }
+          
+          // Check H2->H4 connection (first tap to input) - Mode 1
+          if (hasH2 && hasH4) {
+            for (const w of wires) {
+              if ((w.a.symbolId === sym.id && w.a.term === "H2" && w.b.term === "H4") ||
+                  (w.a.symbolId === sym.id && w.a.term === "H4" && w.b.term === "H2") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H2" && w.a.term === "H4") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H4" && w.a.term === "H2")) {
+                transformerInternalJumperWireIds.add(w.id);
+              }
+            }
+          }
+          
+          // Check H3->H2 connection (second tap to first tap) - Mode 2
+          if (hasH3 && hasH2) {
+            for (const w of wires) {
+              if ((w.a.symbolId === sym.id && w.a.term === "H3" && w.b.term === "H2") ||
+                  (w.a.symbolId === sym.id && w.a.term === "H2" && w.b.term === "H3") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H3" && w.a.term === "H2") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H2" && w.a.term === "H3")) {
+                transformerInternalJumperWireIds.add(w.id);
+              }
+            }
+          }
+        }
+      }
+    }
+    
     // Assign sequential labels based on sorted order
-    let netCounter = 1;  // Start from 1 (no W prefix)
+    let hvCounter = 100;   // HV starts from 100
+    let controlCounter = 1;  // Control starts from 1
     
     for (const [root, _] of sortedRoots) {
       if (!components.has(root)) {
+        // Skip transformer internal jumper components - they don't get wire numbers assigned
+        // Actually no - we should still assign wire numbers to components that have jumpers,
+        // but the jumpers themselves won't show labels
+        
         // Check if this component has a reserved label
         let label = rootLabels.get(root);
         if (!label) {
-          label = `${netCounter++}`;
+          const isHV = determineCircuitType(root);
+          label = isHV ? `${hvCounter++}` : `${controlCounter++}`;
+          
+          // Skip labels that collide with existing tags or terminal labels
           while (reservedTags.has(label)) {
-            label = `${netCounter++}`;
+            label = isHV ? `${hvCounter++}` : `${controlCounter++}`;
           }
         }
+        
         components.set(root, label);
       }
     }
 
+    // Set labels for all wires
     wires.forEach((w, i) => {
       const root = find(i);
-      w.label = components.get(root)!;
+      
+      // Check if this specific wire is a transformer internal jumper
+      // If so, don't assign a label even if the component has one
+      let isTransformerJumper = false;
+      for (const dev of next.devices) {
+        if (dev.kind === "transformer") {
+          const transformerSyms = next.symbols.filter(s => s.deviceId === dev.id);
+          for (const sym of transformerSyms) {
+            const v = variantDef(dev.kind, sym.variant);
+            const hasH1 = v.terminals.some(t => t.id === "H1");
+            const hasH2 = v.terminals.some(t => t.id === "H2");
+            const hasH3 = v.terminals.some(t => t.id === "H3");
+            const hasH4 = v.terminals.some(t => t.id === "H4");
+            
+            // Check all jumper configurations
+            // Standard single-phase transformer tap connections:
+            //   Mode 1: H1->H3 (input to second tap), H2->H4 (first tap to input)
+            //   Mode 2: H3->H2 (second tap to first tap - shorting taps together)
+            // Note: H1 and H4 are primary input terminals, H2 and H3 are tap terminals
+            
+            if ((hasH1 && hasH3 && 
+                 ((w.a.symbolId === sym.id && w.a.term === "H1" && w.b.term === "H3") ||
+                  (w.a.symbolId === sym.id && w.a.term === "H3" && w.b.term === "H1") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H1" && w.a.term === "H3") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H3" && w.a.term === "H1"))) ||
+                (hasH2 && hasH4 &&
+                 ((w.a.symbolId === sym.id && w.a.term === "H2" && w.b.term === "H4") ||
+                  (w.a.symbolId === sym.id && w.a.term === "H4" && w.b.term === "H2") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H2" && w.a.term === "H4") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H4" && w.a.term === "H2"))) ||
+                (hasH3 && hasH2 &&
+                 ((w.a.symbolId === sym.id && w.a.term === "H3" && w.b.term === "H2") ||
+                  (w.a.symbolId === sym.id && w.a.term === "H2" && w.b.term === "H3") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H3" && w.a.term === "H2") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H2" && w.a.term === "H3")))) {
+              isTransformerJumper = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (isTransformerJumper) {
+        w.label = "";
+      } else {
+        w.label = components.get(root)!;
+      }
     });
 
     set({ circuit: next, isDirty: true });

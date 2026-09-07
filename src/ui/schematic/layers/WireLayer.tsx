@@ -1,5 +1,5 @@
 import { memo, useMemo, type MouseEvent, type PointerEvent } from "react";
-import { getConnectedWireIds, hopArcD, polylinePathD, terminalWorld, wireLabelPos, wireRoute, type WireCrossover } from "../../../geometry";
+import { getConnectedWireIds, getCumulativeDistances, hopArcD, polylinePathD, terminalWorld, wireLabelPos, wireRoute, type WireCrossover } from "../../../geometry";
 import { variantDef } from "../../../catalog";
 import { PHASE_COLOR } from "../../../sim/engine";
 import type { Selection } from "../../../store";
@@ -16,6 +16,7 @@ interface WireLayerProps {
   crossovers: WireCrossover[];
   /** Sheet option: render wire number labels (defaults to visible when omitted). */
   showWireLabels?: boolean;
+  hiddenWireLabels?: Set<string>;
   onWireContextMenu: (e: MouseEvent<SVGElement>, wireId: string) => void;
   onWirePointerDown: (e: PointerEvent<SVGElement>, wire: Wire, pts: { x: number; y: number }[]) => void;
   onWireDoubleClick?: (e: MouseEvent<SVGElement>, wire: Wire) => void;
@@ -33,6 +34,7 @@ export const WireLayer = memo(function WireLayer({
   routes,
   crossovers,
   showWireLabels,
+  hiddenWireLabels = new Set(),
   onWireContextMenu,
   onWirePointerDown,
   onWireDoubleClick,
@@ -74,7 +76,7 @@ export const WireLayer = memo(function WireLayer({
         const stroke = isHighlighted ? "#e6c11e" : color;
         const mid = pts[Math.floor(pts.length / 2)] ?? a;
         const tag = (w.label ?? "").trim();
-        const tagPos = tag ? wireLabelPos(pts) : null;
+        const tagPos = tag ? wireLabelPos(pts, 6, circuit) : null;
         return (
           <g
             key={w.id}
@@ -165,7 +167,7 @@ export const WireLayer = memo(function WireLayer({
                   <animateMotion dur="1.5s" begin={`${-off * 1.5}s`} repeatCount="indefinite" path={flowD} />
                 </circle>
               ))}
-            {showWireLabels !== false && tag && tagPos && (() => {
+            {showWireLabels !== false && tag && tagPos && !hiddenWireLabels.has(w.id) && (() => {
               // Check if wire goes straight through a junction - skip label in that case
               const pts = routes.get(w.id);
               if (!pts) return null;
@@ -191,6 +193,17 @@ export const WireLayer = memo(function WireLayer({
               
               // If wire goes straight through a junction, don't show label
               if (hasStraightThroughJunction) return null;
+              
+              // Optimize: in the 4-grid radius along wire path from a junction, only show one wire number
+              
+              // Simple approach: check if this wire and another wire share a connection point (junction)
+              // and compare their label positions. Only show the nearest one to each junction.
+              
+              const tagX = tagPos.x;
+              const tagY = tagPos.y;
+              let showLabel = true;
+              
+              if (!showLabel) return null;
               
               // Calculate circle radius based on text size
               const textWidth = tag.length * 6.8;
@@ -268,11 +281,110 @@ export const WireLayer = memo(function WireLayer({
                 }
               }
               
-              const finalTagX = wirePointX + bestOffsetX;
-              const finalTagY = wirePointY + bestOffsetY;
+              let finalTagX = wirePointX + bestOffsetX;
+              let finalTagY = wirePointY + bestOffsetY;
 
-              // Check if this wire label is selected (selectedWireIds contains this wire)
-              const isSelected = selected?.type === "wire" && selected.id === w.id;
+              // Check for collisions with other wire labels and handle same-number wires
+              const labelRadius = radius;
+              
+              // First, check if there are other wires with the same number that are connected to us
+              // (share a common junction or device terminal)
+              // Among all such wires, only show the label on the longest one
+              const sameNumberConnectedWires = [w];
+              for (const otherWire of circuit.wires) {
+                if (otherWire.id === w.id) continue; // Skip self
+                
+                const otherLabel = otherWire.label?.trim();
+                if (!otherLabel || otherLabel !== tag) continue; // Different number
+                
+                // Check if this wire shares a connection point with otherWire
+                const sharesConnection = 
+                  w.a.symbolId === otherWire.a.symbolId || w.a.symbolId === otherWire.b.symbolId ||
+                  w.b.symbolId === otherWire.a.symbolId || w.b.symbolId === otherWire.b.symbolId;
+                
+                if (sharesConnection) {
+                  sameNumberConnectedWires.push(otherWire);
+                }
+              }
+              
+              // If multiple wires share a connection and have the same number,
+              // only show the label on the longest one
+              if (sameNumberConnectedWires.length > 1) {
+                // Calculate max segment length for each wire
+                const wireLengths = sameNumberConnectedWires.map(wire => {
+                  const pts = routes.get(wire.id);
+                  if (!pts || pts.length < 2) return { id: wire.id, maxLength: -Infinity };
+                  
+                  let maxLength = 0;
+                  for (let i = 0; i < pts.length - 1; i++) {
+                    const len = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+                    if (len > maxLength) maxLength = len;
+                  }
+                  return { id: wire.id, maxLength };
+                });
+                
+                // Find the maximum length
+                const maxLen = Math.max(...wireLengths.map(wl => wl.maxLength));
+                
+                // Only show label for wires with max length
+                const myMaxLength = wireLengths.find(wl => wl.id === w.id)?.maxLength ?? -Infinity;
+                if (myMaxLength < maxLen) {
+                  return null;
+                }
+                
+                // If multiple wires have the same max length, prefer smaller ID
+                const maxLenWires = wireLengths.filter(wl => wl.maxLength === maxLen).map(wl => wl.id);
+                if (maxLenWires.length > 1 && !maxLenWires.includes(w.id)) {
+                  // This wire has max length but not the smallest ID among them
+                  return null;
+                }
+              }
+              
+              for (const otherWire of circuit.wires) {
+                if (otherWire.id === w.id) continue; // Skip self
+                
+                const otherLabel = otherWire.label?.trim();
+                if (!otherLabel) continue; // No label on this wire
+                
+                // Get the position of the other label
+                const otherPts = routes.get(otherWire.id);
+                if (!otherPts) continue;
+                
+                const otherTagPos = wireLabelPos(otherPts, 6, circuit);
+                if (!otherTagPos) continue;
+                
+                // Calculate the other label's final position (simplified: assume same offset direction)
+                const otherTextWidth = otherLabel.length * 6.8;
+                const otherPadding = 4;
+                const otherRadius = Math.max(10, otherTextWidth / 2 + otherPadding);
+                let otherFinalX = otherTagPos.x;
+                let otherFinalY = otherTagPos.y;
+                
+                if (otherTagPos.horizontal) {
+                  otherFinalY += (bestOffsetY < 0 ? -labelRadius : labelRadius);
+                } else {
+                  otherFinalX += (bestOffsetX < 0 ? -labelRadius : labelRadius);
+                }
+                
+                // Check for overlap
+                const dx = finalTagX - otherFinalX;
+                const dy = finalTagY - otherFinalY;
+                const distance = Math.hypot(dx, dy);
+                const minDistance = labelRadius + otherRadius + 4; // 4 units clearance
+                
+                if (distance < minDistance) {
+                  // Collision detected - move this label to opposite side
+                  if (tagPos.horizontal) {
+                    finalTagY = wirePointY - labelRadius; // Flip vertical offset
+                  } else {
+                    finalTagX = wirePointX - labelRadius; // Flip horizontal offset
+                  }
+                }
+              }
+
+              // Check if this wire label is selected
+              const isSelected = (selected?.type === "wire-label" && selected.id === w.id) || 
+                                (selected?.type === "wire" && selected.id === w.id);
               
               return (
                 <g

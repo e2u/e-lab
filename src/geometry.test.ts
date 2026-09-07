@@ -812,4 +812,41 @@ describe("wire merge and optimal junction point", () => {
       expect(cleanPolyline(newPath)).toEqual(throughPath);
     });
   });
+
+  describe("wire label collision with junctions", () => {
+    it("avoids placing wire labels on top of junctions", () => {
+      const c = emptyCircuit();
+      
+      // Create a horizontal wire
+      const left = addDevice(c, "lamp", "HL1", "body", 2, 4);
+      const right = addDevice(c, "lamp", "HL2", "body", 14, 4);
+      addWire(c, left.symbol, "2", right.symbol, "1");
+      
+      // Add a junction very close to the wire's midpoint
+      const junc = addJunction(c, 8, 5); // Very close to horizontal wire at y=4
+      
+      const w = c.wires[0];
+      const pts = wireRoute(c, w.a, w.b);
+      
+      // Label position without circuit (no collision check)
+      const tagPosNoCheck = wireLabelPos(pts);
+      expect(tagPosNoCheck).not.toBeNull();
+      
+      // Label position with circuit (with collision check)
+      const tagPosWithCheck = wireLabelPos(pts, 6, c);
+      expect(tagPosWithCheck).not.toBeNull();
+      
+      // Check if label would have collided with junction
+      if (tagPosNoCheck && tagPosWithCheck) {
+        // The label should be moved to avoid the junction
+        const distToJunction = Math.hypot(
+          tagPosWithCheck.x - junc.symbol.x * GRID,
+          tagPosWithCheck.y - junc.symbol.y * GRID
+        );
+        expect(distToJunction).toBeGreaterThan(5); // Should be at least 5 units away
+      }
+    });
+
+
+  });
 });

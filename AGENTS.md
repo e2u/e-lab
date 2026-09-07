@@ -196,3 +196,33 @@ Modified `WireLayer.tsx` to use proper electrical connectivity via BFS traversal
 - Wire Number 18 now displays ONCE (on longest wire in net)
 - All electrical nets properly detected including transitive connections
 - Wire numbering is correct and sequential
+
+## Vertical Wire Label Position Adjustment (2026-09-07)
+
+### Problem
+Wire Numbers displayed on vertical wires were positioned to the RIGHT of the wire center.
+User requested moving them LEFT by half a grid unit.
+
+### Solution
+Modified `wireLabelPos()` function in `src/geometry.ts`:
+
+**Before:**
+```typescript
+basePos = { x: mx + offset, y: my };   // Right from wire center
+```
+
+**After:**
+```typescript
+// Vertical wire: position to left of wire center with half-grid adjustment
+basePos = { x: mx - offset + GRID * 0.5, y: my };
+```
+
+Also updated the fallback position when colliding with junctions:
+```typescript
+return { x: mx + offset - GRID * 0.5, y: my, horizontal: false };
+```
+
+This shifts the label position to be more visually aligned with schematic conventions.
+
+### Files Modified
+- `src/geometry.ts`: Updated `wireLabelPos()` to shift vertical wire labels left by half-grid

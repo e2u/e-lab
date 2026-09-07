@@ -1693,8 +1693,8 @@ export function wireLabelPos(
   if (horizontal) {
     basePos = { x: mx, y: my + offset };  // Down from wire center
   } else {
-    // Vertical wire: position to left of wire center with 1 grid adjustment
-    basePos = { x: mx - offset, y: my };
+    // Vertical wire: position shifted right by 1/4 grid unit
+    basePos = { x: mx + offset - GRID * 0.25, y: my };
   }
   
   // If label collides with junction, try opposite side
@@ -1709,7 +1709,7 @@ export function wireLabelPos(
             if (horizontal) {
               return { x: mx, y: my - offset, horizontal: true };  // Up from wire center
             } else {
-              return { x: mx + offset, y: my, horizontal: false };  // Right from wire center
+              return { x: mx - offset + GRID * 0.25, y: my, horizontal: false };  // Left from wire center
             }
           }
         }

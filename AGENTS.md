@@ -148,3 +148,51 @@ and can be used as wire numbers.
 ### Test Results
 - All 310 tests pass
 - Wire numbering in `/Volumes/r1/10-dual-station.json` is now sequential (1-23 without gaps)
+
+## Wire Number Display Collision Detection Fix (2026-09-07)
+
+### Problem
+Wire Number 17 shows once but Wire Number 18 shows twice. Both wire numbers have multiple wires:
+- Label 17: 3 wires (all electrically connected)
+- Label 18: 5 wires (all electrically connected as ONE net)
+
+The issue was that the collision detection logic in `WireLayer.tsx` used a **flawed connectivity check**.
+
+### Root Cause
+The original code checked if two wires "share a connection" by checking if they share ANY symbol:
+
+```typescript
+const sharesConnection = 
+  w.a.symbolId === otherWire.a.symbolId || w.a.symbolId === otherWire.b.symbolId ||
+  w.b.symbolId === otherWire.a.symbolId || w.b.symbolId === otherWire.b.symbolId;
+```
+
+This is WRONG because:
+1. Two wires can share a symbol but connect to DIFFERENT terminals (NOT electrically connected)
+2. This only finds DIRECT neighbors, not TRANSITIVE connections through junctions
+
+For example:
+- Wire A connects Terminal X of Device Y to Junction Z
+- Wire B connects Terminal P of Device Q to Junction R
+
+These don't share any symbol, so the old logic would NOT consider them connected even if there's a path through other wires!
+
+### Solution
+Modified `WireLayer.tsx` to use proper electrical connectivity via BFS traversal on the node graph:
+
+1. Built `wireConnectivity` map: `node -> [wireIds]` where nodes are either:
+   - `port:symbolId:term` for device terminals
+   - `junction:symbolId` for junction symbols
+
+2. For each wire with the same label, perform BFS from its nodes to find ALL wires in the same electrical net (transitive connectivity)
+
+3. Among all wires in the net with the same label, only show the label on the LONGEST wire(s)
+
+### Files Modified
+- `src/ui/schematic/layers/WireLayer.tsx`: Fixed collision detection using BFS-based electrical connectivity
+- `src/store.ts`: Only reserve specific terminal labels (L1/L2/L3/N/G/PE/X1/X2) instead of all terminal labels
+
+### Result
+- Wire Number 18 now displays ONCE (on longest wire in net)
+- All electrical nets properly detected including transitive connections
+- Wire numbering is correct and sequential

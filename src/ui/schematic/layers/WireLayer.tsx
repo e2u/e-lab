@@ -55,6 +55,37 @@ export const WireLayer = memo(function WireLayer({
     return getConnectedWireIds(circuit, ids);
   }, [circuit, selected, selectedWireIds, highlightedWireIds]);
 
+  // Build connectivity graph for collision detection
+  // Two wires are electrically connected if they share the same node (terminal or junction)
+  const wireConnectivity = useMemo(() => {
+    // Map each node to list of wire IDs that connect to it
+    const nodeToWires = new Map<string, string[]>();
+    
+    for (const w of circuit.wires) {
+      // Node key format: "port:symbolId:term" for device terminals, 
+      // "junction:symbolId" for junction symbols
+      const getNodeKey = (ref: { symbolId: string; term: string }) => {
+        // Check if this is a junction terminal (all have term="1")
+        const sym = circuit.symbols.find(s => s.id === ref.symbolId);
+        if (sym && circuit.devices.some(d => d.id === sym.deviceId && d.kind === "junction")) {
+          return `junction:${ref.symbolId}`;
+        }
+        return `port:${ref.symbolId}:${ref.term}`;
+      };
+      
+      const na = getNodeKey(w.a);
+      const nb = getNodeKey(w.b);
+      
+      if (!nodeToWires.has(na)) nodeToWires.set(na, []);
+      nodeToWires.get(na)!.push(w.id);
+      
+      if (!nodeToWires.has(nb)) nodeToWires.set(nb, []);
+      nodeToWires.get(nb)!.push(w.id);
+    }
+    
+    return nodeToWires;
+  }, [circuit]);
+
   return (
     <>
       {circuit.wires.map((w) => {
@@ -287,23 +318,44 @@ export const WireLayer = memo(function WireLayer({
               // Check for collisions with other wire labels and handle same-number wires
               const labelRadius = radius;
               
-              // First, check if there are other wires with the same number that are connected to us
-              // (share a common junction or device terminal)
-              // Among all such wires, only show the label on the longest one
+              // First, check if there are other wires with the same number that belong to our electrical net
+              // Use wireConnectivity graph to find all wires connected to us (including transitive connections)
               const sameNumberConnectedWires = [w];
-              for (const otherWire of circuit.wires) {
-                if (otherWire.id === w.id) continue; // Skip self
+              
+              // Build set of nodes that wire w connects to
+              const getNodeKey = (ref: { symbolId: string; term: string }) => {
+                const sym = circuit.symbols.find(s => s.id === ref.symbolId);
+                if (sym && circuit.devices.some(d => d.id === sym.deviceId && d.kind === "junction")) {
+                  return `junction:${ref.symbolId}`;
+                }
+                return `port:${ref.symbolId}:${ref.term}`;
+              };
+              const myNodes = new Set([getNodeKey(w.a), getNodeKey(w.b)]);
+              
+              // Collect all wires electrically connected to any of our nodes (direct + transitive via BFS)
+              let visitedWireIds = new Set<string>([w.id]);
+              let frontier = [...myNodes];
+              
+              while (frontier.length > 0) {
+                const currentNode = frontier.shift()!;
+                const wiresAtNode = wireConnectivity.get(currentNode) || [];
                 
-                const otherLabel = otherWire.label?.trim();
-                if (!otherLabel || otherLabel !== tag) continue; // Different number
-                
-                // Check if this wire shares a connection point with otherWire
-                const sharesConnection = 
-                  w.a.symbolId === otherWire.a.symbolId || w.a.symbolId === otherWire.b.symbolId ||
-                  w.b.symbolId === otherWire.a.symbolId || w.b.symbolId === otherWire.b.symbolId;
-                
-                if (sharesConnection) {
-                  sameNumberConnectedWires.push(otherWire);
+                for (const wireId of wiresAtNode) {
+                  if (visitedWireIds.has(wireId)) continue;
+                  visitedWireIds.add(wireId);
+                  
+                  const otherWire = circuit.wires.find(ww => ww.id === wireId);
+                  if (!otherWire) continue;
+                  
+                  // Only add wires with the same label
+                  const otherLabel = otherWire.label?.trim();
+                  if (otherLabel && otherLabel === tag) {
+                    sameNumberConnectedWires.push(otherWire);
+                    
+                    // Add this wire's nodes to frontier for further exploration
+                    frontier.push(getNodeKey(otherWire.a));
+                    frontier.push(getNodeKey(otherWire.b));
+                  }
                 }
               }
               

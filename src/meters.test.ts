@@ -75,6 +75,10 @@ describe("Meters & Historical Curves", () => {
       const potsA: Potential[] = [{ kind: "L1", sourceId: "xf-tr1" }];
       const potsB: Potential[] = [{ kind: "N", sourceId: "xf-tr1" }];
       expect(computeVoltage(potsA, potsB)).toBe(120);
+      expect(computeVoltage(
+        [{ kind: "X1", sourceId: "xf-tr1" }],
+        [{ kind: "X2", sourceId: "xf-tr1" }],
+      )).toBe(120);
     });
 
     it("should calculate custom secondary voltage (e.g. 24V, 220V) for transformer", () => {

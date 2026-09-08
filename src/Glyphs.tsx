@@ -2,6 +2,7 @@ import {createContext, useContext, type SVGProps} from "react";
 import type {Device, DeviceRuntime} from "./types";
 import {GRID} from "./types";
 import {variantDef} from "./catalog.ts";
+import {PHASE_COLOR} from "./sim/engine";
 
 const ink = "#1b1a16";
 
@@ -1944,13 +1945,15 @@ function GlyphBody({
         
         // Determine background color based on label or custom color
         let bgFill = "#efe6d0"; // default
-        if (label === "L1") bgFill = "#a65628";
-        else if (label === "L2") bgFill = "#ff7f00";
-        else if (label === "L3") bgFill = "#eccd26";
-        else if (label === "N" || label === "Neutral") bgFill = "#0284c7";
-        else if (label === "G" || label === "Ground" || label === "PE" || label === "GND" || label === "EARTH" || label === "E") bgFill = "#2ca02c";
-        else if (label === "DC+" || label === "+24V" || label === "+12V" || label === "VCC" || label === "V+") bgFill = "#dc2626";
-        else if (label === "DC-" || label === "0V" || label === "-24V" || label === "COM" || label === "V-") bgFill = "#1a5f8a";
+        if (label === "L1") bgFill = PHASE_COLOR.L1;
+        else if (label === "L2") bgFill = PHASE_COLOR.L2;
+        else if (label === "L3") bgFill = PHASE_COLOR.L3;
+        else if (label === "N" || label === "Neutral") bgFill = PHASE_COLOR.N;
+        else if (label === "G" || label === "Ground" || label === "PE" || label === "GND" || label === "EARTH" || label === "E") bgFill = PHASE_COLOR.PE;
+        else if (label === "X1") bgFill = PHASE_COLOR.X1;
+        else if (label === "X2") bgFill = PHASE_COLOR.X2;
+        else if (label === "DC+" || label === "+24V" || label === "+12V" || label === "VCC" || label === "V+") bgFill = PHASE_COLOR["DC+"];
+        else if (label === "DC-" || label === "0V" || label === "-24V" || label === "COM" || label === "V-") bgFill = PHASE_COLOR["DC-"];
         else if (label === "A1" || label === "A2") bgFill = "#3a6ea5";
         // Use custom color from params if set
         if (device.params.color) {
@@ -1984,8 +1987,8 @@ function GlyphBody({
         // Terminal X position and color circle offset
         const termX = w * GRID - 14;
         const cols = isDelta
-            ? ["#a65628", "#ff7f00", "#eccd26", "#2ca02c"] // Brown, Orange, Yellow, Green
-            : ["#a65628", "#ff7f00", "#eccd26", "#0284c7", "#2ca02c"]; // Brown, Orange, Yellow, Blue, Green
+            ? [PHASE_COLOR.L1, PHASE_COLOR.L2, PHASE_COLOR.L3, PHASE_COLOR.PE]
+            : [PHASE_COLOR.L1, PHASE_COLOR.L2, PHASE_COLOR.L3, PHASE_COLOR.N, PHASE_COLOR.PE];
         const positions = isDelta
             ? [
                 {y: 1 * GRID, label: "L1"}, // L1

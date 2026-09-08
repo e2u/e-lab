@@ -739,6 +739,24 @@ export function deriveJogToMatchPolyline(
 export { cleanPolyline };
 
 /** Routes every wire, then nudges overlapping parallel runs apart. Terminals stay put. */
+/** Geometry fingerprint so routes/crossovers skip recompute when only labels change. */
+export function circuitRouteKey(circuit: Circuit): string {
+  let key = `${circuit.symbols.length}:${circuit.wires.length}:${circuit.devices.length}|`;
+  for (const s of circuit.symbols) {
+    key += `${s.id}:${s.deviceId}:${s.x}:${s.y}:${s.rot}:${s.variant}:${s.flipX ? 1 : 0}:${s.flipY ? 1 : 0};`;
+  }
+  key += "|";
+  for (const d of circuit.devices) key += `${d.id}:${d.kind};`;
+  key += "|";
+  for (const w of circuit.wires) {
+    const j = w.jog;
+    key += `${w.id}:${w.a.symbolId}:${w.a.term}:${w.b.symbolId}:${w.b.term}:${w.broken ? 1 : 0}:`;
+    key += j ? `${j.axis}:${j.pos}:${j.x ?? ""}:${j.y ?? ""}` : "";
+    key += ";";
+  }
+  return key;
+}
+
 export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
   const base = new Map<string, Pt[]>();
   const byId = new Map<string, { a: PortRef; b: PortRef }>();
@@ -1687,39 +1705,448 @@ export function wireLabelPos(
   const mx = (best.a.x + best.b.x) / 2;
   const my = (best.a.y + best.b.y) / 2;
   const horizontal = Math.abs(best.a.y - best.b.y) < 0.8;
-  
-  // Check for junction collisions if circuit is provided
-  let basePos: { x: number; y: number };
-  if (horizontal) {
-    basePos = { x: mx, y: my + offset };  // Down from wire center
-  } else {
-    // Vertical wire: position shifted right by 1/4 grid unit
-    basePos = { x: mx + offset - GRID * 0.25, y: my };
-  }
-  
-  // If label collides with junction, try opposite side
+  const base = offsetLabelPoint(mx, my, horizontal, offset);
+
   if (circuit) {
-    const JUNCTION_RADIUS = 6; // Slightly larger than visual radius
+    const JUNCTION_RADIUS = 6;
     for (const sym of circuit.symbols) {
-      if (sym.kind === "junction") {
-        const juncPos = terminalWorld(circuit, { symbolId: sym.id, term: "1" });
-        if (juncPos) {
-          const dist = Math.hypot(basePos.x - juncPos.x, basePos.y - juncPos.y);
-          if (dist < JUNCTION_RADIUS + 2) { // 2 units clearance
-            if (horizontal) {
-              return { x: mx, y: my - offset, horizontal: true };  // Up from wire center
-            } else {
-              return { x: mx - offset + GRID * 0.25, y: my, horizontal: false };  // Left from wire center
-            }
-          }
-        }
+      const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+      if (dev?.kind !== "junction") continue;
+      const juncPos = terminalWorld(circuit, { symbolId: sym.id, term: "1" });
+      if (!juncPos) continue;
+      if (Math.hypot(base.x - juncPos.x, base.y - juncPos.y) < JUNCTION_RADIUS + 2) {
+        return offsetLabelPoint(mx, my, horizontal, -offset);
       }
     }
   }
-  
-  return horizontal
-    ? { x: basePos.x, y: basePos.y, horizontal: true }
-    : { x: basePos.x, y: basePos.y, horizontal: false };
+
+  return base;
+}
+
+/** Skip stubs shorter than this (world units). */
+export const WIRE_LABEL_MIN_SEG = GRID * 2;
+/** Extra copies only when a run is at least this long. */
+export const WIRE_LABEL_REPEAT = GRID * 14;
+/** Keep labels off segment ends (junctions / terminals). */
+export const WIRE_LABEL_INSET = GRID * 2.5;
+/** Drop a same-number copy only when the circles would sit on top of each other. */
+export const WIRE_LABEL_SEPARATION = GRID * 2.5;
+
+export type WireLabelAnchor = {
+  x: number;
+  y: number;
+  horizontal: boolean;
+  segLen: number;
+  t: number;
+};
+
+export function makeWireLabelKey(wireId: string, t: number): string {
+  return `${wireId}@${t.toFixed(3)}`;
+}
+
+export function parseWireLabelKey(key: string): { wireId: string; t: number } | null {
+  const at = key.lastIndexOf("@");
+  if (at <= 0) return null;
+  const t = Number(key.slice(at + 1));
+  if (!Number.isFinite(t)) return null;
+  return { wireId: key.slice(0, at), t };
+}
+
+export function labelMarkMatches(a: number, b: number, eps = 0.04): boolean {
+  return Math.abs(a - b) < eps;
+}
+
+/** Matches the SVG circle radius used to draw a wire-number badge. */
+export function wireLabelRadius(tag = "0"): number {
+  return Math.max(10, (tag.length * 6.8) / 2 + 4);
+}
+
+/** Center-to-wire distance so the badge outline is tangent to the stroke. */
+export function wireLabelOffset(tag = "0"): number {
+  return wireLabelRadius(tag) + 2.2 / 2;
+}
+
+function offsetLabelPoint(
+  mx: number,
+  my: number,
+  horizontal: boolean,
+  offset: number,
+): { x: number; y: number; horizontal: boolean } {
+  if (horizontal) return { x: mx, y: my + offset, horizontal: true };
+  return { x: mx + offset, y: my, horizontal: false };
+}
+
+/** Sample along a run so crowded midpoints have nearby fallbacks. */
+const WIRE_LABEL_SAMPLE = GRID * 6;
+
+/**
+ * Candidate label spots on a polyline: samples along every long-enough segment
+ * so a later pass can skip crowded T-junctions and still label the run.
+ */
+export function wireLabelAnchors(
+  pts: { x: number; y: number }[],
+  offset = 6,
+): WireLabelAnchor[] {
+  if (pts.length < 2) return [];
+  const dists = getCumulativeDistances(pts);
+  const total = dists[dists.length - 1] || 1;
+  const out: WireLabelAnchor[] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (len < WIRE_LABEL_MIN_SEG) continue;
+    const horizontal = Math.abs(a.y - b.y) < 0.8;
+    const count = Math.max(1, Math.round(len / WIRE_LABEL_SAMPLE));
+    const inset = count === 1 ? len / 2 : Math.min(WIRE_LABEL_INSET, len * 0.25);
+    const usable = count === 1 ? 0 : Math.max(0, len - 2 * inset);
+    const ux = (b.x - a.x) / len;
+    const uy = (b.y - a.y) / len;
+    for (let k = 0; k < count; k++) {
+      const d = count === 1 ? inset : inset + (usable * k) / Math.max(1, count - 1);
+      const mx = a.x + ux * d;
+      const my = a.y + uy * d;
+      const t = (dists[i] + d) / total;
+      out.push({ ...offsetLabelPoint(mx, my, horizontal, offset), segLen: len, t });
+    }
+  }
+  out.sort((p, q) => q.segLen - p.segLen);
+  return out;
+}
+
+export function wireLabelAnchorAtT(
+  pts: { x: number; y: number }[],
+  t: number,
+  offset = 6,
+): WireLabelAnchor | null {
+  if (pts.length < 2) return null;
+  const p = getPointAtProgress(pts, t);
+  if (!p) return null;
+  const dists = getCumulativeDistances(pts);
+  const total = dists[dists.length - 1] || 1;
+  const target = total * Math.max(0, Math.min(1, t));
+  let horizontal = true;
+  let segLen = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (dists[i] + len >= target - 1e-6 || i === pts.length - 2) {
+      horizontal = Math.abs(a.y - b.y) < 0.8;
+      segLen = len;
+      break;
+    }
+  }
+  return { ...offsetLabelPoint(p.x, p.y, horizontal, offset), segLen, t };
+}
+
+type RankedLabel = WireLabelAnchor & { wireId: string; tag: string };
+
+function minDistTo(
+  p: { x: number; y: number },
+  others: { x: number; y: number }[],
+): number {
+  let best = Infinity;
+  for (const o of others) {
+    const d = Math.hypot(p.x - o.x, p.y - o.y);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+function tagNum(tag: string): number | null {
+  if (!/^\d+$/.test(tag)) return null;
+  return Number(tag);
+}
+
+/** Same-number copies: one per column, and not closer than REPEAT along a run. */
+function sameTagLabelClash(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  minSeparation = WIRE_LABEL_SEPARATION,
+): boolean {
+  const dx = Math.abs(a.x - b.x);
+  const dy = Math.abs(a.y - b.y);
+  const d = Math.hypot(dx, dy);
+  if (d < minSeparation) return true;
+  if (dx < GRID * 2 && dy < GRID * 12) return true;
+  const alongRun = dx < GRID * 2 || dy < GRID * 2;
+  return alongRun && d < WIRE_LABEL_REPEAT;
+}
+
+/**
+ * Place labels away from other numbers and junctions. Each net gets at least
+ * one copy; extra copies stay on long/branch runs if the spot is clear.
+ */
+export function pickVisibleWireLabels(
+  candidates: { wireId: string; tag: string; anchors: WireLabelAnchor[] }[],
+  minSeparation = WIRE_LABEL_SEPARATION,
+  avoid: { x: number; y: number }[] = [],
+): Map<string, WireLabelAnchor[]> {
+  const byTag = new Map<string, RankedLabel[]>();
+  const flat: RankedLabel[] = [];
+  for (const c of candidates) {
+    for (const a of c.anchors) {
+      const row = { ...a, wireId: c.wireId, tag: c.tag };
+      flat.push(row);
+      const list = byTag.get(c.tag);
+      if (list) list.push(row);
+      else byTag.set(c.tag, [row]);
+    }
+  }
+  const kept: RankedLabel[] = [];
+
+  const scoreOf = (c: RankedLabel): number => {
+    const dKeep = minDistTo(c, kept);
+    const dAvoid = minDistTo(c, avoid);
+    const d = Math.min(dKeep, dAvoid);
+    const clash = d < minSeparation ? d - 1000 : d;
+    return clash + c.segLen * 0.2 + (c.horizontal ? 80 : 0);
+  };
+
+  for (const opts of byTag.values()) {
+    let best = opts[0];
+    let bestScore = -Infinity;
+    for (const c of opts) {
+      const s = scoreOf(c);
+      if (s > bestScore) {
+        bestScore = s;
+        best = c;
+      }
+    }
+    if (best) kept.push(best);
+  }
+
+  const extras = [...flat].sort((a, b) => b.segLen - a.segLen);
+  for (const c of extras) {
+    if (kept.some((b) => b.wireId === c.wireId && Math.abs(b.t - c.t) < 1e-4)) continue;
+    const tooCloseSameTag = kept.some((b) => b.tag === c.tag && sameTagLabelClash(b, c, minSeparation));
+    if (tooCloseSameTag) continue;
+    const alongExisting = kept.some((b) => {
+      if (b.tag !== c.tag) return false;
+      return Math.abs(b.x - c.x) < GRID * 2 || Math.abs(b.y - c.y) < GRID * 2;
+    });
+    if (alongExisting && c.segLen < WIRE_LABEL_REPEAT) continue;
+    if (!c.horizontal && kept.some((b) => b.tag === c.tag && b.horizontal)) continue;
+    const clash = minDistTo(c, kept) < minSeparation || minDistTo(c, avoid) < minSeparation;
+    if (clash) continue;
+    kept.push(c);
+  }
+
+  const byWire = new Map<string, WireLabelAnchor[]>();
+  for (const a of kept) {
+    const list = byWire.get(a.wireId) ?? [];
+    list.push(a);
+    byWire.set(a.wireId, list);
+  }
+  return byWire;
+}
+
+type HSeg = { x0: number; x1: number; y: number; len: number };
+
+function horizontalSegs(pts: { x: number; y: number }[]): HSeg[] {
+  const segs: HSeg[] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    if (Math.abs(a.y - b.y) >= 0.8) continue;
+    const len = Math.abs(b.x - a.x);
+    if (len < WIRE_LABEL_MIN_SEG) continue;
+    segs.push({ x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), y: a.y, len });
+  }
+  return segs;
+}
+
+function snapToMainRun(
+  pts: { x: number; y: number }[],
+  commonX: number,
+  offset: number,
+  yHint: number,
+): WireLabelAnchor | null {
+  const segs = horizontalSegs(pts);
+  if (!segs.length) return null;
+  let best = segs[0];
+  let bestScore = -Infinity;
+  for (const s of segs) {
+    const covers = commonX >= s.x0 - 1 && commonX <= s.x1 + 1;
+    const score = (covers ? 1000 : 0) + s.len - Math.abs(s.y - yHint) * 0.4;
+    if (score > bestScore) {
+      bestScore = score;
+      best = s;
+    }
+  }
+  const pad = Math.min(GRID, best.len / 4);
+  const mx = Math.max(best.x0 + pad, Math.min(best.x1 - pad, commonX));
+  const t = getClosestTOnPolyline(pts, { x: mx, y: best.y });
+  return { ...offsetLabelPoint(mx, best.y, true, offset), segLen: best.len, t };
+}
+
+function stackedPair(
+  a: { tag: string; a: WireLabelAnchor },
+  b: { tag: string; a: WireLabelAnchor },
+  colX: number,
+  colYMin: number,
+  colYMax: number,
+): boolean {
+  if (a.tag === b.tag) return false;
+  const dx = Math.abs(a.a.x - b.a.x);
+  const dy = Math.abs(a.a.y - b.a.y);
+  if (dx >= colX || dy < colYMin || dy > colYMax) return false;
+  const na = tagNum(a.tag);
+  const nb = tagNum(b.tag);
+  if (na == null || nb == null) return true;
+  if (Math.abs(na - nb) > 2) return false;
+  // 3-phase stacks increase downward (90 / 91 / 92). Do not merge 102 (L3) with 103 (next L1).
+  if (a.a.y < b.a.y) return na < nb;
+  return na > nb;
+}
+
+/**
+ * Line up stacked numbers on parallel horizontals (100/101/102, 109/110/111)
+ * onto a shared X, preferring each net's longest main run over T-drops.
+ */
+export function alignStackedWireLabels(
+  byWire: Map<string, WireLabelAnchor[]>,
+  wireInfo: Map<string, { pts: { x: number; y: number }[]; tag: string; offset: number }>,
+): Map<string, WireLabelAnchor[]> {
+  type Item = { wireId: string; tag: string; a: WireLabelAnchor };
+  const items: Item[] = [];
+  for (const [wireId, list] of byWire) {
+    const info = wireInfo.get(wireId);
+    if (!info) continue;
+    for (const a of list) {
+      if (a.horizontal) items.push({ wireId, tag: info.tag, a });
+    }
+  }
+  const n = items.length;
+  const parent = items.map((_, i) => i);
+  const find = (i: number): number => {
+    while (parent[i] !== i) {
+      parent[i] = parent[parent[i]];
+      i = parent[i];
+    }
+    return i;
+  };
+  const union = (i: number, j: number) => {
+    const ri = find(i);
+    const rj = find(j);
+    if (ri !== rj) parent[ri] = rj;
+  };
+  const colX = GRID * 2.5;
+  const colYMin = GRID * 0.75;
+  const colYMax = GRID * 12;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (stackedPair(items[i], items[j], colX, colYMin, colYMax)) union(i, j);
+    }
+  }
+  const groups = new Map<number, Item[]>();
+  for (let i = 0; i < n; i++) {
+    const r = find(i);
+    const g = groups.get(r) ?? [];
+    g.push(items[i]);
+    groups.set(r, g);
+  }
+
+  const next = new Map<string, WireLabelAnchor[]>();
+  for (const [id, list] of byWire) next.set(id, [...list]);
+
+  const wiresByTag = new Map<string, string[]>();
+  for (const [wid, info] of wireInfo) {
+    const list = wiresByTag.get(info.tag);
+    if (list) list.push(wid);
+    else wiresByTag.set(info.tag, [wid]);
+  }
+
+  const relocate = (tag: string, yHint: number, commonX: number, y0: number, y1: number) => {
+    let best: { wireId: string; anchor: WireLabelAnchor } | null = null;
+    for (const wid of wiresByTag.get(tag) ?? []) {
+      const info = wireInfo.get(wid);
+      if (!info) continue;
+      const snapped = snapToMainRun(info.pts, commonX, info.offset, yHint);
+      if (!snapped) continue;
+      if (!best || snapped.segLen > best.anchor.segLen) best = { wireId: wid, anchor: snapped };
+    }
+    if (!best) return;
+    const lo = y0 - GRID * 2;
+    const hi = y1 + GRID * 2;
+    const colR = GRID * 3;
+    for (const wid of wiresByTag.get(tag) ?? []) {
+      const list = next.get(wid);
+      if (!list) continue;
+      next.set(
+        wid,
+        list.filter((a) => {
+          const inY = a.y >= lo && a.y <= hi;
+          if (!inY) return true;
+          if (Math.abs(a.x - commonX) < colR) return false;
+          if (!a.horizontal) return false;
+          return true;
+        }),
+      );
+    }
+    const dest = next.get(best.wireId) ?? [];
+    dest.push(best.anchor);
+    next.set(best.wireId, dest);
+  };
+
+  for (const g of groups.values()) {
+    if (g.length < 2) continue;
+    const xs = g.map((it) => it.a.x).sort((a, b) => a - b);
+    const commonX = xs[Math.floor(xs.length / 2)];
+    const y0 = Math.min(...g.map((it) => it.a.y));
+    const y1 = Math.max(...g.map((it) => it.a.y));
+    const groupTags = new Set(g.map((it) => it.tag));
+    const groupNums = [...groupTags].map(tagNum).filter((n): n is number => n != null);
+    const yHintByTag = new Map<string, number>();
+    for (const it of g) {
+      if (!yHintByTag.has(it.tag)) yHintByTag.set(it.tag, it.a.y);
+    }
+    for (const [, info] of wireInfo) {
+      if (yHintByTag.has(info.tag)) continue;
+      const n = tagNum(info.tag);
+      const mate =
+        n != null && groupNums.some((gn) => Math.abs(gn - n) <= 2);
+      if (!mate && !groupTags.has(info.tag)) continue;
+      const segs = horizontalSegs(info.pts);
+      if (!segs.some((s) => commonX >= s.x0 - 1 && commonX <= s.x1 + 1)) continue;
+      const snapped = snapToMainRun(info.pts, commonX, info.offset, (y0 + y1) / 2);
+      if (snapped) yHintByTag.set(info.tag, snapped.y);
+    }
+    for (const [tag, yHint] of yHintByTag) relocate(tag, yHint, commonX, y0, y1);
+  }
+  return next;
+}
+
+/**
+ * Drop leftover copies of the same number that sit on one column or overlap
+ * after alignment / pinned marks. Distant extras on long rails are kept.
+ */
+export function dedupeWireLabels(
+  byWire: Map<string, WireLabelAnchor[]>,
+  wireInfo: Map<string, { tag: string }>,
+  minSeparation = WIRE_LABEL_SEPARATION,
+): Map<string, WireLabelAnchor[]> {
+  type Item = { wireId: string; tag: string; a: WireLabelAnchor };
+  const items: Item[] = [];
+  for (const [wireId, list] of byWire) {
+    const tag = wireInfo.get(wireId)?.tag;
+    if (!tag) continue;
+    for (const a of list) items.push({ wireId, tag, a });
+  }
+  items.sort((p, q) => q.a.segLen - p.a.segLen);
+  const kept: Item[] = [];
+  for (const it of items) {
+    const clash = kept.some((b) => b.tag === it.tag && sameTagLabelClash(b.a, it.a, minSeparation));
+    if (!clash) kept.push(it);
+  }
+  const next = new Map<string, WireLabelAnchor[]>();
+  for (const it of kept) {
+    const list = next.get(it.wireId) ?? [];
+    list.push(it.a);
+    next.set(it.wireId, list);
+  }
+  return next;
 }
 
 

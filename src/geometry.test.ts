@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit, mergeWires, removeJunction } from "./circuitBuilder";
-import { GRID } from "./types";
-import { allWireRoutes, areWiresConnected, cleanPolyline, deriveJogToMatchPolyline, findOptimalJunctionForWires, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, wireLabelPos, wireRoute, wiresInRect } from "./geometry";
+import { GRID, type Circuit } from "./types";
+import { allWireRoutes, alignStackedWireLabels, areWiresConnected, cleanPolyline, dedupeWireLabels, deriveJogToMatchPolyline, findOptimalJunctionForWires, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
+import { useLab } from "./store";
 
 describe("wire routing stubs", () => {
   it("leaves a coil terminal in a straight stub before turning", () => {
@@ -265,6 +267,269 @@ describe("wire crossovers", () => {
       return best;
     };
     expect(Math.abs(midY(p1) - midY(p2))).toBeGreaterThanOrEqual(WIRE_LANE - 1);
+  });
+
+  it("places a vertical label so the circle is tangent to the wire", () => {
+    const pts = [
+      { x: 100, y: 0 },
+      { x: 100, y: GRID * 12 },
+    ];
+    const offset = wireLabelOffset("2");
+    const anchors = wireLabelAnchors(pts, offset);
+    expect(anchors.length).toBeGreaterThanOrEqual(1);
+    expect(anchors[0].horizontal).toBe(false);
+    expect(anchors[0].x).toBeCloseTo(100 + offset);
+    expect(anchors[0].x - 100).toBeCloseTo(wireLabelRadius("2") + 1.1);
+  });
+
+  it("places extra labels along a long run", () => {
+    const pts = [
+      { x: 0, y: 40 },
+      { x: GRID * 30, y: 40 },
+    ];
+    const anchors = wireLabelAnchors(pts);
+    expect(anchors.length).toBeGreaterThanOrEqual(2);
+    expect(anchors.every((a) => a.horizontal)).toBe(true);
+    const xs = anchors.map((a) => a.x).sort((a, b) => a - b);
+    expect(xs[xs.length - 1] - xs[0]).toBeGreaterThan(GRID * 8);
+  });
+
+  it("keeps distant same-number labels and drops overlapping ones", () => {
+    const kept = pickVisibleWireLabels([
+      {
+        wireId: "long",
+        tag: "2",
+        anchors: [
+          { x: 0, y: 0, horizontal: true, segLen: 400, t: 0.2 },
+          { x: GRID * 20, y: 0, horizontal: true, segLen: 400, t: 0.8 },
+        ],
+      },
+      {
+        wireId: "stub",
+        tag: "2",
+        anchors: [{ x: 8, y: 0, horizontal: true, segLen: 50, t: 0.5 }],
+      },
+      {
+        wireId: "branch",
+        tag: "6",
+        anchors: [{ x: 0, y: 200, horizontal: true, segLen: 80, t: 0.5 }],
+      },
+      {
+        wireId: "lamp",
+        tag: "6",
+        anchors: [{ x: GRID * 3, y: 200 + GRID * 2, horizontal: true, segLen: 70, t: 0.5 }],
+      },
+    ]);
+    expect(kept.get("long")!.length).toBe(2);
+    expect(kept.has("stub")).toBe(false);
+    expect(kept.has("branch")).toBe(true);
+    expect(kept.has("lamp")).toBe(true);
+  });
+
+  it("slides a label away from another number and a junction", () => {
+    const avoid = [{ x: 200, y: 40 }];
+    const kept = pickVisibleWireLabels(
+      [
+        {
+          wireId: "a",
+          tag: "101",
+          anchors: [
+            { x: 200, y: 40, horizontal: true, segLen: 100, t: 0.8 },
+            { x: 80, y: 40, horizontal: true, segLen: 100, t: 0.3 },
+          ],
+        },
+        {
+          wireId: "b",
+          tag: "102",
+          anchors: [{ x: 210, y: 40, horizontal: true, segLen: 120, t: 0.5 }],
+        },
+      ],
+      GRID * 2.5,
+      avoid,
+    );
+    const a = kept.get("a")!;
+    expect(a.some((p) => p.x < 120)).toBe(true);
+    expect(a.every((p) => Math.hypot(p.x - 200, p.y - 40) > GRID)).toBe(true);
+  });
+
+  it("aligns stacked 100/101/102 onto one column on the main runs", () => {
+    const offset = 11;
+    const pts100 = [
+      { x: 0, y: 0 },
+      { x: 400, y: 0 },
+    ];
+    const pts101 = [
+      { x: 0, y: GRID * 2 },
+      { x: 200, y: GRID * 2 },
+      { x: 200, y: GRID * 8 },
+    ];
+    const pts102 = [
+      { x: 0, y: GRID * 4 },
+      { x: 400, y: GRID * 4 },
+    ];
+    const byWire = new Map([
+      ["w100", [{ x: 120, y: offset, horizontal: true, segLen: 400, t: 0.3 }]],
+      ["w101", [{ x: 200 + offset, y: GRID * 5, horizontal: false, segLen: 80, t: 0.7 }]],
+      ["w102", [{ x: 140, y: GRID * 4 + offset, horizontal: true, segLen: 400, t: 0.35 }]],
+    ]);
+    const info = new Map([
+      ["w100", { pts: pts100, tag: "100", offset }],
+      ["w101", { pts: pts101, tag: "101", offset }],
+      ["w102", { pts: pts102, tag: "102", offset }],
+    ]);
+    const aligned = alignStackedWireLabels(byWire, info);
+    const x100 = aligned.get("w100")![0].x;
+    const a101 = [...(aligned.get("w101") ?? [])];
+    const x102 = aligned.get("w102")![0].x;
+    expect(Math.abs(x100 - x102)).toBeLessThan(GRID);
+    expect(a101.some((a) => a.horizontal && Math.abs(a.x - x100) < GRID)).toBe(true);
+  });
+
+  it("keeps a single number on a short 3-phase span", () => {
+    const mk = (x: number, y: number, t: number, tag: string, id: string) => ({
+      wireId: id,
+      tag,
+      anchors: [
+        { x, y, horizontal: true, segLen: GRID * 8, t },
+        { x: x + GRID * 4, y, horizontal: true, segLen: GRID * 8, t: t + 0.3 },
+        { x: x + GRID * 7, y, horizontal: true, segLen: GRID * 8, t: t + 0.6 },
+      ],
+    });
+    const kept = pickVisibleWireLabels([
+      mk(100, 0, 0.2, "100", "w100"),
+      mk(100, GRID * 2, 0.2, "101", "w101"),
+      mk(100, GRID * 4, 0.2, "102", "w102"),
+    ]);
+    expect(kept.get("w100")!.length).toBe(1);
+    expect(kept.get("w101")!.length).toBe(1);
+    expect(kept.get("w102")!.length).toBe(1);
+  });
+
+  it("does not pull a 100-column into a nearby 90-column", () => {
+    const offset = 11;
+    const mkPts = (y: number) => [
+      { x: 0, y },
+      { x: 500, y },
+    ];
+    const byWire = new Map([
+      ["w90", [{ x: 120, y: offset, horizontal: true, segLen: 500, t: 0.24 }]],
+      ["w91", [{ x: 120, y: GRID * 2 + offset, horizontal: true, segLen: 500, t: 0.24 }]],
+      ["w92", [{ x: 120, y: GRID * 4 + offset, horizontal: true, segLen: 500, t: 0.24 }]],
+      ["w100", [{ x: 200, y: offset, horizontal: true, segLen: 500, t: 0.4 }]],
+      ["w101", [{ x: 200, y: GRID * 2 + offset, horizontal: true, segLen: 500, t: 0.4 }]],
+      ["w102", [{ x: 200, y: GRID * 4 + offset, horizontal: true, segLen: 500, t: 0.4 }]],
+    ]);
+    const info = new Map([
+      ["w90", { pts: mkPts(0), tag: "90", offset }],
+      ["w91", { pts: mkPts(GRID * 2), tag: "91", offset }],
+      ["w92", { pts: mkPts(GRID * 4), tag: "92", offset }],
+      ["w100", { pts: mkPts(0), tag: "100", offset }],
+      ["w101", { pts: mkPts(GRID * 2), tag: "101", offset }],
+      ["w102", { pts: mkPts(GRID * 4), tag: "102", offset }],
+    ]);
+    const aligned = alignStackedWireLabels(byWire, info);
+    const x90 = aligned.get("w90")![0].x;
+    const x100 = aligned.get("w100")![0].x;
+    expect(Math.abs(x90 - x100)).toBeGreaterThan(GRID * 2);
+    expect(aligned.get("w90")!.length).toBe(1);
+    expect(aligned.get("w100")!.length).toBe(1);
+  });
+
+  it("keeps one copy of a number in a stacked column", () => {
+    const offset = 11;
+    const pts = [
+      { x: 0, y: 0 },
+      { x: 400, y: 0 },
+    ];
+    const byWire = new Map([
+      [
+        "w90a",
+        [
+          { x: 120, y: offset, horizontal: true, segLen: 400, t: 0.3 },
+          { x: 132, y: offset, horizontal: true, segLen: 400, t: 0.33 },
+        ],
+      ],
+      ["w91", [{ x: 125, y: GRID * 2 + offset, horizontal: true, segLen: 400, t: 0.31 }]],
+      ["w92", [{ x: 118, y: GRID * 4 + offset, horizontal: true, segLen: 400, t: 0.29 }]],
+    ]);
+    const info = new Map([
+      ["w90a", { pts, tag: "90", offset }],
+      ["w91", { pts: [{ x: 0, y: GRID * 2 }, { x: 400, y: GRID * 2 }], tag: "91", offset }],
+      ["w92", { pts: [{ x: 0, y: GRID * 4 }, { x: 400, y: GRID * 4 }], tag: "92", offset }],
+    ]);
+    const aligned = dedupeWireLabels(alignStackedWireLabels(byWire, info), info);
+    const tags90 = [...aligned.entries()].flatMap(([id, list]) =>
+      info.get(id)?.tag === "90" ? list : [],
+    );
+    expect(tags90.length).toBe(1);
+    expect(aligned.get("w91")!.length).toBe(1);
+    expect(aligned.get("w92")!.length).toBe(1);
+  });
+
+  it("dedupes a leftover auto label sitting on a pinned copy", () => {
+    const info = new Map([
+      ["w2", { tag: "2" }],
+    ]);
+    const byWire = new Map([
+      [
+        "w2",
+        [
+          { x: 100, y: 40, horizontal: true, segLen: 200, t: 0.3 },
+          { x: 108, y: 42, horizontal: true, segLen: 180, t: 0.55 },
+        ],
+      ],
+    ]);
+    const kept = dedupeWireLabels(byWire, info);
+    expect(kept.get("w2")!.length).toBe(1);
+  });
+
+  it("does not stack duplicate numbers on the dual-station 3-phase spans", () => {
+    const doc = JSON.parse(readFileSync("src/examples/10-dual-station.json", "utf8"));
+    useLab.setState({ circuit: doc.circuit });
+    useLab.getState().autoLabelWires();
+    const circuit: Circuit = useLab.getState().circuit;
+    const routes = allWireRoutes(circuit);
+    const candidates = circuit.wires.flatMap((w) => {
+      const tag = (w.label ?? "").trim();
+      if (!tag) return [];
+      const pts = routes.get(w.id);
+      if (!pts || pts.length < 2) return [];
+      const anchors = wireLabelAnchors(pts, wireLabelOffset(tag));
+      if (!anchors.length) return [];
+      return [{ wireId: w.id, tag, anchors }];
+    });
+    const wireInfo = new Map(
+      circuit.wires.flatMap((w) => {
+        const tag = (w.label ?? "").trim();
+        const pts = routes.get(w.id);
+        return tag && pts ? [[w.id, { pts, tag, offset: wireLabelOffset(tag) }] as const] : [];
+      }),
+    );
+    const placed = dedupeWireLabels(
+      alignStackedWireLabels(pickVisibleWireLabels(candidates), wireInfo),
+      wireInfo,
+    );
+    const all = [...placed.entries()].flatMap(([id, list]) =>
+      list.map((a) => ({ tag: wireInfo.get(id)!.tag, a })),
+    );
+    for (let i = 0; i < all.length; i++) {
+      for (let j = i + 1; j < all.length; j++) {
+        if (all[i].tag !== all[j].tag) continue;
+        const dx = Math.abs(all[i].a.x - all[j].a.x);
+        const dy = Math.abs(all[i].a.y - all[j].a.y);
+        const d = Math.hypot(dx, dy);
+        expect(d).toBeGreaterThanOrEqual(WIRE_LABEL_SEPARATION);
+        expect(dx < GRID * 2 && dy < GRID * 12).toBe(false);
+        if (dx < GRID * 2 || dy < GRID * 2) {
+          expect(d).toBeGreaterThanOrEqual(WIRE_LABEL_REPEAT);
+        }
+      }
+    }
+    const x90 = all.filter((it) => it.tag === "90").map((it) => it.a.x);
+    const x100 = all.filter((it) => it.tag === "100").map((it) => it.a.x);
+    expect(x90.length).toBe(1);
+    expect(x100.length).toBe(1);
+    expect(Math.abs(x90[0] - x100[0])).toBeGreaterThan(GRID * 2);
   });
 
   it("places a wire label beside the longest run", () => {

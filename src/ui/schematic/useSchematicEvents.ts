@@ -66,13 +66,33 @@ export function useSchematicEvents({
   } | null>(null);
   const labelDrag = useRef<{
     id: string;
-    startT: number;
+    fromT: number;
+    toT: number;
     startX: number;
     startY: number;
     startClientX: number;
     startClientY: number;
     pushedHistory?: boolean;
   } | null>(null);
+  const [labelDragPreview, setLabelDragPreview] = useState<{
+    wireId: string;
+    fromT: number;
+    toT: number;
+  } | null>(null);
+
+  const commitLabelDrag = () => {
+    const d = labelDrag.current;
+    if (!d) {
+      setLabelDragPreview(null);
+      return;
+    }
+    if (d.pushedHistory && Math.abs(d.toT - d.fromT) > 1e-4) {
+      useLab.getState().pinWireLabel(d.id, d.fromT, d.toT);
+      useLab.setState({ selected: { type: "wire-label", id: `${d.id}@${d.toT.toFixed(3)}` } });
+    }
+    labelDrag.current = null;
+    setLabelDragPreview(null);
+  };
   const junctionClick = useRef<{ id: string; x: number; y: number } | null>(null);
   const lastSymbolTapRef = useRef<{ id: string; time: number; x: number; y: number } | null>(null);
   const lastWireTapRef = useRef<{ id: string; time: number; x: number; y: number } | null>(null);
@@ -99,7 +119,7 @@ export function useSchematicEvents({
       resizeDrag.current = null;
       wireDrag.current = null;
       tagDrag.current = null;
-      labelDrag.current = null;
+      commitLabelDrag();
       junctionClick.current = null;
       paperTouchPanRef.current = null;
     };
@@ -528,12 +548,16 @@ export function useSchematicEvents({
         useLab.getState().pushHistory();
         labelDrag.current.pushedHistory = true;
       }
-      // Update labelT based on mouse position along the wire
-      const pts = routes.get(labelDrag.current.id) ?? wireRoute(circuit, circuit.wires.find(w => w.id === labelDrag.current!.id)?.a || { symbolId: "", term: "" }, circuit.wires.find(w => w.id === labelDrag.current!.id)?.b || { symbolId: "", term: "" });
+      const w = circuit.wires.find((x) => x.id === labelDrag.current!.id);
+      const pts = routes.get(labelDrag.current.id) ?? (w ? wireRoute(circuit, w.a, w.b, w.jog) : []);
       if (pts.length >= 2) {
-        // Use geometry helper to find closest t on polyline
         const bestT = getClosestTOnPolyline(pts, world);
-        useLab.getState().updateWire(labelDrag.current.id, { labelT: bestT });
+        labelDrag.current.toT = bestT;
+        setLabelDragPreview({
+          wireId: labelDrag.current.id,
+          fromT: labelDrag.current.fromT,
+          toT: bestT,
+        });
       }
       return;
     }
@@ -630,6 +654,7 @@ export function useSchematicEvents({
 
   const onSvgPointerUp = (e: PointerEvent<SVGSVGElement>) => {
     cancelLongPress();
+    commitLabelDrag();
     try {
       if (svgRef.current?.hasPointerCapture(e.pointerId)) {
         svgRef.current.releasePointerCapture(e.pointerId);
@@ -825,7 +850,7 @@ export function useSchematicEvents({
     lab.straightenWire(wire.id);
   };
 
-  const onWireLabelPointerDown = (e: PointerEvent<SVGElement>, wireId: string) => {
+  const onWireLabelPointerDown = (e: PointerEvent<SVGElement>, wireId: string, t = 0.5) => {
     blurActiveInput();
     pointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
     e.stopPropagation();
@@ -833,23 +858,18 @@ export function useSchematicEvents({
     if (lab.mode !== "edit") return;
     const w = lab.circuit.wires.find((x) => x.id === wireId);
     if (!w) return;
+    const key = `${wireId}@${t.toFixed(3)}`;
+    lab.select({ type: "wire-label", id: key });
     startLongPress(e, (pos) => {
-      if (!lab.selectedWireIds?.includes(wireId)) {
-        lab.select({ type: "wire", id: wireId });
-      } else {
-        useLab.setState({ selected: { type: "wire", id: wireId } });
-      }
+      lab.select({ type: "wire-label", id: key });
       openMenu(pos);
     });
     if (e.button !== 0) return;
     const world = toWorld(e);
-    // Find closest t on wire for initial position using geometry helper
-    const pts = routes.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
-    const startT = pts.length >= 2 ? getClosestTOnPolyline(pts, world) : 0.5;
-    
     labelDrag.current = {
       id: wireId,
-      startT,
+      fromT: t,
+      toT: t,
       startX: world.x,
       startY: world.y,
       startClientX: e.clientX,
@@ -860,29 +880,24 @@ export function useSchematicEvents({
     } catch {}
   };
 
-  const onWireLabelDoubleClick = (e: MouseEvent<SVGElement>, wireId: string) => {
+  const onWireLabelDoubleClick = (e: MouseEvent<SVGElement>, wireId: string, t = 0.5) => {
     e.stopPropagation();
     const lab = useLab.getState();
     if (lab.mode !== "edit") return;
     cancelLongPress();
     labelDrag.current = null;
     drag.current = null;
-    lab.select({ type: "wire", id: wireId });
-    lab.straightenWire(wireId);
+    lab.select({ type: "wire-label", id: `${wireId}@${t.toFixed(3)}` });
   };
 
-  const onWireLabelContextMenu = (e: MouseEvent<SVGElement>, wireId: string) => {
+  const onWireLabelContextMenu = (e: MouseEvent<SVGElement>, wireId: string, t = 0.5) => {
     e.stopPropagation();
     labelDrag.current = null;
     drag.current = null;
     wireDrag.current = null;
     const lab = useLab.getState();
     if (lab.mode === "edit" && !lab.placing) {
-      if (!lab.selectedWireIds?.includes(wireId)) {
-        lab.select({ type: "wire", id: wireId });
-      } else {
-        useLab.setState({ selected: { type: "wire", id: wireId } });
-      }
+      lab.select({ type: "wire-label", id: `${wireId}@${t.toFixed(3)}` });
     }
     openMenu(e);
   };
@@ -1263,6 +1278,7 @@ export function useSchematicEvents({
     setMenu,
     marqueeView,
     wireCursor,
+    labelDragPreview,
     onPaperDown,
     onSvgMove,
     onSvgLeave,

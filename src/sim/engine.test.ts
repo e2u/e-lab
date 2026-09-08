@@ -714,10 +714,12 @@ describe("sim engine", () => {
     expect(PHASE_COLOR["L1"]).toBe("#a65628");
     expect(PHASE_COLOR["L2"]).toBe("#ff7f00");
     expect(PHASE_COLOR["L3"]).toBe("#eccd26");
-    expect(PHASE_COLOR["N"]).toBe("#0284c7");
+    expect(PHASE_COLOR["N"]).toBe("#6b7280");
     expect(PHASE_COLOR["PE"]).toBe("#2ca02c");
     expect(PHASE_COLOR["DC+"]).toBe("#dc2626");
-    expect(PHASE_COLOR["DC-"]).toBe("#1a5f8a");
+    expect(PHASE_COLOR["DC-"]).toBe("#7dd3fc");
+    expect(PHASE_COLOR["X1"]).toBe("#dc2626");
+    expect(PHASE_COLOR["X2"]).toBe("#7dd3fc");
 
     // In run mode (tick)
     const runSnap = run(c, [], 2);
@@ -726,6 +728,20 @@ describe("sim engine", () => {
     expect(runSnap.wires[wL3.id].kind).toBe("L3");
     expect(runSnap.wires[wN.id].kind).toBe("N");
     expect(runSnap.wires[wPE.id].kind).toBe("PE");
+  });
+
+  it("colors transformer secondary X1 red and X2 light blue", () => {
+    const c = emptyCircuit();
+    const tc = addDevice(c, "transformer", "TC1", "body", 0, 0);
+    const hl = addDevice(c, "lamp", "HL1", "body", 8, 0);
+    const wX1 = addWire(c, tc.symbol, "X1", hl.symbol, "1");
+    const wX2 = addWire(c, hl.symbol, "2", tc.symbol, "X2");
+
+    const editSnap = emptySnapshot(c);
+    expect(editSnap.wires[wX1.id].kind).toBe("X1");
+    expect(editSnap.wires[wX2.id].kind).toBe("X2");
+    expect(PHASE_COLOR[editSnap.wires[wX1.id].kind!]).toBe("#dc2626");
+    expect(PHASE_COLOR[editSnap.wires[wX2.id].kind!]).toBe("#7dd3fc");
   });
 
   it("colors DC supply wires correctly with DC+ and DC- phases", () => {

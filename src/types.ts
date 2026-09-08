@@ -85,7 +85,7 @@ export type DeviceKind =
   | "comment"
   | "junction";
 
-export type PotentialKind = "L1" | "L2" | "L3" | "N" | "PE" | "DC+" | "DC-";
+export type PotentialKind = "L1" | "L2" | "L3" | "N" | "PE" | "DC+" | "DC-" | "X1" | "X2";
 
 export interface Potential {
   sourceId: string;
@@ -189,6 +189,15 @@ export interface Wire {
   labelT?: number;
   /** Perpendicular offset from the wire path in grid units. */
   labelOffset?: TagOffset;
+  /** User-hidden or user-dragged copies of this wire's number. */
+  labelMarks?: WireLabelMark[];
+}
+
+export interface WireLabelMark {
+  /** Progress along this wire (0 to 1). */
+  t: number;
+  /** Hide the auto/pinned copy nearest this t. */
+  hidden?: boolean;
 }
 
 export interface SymbolGroup {

@@ -30,6 +30,7 @@ export function ContextMenu({
   const hasSymbols = n > 0;
   const nWires = selectedWireIds?.length ?? (selected?.type === "wire" ? 1 : 0);
   const hasWire = selected?.type === "wire" || nWires > 0;
+  const hasWireLabel = selected?.type === "wire-label";
   const canMergeWires =
     selectedWireIds &&
     selectedWireIds.length === 2 &&
@@ -238,6 +239,36 @@ export function ContextMenu({
             </button>
           </>
         )}
+        {hasWireLabel && (
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                run(() => {
+                  const id = selected?.type === "wire-label" ? selected.id : "";
+                  const at = id.lastIndexOf("@");
+                  if (at <= 0) return;
+                  useLab.getState().hideWireLabelInstance(id.slice(0, at), Number(id.slice(at + 1)));
+                })
+              }
+            >
+              {t("ctx.hideWireLabel")}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                run(() => {
+                  const id = selected?.type === "wire-label" ? selected.id : "";
+                  const at = id.lastIndexOf("@");
+                  if (at <= 0) return;
+                  useLab.getState().showWireLabelInstances(id.slice(0, at));
+                })
+              }
+            >
+              {t("ctx.showAllWireLabelsOnWire")}
+            </button>
+          </>
+        )}
         {hasWire && (
           <>
             {nWires === 2 && (
@@ -314,7 +345,7 @@ export function ContextMenu({
             </button>
           </>
         )}
-        {!hasSymbols && !hasWire && (
+        {!hasSymbols && !hasWire && !hasWireLabel && (
           <>
             {pos.world && (
               <>

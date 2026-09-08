@@ -1,25 +1,38 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { allWireRoutes, findWireCrossovers, getConnectedWireIds } from "../geometry";
+import { allWireRoutes, circuitRouteKey, findWireCrossovers, getConnectedWireIds } from "../geometry";
 import { useLab } from "../store";
-import { COLS, GRID, ROWS } from "../types";
+import { COLS, GRID, ROWS, type SimSnapshot } from "../types";
 import { ContextMenu } from "./ContextMenu";
 import { InteractionOverlay } from "./schematic/layers/InteractionOverlay";
 import { PaperBackground } from "./schematic/layers/PaperBackground";
 import { PortLayer } from "./schematic/layers/PortLayer";
 import { SymbolLayer } from "./schematic/layers/SymbolLayer";
 import { WireLayer } from "./schematic/layers/WireLayer";
-import { emptySnapshot } from "../sim/engine";
 import { RulerLeft, RulerTop } from "./schematic/Ruler";
 import { useSchematicEvents } from "./schematic/useSchematicEvents";
 import { blurActiveInput } from "../keyboard";
+import { emptySnapshot } from "../sim/engine";
 
 export function Schematic() {
   const circuit = useLab((s) => s.circuit);
   const rawSnapshot = useLab((s) => s.snapshot);
   const mode = useLab((s) => s.mode);
   const snapshot = useMemo(() => {
-    return mode === "edit" ? emptySnapshot(circuit) : rawSnapshot;
-  }, [circuit, mode, rawSnapshot]);
+    if (mode !== "edit") return rawSnapshot;
+    const snap = emptySnapshot(circuit);
+    const runtime = { ...snap.runtime };
+    for (const id of Object.keys(runtime)) {
+      const prev = rawSnapshot.runtime[id];
+      if (!prev) continue;
+      runtime[id] = {
+        ...runtime[id],
+        on: prev.on,
+        tripped: prev.tripped,
+        actuated: prev.actuated,
+      };
+    }
+    return { ...snap, runtime } satisfies SimSnapshot;
+  }, [mode, rawSnapshot, circuit]);
   const editSubMode = useLab((s) => s.editSubMode);
   const placing = useLab((s) => s.placing);
   const placingRot = useLab((s) => s.placingRot);
@@ -99,8 +112,9 @@ export function Schematic() {
     if (d?.kind === "net-label") selectedNetTag = d.tag.trim();
   }
 
-  const routes = useMemo(() => allWireRoutes(circuit), [circuit]);
-  const crossovers = useMemo(() => findWireCrossovers(circuit, routes), [circuit, routes]);
+  const geomKey = useMemo(() => circuitRouteKey(circuit), [circuit]);
+  const routes = useMemo(() => allWireRoutes(circuit), [geomKey]);
+  const crossovers = useMemo(() => findWireCrossovers(circuit, routes), [geomKey, routes]);
 
   const highlightedWireIds = useMemo(() => {
     const ids: string[] = [];
@@ -122,6 +136,7 @@ export function Schematic() {
     setMenu,
     marqueeView,
     wireCursor,
+    labelDragPreview,
     onPaperDown,
     onSvgMove,
     onSvgLeave,
@@ -232,6 +247,7 @@ export function Schematic() {
             onWireLabelPointerDown={onWireLabelPointerDown}
             onWireLabelDoubleClick={onWireLabelDoubleClick}
             onWireLabelContextMenu={onWireLabelContextMenu}
+            labelDragPreview={labelDragPreview}
           />
 
           <PortLayer

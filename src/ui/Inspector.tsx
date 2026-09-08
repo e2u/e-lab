@@ -271,6 +271,34 @@ export function Inspector() {
     );
   }
 
+  if (selected.type === "wire-label") {
+    const at = selected.id.lastIndexOf("@");
+    const wireId = at > 0 ? selected.id.slice(0, at) : selected.id;
+    const wire = circuit.wires.find((w) => w.id === wireId);
+    return (
+      <div className="inspector" key={`inspector-wire-label-${selected.id}`}>
+        <h3>{t("inspector.wireLabel")}</h3>
+        <p className="hint">{t("inspector.wireLabelInstanceHint")}</p>
+        <label>
+          {t("inspector.wireLabel")}
+          <input value={wire?.label ?? ""} readOnly />
+        </label>
+        <button
+          className="btn"
+          onClick={() => {
+            const tVal = Number(selected.id.slice(at + 1));
+            if (Number.isFinite(tVal)) useLab.getState().hideWireLabelInstance(wireId, tVal);
+          }}
+        >
+          {t("ctx.hideWireLabel")}
+        </button>
+        <button className="btn" onClick={() => useLab.getState().showWireLabelInstances(wireId)}>
+          {t("ctx.showAllWireLabelsOnWire")}
+        </button>
+      </div>
+    );
+  }
+
   if (selected.type === "wire") {
     const wire = circuit.wires.find((w) => w.id === selected.id);
     return (

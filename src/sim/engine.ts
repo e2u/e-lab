@@ -20,10 +20,12 @@ export const PHASE_COLOR: Record<PotentialKind, string> = {
   L1: "#a65628", // Brown
   L2: "#ff7f00", // Orange
   L3: "#eccd26", // Yellow
-  N: "#0284c7", // Blue (Neutral)
+  N: "#6b7280", // Gray (Neutral)
   PE: "#2ca02c", // Green (Earth/Ground)
   "DC+": "#dc2626", // Red (DC+)
-  "DC-": "#1a5f8a", // Navy Blue (DC-)
+  "DC-": "#7dd3fc", // Light blue (DC-)
+  X1: "#dc2626", // Red (transformer secondary +)
+  X2: "#7dd3fc", // Light blue (transformer secondary -)
 };
 
 export function matchNetLabelPhase(tag: string): PotentialKind | null {
@@ -34,6 +36,8 @@ export function matchNetLabelPhase(tag: string): PotentialKind | null {
   if (/^(L3|PHASE[ _-]*3|PHASE[ _-]*C|LINE[ _-]*3)\b/i.test(t)) return "L3";
   if (/^(N|NEUTRAL|N[\d_-]*)$/i.test(t)) return "N";
   if (/^(PE|GND|GROUND|EARTH|G|E)$/i.test(t)) return "PE";
+  if (/^(X1)$/i.test(t)) return "X1";
+  if (/^(X2)$/i.test(t)) return "X2";
   if (/^(DC\+|\+24V|\+12V|\+48V|\+5V|VCC|V\+|\+)$/i.test(t)) return "DC+";
   if (/^(DC-|0V|-24V|-12V|COM|V-|-)$/i.test(t)) return "DC-";
   return null;
@@ -71,8 +75,8 @@ export function directTerminalPotential(circuit: Circuit, port: PortRef): Potent
     if (port.term === "-") return "DC-";
   }
   if (dev.kind === "transformer") {
-    if (port.term === "X1" || port.term === "S1") return "L1";
-    if (port.term === "X2" || port.term === "S2") return "N";
+    if (port.term === "X1" || port.term === "S1") return "X1";
+    if (port.term === "X2" || port.term === "S2") return "X2";
   }
   return null;
 }
@@ -202,10 +206,10 @@ export function emptySnapshot(circuit: Circuit): SimSnapshot {
       stampNode(d.id, "-", { sourceId: d.id, kind: "DC-" });
     }
     if (d.kind === "transformer") {
-      stampNode(d.id, "X1", { sourceId: `xf-${d.id}`, kind: "L1" });
-      stampNode(d.id, "X2", { sourceId: `xf-${d.id}`, kind: "N" });
-      stampNode(d.id, "S1", { sourceId: `xf-${d.id}`, kind: "L1" });
-      stampNode(d.id, "S2", { sourceId: `xf-${d.id}`, kind: "N" });
+      stampNode(d.id, "X1", { sourceId: `xf-${d.id}`, kind: "X1" });
+      stampNode(d.id, "X2", { sourceId: `xf-${d.id}`, kind: "X2" });
+      stampNode(d.id, "S1", { sourceId: `xf-${d.id}`, kind: "X1" });
+      stampNode(d.id, "S2", { sourceId: `xf-${d.id}`, kind: "X2" });
     }
   }
 
@@ -301,7 +305,9 @@ function voltageBetween(a: Potential | null, b: Potential | null): boolean {
   if (ac.includes(a.kind) && ac.includes(b.kind)) return true;
   if (
     (a.kind === "DC+" && b.kind === "DC-") ||
-    (a.kind === "DC-" && b.kind === "DC+")
+    (a.kind === "DC-" && b.kind === "DC+") ||
+    (a.kind === "X1" && b.kind === "X2") ||
+    (a.kind === "X2" && b.kind === "X1")
   ) {
     return true;
   }
@@ -381,6 +387,18 @@ export function computeVoltage(
         ) {
           return 24;
         }
+        // Transformer secondary X1 / X2
+        if (
+          (pa.kind === "X1" && pb.kind === "X2") ||
+          (pa.kind === "X2" && pb.kind === "X1")
+        ) {
+          if (pa.sourceId.startsWith("xf-") || pb.sourceId.startsWith("xf-")) {
+            const xfId = (pa.sourceId.startsWith("xf-") ? pa.sourceId : pb.sourceId).replace("xf-", "");
+            const xfDev = circuit?.devices.find((d) => d.id === xfId);
+            return getTransformerSecondaryVoltage(xfDev);
+          }
+          return 120;
+        }
       }
       // Line to PE (Ground reference)
       if (
@@ -453,7 +471,7 @@ function potOf(
   }
   const hot = list.find((p) => isHotKind(p.kind));
   if (hot) return hot;
-  const ret = list.find((p) => p.kind === "N" || p.kind === "DC-");
+  const ret = list.find((p) => p.kind === "N" || p.kind === "DC-" || p.kind === "X2");
   if (ret) return ret;
   const pe = list.find((p) => p.kind === "PE");
   if (pe) return pe;
@@ -487,11 +505,11 @@ function bfsDist(adj: Map<string, string[]>, starts: string[]): Map<string, numb
 }
 
 function isHotKind(kind: PotentialKind): boolean {
-  return kind === "L1" || kind === "L2" || kind === "L3" || kind === "DC+";
+  return kind === "L1" || kind === "L2" || kind === "L3" || kind === "DC+" || kind === "X1";
 }
 
 function isRetKind(kind: PotentialKind): boolean {
-  return kind === "N" || kind === "DC-";
+  return kind === "N" || kind === "DC-" || kind === "X2";
 }
 
 function isMomentary(kind: DeviceKind): boolean {
@@ -1044,10 +1062,10 @@ export function tick(
           const s1Pots = nodePots(stamp, uf, nk(d.id, "S1"));
           const alreadyStamped = x1Pots.some((p) => p.sourceId === `xf-${d.id}`) || s1Pots.some((p) => p.sourceId === `xf-${d.id}`);
           if (!alreadyStamped) {
-            stampNode(d.id, "X1", { sourceId: `xf-${d.id}`, kind: "L1" });
-            stampNode(d.id, "X2", { sourceId: `xf-${d.id}`, kind: "N" });
-            stampNode(d.id, "S1", { sourceId: `xf-${d.id}`, kind: "L1" });
-            stampNode(d.id, "S2", { sourceId: `xf-${d.id}`, kind: "N" });
+            stampNode(d.id, "X1", { sourceId: `xf-${d.id}`, kind: "X1" });
+            stampNode(d.id, "X2", { sourceId: `xf-${d.id}`, kind: "X2" });
+            stampNode(d.id, "S1", { sourceId: `xf-${d.id}`, kind: "X1" });
+            stampNode(d.id, "S2", { sourceId: `xf-${d.id}`, kind: "X2" });
             grew = true;
           }
         }

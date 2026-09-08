@@ -884,6 +884,10 @@ body.panel-resizing * {
 
 .wire-label-group {
   cursor: move;
+  pointer-events: all;
+}
+.wire-label-hit {
+  pointer-events: all;
 }
 .sym-tag-group:hover .sym-tag-bg {
   stroke: #8a7c5c;
@@ -962,13 +966,16 @@ body.panel-resizing * {
 .wire { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .wire.live { stroke-width: 3.2; filter: drop-shadow(0 0 3px currentColor); }
 .wire-selection { opacity: 0.6; }
-.wire-label text {
+.wire-label text,
+.wire-label-group text {
   font-family: "Red Hat Mono", monospace;
   font-size: 11px;
   font-weight: 400;
   fill: #1b1a16;
   font-style: italic;
+  pointer-events: none;
 }
+
 .sym-tag {
   font-family: "Red Hat Mono", monospace;
   font-size: 12px;
@@ -5294,4 +5301,8 @@ html, body {
 
 .wire-label-group {
   cursor: move;
+  pointer-events: all;
+}
+.wire-label-hit {
+  pointer-events: all;
 }

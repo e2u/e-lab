@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG, KINDS, variantDef } from "./catalog";
-import { catalogCompKey, t } from "./i18n";
+import { catalogCompKey, setLang, t } from "./i18n";
 import { printHiddenSymbolIds } from "./groups";
 import { getPrintContentBounds } from "./print";
 import { useLab } from "./store";
@@ -40,6 +40,7 @@ describe("Comment Component & Binding", () => {
     expect(t("inspector.addComment")).toBeDefined();
     expect(t("inspector.groupComment")).toBeDefined();
     expect(t("comment.groupDefaultText", { name: "G" })).toContain("G");
+    expect(t("comment.taggedDefaultText", { tag: "M1" })).toContain("M1");
     expect(t("inspector.hideCommentOnPrintHint")).toBeDefined();
     expect(t("ctx.hideCommentOnPrint")).toBeDefined();
   });
@@ -91,6 +92,7 @@ describe("Comment Component & Binding", () => {
   });
 
   it("attaches and binds a comment to a specific component", () => {
+    setLang("en");
     useLab.getState().newBoard();
     const c = createEmptyCircuit();
     const motor = addDevice(c, "motor-3ph", "M1", "body", 10, 10);
@@ -103,7 +105,8 @@ describe("Comment Component & Binding", () => {
     const commentDev = circuit.devices.find((d) => d.kind === "comment");
     expect(commentDev).toBeDefined();
     expect(commentDev?.params.targetDeviceId).toBe(motor.device.id);
-    expect(commentDev?.params.text).toContain("M1");
+    expect(commentDev?.params.text).toBe("M1 Note");
+    expect(commentDev?.params.text).not.toMatch(/[\u4e00-\u9fff]/);
     expect(commentDev?.params.showLeaderLine).toBe(true);
 
     const commentSym = circuit.symbols.find((s) => s.deviceId === commentDev?.id);

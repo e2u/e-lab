@@ -1618,7 +1618,7 @@ export const useLab = create<LabState>((set, get) => ({
       gx,
       gy,
       {
-        text: `${dev.tag} 備註說明`,
+        text: t("comment.taggedDefaultText", { tag: dev.tag }),
         targetDeviceId: dev.id,
         showLeaderLine: true,
         bgColor: "#fef9c3",

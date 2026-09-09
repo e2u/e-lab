@@ -1,5 +1,6 @@
 import { memo, type MouseEvent, type PointerEvent } from "react";
 import { catalogItem, suggestNetLabelTag, variantDef } from "../../../catalog";
+import { t } from "../../../i18n";
 import { findPortAtPoint, glyphTransform, nearestOnPolyline, portsEqual, snapOnSegment, terminalWorld, wireRoute } from "../../../geometry";
 import { normalizeRect } from "../../../groups";
 import { SymbolGlyph } from "../../../Glyphs";
@@ -117,7 +118,7 @@ export const InteractionOverlay = memo(function InteractionOverlay({
                   }
                 : item.kind === "comment"
                   ? {
-                      text: "備註說明 / Note",
+                      text: t("comment.defaultText"),
                       showLeaderLine: true,
                       bgColor: "#fef9c3",
                       fontSize: 12,

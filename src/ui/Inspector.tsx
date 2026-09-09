@@ -1,7 +1,7 @@
 import { GROUP_COLORS, KINDS, LAMP_COLORS } from "../catalog";
 import { selectionHasGroup, selectionIsGroup } from "../groups";
 import { areWiresConnected } from "../geometry";
-import { catalogCompKey, t, tOr } from "../i18n";
+import { componentDisplayName, t, variantDisplayName } from "../i18n";
 import { useLab } from "../store";
 import type { Circuit, DeviceKind } from "../types";
 import { MeterHistoryChart } from "./MeterHistoryChart";
@@ -77,50 +77,7 @@ function weldable(kind: DeviceKind): boolean {
   );
 }
 
-function getVariantDisplayName(kind: string, variantKey: string): string {
-  if (kind === "timer-on") {
-    switch (variantKey) {
-      case "coil": return t("comp.timerOn");
-      case "delayed-nc": return t("comp.timerOnNc");
-      case "delayed-no": return t("comp.timerOnNo");
-      case "inst-nc": return t("comp.timerOnInstNc");
-      case "inst-no": return t("comp.timerOnInstNo");
-    }
-  } else if (kind === "timer-off") {
-    switch (variantKey) {
-      case "coil": return t("comp.timerOff");
-      case "delayed-nc": return t("comp.timerOffNc");
-      case "delayed-no": return t("comp.timerOffNo");
-      case "inst-nc": return t("comp.timerOffInstNc");
-      case "inst-no": return t("comp.timerOffInstNo");
-    }
-  } else if (kind === "contactor") {
-    switch (variantKey) {
-      case "coil": return t("comp.contactorCoil");
-      case "main": return t("comp.contactorMain");
-      case "aux-no": return t("comp.contactorAuxNo");
-      case "aux-nc": return t("comp.contactorAuxNc");
-      case "aux-no2": return t("comp.contactorAuxNo2");
-      case "aux-nc2": return t("comp.contactorAuxNc2");
-    }
-  } else if (kind === "relay") {
-    switch (variantKey) {
-      case "coil": return t("comp.relayCoil");
-      case "aux-no": return t("comp.relayAuxNo");
-      case "aux-nc": return t("comp.relayAuxNc");
-      case "aux-no2": return t("comp.relayAuxNo2");
-      case "aux-nc2": return t("comp.relayAuxNc2");
-    }
-  } else if (kind === "overload") {
-    switch (variantKey) {
-      case "body":
-      case "main": return t("comp.overloadMain");
-      case "aux-no": return t("comp.overloadAuxNo");
-      case "aux-nc": return t("comp.overloadAuxNc");
-    }
-  }
-  return variantKey;
-}
+
 
 export function Inspector() {
   const selected = useLab((s) => s.selected);
@@ -424,7 +381,7 @@ export function Inspector() {
 
   return (
     <div className="inspector" key={`inspector-sym-${sym.id}-${dev.id}`}>
-      <h3>{tOr(catalogCompKey(dev.kind), KINDS[dev.kind].label)}</h3>
+      <h3>{componentDisplayName(dev.kind, sym.variant)}</h3>
       {dev.kind === "comment" ? (
         <div className="comment-editor">
           <label>
@@ -462,7 +419,7 @@ export function Inspector() {
                 .filter((d) => d.id !== dev.id && d.kind !== "comment" && d.kind !== "junction" && d.kind !== "title-block")
                 .map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.tag} ({tOr(catalogCompKey(d.kind), KINDS[d.kind]?.label ?? d.kind)})
+                    {d.tag} ({componentDisplayName(d.kind)})
                   </option>
                 ))}
             </select>
@@ -718,7 +675,7 @@ export function Inspector() {
               >
                 {Object.keys(KINDS[dev.kind].variants).map((vKey) => (
                   <option key={vKey} value={vKey}>
-                    {getVariantDisplayName(dev.kind, vKey)}
+                    {variantDisplayName(dev.kind, vKey)}
                   </option>
                 ))}
               </select>
@@ -739,13 +696,13 @@ export function Inspector() {
             >
               {dev.kind === "timer-on" && sym.variant === "delayed-nc" && t("inspector.hintTonNc")}
               {dev.kind === "timer-on" && sym.variant === "delayed-no" && t("inspector.hintTonNo")}
+              {dev.kind === "timer-on" && sym.variant === "inst-nc" && t("inspector.hintTonInstNc")}
+              {dev.kind === "timer-on" && sym.variant === "inst-no" && t("inspector.hintTonInstNo")}
               {dev.kind === "timer-off" && sym.variant === "delayed-no" && t("inspector.hintTofNo")}
               {dev.kind === "timer-off" && sym.variant === "delayed-nc" && t("inspector.hintTofNc")}
-              {sym.variant === "coil" && (
-                dev.kind === "timer-on"
-                  ? "⏱️ 通電延時線圈：通電後開始延時計時，時間到達後所有延時觸點動作。"
-                  : "⏱️ 斷電延時線圈：通電後觸點立即動作；斷電後開始延時計時，時間到達後觸點復位。"
-              )}
+              {dev.kind === "timer-off" && sym.variant === "inst-nc" && t("inspector.hintTofInstNc")}
+              {dev.kind === "timer-off" && sym.variant === "inst-no" && t("inspector.hintTofInstNo")}
+              {sym.variant === "coil" && t(dev.kind === "timer-on" ? "inspector.hintTonCoil" : "inspector.hintTofCoil")}
             </div>
           )}
           {dev.kind !== "net-label" && sameKind.length > 1 && (

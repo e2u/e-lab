@@ -174,12 +174,19 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "inspector.hintTonNo": "⏱️ NO Timed Close (NOTC): Counts when energized, CLOSES circuit after delay; resets instantly on power cut.",
     "inspector.hintTofNo": "⏱️ NO Timed Open (NOTO): CLOSES immediately when energized; counts when power cut, OPENS after delay.",
     "inspector.hintTofNc": "⏱️ NC Timed Close (NCTC): OPENS immediately when energized; counts when power cut, CLOSES after delay.",
+    "inspector.hintTonCoil": "⏱️ ON-delay coil: starts timing when energized; delayed contacts operate when the time elapses.",
+    "inspector.hintTofCoil": "⏱️ OFF-delay coil: contacts operate immediately when energized; timing starts on power cut and contacts reset when the time elapses.",
+    "inspector.hintTonInstNc": "⏱️ TON Inst NC 21-22: OPENS immediately while the coil is energized; closes when the coil drops.",
+    "inspector.hintTonInstNo": "⏱️ TON Inst NO 21-24: CLOSES immediately while the coil is energized; opens when the coil drops.",
+    "inspector.hintTofInstNc": "⏱️ TOF Inst NC 21-22: OPENS immediately while the coil is energized; closes when the coil drops.",
+    "inspector.hintTofInstNo": "⏱️ TOF Inst NO 21-24: CLOSES immediately while the coil is energized; opens when the coil drops.",
     "inspector.deviceBinding": "Device Binding",
     "inspector.color": "Color",
     "inspector.groupColor": "Group Color",
     "inspector.groupComment": "Group comment",
     "inspector.groupCommentPlaceholder": "Label shown on the group box...",
     "comment.groupDefaultText": "{name} note",
+    "comment.taggedDefaultText": "{tag} Note",
     "inspector.hideGroupOnPrint": "Hide from print",
     "inspector.hideGroupOnPrintHint": "Still shown in Edit and Run as translucent. Only the printed diagram hides this group.",
     "inspector.hideCommentOnPrintHint": "Still shown in Edit and Run as translucent. Only the printed diagram hides this comment.",
@@ -269,7 +276,6 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "inspector.netLabel": "Network Label",
     "inspector.hint.editMode": "Click component then press R to rotate, H for horizontal flip, V for vertical flip. Shift click or drag box for multi-select; ⌘G to group, ⇧⌘G to ungroup. Delete to remove, ⌘Z to undo.",
     "inspector.hint.dragMove": "Drag to move the whole group. Drag box on empty space for selection. ⌘G to group · ⇧⌘G to ungroup.",
-    "inspector.hint.editModeZh": "點擊元件後按 R 旋轉，H 左右鏡像，V 上下鏡像。Shift + 點擊或拖動方框可多選；⌘G 編組，⇧⌘G 打散。Delete 刪除，⌘Z 復原。",
 
     // Wire color codes (NEMA standard with line identifiers)
     "wireColor.l1Brown": "L1 Brown",
@@ -1100,12 +1106,19 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "inspector.hintTonNo": "⏱️ 常開延時閉合 (NOTC)：線圈通電開始計時，延時到達後自動【閉合電路】；斷電立即斷開復位。",
     "inspector.hintTofNo": "⏱️ 常開延時斷開 (NOTO)：線圈通電立即閉合；斷電開始計時，延時到達後自動【斷開電路】。",
     "inspector.hintTofNc": "⏱️ 常閉延時閉合 (NCTC)：線圈通電立即斷開；斷電開始計時，延時到達後自動【閉合復位】。",
+    "inspector.hintTonCoil": "⏱️ 通電延時線圈：通電後開始延時計時，時間到達後所有延時觸點動作。",
+    "inspector.hintTofCoil": "⏱️ 斷電延時線圈：通電後觸點立即動作；斷電後開始延時計時，時間到達後觸點復位。",
+    "inspector.hintTonInstNc": "⏱️ 通電延時瞬時常閉 NC 21-22：線圈通電立即斷開，斷電立即閉合。",
+    "inspector.hintTonInstNo": "⏱️ 通電延時瞬時常開 NO 21-24：線圈通電立即閉合，斷電立即斷開。",
+    "inspector.hintTofInstNc": "⏱️ 斷電延時瞬時常閉 NC 21-22：線圈通電立即斷開，斷電立即閉合。",
+    "inspector.hintTofInstNo": "⏱️ 斷電延時瞬時常開 NO 21-24：線圈通電立即閉合，斷電立即斷開。",
     "inspector.deviceBinding": "綁定裝置",
     "inspector.color": "顏色",
     "inspector.groupColor": "群組顏色",
     "inspector.groupComment": "群組備註",
     "inspector.groupCommentPlaceholder": "顯示在群組框上的說明文字...",
     "comment.groupDefaultText": "{name} 備註說明",
+    "comment.taggedDefaultText": "{tag} 備註說明",
     "inspector.hideGroupOnPrint": "列印時隱藏",
     "inspector.hideGroupOnPrintHint": "編輯與運行畫面仍會顯示（改為半透明），只在列印結果中隱藏此組。",
     "inspector.hideCommentOnPrintHint": "編輯與運行畫面仍會顯示（改為半透明），只在列印結果中隱藏此備註。",
@@ -1638,7 +1651,87 @@ const COMP_KEY: Record<string, string> = {
   ammeter: "ammeter",
   "title-block": "titleBlock",
   comment: "comment",
+  junction: "junction",
+  transformer: "transformer",
+  fuse: "fuse",
+  isolator: "isolator",
+  overload: "overload",
+  estop: "estop",
+  contactor: "contactor",
+  relay: "relay",
+  rcd: "rcd",
 };
+
+/** kind + variant → i18n suffix under `comp.*` (Inspector title / variant picker). */
+const VARIANT_COMP_KEY: Record<string, Record<string, string>> = {
+  "timer-on": {
+    coil: "timerOn",
+    "delayed-nc": "timerOnNc",
+    "delayed-no": "timerOnNo",
+    "inst-nc": "timerOnInstNc",
+    "inst-no": "timerOnInstNo",
+  },
+  "timer-off": {
+    coil: "timerOff",
+    "delayed-nc": "timerOffNc",
+    "delayed-no": "timerOffNo",
+    "inst-nc": "timerOffInstNc",
+    "inst-no": "timerOffInstNo",
+  },
+  contactor: {
+    coil: "contactorCoil",
+    main: "contactorMain",
+    "aux-no": "contactorAuxNo",
+    "aux-nc": "contactorAuxNc",
+    "aux-no2": "contactorAuxNo2",
+    "aux-nc2": "contactorAuxNc2",
+  },
+  relay: {
+    coil: "relayCoil",
+    "aux-no": "relayAuxNo",
+    "aux-nc": "relayAuxNc",
+    "aux-no2": "relayAuxNo2",
+    "aux-nc2": "relayAuxNc2",
+  },
+  overload: {
+    body: "overloadMain",
+    main: "overloadMain",
+    "aux-no": "overloadAuxNo",
+    "aux-nc": "overloadAuxNc",
+  },
+  "mains-3ph": {
+    body: "threePhaseMainsWye",
+    wye: "threePhaseMainsWye",
+    delta: "threePhaseMainsDelta",
+  },
+  fuse: {
+    body: "fuse",
+    body2: "fuse2p",
+    body3: "fuse3p",
+  },
+};
+
+export function variantCompKey(kind: string, variant?: string): string | undefined {
+  if (!variant) return undefined;
+  const mapped = VARIANT_COMP_KEY[kind]?.[variant];
+  return mapped ? `comp.${mapped}` : undefined;
+}
+
+/**
+ * Localized name for a device kind (and optional symbol variant).
+ * Never falls back to catalog KINDS.label (those strings are Chinese).
+ */
+export function componentDisplayName(kind: string, variant?: string): string {
+  const key = variantCompKey(kind, variant) ?? catalogCompKey(kind);
+  return tOr(key, TRANSLATIONS.en[key] ?? kind);
+}
+
+/** Localized variant picker label; unknown variants keep the raw key. */
+export function variantDisplayName(kind: string, variant: string): string {
+  const key = variantCompKey(kind, variant);
+  if (!key) return variant;
+  return tOr(key, TRANSLATIONS.en[key] ?? variant);
+}
 
 /** i18n key for a catalog item id, e.g. selector-2 → comp.selector2 */
 export function catalogCompKey(id: string): string {

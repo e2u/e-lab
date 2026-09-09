@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG, GROUPS, KINDS } from "./catalog";
-import { TRANSLATIONS, catalogCompKey, formatFaultMessage, setLang, tOr } from "./i18n";
+import {
+  TRANSLATIONS,
+  catalogCompKey,
+  componentDisplayName,
+  formatFaultMessage,
+  setLang,
+  t,
+  tOr,
+  variantDisplayName,
+} from "./i18n";
+
+const CJK = /[\u4e00-\u9fff]/;
 
 describe("catalog labels", () => {
   it("ensures all component variants and terminals are aligned to whole integer grid dimensions", () => {
@@ -121,6 +132,80 @@ describe("catalog labels", () => {
         expect(name, `${lang} ${g.id}`).not.toMatch(/^lib\./);
         expect(TRANSLATIONS[lang][key], `${lang} missing ${key}`).toBeDefined();
       }
+    }
+  });
+
+  it("shows English timer inspector hints when language is English", () => {
+    setLang("en");
+    for (const key of [
+      "inspector.hintTonCoil",
+      "inspector.hintTofCoil",
+      "inspector.hintTonNc",
+      "inspector.hintTonNo",
+      "inspector.hintTofNc",
+      "inspector.hintTofNo",
+      "inspector.hintTonInstNc",
+      "inspector.hintTonInstNo",
+      "inspector.hintTofInstNc",
+      "inspector.hintTofInstNo",
+      "comp.timerOn",
+      "comp.timerOff",
+    ]) {
+      const text = t(key);
+      expect(TRANSLATIONS.en[key], `en missing ${key}`).toBeDefined();
+      expect(TRANSLATIONS.zh[key], `zh missing ${key}`).toBeDefined();
+      expect(text, key).not.toMatch(CJK);
+    }
+  });
+
+  it("resolves every KINDS key to an English name without CJK", () => {
+    setLang("en");
+    for (const kind of Object.keys(KINDS)) {
+      const key = catalogCompKey(kind);
+      expect(TRANSLATIONS.en[key], `en missing ${key} for kind ${kind}`).toBeDefined();
+      const name = componentDisplayName(kind);
+      expect(name, kind).not.toMatch(CJK);
+      expect(name, kind).not.toMatch(/^(comp\.|lib\.)/);
+      expect(name.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it("resolves every kind+variant Inspector title without CJK in English", () => {
+    setLang("en");
+    for (const [kind, meta] of Object.entries(KINDS)) {
+      for (const variant of Object.keys(meta.variants)) {
+        const title = componentDisplayName(kind, variant);
+        expect(title, `${kind}:${variant}`).not.toMatch(CJK);
+        expect(title, `${kind}:${variant}`).not.toMatch(/^comp\./);
+        expect(title.trim().length, `${kind}:${variant}`).toBeGreaterThan(0);
+        const picker = variantDisplayName(kind, variant);
+        expect(picker, `${kind}:${variant} picker`).not.toMatch(CJK);
+      }
+    }
+    expect(componentDisplayName("timer-on", "delayed-nc")).toBe("TON NC (Timed Open) 15-16");
+    expect(componentDisplayName("contactor", "aux-nc")).toBe("Contactor NC 21-22");
+    expect(componentDisplayName("overload", "aux-nc")).toBe("Overload Aux NC 95-96");
+  });
+
+  it("keeps every English catalog and comp.* string free of CJK", () => {
+    setLang("en");
+    for (const item of CATALOG) {
+      const key = catalogCompKey(item.id);
+      expect(item.labelEn, item.id).not.toMatch(CJK);
+      expect(t(key), key).not.toMatch(CJK);
+    }
+    for (const [key, value] of Object.entries(TRANSLATIONS.en)) {
+      if (!key.startsWith("comp.") && !key.startsWith("inspector.hint")) continue;
+      expect(value, key).not.toMatch(CJK);
+    }
+  });
+
+  it("does not fall back to Chinese KINDS.label on English Inspector titles", () => {
+    setLang("en");
+    for (const [kind, meta] of Object.entries(KINDS)) {
+      if (!CJK.test(meta.label)) continue;
+      const name = componentDisplayName(kind);
+      expect(name, kind).not.toBe(meta.label);
     }
   });
 

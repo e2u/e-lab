@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { addDevice, addSymbol, addWire, emptyCircuit, splitWireAt } from "../circuitBuilder";
-import { GRID } from "../types";
+import { GRID, type DeviceKind } from "../types";
+import { KINDS } from "../catalog";
 import { wireRoute } from "../geometry";
 import { selectorReversing, selfHoldMotor, starDeltaStart } from "../examples";
 import { createRuntime, emptySnapshot, PHASE_COLOR, tick } from "./engine";
@@ -737,6 +738,213 @@ describe("sim engine", () => {
     const afterTrip = tick(c, tripped, { held: new Set([start.device.id]), process }, 50, 50);
     expect(afterTrip.faults.filter((f) => f.msgKey === "fault.shortCircuit")).toHaveLength(0);
     expect(afterTrip.runtime[m1.device.id].energized).toBe(false);
+  });
+
+  describe("parallel aux contacts do not short", () => {
+    function shorts(snap: ReturnType<typeof run>) {
+      return snap.faults.filter((f) => f.msgKey === "fault.shortCircuit");
+    }
+
+    const CASES: {
+      kind: DeviceKind;
+      hostVariant: string;
+      contactVariant: string;
+      label: string;
+    }[] = [];
+    for (const kind of ["contactor", "relay", "timer-on", "timer-off", "overload"] as const) {
+      const hostVariant = kind === "overload" ? "body" : "coil";
+      for (const contactVariant of Object.keys(KINDS[kind].variants)) {
+        if (contactVariant === "coil" || contactVariant === "body" || contactVariant === "main") continue;
+        CASES.push({ kind, hostVariant, contactVariant, label: `${kind} ${contactVariant}` });
+      }
+    }
+
+    function build(kind: DeviceKind, hostVariant: string, contactVariant: string, layout: "parallel" | "split") {
+      const terms = KINDS[kind].variants[contactVariant].terminals.map((t) => t.id);
+      const tA = terms[0];
+      const tB = terms[terms.length - 1];
+      const c = emptyCircuit();
+      const g = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
+      const xf = addDevice(c, "transformer", "TC1", "body", 4, 0);
+      addWire(c, g.symbol, "L1", xf.symbol, "H1");
+      addWire(c, g.symbol, "L2", xf.symbol, "H2");
+      const host = addDevice(c, kind, "D1", hostVariant, 8, 0, kind.startsWith("timer") ? { delayMs: 80 } : {});
+      const p1 = addSymbol(c, host.device.id, contactVariant, 8, 8);
+      const p2 = addSymbol(c, host.device.id, contactVariant, 8, 12);
+      const hl = addDevice(c, "lamp", "HL1", "body", 16, 8);
+      if (layout === "parallel") {
+        addWire(c, xf.symbol, "X1", p1, tA);
+        addWire(c, xf.symbol, "X1", p2, tA);
+        addWire(c, p1, tB, hl.symbol, "1");
+        addWire(c, p2, tB, hl.symbol, "1");
+        addWire(c, hl.symbol, "2", xf.symbol, "X2");
+      } else {
+        addWire(c, xf.symbol, "X1", p1, tA);
+        addWire(c, p1, tB, hl.symbol, "1");
+        addWire(c, hl.symbol, "2", p2, tA);
+        addWire(c, p2, tB, xf.symbol, "X2");
+      }
+      return { c, xf, host, hl };
+    }
+
+    function activate(c: ReturnType<typeof emptyCircuit>, hostId: string, kind: DeviceKind, contactVariant: string) {
+      if (kind === "overload") {
+        const rt = createRuntime(c);
+        rt[hostId].tripped = true;
+        return tick(c, rt, { held: new Set(), process }, 50, 50);
+      }
+      const hostSym = c.symbols.find((s) => s.deviceId === hostId && s.variant === (kind === "overload" ? "body" : "coil"));
+      const xf = c.devices.find((d) => d.kind === "transformer")!;
+      const xfSym = c.symbols.find((s) => s.deviceId === xf.id)!;
+      if (hostSym) {
+        addWire(c, xfSym, "X1", hostSym, "A1");
+        addWire(c, hostSym, "A2", xfSym, "X2");
+      }
+      const steps = kind.startsWith("timer") && contactVariant.startsWith("delayed") ? 6 : 3;
+      return run(c, [], steps, 50);
+    }
+
+    it("covers every attachable NC/NO/timer contact variant", () => {
+      expect(CASES.map((x) => x.label).sort()).toEqual(
+        [
+          "contactor aux-nc",
+          "contactor aux-nc2",
+          "contactor aux-no",
+          "contactor aux-no2",
+          "overload aux-nc",
+          "overload aux-no",
+          "relay aux-nc",
+          "relay aux-nc2",
+          "relay aux-no",
+          "relay aux-no2",
+          "timer-off delayed-nc",
+          "timer-off delayed-no",
+          "timer-off inst-nc",
+          "timer-off inst-no",
+          "timer-on delayed-nc",
+          "timer-on delayed-no",
+          "timer-on inst-nc",
+          "timer-on inst-no",
+        ].sort(),
+      );
+    });
+
+    for (const layout of ["parallel", "split"] as const) {
+      for (const spec of CASES) {
+        it(`${spec.label} two copies ${layout} never short X1/X2`, () => {
+          const idleClosed = spec.contactVariant.includes("-nc");
+          const { c, host, hl } = build(spec.kind, spec.hostVariant, spec.contactVariant, layout);
+          const idle = run(c, []);
+          expect(shorts(idle), `${spec.label} idle ${layout}`).toHaveLength(0);
+          expect(idle.runtime[hl.device.id].lit).toBe(idleClosed);
+
+          const active = activate(c, host.device.id, spec.kind, spec.contactVariant);
+          expect(shorts(active), `${spec.label} active ${layout}`).toHaveLength(0);
+          expect(active.runtime[hl.device.id].lit).toBe(!idleClosed);
+        });
+      }
+    }
+
+    it("contactor NO || NC of the same coil stays conducting and does not short", () => {
+      const c = emptyCircuit();
+      const g = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
+      const xf = addDevice(c, "transformer", "TC1", "body", 4, 0);
+      addWire(c, g.symbol, "L1", xf.symbol, "H1");
+      addWire(c, g.symbol, "L2", xf.symbol, "H2");
+      const km = addDevice(c, "contactor", "KM1", "coil", 8, 0);
+      const no = addSymbol(c, km.device.id, "aux-no", 8, 8);
+      const nc = addSymbol(c, km.device.id, "aux-nc", 8, 12);
+      const hl = addDevice(c, "lamp", "HL1", "body", 16, 8);
+      addWire(c, xf.symbol, "X1", no, "13");
+      addWire(c, xf.symbol, "X1", nc, "21");
+      addWire(c, no, "14", hl.symbol, "1");
+      addWire(c, nc, "22", hl.symbol, "1");
+      addWire(c, hl.symbol, "2", xf.symbol, "X2");
+
+      const idle = run(c, []);
+      expect(shorts(idle)).toHaveLength(0);
+      expect(idle.runtime[hl.device.id].lit).toBe(true);
+
+      addWire(c, xf.symbol, "X1", km.symbol, "A1");
+      addWire(c, km.symbol, "A2", xf.symbol, "X2");
+      const on = run(c, [], 3);
+      expect(shorts(on)).toHaveLength(0);
+      expect(on.runtime[km.device.id].energized).toBe(true);
+      expect(on.runtime[hl.device.id].lit).toBe(true);
+    });
+  });
+
+  describe("coil and contacts are internally isolated until wired", () => {
+    const HOSTS: { kind: DeviceKind; hostVariant: string }[] = [
+      { kind: "contactor", hostVariant: "coil" },
+      { kind: "relay", hostVariant: "coil" },
+      { kind: "timer-on", hostVariant: "coil" },
+      { kind: "timer-off", hostVariant: "coil" },
+      { kind: "overload", hostVariant: "body" },
+    ];
+
+    function powerHost(
+      c: ReturnType<typeof emptyCircuit>,
+      xfSym: ReturnType<typeof addDevice>["symbol"],
+      host: ReturnType<typeof addDevice>,
+      hostVariant: string,
+    ) {
+      if (hostVariant === "coil") {
+        addWire(c, xfSym, "X1", host.symbol, "A1");
+        addWire(c, host.symbol, "A2", xfSym, "X2");
+      } else {
+        // Feed only the line side. Completing L1-T1 to X2 would short because
+        // the thermal path is a closed bridge until the relay trips.
+        addWire(c, xfSym, "X1", host.symbol, "L1");
+      }
+    }
+
+    for (const host of HOSTS) {
+      const contactVariants = Object.keys(KINDS[host.kind].variants).filter(
+        (v) => v !== "coil" && v !== "body" && v !== "main",
+      );
+      for (const contactVariant of contactVariants) {
+        it(`${host.kind} ${host.hostVariant} does not feed ${contactVariant} without contact wiring`, () => {
+          const terms = KINDS[host.kind].variants[contactVariant].terminals.map((t) => t.id);
+          const c = emptyCircuit();
+          const g = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
+          const xf = addDevice(c, "transformer", "TC1", "body", 4, 0);
+          addWire(c, g.symbol, "L1", xf.symbol, "H1");
+          addWire(c, g.symbol, "L2", xf.symbol, "H2");
+          const dev = addDevice(c, host.kind, "D1", host.hostVariant, 8, 0, { delayMs: 80 });
+          const pole = addSymbol(c, dev.device.id, contactVariant, 8, 8);
+          const hl = addDevice(c, "lamp", "HL1", "body", 16, 8);
+
+          powerHost(c, xf.symbol, dev, host.hostVariant);
+          addWire(c, pole, terms[0], hl.symbol, "1");
+          addWire(c, hl.symbol, "2", xf.symbol, "X2");
+
+          const idle = run(c, [], 3, 50);
+          expect(idle.faults.filter((f) => f.msgKey === "fault.shortCircuit")).toHaveLength(0);
+          expect(idle.runtime[hl.device.id].lit, `${host.kind} ${contactVariant} idle leak`).toBe(false);
+
+          if (host.kind === "overload") {
+            const rt = createRuntime(c);
+            rt[dev.device.id].tripped = true;
+            const tripped = tick(c, rt, { held: new Set(), process }, 50, 50);
+            expect(tripped.faults.filter((f) => f.msgKey === "fault.shortCircuit")).toHaveLength(0);
+            expect(tripped.runtime[hl.device.id].lit, `${host.kind} ${contactVariant} tripped leak`).toBe(false);
+          } else {
+            const late = run(c, [], 6, 50);
+            expect(late.faults.filter((f) => f.msgKey === "fault.shortCircuit")).toHaveLength(0);
+            expect(late.runtime[hl.device.id].lit, `${host.kind} ${contactVariant} energized leak`).toBe(false);
+          }
+
+          const other = addDevice(c, "lamp", "HL2", "body", 20, 8);
+          addWire(c, pole, terms[terms.length - 1], other.symbol, "1");
+          addWire(c, other.symbol, "2", xf.symbol, "X2");
+          const bothPins = run(c, [], 6, 50);
+          expect(bothPins.faults.filter((f) => f.msgKey === "fault.shortCircuit")).toHaveLength(0);
+          expect(bothPins.runtime[hl.device.id].lit, `${host.kind} ${contactVariant} pinA leak`).toBe(false);
+          expect(bothPins.runtime[other.device.id].lit, `${host.kind} ${contactVariant} pinB leak`).toBe(false);
+        });
+      }
+    }
   });
 
   it("colors wires according to their phase in both edit and run modes", () => {

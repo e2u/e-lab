@@ -484,7 +484,10 @@ function nk(id: string, term: string): string {
   return nodeKey(id, term);
 }
 
-/** Aux / delayed contacts drawn as their own symbols. Each copy is an independent pole. */
+/**
+ * Aux / delayed contacts drawn as their own symbols. Each copy is an independent pole
+ * (Contactor/Relay NO·NC, Timer NOTC·NOTO·NCTC·NCTO plus inst NO/NC, Overload 95-96 / 97-98).
+ */
 function isPerSymbolContact(kind: DeviceKind, variant: string): boolean {
   if (
     variant === "aux-nc" ||

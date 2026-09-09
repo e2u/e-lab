@@ -21,10 +21,10 @@
 ## 📖 Introduction / 簡介
 
 ### English
-**e-lab** is an interactive, browser-based electrical and industrial automation circuit simulation laboratory. It allows users to place electrical components, draw orthogonal wires, toggle between Edit and Run simulation modes, view NEMA/JIC industrial ladder logic diagrams, and test complex industrial control circuits in real-time—including 3-phase power supplies, control transformers, contactors, relays, timers, push buttons, limit switches, protection devices, motors, and measuring instruments.
+**e-lab** is an interactive, browser-based electrical and industrial automation circuit simulation laboratory. Place components, route orthogonal wires, switch among **Edit**, **Wiring**, and **Run**, number wires by electrical net, annotate the sheet, and simulate industrial control circuits in the browser—including 3-phase supplies, control transformers, contactors, relays, timers, push buttons, sensors, overload protection, motors, and meters.
 
 ### 中文
-**e-lab** 是一個基於 Web 的電子電氣與工控電路模擬實驗室。使用者可以在瀏覽器中自由放置電氣元件、繪製正交接線、切換編輯與運行仿真模式、同步檢視標準 NEMA/JIC 梯形圖（Ladder Diagram），並即時模擬三相電源、控制變壓器、接觸器、中間繼電器、時間繼電器、按鈕開關、行程開關、熱過載保護、馬達動力迴路與測量儀表等各類工控電路。
+**e-lab** 是一個基於 Web 的電子電氣與工控電路模擬實驗室。使用者可以在瀏覽器中放置電氣元件、繪製正交接線，在**編輯 / 配線 / 運行**模式之間切換，按電氣網絡自動編號導線、加上圖紙備註，並即時模擬三相電源、控制變壓器、接觸器、中間繼電器、時間繼電器、按鈕開關、感測器、熱過載保護、馬達動力迴路與測量儀表等工控電路。
 
 ---
 
@@ -35,14 +35,18 @@
   - 基於並查集與拓撲圖的電氣節點求解器，即時計算電位分佈、自鎖、互鎖與設備動態狀態。
   - Supports 3-phase Wye (Y) and Delta (Δ) power supplies, multi-PE grounding, and short-circuit strobe warnings.
   - 支援三相 Y 形與 Δ 形電源切換、多點 PE 接地共存與短路頻閃警報。
+  - Each auxiliary / timer contact pole is electrically independent, so parallel copies of the same device contact do not short.
+  - 同一裝置的輔助／延時觸點按符號獨立成極，並聯多份相同觸點不會誤判短路。
 
-- **🪜 Industrial Ladder Diagram Mode / 工控梯形圖模式 (NEMA / JIC)**
-  - Dual layout views: Seamlessly toggle between Wiring Schematic and Ladder Logic Diagram views.
-  - 原理圖與梯形圖雙視圖：支援一鍵在接線原理圖與 PLC / 工控階梯圖之間無縫切換。
-  - Automated DFS netlist analysis to synthesize ladder rungs from schematic wiring.
-  - 內建 DFS 網絡拓撲分析算法，自動將電路接線圖轉換合成為標準梯形圖行（Rung）。
-  - Drag-and-drop rung reordering and interactive contact / coil insertion modal.
-  - 支援階梯行自由拖曳重排，提供專屬彈窗快速插入常開/常閉接點、線圈與定時器。
+- **✏️ Edit, Wiring & Run / 編輯、配線與運行**
+  - Edit mode moves, rotates, and groups symbols without creating wires; Wiring mode draws wires and junction points; Run mode simulates the live circuit.
+  - 編輯模式負責拖曳、旋轉與編組（不拉線）；配線模式拉線與增刪連接點；運行模式即時仿真。
+
+- **🔢 Connectivity-Based Wire Numbers / 按電氣網絡編號導線**
+  - Union-Find groups electrically connected wires so one net shares one number; auto-label skips reserved tags (transformer X1/X2 or DC ± as 1/2; L1/L2/L3/N as 90–93).
+  - 以並查集把電氣相連的導線編成同一線號；自動編號會保留變壓器 X1/X2 或直流正負為 1/2，以及 L1/L2/L3/N 為 90–93。
+  - Labels sit in an empty circle on the longest segment of the net, can be dragged along the path, and refuse duplicate numbers on other nets.
+  - 線號圓圈顯示在該網絡最長線段上，可沿路徑拖曳；手動改號會檢查其他網絡是否衝突。
 
 - **📐 Smart Orthogonal Wire Routing / 智能正交佈線**
   - Channel-aware orthogonal routing with automatic parallel lane allocation to prevent overlapping wires and crossovers.
@@ -66,9 +70,11 @@
   - Real-time sampling trend chart with dynamic Y-axis scaling, hover tooltips, and statistics.
   - 即時歷史波形趨勢曲線圖，具備動態 Y 軸縮放、懸停數值指示與極值統計卡片。
 
-- **📑 Engineering Annotations & Precision Rulers / 工程標註與工規標尺**
-  - Industrial Title Block component with customizable metadata (Project Name, Rev, Date).
-  - 標準工程圖紙標題欄元件，支援專案名稱、圖號、修訂版本與日期標註。
+- **📑 Engineering Annotations, Groups & Precision Rulers / 工程標註、編組與工規標尺**
+  - Industrial Title Block (project name, drawing no., rev, date) and comment cards with optional leader lines bound to a device or a group.
+  - 標準工程圖紙標題欄（專案名稱、圖號、修訂、日期），以及可綁定元件或群組、可顯示指引線的備註框。
+  - Multi-select grouping with named/colored frames; groups, comments, and device tags can stay visible in Edit/Run (translucent) while omitted from print.
+  - 多選編組、命名與顏色框；群組、備註與裝置標籤可在編輯／運行中半透明顯示，列印時隱藏。
   - Precision edge rulers on PC canvas with dynamic pointer coordinate tracking.
   - PC 畫布邊緣精密工規標尺與鼠標動態指示線。
 
@@ -91,8 +97,12 @@
 - **🌗 Modern Themes & i18n / 雙色外觀主題與雙語支援**
   - Industrial Light (Default) and Dark themes with one-click instant toggle and persistence.
   - 現代工規淺色（預設）與深色主題，支援一鍵切換與本地持久化。
-  - Complete English and Traditional Chinese (zh-TW / zh-CN) internationalization.
-  - 100% 覆蓋的繁體中文 / 英文雙語國際化字典切換。
+  - English and Traditional Chinese (`en` / `zh`) UI, including component library and inspector names.
+  - 英文與繁體中文介面切換，元件庫與屬性檢查器名稱隨語言顯示。
+
+- **🧪 Optional: Ladder view & Auto Layout / 可選：梯形圖與自動排版**
+  - NEMA/JIC ladder synthesis and auto-layout exist in the codebase but are **off by default** (`ENABLE_LADDER` / `ENABLE_AUTO_LAYOUT` compile flags). GitHub Pages and a plain `yarn dev` / `deno task dev` do not show them unless the env vars below are set.
+  - 梯形圖合成與自動排版已實作，但**預設關閉**。GitHub Pages 與一般 `yarn dev` / `deno task dev` 不會顯示，除非設定下列環境變數。
 
 ---
 
@@ -133,17 +143,32 @@ yarn build
 ```
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
+Optional compile-time flags (default **off**):
+
+```bash
+# Show ladder diagram UI / 顯示梯形圖
+VITE_ENABLE_LADDER=true yarn dev
+
+# Show auto-layout action / 顯示自動排版
+VITE_ENABLE_AUTO_LAYOUT=true yarn dev
+```
+
+The same `VITE_ENABLE_LADDER` / `VITE_ENABLE_AUTO_LAYOUT` variables work with `deno task dev` and production builds.  
+上述變數同樣適用於 `deno task dev` 與正式構建。
+
 ---
 
 ## 📋 Makefile Commands / Makefile 命令一覽
 
 | Command / 命令 | Description / 說明 |
 |---|---|
+| `make help` | List available targets / 列出可用命令 |
 | `make install` | Install dependencies / 安裝依賴 (`yarn install`) |
 | `make dev` | Start development server / 啟動開發服務器 (`yarn dev`) |
 | `make build` | Build production bundle / 構建生產版本 (`yarn build`) |
 | `make preview` | Preview production bundle / 預覽生產版本 (`yarn preview`) |
 | `make test` | Run unit tests / 運行單元測試 (`yarn test`) |
+| `make deploy` | Print GitHub Pages deploy instructions / 顯示 GitHub Pages 部署說明 |
 | `make clean` | Clean build artifacts / 清理構建產物 `dist/` |
 
 ---
@@ -166,58 +191,42 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 ```plain text
 src/
   ├── sim/                  # Simulation engine / 仿真引擎 (Union-Find, potential, dynamic states)
-  │   ├── engine.ts         # Electrical graph solver & meter calculations / 節點求解與物理量測計算
-  │   └── engine.test.ts    # Simulation engine unit tests / 仿真引擎單元測試
-  ├── ladder/               # Industrial Ladder diagram engine / 工控梯形圖模組
-  │   ├── ladderTypes.ts    # Ladder data model / 梯形圖數據模型
-  │   ├── ladderLayout.ts   # DFS netlist graph pathfinder & rung layout / 網絡圖拓撲分析與階梯行生成
-  │   ├── LadderGlyphs.tsx  # NEMA/JIC industrial standard ladder glyphs / 標準梯形圖圖元
-  │   ├── LadderItemPickerModal.tsx # Component insertion modal / 接點與線圈插入彈窗
-  │   └── ladderSynthesis.ts # Bidirectional circuit synthesis / 雙向電路合成與佈線
-  ├── tutorial/             # Interactive onboarding tutorial / 互動新手指引系統
-  │   ├── types.ts          # Step & circuit definitions / 引導步驟與階段型別
-  │   ├── tutorialData.ts   # PC & Mobile step data & dictionary / PC 與移動端引導數據
-  │   ├── stageCircuits.ts  # Demo circuits for each step / 各階段電路演示數據
-  │   └── TutorialOverlay.tsx # Spotlight highlight & guide cards / 聚焦點遮罩與步驟卡片
-  ├── examples/             # Built-in examples / 內建工控範例 (JSON circuits & loaders)
-  │   ├── list.json         # Example metadata list / 範例清單配置
-  │   ├── index.ts          # Dynamic example loader / 動態範例載入器
-  │   └── *.json            # 20+ Industrial Circuit JSON templates / 20+ 內建電路範例檔
-  ├── examplesBuilder.ts    # Procedural example generator / 程式化範例電路構造器
-  ├── ui/                   # UI components & Layered canvas / UI 組件與分層畫布
-  │   ├── schematic/        # Layered schematic canvas / 原理圖分層畫布架構
-  │   │   ├── layers/       # Rendering layers / 獨立渲染圖層 (WireLayer, SymbolLayer, PortLayer, etc.)
-  │   │   ├── useSchematicEvents.ts # Pointer events, gestures & rAF throttling / 指針事件與手勢
-  │   │   ├── interact.ts   # Runtime device interaction & haptics / 運行模式互動與觸覺回饋
-  │   │   └── Ruler.tsx     # Precision canvas edge rulers / 畫布邊緣工規標尺
-  │   ├── Schematic.tsx     # Schematic canvas root container / 原理圖主容器
-  │   ├── LadderSchematic.tsx # Ladder diagram canvas & rung drag-drop / 梯形圖畫布與拖曳重排
-  │   ├── Palette.tsx       # Component palette drawer / 左側元件庫
-  │   ├── Inspector.tsx     # Property inspector / 右側屬性檢查器
-  │   ├── Bench.tsx         # Motor & meter workbench / 運行工作台
-  │   ├── FloatingActionBar.tsx # Mobile quick action bar / 行動端浮動快捷工具列
-  │   ├── PrintModal.tsx    # Print options & preview modal / 列印選項與預覽彈窗
-  │   ├── MeterHistoryChart.tsx # Waveform trend chart & stats / 儀表歷史波形趨勢圖
-  │   ├── MobileMenuModal.tsx # Mobile full-feature menu sheet / 行動端功能選單抽屜
-  │   ├── FilesMenu.tsx     # Topbar files dropdown menu / 檔案管理下拉選單
-  │   ├── DiscardModal.tsx  # Unsaved changes confirmation / 未保存變更確認彈窗
-  │   ├── ErrorBoundary.tsx # React error boundary container / 異常邊界捕獲容器
-  │   └── TogglePanelButton.tsx # Collapsible sidebar toggle button / 側邊欄展開收起按鈕
-  ├── catalog.ts            # Component catalog & 2-grid terminal standards / 元件目錄與端子定義
-  ├── Glyphs.tsx            # Schematic SVG component glyphs / 原理圖 SVG 元件圖形繪製
-  ├── geometry.ts           # Orthogonal routing, lane allocation & hops / 正交佈線、空間分軌與跨線檢測
-  ├── tagPlacement.ts       # Symbol tag positioning calculations / 元件標籤位置計算
-  ├── groups.ts             # Group alignment, distribution & colors / 群組對齊與等間距分佈
-  ├── print.ts              # Auto-crop content bounds algorithm / 列印內容包圍盒自動裁剪算法
-  ├── persist.ts            # Local storage, validation & URL hash / 本地持久化、結構校驗與 URL 分享
-  ├── firebase.ts           # Firebase client initialization & fallback / Firebase 客戶端初始化與降級
-  ├── analytics.ts          # Telemetry & event tracking module / 數據遙測與自訂事件追蹤
-  ├── errorLogger.ts        # Global exception interception & Firestore logging / 全域異常攔截與日誌
-  ├── store.ts              # Zustand state center (isDirty, zoom, undo stack) / 全局狀態中心
-  ├── types.ts              # Global TypeScript interfaces / 全局型別定義
-  ├── i18n.ts               # Bilingual dictionary (ZH/EN 100% coverage) / 雙語國際化字典
-  ├── App.tsx               # App shell, responsive layout & hotkeys / 應用主殼層與頂部導航
-  └── styles.css            # Responsive styles & light/dark themes / 響應式佈局與深淺雙主題
+  │   └── engine.ts         # Electrical graph solver, contact poles & meters / 節點求解、觸點極與量測
+  ├── ladder/               # Ladder diagram engine (feature-flagged) / 梯形圖模組（編譯開關）
+  ├── layout/               # Auto-layout of power & control rungs (feature-flagged) / 動力與控制迴路自動排版
+  ├── tutorial/             # Interactive onboarding tutorial / 互動新手指引
+  ├── examples/             # Built-in examples / 內建工控範例 (JSON + loader)
+  ├── examplesBuilder.ts    # Procedural example generator / 程式化範例構造器
+  ├── circuitBuilder.ts     # Add/remove devices, symbols, wires, junctions / 增刪元件、導線與連接點
+  ├── ui/                   # UI components & layered canvas / UI 與分層畫布
+  │   ├── schematic/        # Schematic canvas / 原理圖畫布
+  │   │   ├── layers/       # Wire, symbol, port, interaction overlays / 導線、符號、端子與互動層
+  │   │   ├── useSchematicEvents.ts
+  │   │   ├── interact.ts
+  │   │   └── Ruler.tsx
+  │   ├── Schematic.tsx
+  │   ├── LadderSchematic.tsx
+  │   ├── Palette.tsx       # Component library / 元件庫
+  │   ├── Inspector.tsx     # Properties, wire numbers, comments / 屬性、線號、備註
+  │   ├── ContextMenu.tsx   # Canvas context menu / 畫布右鍵選單
+  │   ├── Bench.tsx
+  │   ├── PrintModal.tsx
+  │   ├── PanelResizer.tsx
+  │   └── ...
+  ├── catalog.ts            # Component catalog & terminals / 元件目錄與端子
+  ├── Glyphs.tsx            # Schematic SVG glyphs / 原理圖 SVG
+  ├── geometry.ts           # Orthogonal routing & wire-label placement / 正交佈線與線號位置
+  ├── tagPlacement.ts       # Device tag offsets / 裝置標籤偏移
+  ├── groups.ts             # Groups, alignment, print-hide ids / 編組、對齊、列印隱藏
+  ├── print.ts              # Print content bounds / 列印包圍盒
+  ├── persist.ts            # Local saves & URL hash / 本地存檔與分享連結
+  ├── features.ts           # ENABLE_LADDER / ENABLE_AUTO_LAYOUT flags / 編譯開關
+  ├── keyboard.ts           # Hotkeys / 快捷鍵
+  ├── i18n.ts               # en / zh dictionary / 英／繁字典
+  ├── store.ts              # Zustand store (circuit, sim, undo, wire labels) / 全局狀態
+  ├── types.ts
+  ├── App.tsx
+  └── styles.css
 ```
 
 ---

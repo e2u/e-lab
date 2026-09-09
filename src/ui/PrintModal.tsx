@@ -121,6 +121,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
           routes={routes}
           crossovers={crossovers}
           showWireLabels={showWireLabels}
+          omitPrintHidden
           onWireContextMenu={() => {}}
           onWirePointerDown={() => {}}
         />
@@ -133,6 +134,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
           selectedIds={[]}
           selectedNetTag=""
           held={[]}
+          omitPrintHidden
           onSymbolContextMenu={() => {}}
           onSymbolPointerDown={() => {}}
           onSymbolPointerUp={() => {}}

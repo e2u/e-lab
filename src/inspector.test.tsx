@@ -33,4 +33,16 @@ describe("Selection & Tag Isolation", () => {
     expect(useLab.getState().circuit.wires.find((w) => w.id === wire.id)?.label).toBe("W1");
     expect(useLab.getState().circuit.devices.find((d) => d.id === devA.id)?.tag).toBe("Ground");
   });
+
+  it("toggles hideTag on a device without changing the tag text", () => {
+    const s = useLab.getState();
+    s.setPlacing("lamp");
+    s.placeAt(6, 6);
+    const dev = useLab.getState().circuit.devices.find((d) => d.kind === "lamp")!;
+    const tag = dev.tag;
+    s.updateDevice(dev.id, { hideTag: true });
+    const updated = useLab.getState().circuit.devices.find((d) => d.id === dev.id)!;
+    expect(updated.params.hideTag).toBe(true);
+    expect(updated.tag).toBe(tag);
+  });
 });

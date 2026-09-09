@@ -241,6 +241,67 @@ export function Inspector() {
                 />
               ))}
             </div>
+            <label>
+              {t("inspector.groupComment")}
+              <textarea
+                key={`group-comment-${asGroup.id}`}
+                rows={3}
+                value={asGroup.name ?? ""}
+                placeholder={t("inspector.groupCommentPlaceholder")}
+                style={{ width: "100%", padding: "6px 8px", fontSize: "13px", resize: "vertical" }}
+                onChange={(e) => useLab.getState().updateGroup(asGroup.id, { name: e.target.value })}
+              />
+            </label>
+            <label className="chk">
+              <input
+                type="checkbox"
+                checked={Boolean(asGroup.hideOnPrint)}
+                onChange={(e) => useLab.getState().updateGroup(asGroup.id, { hideOnPrint: e.target.checked })}
+              />
+              {t("inspector.hideGroupOnPrint")}
+            </label>
+            <p className="hint">{t("inspector.hideGroupOnPrintHint")}</p>
+            <button
+              type="button"
+              className="btn"
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+              onClick={() => useLab.getState().addCommentForGroup(asGroup.id)}
+            >
+              💬 {t("inspector.addComment")}
+            </button>
+            {(() => {
+              const boundComments = circuit.devices.filter(
+                (d) => d.kind === "comment" && d.params?.targetGroupId === asGroup.id,
+              );
+              if (!boundComments.length) return null;
+              return (
+                <div style={{ marginTop: "6px" }}>
+                  <span className="hint" style={{ fontSize: "11px", fontWeight: "bold" }}>
+                    {t("inspector.boundComments")}:
+                  </span>
+                  {boundComments.map((cd) => {
+                    const csym = circuit.symbols.find((s) => s.deviceId === cd.id);
+                    return (
+                      <div key={cd.id} style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "3px" }}>
+                        <span style={{ fontSize: "11px", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          📝 {cd.params?.text || cd.tag}
+                        </span>
+                        {csym && (
+                          <button
+                            type="button"
+                            className="btn"
+                            style={{ padding: "2px 6px", fontSize: "10px" }}
+                            onClick={() => useLab.getState().select({ type: "symbol", id: csym.id }, true)}
+                          >
+                            {t("inspector.jumpTo")}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
         <p className="hint">{t("inspector.hint.dragMove")}</p>
@@ -381,10 +442,22 @@ export function Inspector() {
             <span>{t("inspector.bindTarget")}</span>
             <select
               key={`comment-bind-${dev.id}`}
-              value={dev.params.targetDeviceId ?? ""}
-              onChange={(e) => useLab.getState().updateDevice(dev.id, { targetDeviceId: e.target.value })}
+              value={dev.params.targetGroupId ? `g:${dev.params.targetGroupId}` : (dev.params.targetDeviceId ?? "")}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v.startsWith("g:")) {
+                  useLab.getState().updateDevice(dev.id, { targetGroupId: v.slice(2), targetDeviceId: "" });
+                } else {
+                  useLab.getState().updateDevice(dev.id, { targetDeviceId: v, targetGroupId: "" });
+                }
+              }}
             >
               <option value="">{t("inspector.noneUnbound")}</option>
+              {(circuit.groups ?? []).map((g) => (
+                <option key={g.id} value={`g:${g.id}`}>
+                  {t("lib.group")}{g.name?.trim() ? ` · ${g.name.trim()}` : ` · ${g.memberIds.length}`}
+                </option>
+              ))}
               {circuit.devices
                 .filter((d) => d.id !== dev.id && d.kind !== "comment" && d.kind !== "junction" && d.kind !== "title-block")
                 .map((d) => (
@@ -403,6 +476,16 @@ export function Inspector() {
             />
             {t("inspector.showLeaderLine")}
           </label>
+          <label className="chk">
+            <input
+              key={`comment-hide-print-${dev.id}`}
+              type="checkbox"
+              checked={Boolean(dev.params.hideOnPrint)}
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { hideOnPrint: e.target.checked })}
+            />
+            {t("inspector.hideGroupOnPrint")}
+          </label>
+          <p className="hint">{t("inspector.hideCommentOnPrintHint")}</p>
           <label>
             <span>{t("inspector.bgColor")}</span>
             <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
@@ -607,6 +690,20 @@ export function Inspector() {
               onChange={(e) => useLab.getState().updateDevice(dev.id, { tag: e.target.value })}
             />
           </label>
+          {dev.kind !== "net-label" && (
+            <>
+              <label className="chk">
+                <input
+                  key={`dev-hide-tag-${dev.id}`}
+                  type="checkbox"
+                  checked={Boolean(dev.params.hideTag)}
+                  onChange={(e) => useLab.getState().updateDevice(dev.id, { hideTag: e.target.checked })}
+                />
+                {t("inspector.hideDeviceTag")}
+              </label>
+              <p className="hint">{t("inspector.hideDeviceTagHint")}</p>
+            </>
+          )}
           {dev.kind === "net-label" ? (
             <NetLabelHint circuit={circuit} deviceId={dev.id} tag={dev.tag} />
           ) : (

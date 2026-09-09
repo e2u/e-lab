@@ -148,12 +148,13 @@ export function emptySnapshot(circuit: Circuit): SimSnapshot {
   for (const d of circuit.devices) {
     for (const term of allTerminals(d.kind)) uf.add(nk(d.id, term));
   }
+  addContactSymbolNodes(circuit, uf);
 
   for (const w of circuit.wires) {
     if (w.broken) continue;
-    const a = portDevice(circuit, w.a);
-    const b = portDevice(circuit, w.b);
-    if (a && b) link(nk(a.deviceId, a.term), nk(b.deviceId, b.term));
+    const na = portNk(circuit, w.a);
+    const nb = portNk(circuit, w.b);
+    if (na && nb) link(na, nb);
   }
 
   linkNetLabels(circuit, link);
@@ -165,6 +166,7 @@ export function emptySnapshot(circuit: Circuit): SimSnapshot {
     const variant = sym?.variant;
     for (const [a, b] of bridges(d, rt, variant)) link(nk(d.id, a), nk(d.id, b));
   }
+  linkPerSymbolContacts(circuit, runtime, link);
 
   const stamp = new Map<string, Potential[]>();
   const stampNode = (deviceId: string, term: string, p: Potential) => {
@@ -229,11 +231,11 @@ export function emptySnapshot(circuit: Circuit): SimSnapshot {
     } else if (directB) {
       kind = directB;
     } else {
-      const a = portDevice(circuit, w.a);
-      const b = portDevice(circuit, w.b);
+      const na = portNk(circuit, w.a);
+      const nb = portNk(circuit, w.b);
       let p: Potential | null = null;
-      if (a) p = potOf(stamp, uf, nk(a.deviceId, a.term));
-      if (!p && b) p = potOf(stamp, uf, nk(b.deviceId, b.term));
+      if (na) p = potOf(stamp, uf, na);
+      if (!p && nb) p = potOf(stamp, uf, nb);
       kind = p?.kind ?? null;
     }
     wires[w.id] = { live: false, kind, dir: 0 };
@@ -480,6 +482,91 @@ function potOf(
 
 function nk(id: string, term: string): string {
   return nodeKey(id, term);
+}
+
+/** Aux / delayed contacts drawn as their own symbols. Each copy is an independent pole. */
+function isPerSymbolContact(kind: DeviceKind, variant: string): boolean {
+  if (
+    variant === "aux-nc" ||
+    variant === "aux-no" ||
+    variant === "aux-nc2" ||
+    variant === "aux-no2" ||
+    variant === "delayed-nc" ||
+    variant === "delayed-no" ||
+    variant === "inst-nc" ||
+    variant === "inst-no"
+  ) {
+    return kind === "overload" || kind === "contactor" || kind === "relay" || kind === "timer-on" || kind === "timer-off";
+  }
+  return false;
+}
+
+function portNk(circuit: Circuit, ref: PortRef): string | null {
+  const sym = circuit.symbols.find((s) => s.id === ref.symbolId);
+  if (!sym) return null;
+  const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+  if (!dev) return null;
+  if (isPerSymbolContact(dev.kind, sym.variant)) return nk(sym.id, ref.term);
+  return nk(dev.id, ref.term);
+}
+
+function contactBridges(device: Device, variant: string, rt: DeviceRuntime): [string, string][] {
+  const welded = Boolean(device.params.welded);
+  const e = rt.energized || welded;
+  const trip = rt.tripped;
+  switch (device.kind) {
+    case "overload":
+      if (variant === "aux-nc") return trip ? [] : [["95", "96"]];
+      if (variant === "aux-no") return trip ? [["97", "98"]] : [];
+      return [];
+    case "contactor":
+      if (variant === "aux-no") return e ? [["13", "14"]] : [];
+      if (variant === "aux-no2") return e ? [["43", "44"]] : [];
+      if (variant === "aux-nc") return e ? [] : [["21", "22"]];
+      if (variant === "aux-nc2") return e ? [] : [["31", "32"]];
+      return [];
+    case "relay":
+      if (variant === "aux-no") return e ? [["1", "2"]] : [];
+      if (variant === "aux-no2") return e ? [["5", "6"]] : [];
+      if (variant === "aux-nc") return e ? [] : [["3", "4"]];
+      if (variant === "aux-nc2") return e ? [] : [["7", "8"]];
+      return [];
+    case "timer-on":
+    case "timer-off":
+      if (variant === "delayed-no") return rt.done ? [["15", "18"]] : [];
+      if (variant === "delayed-nc") return rt.done ? [] : [["15", "16"]];
+      if (variant === "inst-no") return rt.energized ? [["21", "24"]] : [];
+      if (variant === "inst-nc") return rt.energized ? [] : [["21", "22"]];
+      return [];
+    default:
+      return [];
+  }
+}
+
+function addContactSymbolNodes(circuit: Circuit, uf: UnionFind): void {
+  for (const s of circuit.symbols) {
+    const d = circuit.devices.find((x) => x.id === s.deviceId);
+    if (!d || !isPerSymbolContact(d.kind, s.variant)) continue;
+    const v = KINDS[d.kind]?.variants[s.variant];
+    if (!v) continue;
+    for (const t of v.terminals) uf.add(nk(s.id, t.id));
+  }
+}
+
+function linkPerSymbolContacts(
+  circuit: Circuit,
+  runtime: Record<string, DeviceRuntime>,
+  link: (a: string, b: string) => void,
+): void {
+  for (const s of circuit.symbols) {
+    const d = circuit.devices.find((x) => x.id === s.deviceId);
+    if (!d || !isPerSymbolContact(d.kind, s.variant)) continue;
+    const rt = runtime[d.id];
+    if (!rt) continue;
+    for (const [a, b] of contactBridges(d, s.variant, rt)) {
+      link(nk(s.id, a), nk(s.id, b));
+    }
+  }
 }
 
 function bfsDist(adj: Map<string, string[]>, starts: string[]): Map<string, number> {
@@ -910,12 +997,13 @@ export function tick(
   for (const d of circuit.devices) {
     for (const term of allTerminals(d.kind)) uf.add(nk(d.id, term));
   }
+  addContactSymbolNodes(circuit, uf);
 
   for (const w of circuit.wires) {
     if (w.broken) continue;
-    const a = portDevice(circuit, w.a);
-    const b = portDevice(circuit, w.b);
-    if (a && b) link(nk(a.deviceId, a.term), nk(b.deviceId, b.term));
+    const na = portNk(circuit, w.a);
+    const nb = portNk(circuit, w.b);
+    if (na && nb) link(na, nb);
   }
 
   linkNetLabels(circuit, link);
@@ -927,6 +1015,7 @@ export function tick(
     const variant = sym?.variant;
     for (const [a, b] of bridges(d, rt, variant)) link(nk(d.id, a), nk(d.id, b));
   }
+  linkPerSymbolContacts(circuit, runtime, link);
 
   const faults: Fault[] = [];
   for (const w of circuit.wires) {
@@ -1350,6 +1439,20 @@ export function tick(
           break;
         }
       }
+      if (!isShort) {
+        for (const s of circuit.symbols) {
+          if (s.deviceId !== d.id || !isPerSymbolContact(d.kind, s.variant)) continue;
+          const v = KINDS[d.kind]?.variants[s.variant];
+          if (!v) continue;
+          for (const t of v.terminals) {
+            if (shortRoots.has(uf.find(nk(s.id, t.id)))) {
+              isShort = true;
+              break;
+            }
+          }
+          if (isShort) break;
+        }
+      }
     }
     if (isShort) {
       rt.short = true;
@@ -1388,9 +1491,11 @@ export function tick(
       if (clampedWire && !clampedWire.broken) {
         const a = portDevice(circuit, clampedWire.a);
         const b = portDevice(circuit, clampedWire.b);
-        if (a && b) {
-          root1 = uf.find(nk(a.deviceId, a.term));
-          root2 = uf.find(nk(b.deviceId, b.term));
+        const na = portNk(circuit, clampedWire.a);
+        const nb = portNk(circuit, clampedWire.b);
+        if (na && nb) {
+          root1 = uf.find(na);
+          root2 = uf.find(nb);
         }
       }
 
@@ -1465,9 +1570,9 @@ export function tick(
 
   const wires: Record<string, WireLive> = {};
   for (const w of circuit.wires) {
-    const a = portDevice(circuit, w.a);
-    const b = portDevice(circuit, w.b);
-    if (!a || !b) {
+    const na = portNk(circuit, w.a);
+    const nb = portNk(circuit, w.b);
+    if (!na || !nb) {
       wires[w.id] = { live: false, kind: null, dir: 0, short: false };
       continue;
     }
@@ -1475,6 +1580,8 @@ export function tick(
       wires[w.id] = { live: false, kind: null, dir: 0, short: false };
       continue;
     }
+    const a = portDevice(circuit, w.a);
+    const b = portDevice(circuit, w.b);
     const directA = directTerminalPotential(circuit, w.a);
     const directB = directTerminalPotential(circuit, w.b);
     let pKind: PotentialKind | null = null;
@@ -1485,12 +1592,10 @@ export function tick(
     } else if (directB) {
       pKind = directB;
     } else {
-      const p = pot(a.deviceId, a.term) ?? pot(b.deviceId, b.term);
-      pKind = p?.kind ?? null;
+      const p = (a ? pot(a.deviceId, a.term) : null) ?? (b ? pot(b.deviceId, b.term) : null);
+      const pPort = potOf(stamp, uf, na) ?? potOf(stamp, uf, nb);
+      pKind = pPort?.kind ?? p?.kind ?? null;
     }
-
-    const na = nk(a.deviceId, a.term);
-    const nb = nk(b.deviceId, b.term);
     const root = uf.find(na);
     const rootB = uf.find(nb);
     const isShort = shortRoots.has(root) || shortRoots.has(rootB);

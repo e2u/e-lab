@@ -1,5 +1,6 @@
 import { COLS, GRID, ROWS, type Circuit } from "./types";
 import { allWireRoutes, symbolBounds, terminalWorld } from "./geometry";
+import { printHiddenSymbolIds, unionBounds, wireIsPrintHidden } from "./groups";
 
 export interface PrintContentBounds {
   minX: number; // in grid units
@@ -43,9 +44,11 @@ export function getPrintContentBounds(circuit: Circuit, paddingGrids = 2): Print
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
+  const hiddenIds = printHiddenSymbolIds(circuit);
 
   // 1. Symbol bounding boxes
   for (const s of circuit.symbols) {
+    if (hiddenIds.has(s.id)) continue;
     const b = symbolBounds(circuit, s);
     if (b) {
       minX = Math.min(minX, b.x);
@@ -63,6 +66,7 @@ export function getPrintContentBounds(circuit: Circuit, paddingGrids = 2): Print
   // 2. Wire routes and terminal endpoints
   const routes = allWireRoutes(circuit);
   for (const w of circuit.wires) {
+    if (wireIsPrintHidden(w, hiddenIds)) continue;
     const pts = routes.get(w.id);
     if (pts && pts.length > 0) {
       for (const p of pts) {
@@ -98,6 +102,19 @@ export function getPrintContentBounds(circuit: Circuit, paddingGrids = 2): Print
         minY = Math.min(minY, jy / GRID);
         maxY = Math.max(maxY, jy / GRID);
       }
+    }
+  }
+
+  for (const g of circuit.groups ?? []) {
+    if (g.hideOnPrint) continue;
+    const box = unionBounds(circuit, g.memberIds);
+    if (!box) continue;
+    minX = Math.min(minX, box.x);
+    minY = Math.min(minY, box.y);
+    maxX = Math.max(maxX, box.x + box.w);
+    maxY = Math.max(maxY, box.y + box.h);
+    if ((g.name ?? "").trim()) {
+      minY = Math.min(minY, box.y - 18 / GRID);
     }
   }
 

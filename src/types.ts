@@ -130,12 +130,18 @@ export interface DeviceParams {
   scale?: number;
   text?: string;
   targetDeviceId?: string;
+  /** Comment bound to a symbol group instead of a single device. */
+  targetGroupId?: string;
   fontSize?: number;
   bgColor?: string;
   borderColor?: string;
   showLeaderLine?: boolean;
   width?: number;
   height?: number;
+  /** Omit this comment from print. Still shown (translucent) in Edit/Run. */
+  hideOnPrint?: boolean;
+  /** Omit this device's tag from print. Still shown (translucent) in Edit/Run. */
+  hideTag?: boolean;
 }
 
 export interface Device {
@@ -205,6 +211,8 @@ export interface SymbolGroup {
   memberIds: string[];
   name?: string;
   color?: string;
+  /** Omit this group from print output. Still shown (translucent) in Edit/Run. */
+  hideOnPrint?: boolean;
 }
 
 export interface Circuit {

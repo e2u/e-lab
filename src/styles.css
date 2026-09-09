@@ -864,6 +864,25 @@ body.panel-resizing * {
   pointer-events: none;
 }
 
+.group-label {
+  pointer-events: none;
+}
+
+.group-label text {
+  font-family: "Red Hat Text", "Noto Sans", system-ui, sans-serif;
+}
+
+/* Groups marked hide-on-print stay visible in Edit/Run, faded. */
+.group-print-hidden {
+  opacity: 0.4;
+}
+
+/* Device tags marked hide-from-print stay visible in Edit/Run, faded. */
+.tag-hidden .sym-tag-bg,
+.tag-hidden .sym-tag {
+  opacity: 0.4;
+}
+
 .pb-plunger {
   transition: transform 90ms cubic-bezier(0.2, 0.85, 0.25, 1);
   transform-box: fill-box;
@@ -3214,6 +3233,11 @@ html, body {
 /* Print Mount: hidden during regular screen display */
 .print-mount {
   display: none;
+}
+
+.print-svg .tag-hidden .sym-tag-bg,
+.print-svg .tag-hidden .sym-tag {
+  display: none !important;
 }
 
 /* ============================================================

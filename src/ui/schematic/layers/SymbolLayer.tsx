@@ -1,7 +1,7 @@
 import { memo, type MouseEvent, type PointerEvent } from "react";
 import { variantDef } from "../../../catalog";
 import { glyphTransform, isJunction, terminalWorld, textUnflipTransform } from "../../../geometry";
-import { unionBounds } from "../../../groups";
+import { printHiddenSymbolIds, unionBounds } from "../../../groups";
 import { SymbolGlyph } from "../../../Glyphs";
 import { getSymbolTagPlacement } from "../../../tagPlacement";
 import { t } from "../../../i18n";
@@ -25,6 +25,8 @@ interface SymbolLayerProps {
   onTagDoubleClick?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onTagContextMenu?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onResizeHandlePointerDown?: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device, corner: "tl" | "tr" | "br" | "bl") => void;
+  /** When true, skip groups marked hide-on-print (print output only). */
+  omitPrintHidden?: boolean;
 }
 
 function getCornerCursor(corner: "tl" | "tr" | "br" | "bl", rot: number = 0): string {
@@ -72,15 +74,19 @@ export const SymbolLayer = memo(function SymbolLayer({
   onTagDoubleClick,
   onTagContextMenu,
   onResizeHandlePointerDown,
+  omitPrintHidden = false,
 }: SymbolLayerProps) {
   const selectedSym = selected?.type === "symbol" ? circuit.symbols.find((s) => s.id === selected.id) : null;
   const selectedDev = selectedSym ? circuit.devices.find((d) => d.id === selectedSym.deviceId) : null;
+  const printHiddenIds = printHiddenSymbolIds(circuit);
 
   return (
     <>
       {circuit.symbols.map((sym) => {
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
         if (!dev) return null;
+        const hideOnPrint = printHiddenIds.has(sym.id);
+        if (omitPrintHidden && hideOnPrint) return null;
         const v = variantDef(dev.kind, sym.variant);
         const scale = dev.params?.scale ?? 1;
         const boxW = v.w * scale;
@@ -103,8 +109,12 @@ export const SymbolLayer = memo(function SymbolLayer({
               (dev.kind !== "comment" && dev.kind === selectedDev.kind && dev.tag.trim() && dev.tag.trim() === selectedDev.tag.trim()))
         );
         const isRelatedSymbol = !sel && isSameDevice;
+        const wrapClass = [
+          hideOnPrint ? "group-print-hidden" : "",
+          dev.params.hideTag ? "tag-hidden" : "",
+        ].filter(Boolean).join(" ") || undefined;
         return (
-          <g key={sym.id}>
+          <g key={sym.id} className={wrapClass}>
             {/* Symbol body - preserve rotation */}
             <g
               className="sym-g"
@@ -287,7 +297,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                     onDoubleClick={(e) => onTagDoubleClick?.(e, sym, dev)}
                     onContextMenu={(e) => (onTagContextMenu ? onTagContextMenu(e, sym, dev) : onSymbolContextMenu(e, sym.id))}
                   >
-                    {!glyphHasTag && (
+                    {!glyphHasTag && !(dev.params.hideTag && omitPrintHidden) && (
                       // Keyed by tag+position: renaming or moving the tag replaces these nodes
                       // wholesale instead of mutating them in place, which avoids stale-label
                       // repaints in Safari/WebKit after tag edits.
@@ -393,31 +403,44 @@ export const SymbolLayer = memo(function SymbolLayer({
       {/* Comment leader lines */}
       {circuit.symbols.map((sym) => {
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
-        if (!dev || dev.kind !== "comment" || !dev.params?.targetDeviceId || dev.params?.showLeaderLine === false) return null;
-        const targetDev = circuit.devices.find((d) => d.id === dev.params?.targetDeviceId);
-        if (!targetDev) return null;
-        const targetSym = circuit.symbols.find((s) => s.deviceId === targetDev.id);
-        if (!targetSym) return null;
+        if (!dev || dev.kind !== "comment" || dev.params?.showLeaderLine === false) return null;
 
         const v = variantDef(dev.kind, sym.variant);
-        const tv = variantDef(targetDev.kind, targetSym.variant);
         const cw = ((dev.params?.width ?? v.w) * GRID);
         const ch = ((dev.params?.height ?? v.h) * GRID);
-        const tw = (tv.w * GRID);
-        const th = (tv.h * GRID);
-
-        // Comment center / anchor
         const cx = sym.x * GRID + cw / 2;
         const cy = sym.y * GRID + ch / 2;
 
-        // Target center
-        const tx = targetSym.x * GRID + tw / 2;
-        const ty = targetSym.y * GRID + th / 2;
+        let tx: number | null = null;
+        let ty: number | null = null;
+        let targetSelected = false;
+        if (dev.params?.targetGroupId) {
+          const g = (circuit.groups ?? []).find((x) => x.id === dev.params.targetGroupId);
+          if (!g) return null;
+          const box = unionBounds(circuit, g.memberIds);
+          if (!box) return null;
+          tx = (box.x + box.w / 2) * GRID;
+          ty = (box.y + box.h / 2) * GRID;
+          targetSelected = g.memberIds.some((id) => selectedIds.includes(id));
+        } else if (dev.params?.targetDeviceId) {
+          const targetDev = circuit.devices.find((d) => d.id === dev.params?.targetDeviceId);
+          if (!targetDev) return null;
+          const targetSym = circuit.symbols.find((s) => s.deviceId === targetDev.id);
+          if (!targetSym) return null;
+          const tv = variantDef(targetDev.kind, targetSym.variant);
+          tx = targetSym.x * GRID + (tv.w * GRID) / 2;
+          ty = targetSym.y * GRID + (tv.h * GRID) / 2;
+          targetSelected = selectedIds.includes(targetSym.id);
+        } else {
+          return null;
+        }
 
-        const isHighlighted = selectedIds.includes(sym.id) || selectedIds.includes(targetSym.id);
+        const isHighlighted = selectedIds.includes(sym.id) || targetSelected;
+        const hideOnPrint = printHiddenIds.has(sym.id);
+        if (omitPrintHidden && hideOnPrint) return null;
 
         return (
-          <g key={`leader-${sym.id}`} pointerEvents="none">
+          <g key={`leader-${sym.id}`} className={hideOnPrint ? "group-print-hidden" : undefined} pointerEvents="none">
             <line
               x1={cx}
               y1={cy}
@@ -428,7 +451,6 @@ export const SymbolLayer = memo(function SymbolLayer({
               strokeDasharray="4 3"
               opacity={isHighlighted ? 1 : 0.75}
             />
-            {/* Anchor circle at target component */}
             <circle
               cx={tx}
               cy={ty}
@@ -437,7 +459,6 @@ export const SymbolLayer = memo(function SymbolLayer({
               stroke="#ffffff"
               strokeWidth={1}
             />
-            {/* Anchor dot at comment box */}
             <circle
               cx={cx}
               cy={cy}
@@ -449,24 +470,54 @@ export const SymbolLayer = memo(function SymbolLayer({
       })}
 
       {(circuit.groups ?? []).map((g) => {
+        if (omitPrintHidden && g.hideOnPrint) return null;
         const box = unionBounds(circuit, g.memberIds);
         if (!box) return null;
         const color = g.color || "#3b7de0";
+        const x = box.x * GRID - 6;
+        const y = box.y * GRID - 6;
+        const w = box.w * GRID + 12;
+        const h = box.h * GRID + 12;
+        const lines = (g.name ?? "").split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 3);
+        const lineH = 13;
+        const padX = 6;
+        const padY = 3;
+        const longest = lines.reduce((m, l) => Math.max(m, l.length), 0);
+        const badgeW = Math.min(Math.max(longest * 6.6 + padX * 2, 20), Math.max(w, 48));
+        const badgeH = lines.length * lineH + padY * 2;
         return (
-          <rect
-            key={g.id}
-            className="group-box"
-            x={box.x * GRID - 6}
-            y={box.y * GRID - 6}
-            width={box.w * GRID + 12}
-            height={box.h * GRID + 12}
-            rx="4"
-            fill="none"
-            stroke={color}
-            style={{ stroke: color }}
-            strokeWidth="1.5"
-            strokeDasharray="6 4"
-          />
+          <g key={g.id} className={g.hideOnPrint ? "group-print-hidden" : undefined}>
+            <rect
+              className="group-box"
+              x={x}
+              y={y}
+              width={w}
+              height={h}
+              rx="4"
+              fill="none"
+              stroke={color}
+              style={{ stroke: color }}
+              strokeWidth="1.5"
+              strokeDasharray="6 4"
+            />
+            {lines.length > 0 && (
+              <g className="group-label" transform={`translate(${x}, ${y - badgeH})`}>
+                <rect width={badgeW} height={badgeH} rx={3} fill={color} />
+                {lines.map((line, i) => (
+                  <text
+                    key={i}
+                    x={padX}
+                    y={padY + (i + 0.78) * lineH}
+                    fill="#ffffff"
+                    fontSize="11"
+                    fontWeight="600"
+                  >
+                    {line}
+                  </text>
+                ))}
+              </g>
+            )}
+          </g>
         );
       })}
     </>

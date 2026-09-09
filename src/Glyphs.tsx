@@ -6,6 +6,33 @@ import {PHASE_COLOR} from "./sim/engine";
 
 const ink = "#1b1a16";
 
+/** Device connection pads. Print CSS fills these solid black. */
+function TermDot({
+    cx,
+    cy,
+    r = 4,
+    strokeWidth = 1.8,
+    fill = "#efe6d0",
+}: {
+    cx: number;
+    cy: number;
+    r?: number;
+    strokeWidth?: number;
+    fill?: string;
+}) {
+    return (
+        <circle
+            className="term-dot"
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill={fill}
+            stroke={ink}
+            strokeWidth={strokeWidth}
+        />
+    );
+}
+
 const FlipCtx = createContext({fx: 1, fy: 1, rot: 0});
 
 function Txt({x = 0, y = 0, transform, textAnchor, ...rest}: SVGProps<SVGTextElement>) {
@@ -219,8 +246,8 @@ function timedContact(w: number, closed: boolean, timed: boolean, offDelay = fal
             )}
 
             {/* Hollow Terminal Circles */}
-            <circle cx={xL} cy={y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8"/>
-            <circle cx={xR} cy={y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8"/>
+            <TermDot cx={xL} cy={y} r={r} />
+            <TermDot cx={xR} cy={y} r={r} />
         </>
     );
 }
@@ -299,8 +326,8 @@ function contactLines(
                 <>
                     <line x1={0} y1={yC} x2={xL - r} y2={yC} stroke={ink} strokeWidth="2"/>
                     <line x1={xR + r} y1={yC} x2={w * GRID} y2={yC} stroke={ink} strokeWidth="2"/>
-                    <circle cx={xL} cy={yC} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
-                    <circle cx={xR} cy={yC} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
+                    <TermDot cx={xL} cy={yC} r={r} strokeWidth={2} />
+                    <TermDot cx={xR} cy={yC} r={r} strokeWidth={2} />
                     {labL && (
                         <Txt x={8} y={yC - 16} className="term-lab">
                             {labL}
@@ -341,8 +368,8 @@ function contactLines(
                     <line x1={cx - barW} y1={barY} x2={cx + barW} y2={barY} stroke={ink} strokeWidth="2.6"/>
                     {stemArc(stemTop)}
                 </g>
-                <circle cx={xL} cy={yC} r={r} fill={pressed ? "#f0d27a" : "#efe6d0"} stroke={ink} strokeWidth="2"/>
-                <circle cx={xR} cy={yC} r={r} fill={pressed ? "#f0d27a" : "#efe6d0"} stroke={ink} strokeWidth="2"/>
+                <TermDot cx={xL} cy={yC} r={r} strokeWidth={2} fill={pressed ? "#f0d27a" : "#efe6d0"} />
+                <TermDot cx={xR} cy={yC} r={r} strokeWidth={2} fill={pressed ? "#f0d27a" : "#efe6d0"} />
             </>
         );
     }
@@ -872,8 +899,8 @@ function limitArm(w: number, closed: boolean) {
         <>
             <line x1={0} y1={y} x2={xL - r} y2={y} stroke={ink} strokeWidth="2"/>
             <line x1={xR + r} y1={y} x2={w * GRID} y2={y} stroke={ink} strokeWidth="2"/>
-            <circle cx={xL} cy={y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
-            <circle cx={xR} cy={y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
+            <TermDot cx={xL} cy={y} r={r} strokeWidth={2} />
+            <TermDot cx={xR} cy={y} r={r} strokeWidth={2} />
             <g transform={`translate(${p1x} ${p1y}) rotate(${ang})`}>
                 <line x1={0} y1={0} x2={len} y2={0} stroke={ink} strokeWidth="2"/>
                 <polygon
@@ -902,8 +929,8 @@ function footPedal(w: number, closed: boolean, openDown = false) {
         <>
             <line x1={0} y1={y} x2={xL - r} y2={y} stroke={ink} strokeWidth="2"/>
             <line x1={xR + r} y1={y} x2={w * GRID} y2={y} stroke={ink} strokeWidth="2"/>
-            <circle cx={xL} cy={y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
-            <circle cx={xR} cy={y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
+            <TermDot cx={xL} cy={y} r={r} strokeWidth={2} />
+            <TermDot cx={xR} cy={y} r={r} strokeWidth={2} />
             <line x1={p1x} y1={p1y} x2={p2x} y2={p2y} stroke={ink} strokeWidth="2"/>
             <g transform={`translate(${mx} ${my}) rotate(${ang})`}>
                 <rect x={-9} y={-6.5} width={16} height={5} fill="#efe6d0" stroke={ink} strokeWidth="1.8"/>
@@ -1121,8 +1148,8 @@ function GlyphBody({
             <S w={w} h={h}>
                 <line x1={0} y1={y} x2={xL - r} y2={y} stroke={ink} strokeWidth="2"/>
                 <line x1={xR + r} y1={y} x2={w * GRID} y2={y} stroke={ink} strokeWidth="2"/>
-                <circle cx={xL} cy={y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
-                <circle cx={xR} cy={y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
+                <TermDot cx={xL} cy={y} r={r} strokeWidth={2} />
+                <TermDot cx={xR} cy={y} r={r} strokeWidth={2} />
                 <line x1={xL} y1={y} x2={p2x} y2={p2y} stroke={ink} strokeWidth="2"/>
                 <line x1={hx} y1={hy} x2={hx} y2={fy - fr} stroke={ink} strokeWidth="2"/>
                 <circle cx={hx} cy={fy} r={fr} fill="#efe6d0" stroke={ink} strokeWidth="2.2"/>
@@ -1377,8 +1404,8 @@ function GlyphBody({
                     strokeLinecap="round"
                     className={!closed ? "contact-broken" : ""}
                 />
-                <circle cx={cx} cy={y1} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8"/>
-                <circle cx={cx} cy={y2} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8"/>
+                <TermDot cx={cx} cy={y1} r={r} />
+                <TermDot cx={cx} cy={y2} r={r} />
             </S>
         );
     }
@@ -1467,8 +1494,8 @@ function GlyphBody({
                             strokeLinecap="round"
                             className={!closed ? "contact-broken" : ""}
                         />
-                        <circle cx={p.cx} cy={y1} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                        <circle cx={p.cx} cy={y2} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                        <TermDot cx={p.cx} cy={y1} r={r} />
+                        <TermDot cx={p.cx} cy={y2} r={r} />
                         <Txt x={p.cx + 15} y={y1 - 6} className="term-lab">
                             {p.topLab}
                         </Txt>
@@ -1520,8 +1547,8 @@ function GlyphBody({
                             strokeLinecap="round"
                             className={!closed ? "contact-broken" : ""}
                         />
-                        <circle cx={x1} cy={p.y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                        <circle cx={x2} cy={p.y} r={r} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                        <TermDot cx={x1} cy={p.y} r={r} />
+                        <TermDot cx={x2} cy={p.y} r={r} />
                         <Txt x={10} y={p.y - 14} className="term-lab">
                             {p.leftLab}
                         </Txt>
@@ -2094,10 +2121,10 @@ function GlyphBody({
                 <line x1={44} y1={155} x2={28} y2={155} stroke={coilColor} strokeWidth="1.8" />
 
                 {/* Primary Terminal Circles */}
-                <circle cx={24} cy={21} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                <circle cx={24} cy={65} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                <circle cx={24} cy={110} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                <circle cx={24} cy={154} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                <TermDot cx={24} cy={21} />
+                <TermDot cx={24} cy={65} />
+                <TermDot cx={24} cy={110} />
+                <TermDot cx={24} cy={154} />
 
                 {/* Primary Labels */}
                 <Txt x={16} y={6} textAnchor="end" className="term-lab" fontWeight="bold">
@@ -2133,8 +2160,8 @@ function GlyphBody({
                     strokeLinejoin="round"
                 />
                 {/* Secondary Terminal Circles */}
-                <circle cx={96} cy={20} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
-                <circle cx={96} cy={155} r={4} fill="#efe6d0" stroke={ink} strokeWidth="1.8" />
+                <TermDot cx={96} cy={20} />
+                <TermDot cx={96} cy={155} />
                 {/* Secondary Labels */}
                 <Txt x={104} y={6} textAnchor="start" className="term-lab" fontWeight="bold">
                     X1
@@ -2315,8 +2342,8 @@ function GlyphBody({
                     strokeLinejoin="miter"
                     strokeMiterlimit="8"
                 />
-                <circle cx={xL} cy={y} r={r} fill={fill} stroke={ink} strokeWidth="2"/>
-                <circle cx={xR} cy={y} r={r} fill={fill} stroke={ink} strokeWidth="2"/>
+                <TermDot cx={xL} cy={y} r={r} strokeWidth={2} fill={fill} />
+                <TermDot cx={xR} cy={y} r={r} strokeWidth={2} fill={fill} />
                 <Txt x={8} y={y - r - 5} className="term-lab">
                     A1
                 </Txt>
@@ -2742,8 +2769,8 @@ function GlyphBody({
             <>
                 <line x1={0} y1={y} x2={xL - cr} y2={y} stroke={ink} strokeWidth="2"/>
                 <line x1={xR + cr} y1={y} x2={w * GRID} y2={y} stroke={ink} strokeWidth="2"/>
-                <circle cx={xL} cy={y} r={cr} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
-                <circle cx={xR} cy={y} r={cr} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
+                <TermDot cx={xL} cy={y} r={cr} strokeWidth={2} />
+                <TermDot cx={xR} cy={y} r={cr} strokeWidth={2} />
                 {closed ? (
                     <line x1={xL + cr} y1={y} x2={xR - cr} y2={y} stroke={ink} strokeWidth="2"/>
                 ) : (
@@ -2813,8 +2840,8 @@ function GlyphBody({
                     <>
                         <line x1={0} y1={y} x2={xL - cr} y2={y} stroke={ink} strokeWidth="2"/>
                         <line x1={xR + cr} y1={y} x2={w * GRID} y2={y} stroke={ink} strokeWidth="2"/>
-                        <circle cx={xL} cy={y} r={cr} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
-                        <circle cx={xR} cy={y} r={cr} fill="#efe6d0" stroke={ink} strokeWidth="2"/>
+                        <TermDot cx={xL} cy={y} r={cr} strokeWidth={2} />
+                        <TermDot cx={xR} cy={y} r={cr} strokeWidth={2} />
                         {labL && (
                             <Txt x={6} y={y - 15} className="term-lab">
                                 {labL}

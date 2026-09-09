@@ -1,6 +1,7 @@
 import { memo, type PointerEvent } from "react";
 import { variantDef } from "../../../catalog";
 import { terminalWorld } from "../../../geometry";
+import { printHiddenSymbolIds } from "../../../groups";
 import type { Circuit, EditSubMode, Mode, PortRef } from "../../../types";
 
 interface PortLayerProps {
@@ -27,12 +28,14 @@ export const PortLayer = memo(function PortLayer({
   if (mode !== "edit") return null;
 
   const isWiring = editSubMode === "wiring";
+  const printHiddenIds = printHiddenSymbolIds(circuit);
 
   return (
     <>
       {circuit.symbols.map((sym) => {
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
         if (!dev || dev.kind === "junction") return null;
+        const hideOnPrint = printHiddenIds.has(sym.id);
         const v = variantDef(dev.kind, sym.variant);
         return v.terminals.map((t) => {
           const world = terminalWorld(circuit, { symbolId: sym.id, term: t.id });
@@ -43,7 +46,7 @@ export const PortLayer = memo(function PortLayer({
             ((wiringFrom && wiringFrom.symbolId === port.symbolId && wiringFrom.term === port.term) ||
               (hoverPort && hoverPort.symbolId === port.symbolId && hoverPort.term === port.term));
           return (
-            <g key={`${sym.id}:${t.id}`}>
+            <g key={`${sym.id}:${t.id}`} className={hideOnPrint ? "group-print-hidden" : undefined}>
               {/* Invisible larger hit target for touch & mouse ease only in wiring mode */}
               {isWiring && (
                 <circle

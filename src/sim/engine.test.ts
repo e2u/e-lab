@@ -690,6 +690,55 @@ describe("sim engine", () => {
     expect(snap.wires[c.wires[0].id].short).toBe(true);
   });
 
+  it("treats each overload 95-96 symbol as its own pole so two copies do not short X1 to X2", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
+    const xf = addDevice(c, "transformer", "TC1", "body", 6, 0);
+    addWire(c, g.symbol, "L1", xf.symbol, "H1");
+    addWire(c, g.symbol, "L2", xf.symbol, "H2");
+
+    const stop = addDevice(c, "pb-nc", "Stop", "body", 2, 10);
+    const start = addDevice(c, "pb-no", "Start", "body", 6, 10);
+    const ol1 = addDevice(c, "overload", "OL1", "body", 20, 0);
+    const ol2 = addDevice(c, "overload", "OL2", "body", 26, 0);
+    const ol1Start = addSymbol(c, ol1.device.id, "aux-nc", 10, 10);
+    const ol2Start = addSymbol(c, ol2.device.id, "aux-nc", 10, 12);
+    const cr = addDevice(c, "relay", "CR1", "coil", 14, 10);
+    const m1 = addDevice(c, "contactor", "M1", "coil", 18, 10);
+    const m2 = addDevice(c, "contactor", "M2", "coil", 18, 14);
+    const ol1Coil = addSymbol(c, ol1.device.id, "aux-nc", 22, 10);
+    const ol2Coil = addSymbol(c, ol2.device.id, "aux-nc", 22, 14);
+
+    addWire(c, xf.symbol, "X1", stop.symbol, "1");
+    addWire(c, stop.symbol, "2", start.symbol, "1");
+    addWire(c, start.symbol, "2", ol1Start, "95");
+    addWire(c, start.symbol, "2", ol2Start, "95");
+    addWire(c, ol1Start, "96", cr.symbol, "A1");
+    addWire(c, ol2Start, "96", cr.symbol, "A1");
+    addWire(c, cr.symbol, "A1", m1.symbol, "A1");
+    addWire(c, cr.symbol, "A1", m2.symbol, "A1");
+    addWire(c, cr.symbol, "A2", xf.symbol, "X2");
+    addWire(c, m1.symbol, "A2", ol1Coil, "95");
+    addWire(c, ol1Coil, "96", xf.symbol, "X2");
+    addWire(c, m2.symbol, "A2", ol2Coil, "95");
+    addWire(c, ol2Coil, "96", xf.symbol, "X2");
+
+    const idle = run(c, []);
+    expect(idle.faults.filter((f) => f.msgKey === "fault.shortCircuit")).toHaveLength(0);
+
+    const started = run(c, [start.device.id]);
+    expect(started.faults.filter((f) => f.msgKey === "fault.shortCircuit")).toHaveLength(0);
+    expect(started.runtime[cr.device.id].energized).toBe(true);
+    expect(started.runtime[m1.device.id].energized).toBe(true);
+    expect(started.runtime[m2.device.id].energized).toBe(true);
+
+    const tripped = createRuntime(c);
+    tripped[ol1.device.id].tripped = true;
+    const afterTrip = tick(c, tripped, { held: new Set([start.device.id]), process }, 50, 50);
+    expect(afterTrip.faults.filter((f) => f.msgKey === "fault.shortCircuit")).toHaveLength(0);
+    expect(afterTrip.runtime[m1.device.id].energized).toBe(false);
+  });
+
   it("colors wires according to their phase in both edit and run modes", () => {
     const c = emptyCircuit();
     const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);

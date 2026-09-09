@@ -119,6 +119,10 @@ export function groupSymbols(
 ): SymbolGroup | null {
   const members = expandIds(circuit, ids);
   if (members.length < 2) return null;
+  const replaced = (circuit.groups ?? []).filter((g) => g.memberIds.some((id) => members.includes(id)));
+  const hideOnPrint = replaced.some((g) => g.hideOnPrint);
+  const mergedName = name ?? replaced.find((g) => (g.name ?? "").trim())?.name;
+  const replacedIds = replaced.map((g) => g.id);
   circuit.groups = (circuit.groups ?? []).filter((g) => !g.memberIds.some((id) => members.includes(id)));
   const used = new Set<string>([
     ...circuit.devices.map((d) => d.id),
@@ -126,21 +130,75 @@ export function groupSymbols(
     ...circuit.wires.map((w) => w.id),
     ...circuitGroups(circuit).map((g) => g.id),
   ]);
-  const g: SymbolGroup = { id: uniqueId("g", used), memberIds: members, color, name };
+  const g: SymbolGroup = { id: uniqueId("g", used), memberIds: members, color, name: mergedName };
+  if (hideOnPrint) g.hideOnPrint = true;
   circuitGroups(circuit).push(g);
+  retargetGroupComments(circuit, replacedIds, g.id);
   return g;
+}
+
+/** Symbol ids that belong to a group marked hide-on-print. */
+export function printHiddenSymbolIds(circuit: Circuit): Set<string> {
+  const ids = new Set<string>();
+  const hiddenGroupIds = new Set<string>();
+  for (const g of circuit.groups ?? []) {
+    if (!g.hideOnPrint) continue;
+    hiddenGroupIds.add(g.id);
+    for (const id of g.memberIds) ids.add(id);
+  }
+  for (const s of circuit.symbols) {
+    const d = circuit.devices.find((x) => x.id === s.deviceId);
+    if (d?.kind !== "comment") continue;
+    if (d.params.hideOnPrint) ids.add(s.id);
+    else if (d.params.targetGroupId && hiddenGroupIds.has(d.params.targetGroupId)) ids.add(s.id);
+  }
+  return ids;
+}
+
+export function retargetGroupComments(circuit: Circuit, fromIds: string[], toId?: string): void {
+  if (!fromIds.length) return;
+  const from = new Set(fromIds);
+  for (const d of circuit.devices) {
+    if (d.kind !== "comment" || !d.params.targetGroupId) continue;
+    if (!from.has(d.params.targetGroupId)) continue;
+    d.params.targetGroupId = toId;
+  }
+}
+
+function isAnnotationSymbol(circuit: Circuit, symbolId: string): boolean {
+  const s = circuit.symbols.find((x) => x.id === symbolId);
+  if (!s) return false;
+  const d = circuit.devices.find((x) => x.id === s.deviceId);
+  return d?.kind === "comment" || d?.kind === "title-block";
+}
+
+/** True when both wire ends sit inside print-hidden groups (internal group wiring). */
+export function wireIsPrintHidden(
+  wire: { a: { symbolId: string }; b: { symbolId: string } },
+  hiddenSymbolIds: Set<string>,
+): boolean {
+  return hiddenSymbolIds.size > 0 && hiddenSymbolIds.has(wire.a.symbolId) && hiddenSymbolIds.has(wire.b.symbolId);
 }
 
 export function ungroupSymbols(circuit: Circuit, ids: string[]): void {
   const hit = new Set(expandIds(circuit, ids));
+  const removed = (circuit.groups ?? []).filter((g) => g.memberIds.some((id) => hit.has(id))).map((g) => g.id);
   circuit.groups = (circuit.groups ?? []).filter((g) => !g.memberIds.some((id) => hit.has(id)));
+  retargetGroupComments(circuit, removed, undefined);
 }
 
 export function pruneGroups(circuit: Circuit): void {
   const live = new Set(circuit.symbols.map((s) => s.id));
+  const before = (circuit.groups ?? []).map((g) => g.id);
   circuit.groups = (circuit.groups ?? [])
     .map((g) => ({ ...g, memberIds: g.memberIds.filter((id) => live.has(id)) }))
     .filter((g) => g.memberIds.length >= 2);
+  const after = new Set((circuit.groups ?? []).map((g) => g.id));
+  retargetGroupComments(
+    circuit,
+    before.filter((id) => !after.has(id)),
+    undefined,
+  );
 }
 
 export function boxesIntersect(
@@ -167,14 +225,21 @@ export function unionBounds(
   circuit: Circuit,
   ids: string[],
 ): { x: number; y: number; w: number; h: number } | null {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
+  const boxes: { x: number; y: number; w: number; h: number; anno: boolean }[] = [];
   for (const id of ids) {
     const s = circuit.symbols.find((x) => x.id === id);
     if (!s) continue;
     const b = symbolBounds(circuit, s) ?? { x: s.x, y: s.y, w: 1, h: 1 };
+    boxes.push({ ...b, anno: isAnnotationSymbol(circuit, id) });
+  }
+  const core = boxes.filter((b) => !b.anno);
+  const use = core.length ? core : boxes;
+  if (!use.length) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const b of use) {
     minX = Math.min(minX, b.x);
     minY = Math.min(minY, b.y);
     maxX = Math.max(maxX, b.x + b.w);

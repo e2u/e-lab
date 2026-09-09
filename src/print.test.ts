@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDevice, addWire, emptyCircuit } from "./circuitBuilder";
+import { groupSymbols } from "./groups";
 import { DEFAULT_PRINT_OPTIONS, getPrintContentBounds } from "./print";
 import { TRANSLATIONS } from "./i18n";
 import { useLab } from "./store";
@@ -57,6 +58,34 @@ describe("print bounds calculation", () => {
 
     const bounds = getPrintContentBounds(c, 2);
     expect(bounds.maxY).toBeGreaterThanOrEqual(52);
+  });
+
+  it("excludes hide-on-print groups from content bounds", () => {
+    const c = emptyCircuit();
+    const hiddenA = addDevice(c, "lamp", "HL1", "body", 2, 2);
+    const hiddenB = addDevice(c, "lamp", "HL2", "body", 4, 2);
+    groupSymbols(c, [hiddenA.symbol.id, hiddenB.symbol.id]);
+    c.groups![0].hideOnPrint = true;
+    const visible = addDevice(c, "lamp", "HL3", "body", 30, 20);
+
+    const bounds = getPrintContentBounds(c, 2);
+    expect(bounds.hasElements).toBe(true);
+    expect(bounds.minX).toBeGreaterThanOrEqual(visible.symbol.x - 3);
+    expect(bounds.minY).toBeGreaterThanOrEqual(visible.symbol.y - 3);
+    expect(bounds.maxX).toBeGreaterThan(visible.symbol.x);
+  });
+
+  it("falls back to full canvas when every symbol is hide-on-print", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "lamp", "HL1", "body", 10, 10);
+    const b = addDevice(c, "lamp", "HL2", "body", 14, 10);
+    addWire(c, a.symbol.id, "1", b.symbol.id, "1");
+    groupSymbols(c, [a.symbol.id, b.symbol.id]);
+    c.groups![0].hideOnPrint = true;
+
+    const bounds = getPrintContentBounds(c, 2);
+    expect(bounds.hasElements).toBe(false);
+    expect(bounds.viewBox).toBe(`0 0 ${COLS * GRID} ${ROWS * GRID}`);
   });
 });
 

@@ -4,10 +4,13 @@ import {
   expandIds,
   findInternalJunctions,
   groupSymbols,
+  printHiddenSymbolIds,
   pruneGroups,
   selectionIsGroup,
   symbolsInRect,
   ungroupSymbols,
+  unionBounds,
+  wireIsPrintHidden,
 } from "./groups";
 import { useLab } from "./store";
 import { GRID } from "./types";
@@ -139,6 +142,92 @@ describe("symbol groups", () => {
     expect(updatedCircuit.groups).toHaveLength(2);
     const newGroup = updatedCircuit.groups?.find((x) => x.id !== g!.id);
     expect(newGroup?.color).toBe("#10b981");
+  });
+
+  it("toggles hideOnPrint and copies it when pasting", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const g = groupSymbols(c, [a.symbol.id, b.symbol.id]);
+    expect(g).not.toBeNull();
+
+    useLab.setState({ circuit: c, selectedIds: [a.symbol.id, b.symbol.id] });
+    useLab.getState().updateGroup(g!.id, { hideOnPrint: true });
+
+    const hidden = useLab.getState().circuit.groups?.find((x) => x.id === g!.id);
+    expect(hidden?.hideOnPrint).toBe(true);
+    expect(printHiddenSymbolIds(useLab.getState().circuit).has(a.symbol.id)).toBe(true);
+
+    useLab.getState().copySelected();
+    useLab.getState().pasteClipboard();
+    const pasted = useLab.getState().circuit.groups?.find((x) => x.id !== g!.id);
+    expect(pasted?.hideOnPrint).toBe(true);
+  });
+
+  it("stores a group comment and shows it independently of member comments", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const g = groupSymbols(c, [a.symbol.id, b.symbol.id]);
+    expect(g).not.toBeNull();
+
+    useLab.setState({ circuit: c, selectedIds: [a.symbol.id, b.symbol.id] });
+    useLab.getState().updateGroup(g!.id, { name: "Station A\ncontrol" });
+    expect(useLab.getState().circuit.groups?.find((x) => x.id === g!.id)?.name).toBe("Station A\ncontrol");
+
+    useLab.getState().addCommentForGroup(g!.id);
+    const next = useLab.getState().circuit;
+    const comment = next.devices.find((d) => d.kind === "comment");
+    expect(comment?.params.targetGroupId).toBe(g!.id);
+    expect(next.groups?.[0].memberIds).toContain(
+      next.symbols.find((s) => s.deviceId === comment!.id)!.id,
+    );
+    const commentSym = next.symbols.find((s) => s.deviceId === comment!.id)!;
+    const box = unionBounds(next, next.groups![0].memberIds);
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeLessThanOrEqual(a.symbol.x);
+    expect(box!.x + box!.w).toBeGreaterThanOrEqual(b.symbol.x);
+    expect(box!.x + box!.w).toBeLessThan(commentSym.x);
+  });
+
+  it("keeps group comment when merging and retargets bound notes", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "lamp", "A", "body", 0, 0);
+    const b = addDevice(c, "lamp", "B", "body", 2, 0);
+    const d = addDevice(c, "lamp", "C", "body", 4, 0);
+    const g1 = groupSymbols(c, [a.symbol.id, b.symbol.id]);
+    g1!.name = "Power";
+    addDevice(c, "comment", "REM1", "body", 8, 0, { text: "note", targetGroupId: g1!.id });
+    const merged = groupSymbols(c, [b.symbol.id, d.symbol.id]);
+    expect(merged?.name).toBe("Power");
+    const note = c.devices.find((x) => x.kind === "comment");
+    expect(note?.params.targetGroupId).toBe(merged!.id);
+  });
+
+  it("keeps hideOnPrint when merging groups", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "lamp", "A", "body", 0, 0);
+    const b = addDevice(c, "lamp", "B", "body", 2, 0);
+    const d = addDevice(c, "lamp", "C", "body", 4, 0);
+    const g1 = groupSymbols(c, [a.symbol.id, b.symbol.id]);
+    g1!.hideOnPrint = true;
+    const merged = groupSymbols(c, [b.symbol.id, d.symbol.id]);
+    expect(merged?.hideOnPrint).toBe(true);
+    expect(printHiddenSymbolIds(c).size).toBe(3);
+  });
+
+  it("treats only internal wires as print-hidden", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const d = addDevice(c, "lamp", "HL3", "body", 8, 0);
+    groupSymbols(c, [a.symbol.id, b.symbol.id]);
+    c.groups![0].hideOnPrint = true;
+    addWire(c, a.symbol.id, "1", b.symbol.id, "1");
+    addWire(c, b.symbol.id, "1", d.symbol.id, "1");
+    const hidden = printHiddenSymbolIds(c);
+    expect(wireIsPrintHidden(c.wires[0], hidden)).toBe(true);
+    expect(wireIsPrintHidden(c.wires[1], hidden)).toBe(false);
   });
 
   it("aligns groups as whole units without modifying internal relative positions", () => {

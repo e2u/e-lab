@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { addDevice } from "./circuitBuilder";
 import { lampJog } from "./examples";
 import { decodeShare, encodeShare, makeDoc, parseDoc } from "./persist";
 import { createBlankTemplateCircuit, createBlankTemplateProcess, useLab } from "./store";
@@ -20,6 +21,38 @@ describe("persist", () => {
     circuit.wires[0].label = "L1";
     const back = decodeShare(encodeShare(makeDoc(circuit, "lab")));
     expect(back?.circuit.wires[0].label).toBe("L1");
+  });
+
+  it("round-trips group comment and hideOnPrint", () => {
+    const circuit = lampJog();
+    circuit.groups = [
+      {
+        id: "g1",
+        memberIds: circuit.symbols.slice(0, 2).map((s) => s.id),
+        hideOnPrint: true,
+        name: "Station A",
+      },
+    ];
+    const back = decodeShare(encodeShare(makeDoc(circuit, "lab")));
+    expect(back?.circuit.groups?.[0]?.hideOnPrint).toBe(true);
+    expect(back?.circuit.groups?.[0]?.name).toBe("Station A");
+  });
+
+  it("round-trips comment hideOnPrint", () => {
+    const circuit = lampJog();
+    const rem = addDevice(circuit, "comment", "REM1", "body", 4, 4, { text: "note", hideOnPrint: true });
+    const back = decodeShare(encodeShare(makeDoc(circuit, "lab")));
+    const saved = back?.circuit.devices.find((d) => d.id === rem.device.id);
+    expect(saved?.params.hideOnPrint).toBe(true);
+  });
+
+  it("round-trips device hideTag", () => {
+    const circuit = lampJog();
+    const lamp = circuit.devices.find((d) => d.kind === "lamp")!;
+    lamp.params.hideTag = true;
+    const back = decodeShare(encodeShare(makeDoc(circuit, "lab")));
+    const saved = back?.circuit.devices.find((d) => d.id === lamp.id);
+    expect(saved?.params.hideTag).toBe(true);
   });
 
   it("rejects junk", () => {

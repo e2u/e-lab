@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG, KINDS, variantDef } from "./catalog";
 import { catalogCompKey, t } from "./i18n";
+import { printHiddenSymbolIds } from "./groups";
+import { getPrintContentBounds } from "./print";
 import { useLab } from "./store";
 import { emptySnapshot } from "./sim/engine";
 import { addDevice } from "./circuitBuilder";
@@ -36,6 +38,10 @@ describe("Comment Component & Binding", () => {
     expect(t("inspector.bindTarget")).toBeDefined();
     expect(t("inspector.showLeaderLine")).toBeDefined();
     expect(t("inspector.addComment")).toBeDefined();
+    expect(t("inspector.groupComment")).toBeDefined();
+    expect(t("comment.groupDefaultText", { name: "G" })).toContain("G");
+    expect(t("inspector.hideCommentOnPrintHint")).toBeDefined();
+    expect(t("ctx.hideCommentOnPrint")).toBeDefined();
   });
 
   it("places a comment box on canvas with default parameters", () => {
@@ -114,6 +120,22 @@ describe("Comment Component & Binding", () => {
     useLab.getState().updateDevice(commentDev!.id, { targetDeviceId: motor.device.id });
     const reboundDev = useLab.getState().circuit.devices.find((d) => d.id === commentDev!.id)!;
     expect(reboundDev.params.targetDeviceId).toBe(motor.device.id);
+  });
+
+  it("can hide a comment from print while keeping it on the canvas", () => {
+    const c = createEmptyCircuit();
+    const rem = addDevice(c, "comment", "REM1", "body", 2, 2, { text: "note" });
+    const lamp = addDevice(c, "lamp", "HL1", "body", 30, 20);
+    useLab.getState().loadCircuit(c);
+    useLab.getState().updateDevice(rem.device.id, { hideOnPrint: true });
+
+    const circuit = useLab.getState().circuit;
+    expect(circuit.devices.find((d) => d.id === rem.device.id)?.params.hideOnPrint).toBe(true);
+    expect(printHiddenSymbolIds(circuit).has(rem.symbol.id)).toBe(true);
+
+    const bounds = getPrintContentBounds(circuit, 2);
+    expect(bounds.hasElements).toBe(true);
+    expect(bounds.minX).toBeGreaterThanOrEqual(lamp.symbol.x - 3);
   });
 
   it("does not interfere with electrical simulation", () => {

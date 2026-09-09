@@ -3,7 +3,7 @@ import { catalogItem, KINDS, suggestNetLabelTag, variantDef } from "./catalog";
 import { addDevice, addJunction, addSymbol, deleteWireAndCleanJunctions, findJunctionAt, isJunctionSymbol, mergeWires, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
 import templateData from "./examples/blank-template.json";
-import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols } from "./groups";
+import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols, unionBounds } from "./groups";
 import { EXAMPLES } from "./examples";
 import { allWireRoutes, findWireAtPoint, getConnectedWireIds, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute, wireLabelPos } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
@@ -250,6 +250,7 @@ export interface LabState {
   placeAt: (x: number, y: number, extraParams?: Partial<DeviceParams>) => void;
   quickAttachClampMeter: (wireId: string) => void;
   addCommentForSymbol: (symbolId: string) => void;
+  addCommentForGroup: (groupId: string) => void;
   scaleSymbol: (symbolId: string, scale: number, x?: number, y?: number) => void;
   moveSymbol: (id: string, x: number, y: number) => void;
   moveGroup: (
@@ -291,12 +292,15 @@ export interface LabState {
       scale?: number;
       text?: string;
       targetDeviceId?: string;
+      targetGroupId?: string;
       fontSize?: number;
       bgColor?: string;
       borderColor?: string;
       showLeaderLine?: boolean;
       width?: number;
       height?: number;
+      hideOnPrint?: boolean;
+      hideTag?: boolean;
     },
   ) => void;
   setSymbolVariant: (symbolId: string, variant: string) => void;
@@ -321,7 +325,7 @@ export interface LabState {
   straightenWire: (id: string) => void;
   addJunctionOnWire: (id: string, worldPos?: { x: number; y: number }) => void;
   addJunctionAt: (gx: number, gy: number) => void;
-  updateGroup: (groupId: string, patch: { color?: string; name?: string }) => void;
+  updateGroup: (groupId: string, patch: { color?: string; name?: string; hideOnPrint?: boolean }) => void;
   toggleWireBroken: (id: string) => void;
   toggleDeviceWelded: (id: string) => void;
   clearFaults: () => void;
@@ -1636,6 +1640,49 @@ export const useLab = create<LabState>((set, get) => ({
     });
   },
 
+  addCommentForGroup: (groupId) => {
+    const { circuit } = get();
+    const g = (circuit.groups ?? []).find((x) => x.id === groupId);
+    if (!g) return;
+    get().pushHistory();
+    const next = clone(circuit);
+    const ng = (next.groups ?? []).find((x) => x.id === groupId);
+    if (!ng) return;
+    const box = unionBounds(next, ng.memberIds);
+    const gx = Math.round((box?.x ?? 0) + (box?.w ?? 4) + 1);
+    const gy = Math.round(box?.y ?? 0);
+    const label = (ng.name ?? "").trim() || t("lib.group");
+    const created = addDevice(
+      next,
+      "comment",
+      nextTag(next.devices.map((d) => d.tag), "REM"),
+      "body",
+      gx,
+      gy,
+      {
+        text: t("comment.groupDefaultText", { name: label }),
+        targetGroupId: ng.id,
+        showLeaderLine: true,
+        bgColor: "#fef9c3",
+        fontSize: 12,
+        width: 6,
+        height: 3,
+      },
+      0,
+    );
+    if (!ng.memberIds.includes(created.symbol.id)) ng.memberIds.push(created.symbol.id);
+    set({
+      circuit: next,
+      selected: { type: "symbol", id: created.symbol.id },
+      selectedIds: [created.symbol.id],
+      placing: null,
+      wiringFrom: null,
+      sideOpen: true,
+      snapshot: { ...get().snapshot, runtime: mergeRuntime(next, get().snapshot.runtime) },
+      isDirty: true,
+    });
+  },
+
   scaleSymbol: (symbolId, scale, x, y) => {
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === symbolId);
@@ -2017,11 +2064,20 @@ export const useLab = create<LabState>((set, get) => ({
     if (patch.date !== undefined) d.params.date = patch.date;
     if (patch.scale !== undefined) d.params.scale = patch.scale;
     if (patch.text !== undefined) d.params.text = patch.text;
-    if (patch.targetDeviceId !== undefined) d.params.targetDeviceId = patch.targetDeviceId || undefined;
+    if (patch.targetDeviceId !== undefined) {
+      d.params.targetDeviceId = patch.targetDeviceId || undefined;
+      if (patch.targetDeviceId) d.params.targetGroupId = undefined;
+    }
+    if (patch.targetGroupId !== undefined) {
+      d.params.targetGroupId = patch.targetGroupId || undefined;
+      if (patch.targetGroupId) d.params.targetDeviceId = undefined;
+    }
     if (patch.fontSize !== undefined) d.params.fontSize = patch.fontSize;
     if (patch.bgColor !== undefined) d.params.bgColor = patch.bgColor;
     if (patch.borderColor !== undefined) d.params.borderColor = patch.borderColor;
     if (patch.showLeaderLine !== undefined) d.params.showLeaderLine = patch.showLeaderLine;
+    if (patch.hideOnPrint !== undefined) d.params.hideOnPrint = patch.hideOnPrint;
+    if (patch.hideTag !== undefined) d.params.hideTag = patch.hideTag;
     if (patch.width !== undefined) d.params.width = patch.width;
     if (patch.height !== undefined) d.params.height = patch.height;
     set({ circuit: next, isDirty: true });
@@ -2422,6 +2478,7 @@ export const useLab = create<LabState>((set, get) => ({
     if (!g) return;
     if (patch.color !== undefined) g.color = patch.color;
     if (patch.name !== undefined) g.name = patch.name;
+    if (patch.hideOnPrint !== undefined) g.hideOnPrint = patch.hideOnPrint;
     set({ circuit: next, isDirty: true });
   },
   toggleWireBroken: (id) => {
@@ -2909,15 +2966,26 @@ export const useLab = create<LabState>((set, get) => ({
         jog,
       });
     }
+    const groupMap = new Map<string, string>();
     for (const g of clipboard.groups ?? []) {
       const memberIds = g.memberIds.map((id) => symMap.get(id)).filter((id): id is string => Boolean(id));
       if (memberIds.length < 2) continue;
+      const nid = uniqueId("g", used);
+      groupMap.set(g.id, nid);
       next.groups.push({
-        id: uniqueId("g", used),
+        id: nid,
         memberIds,
         color: g.color,
         name: g.name,
+        hideOnPrint: g.hideOnPrint,
       });
+    }
+    for (const d of clipboard.devices) {
+      const nid = devMap.get(d.id);
+      if (!nid) continue;
+      const nd = next.devices.find((x) => x.id === nid);
+      if (!nd || nd.kind !== "comment" || !nd.params.targetGroupId) continue;
+      nd.params.targetGroupId = groupMap.get(nd.params.targetGroupId);
     }
     const newIds = [...symMap.values()];
     set({

@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { t } from "../i18n";
-import { selectionHasGroup } from "../groups";
+import { selectionHasGroup, selectionIsGroup } from "../groups";
 import { areWiresConnected } from "../geometry";
 import { useLab } from "../store";
 import { GRID } from "../types";
@@ -37,6 +37,7 @@ export function ContextMenu({
     areWiresConnected(circuit, selectedWireIds[0], selectedWireIds[1]);
   const effectiveIds = selectedIds.length ? selectedIds : selected?.type === "symbol" ? [selected.id] : [];
   const hasGroup = selectionHasGroup(circuit, effectiveIds);
+  const asGroup = selectionIsGroup(circuit, effectiveIds);
   const canUngroup = hasGroup;
   const hasTagOffset = effectiveIds.some((id) => {
     const s = circuit.symbols.find((x) => x.id === id);
@@ -115,6 +116,26 @@ export function ContextMenu({
             >
               {t("ctx.ungroup")} <kbd>⇧⌘G</kbd>
             </button>
+            {asGroup && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => run(() => useLab.getState().addCommentForGroup(asGroup.id))}
+                >
+                  💬 {t("inspector.addComment")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    run(() =>
+                      useLab.getState().updateGroup(asGroup.id, { hideOnPrint: !asGroup.hideOnPrint }),
+                    )
+                  }
+                >
+                  {asGroup.hideOnPrint ? t("ctx.showGroupOnPrint") : t("ctx.hideGroupOnPrint")}
+                </button>
+              </>
+            )}
             <div className="ctx-sep" />
             <div className="ctx-label">{t("ctx.align")} {n < 2 ? `（${t("ctx.shiftSelect")}）` : ""}</div>
             <button type="button" disabled={n < 2} onClick={() => run(() => useLab.getState().alignSelected("left"))}>
@@ -186,18 +207,30 @@ export function ContextMenu({
                     >
                       {dev.params.showLeaderLine === false ? t("ctx.showLeaderLine") : t("ctx.hideLeaderLine")}
                     </button>
-                    {dev.params.targetDeviceId && (
+                    {(dev.params.targetDeviceId || dev.params.targetGroupId) && (
                       <button
                         type="button"
                         onClick={() =>
                           run(() => {
-                            useLab.getState().updateDevice(dev.id, { targetDeviceId: "" });
+                            useLab.getState().updateDevice(dev.id, { targetDeviceId: "", targetGroupId: "" });
                           })
                         }
                       >
                         {t("ctx.unbindComponent")}
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        run(() => {
+                          useLab.getState().updateDevice(dev.id, {
+                            hideOnPrint: !dev.params.hideOnPrint,
+                          });
+                        })
+                      }
+                    >
+                      {dev.params.hideOnPrint ? t("ctx.showCommentOnPrint") : t("ctx.hideCommentOnPrint")}
+                    </button>
                   </>
                 );
               }
@@ -214,6 +247,16 @@ export function ContextMenu({
                   {dev.kind !== "junction" && dev.kind !== "title-block" && (
                     <button type="button" onClick={() => run(() => useLab.getState().addCommentForSymbol(sym.id))}>
                       💬 {t("inspector.addComment")}
+                    </button>
+                  )}
+                  {dev.kind !== "junction" && dev.kind !== "title-block" && dev.kind !== "net-label" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        run(() => useLab.getState().updateDevice(dev.id, { hideTag: !dev.params.hideTag }))
+                      }
+                    >
+                      {dev.params.hideTag ? t("ctx.showDeviceTag") : t("ctx.hideDeviceTag")}
                     </button>
                   )}
                 </>

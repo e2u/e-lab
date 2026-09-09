@@ -1,5 +1,6 @@
 import { memo, useMemo, type MouseEvent, type PointerEvent } from "react";
 import { alignStackedWireLabels, dedupeWireLabels, getConnectedWireIds, hopArcD, labelMarkMatches, makeWireLabelKey, pickVisibleWireLabels, polylinePathD, terminalWorld, WIRE_LABEL_SEPARATION, wireLabelAnchorAtT, wireLabelAnchors, wireLabelOffset, wireLabelRadius, type WireCrossover } from "../../../geometry";
+import { printHiddenSymbolIds, wireIsPrintHidden } from "../../../groups";
 import { PHASE_COLOR } from "../../../sim/engine";
 import type { Selection } from "../../../store";
 import type { Circuit, SimSnapshot, Wire } from "../../../types";
@@ -22,6 +23,8 @@ interface WireLayerProps {
   onWireLabelDoubleClick?: (e: MouseEvent<SVGElement>, wireId: string, t: number) => void;
   onWireLabelContextMenu?: (e: MouseEvent<SVGElement>, wireId: string, t: number) => void;
   labelDragPreview?: { wireId: string; fromT: number; toT: number } | null;
+  /** When true, skip internal wiring of groups marked hide-on-print. */
+  omitPrintHidden?: boolean;
 }
 
 export const WireLayer = memo(function WireLayer({
@@ -41,7 +44,9 @@ export const WireLayer = memo(function WireLayer({
   onWireLabelDoubleClick,
   onWireLabelContextMenu,
   labelDragPreview = null,
+  omitPrintHidden = false,
 }: WireLayerProps) {
+  const printHiddenIds = useMemo(() => printHiddenSymbolIds(circuit), [circuit]);
   const activeHighlightedWireIds = useMemo(() => {
     if (highlightedWireIds) return highlightedWireIds;
     const ids: string[] = [];
@@ -70,6 +75,7 @@ export const WireLayer = memo(function WireLayer({
     const deviceById = new Map(circuit.devices.map((d) => [d.id, d]));
     const avoid: { x: number; y: number }[] = [];
     for (const sym of circuit.symbols) {
+      if (omitPrintHidden && printHiddenIds.has(sym.id)) continue;
       if (deviceById.get(sym.deviceId)?.kind !== "junction") continue;
       const p = terminalWorld(circuit, { symbolId: sym.id, term: "1" });
       if (p) avoid.push(p);
@@ -77,6 +83,7 @@ export const WireLayer = memo(function WireLayer({
     const candidates = circuit.wires.flatMap((w) => {
       const tag = (w.label ?? "").trim();
       if (!tag || hiddenWireLabels.has(w.id)) return [];
+      if (omitPrintHidden && wireIsPrintHidden(w, printHiddenIds)) return [];
       const pts = routes.get(w.id);
       if (!pts || pts.length < 2) return [];
       const anchors = wireLabelAnchors(pts, wireLabelOffset(tag));
@@ -86,6 +93,7 @@ export const WireLayer = memo(function WireLayer({
     let placed = pickVisibleWireLabels(candidates, undefined, avoid);
     const wireInfo = new Map<string, { pts: { x: number; y: number }[]; tag: string; offset: number }>();
     for (const w of circuit.wires) {
+      if (omitPrintHidden && wireIsPrintHidden(w, printHiddenIds)) continue;
       const tag = (w.label ?? "").trim();
       const pts = routes.get(w.id);
       if (!tag || !pts) continue;
@@ -93,6 +101,7 @@ export const WireLayer = memo(function WireLayer({
     }
     placed = alignStackedWireLabels(placed, wireInfo);
     for (const w of circuit.wires) {
+      if (omitPrintHidden && wireIsPrintHidden(w, printHiddenIds)) continue;
       const marks = w.labelMarks;
       if (!marks?.length) continue;
       const pts = routes.get(w.id);
@@ -118,13 +127,15 @@ export const WireLayer = memo(function WireLayer({
       placed.set(w.id, list);
     }
     return dedupeWireLabels(placed, wireInfo);
-  }, [circuit, routes, hiddenWireLabels, showWireLabels]);
+  }, [circuit, routes, hiddenWireLabels, showWireLabels, omitPrintHidden, printHiddenIds]);
 
   return (
     <>
       {circuit.wires.map((w) => {
         const pts = routes.get(w.id);
         if (!pts || pts.length < 2) return null;
+        const hideOnPrint = wireIsPrintHidden(w, printHiddenIds);
+        if (omitPrintHidden && hideOnPrint) return null;
         const a = pts[0];
         const hops = hopsByWire.get(w.id) ?? [];
         const live = snapshot.wires[w.id];
@@ -143,6 +154,7 @@ export const WireLayer = memo(function WireLayer({
         return (
           <g
             key={w.id}
+            className={hideOnPrint ? "group-print-hidden" : undefined}
             onContextMenu={(e) => onWireContextMenu(e, w.id)}
             onPointerDown={(e) => onWirePointerDown(e, w, pts)}
             onDoubleClick={(e) => onWireDoubleClick?.(e, w)}
@@ -236,7 +248,9 @@ export const WireLayer = memo(function WireLayer({
 
       {crossovers.map((c, i) => {
         const w = circuit.wires.find((item) => item.id === c.hopWireId);
+        if (w && omitPrintHidden && wireIsPrintHidden(w, printHiddenIds)) return null;
         const live = snapshot.wires[c.hopWireId];
+        const hideOnPrint = Boolean(w && wireIsPrintHidden(w, printHiddenIds));
         const isDirectlySelected =
           (selected?.type === "wire" && selected.id === c.hopWireId) ||
           Boolean(selectedWireIds?.includes(c.hopWireId));
@@ -248,7 +262,7 @@ export const WireLayer = memo(function WireLayer({
           <path
             key={`hop-${i}`}
             d={hopArcD(c)}
-            className={`wire ${live?.live ? "live" : ""} ${live?.short ? "short-circuit" : ""}`}
+            className={`wire ${live?.live ? "live" : ""} ${live?.short ? "short-circuit" : ""}${hideOnPrint ? " group-print-hidden" : ""}`}
             stroke={stroke}
             style={{ stroke, color }}
             strokeDasharray={w?.broken ? "6 5" : undefined}
@@ -262,6 +276,8 @@ export const WireLayer = memo(function WireLayer({
         circuit.wires.flatMap((w) => {
           const tag = (w.label ?? "").trim();
           if (!tag) return [];
+          const hideOnPrint = wireIsPrintHidden(w, printHiddenIds);
+          if (omitPrintHidden && hideOnPrint) return [];
           let anchors = labelsByWire.get(w.id) ?? [];
           if (labelDragPreview && labelDragPreview.wireId === w.id) {
             const pts = routes.get(w.id);
@@ -280,7 +296,7 @@ export const WireLayer = memo(function WireLayer({
             return (
               <g
                 key={`${w.id}-label-${li}-${anchor.t.toFixed(3)}`}
-                className="wire-label-group"
+                className={`wire-label-group${hideOnPrint ? " group-print-hidden" : ""}`}
                 onPointerDown={(e) => {
                   e.stopPropagation();
                   onWireLabelPointerDown?.(e as any, w.id, anchor.t);

@@ -4,7 +4,7 @@
   "circuit": {
     "devices": [
       {
-        "id": "d_2t_18c56868",
+        "id": "d_2t_c1403a6b",
         "kind": "mains-3ph",
         "tag": "PWR1",
         "params": {
@@ -14,25 +14,19 @@
         }
       },
       {
-        "id": "d_2v_eb9edee3",
-        "kind": "isolator",
-        "tag": "DISC1",
-        "params": {}
-      },
-      {
-        "id": "d_2x_cad29d96",
+        "id": "d_2x_bed912a6",
         "kind": "breaker-3p",
         "tag": "CB1",
         "params": {}
       },
       {
-        "id": "d_2z_a38028fb",
+        "id": "d_2z_14ba1bf9",
         "kind": "contactor",
         "tag": "M1",
         "params": {}
       },
       {
-        "id": "d_33_dc532879",
+        "id": "d_33_e2712194",
         "kind": "motor-3ph",
         "tag": "MTR1",
         "params": {
@@ -40,7 +34,7 @@
         }
       },
       {
-        "id": "d_35_d315ade6",
+        "id": "d_35_3ad611ce",
         "kind": "transformer",
         "tag": "T1",
         "params": {
@@ -50,19 +44,19 @@
         }
       },
       {
-        "id": "d_37_6a93e07b",
+        "id": "d_37_be9e1f97",
         "kind": "pb-nc",
         "tag": "PB1",
         "params": {}
       },
       {
-        "id": "d_39_1f94ebdc",
+        "id": "d_39_64be5e97",
         "kind": "pb-no",
         "tag": "PB2",
         "params": {}
       },
       {
-        "id": "d_3b_5ae5b988",
+        "id": "d_3b_5aded6c8",
         "kind": "lamp",
         "tag": "LT1",
         "params": {
@@ -70,376 +64,777 @@
         }
       },
       {
-        "id": "d_3d_d30cf705",
+        "id": "d_55_6d330b06",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
+      },
+      {
+        "id": "d_59_b2f644ac",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
+      },
+      {
+        "id": "d_5u_18dcab9c",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
+      },
+      {
+        "id": "d_69_12ba870e",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
+      },
+      {
+        "id": "d_6d_4da1299c",
         "kind": "ground",
         "tag": "GND1",
+        "params": {}
+      },
+      {
+        "id": "d_79_348ec152",
+        "kind": "fuse",
+        "tag": "FU1",
+        "params": {}
+      },
+      {
+        "id": "d_7d_d6967434",
+        "kind": "fuse",
+        "tag": "FU2",
+        "params": {}
+      },
+      {
+        "id": "d_7u_87ab5238",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
+      },
+      {
+        "id": "d_7y_13f83aa0",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
+      },
+      {
+        "id": "d_8a_7413e59c",
+        "kind": "isolator",
+        "tag": "DISC1",
         "params": {}
       }
     ],
     "symbols": [
       {
-        "id": "s_2u_8cc49038",
-        "deviceId": "d_2t_18c56868",
+        "id": "s_2u_4e70fc6a",
+        "deviceId": "d_2t_c1403a6b",
         "variant": "delta",
         "x": 4,
         "y": 4,
         "rot": 0
       },
       {
-        "id": "s_2w_acf9f03d",
-        "deviceId": "d_2v_eb9edee3",
+        "id": "s_2y_a0bc2ff4",
+        "deviceId": "d_2x_bed912a6",
         "variant": "body",
-        "x": 14,
+        "x": 19,
         "y": 4,
-        "rot": 0
+        "rot": 270,
+        "tagOffset": {
+          "dx": -0.809,
+          "dy": 0.033
+        }
       },
       {
-        "id": "s_2y_4e5911d5",
-        "deviceId": "d_2x_cad29d96",
-        "variant": "body",
-        "x": 22,
-        "y": 4,
-        "rot": 0
-      },
-      {
-        "id": "s_30_868156cd",
-        "deviceId": "d_2z_a38028fb",
+        "id": "s_30_8f1f4b1f",
+        "deviceId": "d_2z_14ba1bf9",
         "variant": "coil",
-        "x": 36,
-        "y": 13.5,
-        "rot": 0
+        "x": 46,
+        "y": 17,
+        "rot": 0,
+        "tagOffset": {
+          "dx": -0.001,
+          "dy": -3.13
+        }
       },
       {
-        "id": "s_31_c65eab10",
-        "deviceId": "d_2z_a38028fb",
+        "id": "s_31_d252d0c7",
+        "deviceId": "d_2z_14ba1bf9",
         "variant": "main",
-        "x": 30,
+        "x": 36,
         "y": 4,
-        "rot": 0
+        "rot": 0,
+        "tagOffset": {
+          "dx": 0.086,
+          "dy": -6.687
+        }
       },
       {
-        "id": "s_32_85ab15e0",
-        "deviceId": "d_2z_a38028fb",
+        "id": "s_32_d5a4dd3b",
+        "deviceId": "d_2z_14ba1bf9",
         "variant": "aux-no",
+        "x": 36,
+        "y": 22,
+        "rot": 0,
+        "tagOffset": {
+          "dx": 0.006,
+          "dy": -3.15
+        }
+      },
+      {
+        "id": "s_34_7d9275d8",
+        "deviceId": "d_33_e2712194",
+        "variant": "body",
+        "x": 49,
+        "y": 4,
+        "rot": 270,
+        "tagOffset": {
+          "dx": 1.037,
+          "dy": -6.684
+        }
+      },
+      {
+        "id": "s_36_14312182",
+        "deviceId": "d_35_3ad611ce",
+        "variant": "body",
+        "x": 15,
+        "y": 17,
+        "rot": 0,
+        "tagOffset": {
+          "dx": -0.17,
+          "dy": 0.299
+        }
+      },
+      {
+        "id": "s_38_9e17968e",
+        "deviceId": "d_37_be9e1f97",
+        "variant": "body",
         "x": 26,
+        "y": 17,
+        "rot": 0,
+        "tagOffset": {
+          "dx": 0.149,
+          "dy": 0.171
+        }
+      },
+      {
+        "id": "s_3a_cc38841e",
+        "deviceId": "d_39_64be5e97",
+        "variant": "body",
+        "x": 36,
+        "y": 17,
+        "rot": 0,
+        "tagOffset": {
+          "dx": 0.014,
+          "dy": 0.288
+        }
+      },
+      {
+        "id": "s_3c_4100409d",
+        "deviceId": "d_3b_5aded6c8",
+        "variant": "body",
+        "x": 46,
+        "y": 22,
+        "rot": 90,
+        "tagOffset": {
+          "dx": 1.189,
+          "dy": -5.27
+        }
+      },
+      {
+        "id": "s_56_d8931109",
+        "deviceId": "d_55_6d330b06",
+        "variant": "body",
+        "x": 35,
         "y": 18,
         "rot": 0
       },
       {
-        "id": "s_34_eb3d7099",
-        "deviceId": "d_33_dc532879",
+        "id": "s_5a_6337b533",
+        "deviceId": "d_59_b2f644ac",
         "variant": "body",
-        "x": 38,
-        "y": 4,
+        "x": 41,
+        "y": 18,
         "rot": 0
       },
       {
-        "id": "s_36_0f1560c4",
-        "deviceId": "d_35_d315ade6",
+        "id": "s_5v_d9a2086b",
+        "deviceId": "d_5u_18dcab9c",
         "variant": "body",
-        "x": 12,
-        "y": 14,
+        "x": 50,
+        "y": 23,
         "rot": 0
       },
       {
-        "id": "s_38_76f4ee03",
-        "deviceId": "d_37_6a93e07b",
+        "id": "s_6a_7b229f20",
+        "deviceId": "d_69_12ba870e",
+        "variant": "body",
+        "x": 21,
+        "y": 28,
+        "rot": 0
+      },
+      {
+        "id": "s_6e_3869d385",
+        "deviceId": "d_6d_4da1299c",
         "variant": "body",
         "x": 20,
-        "y": 14,
+        "y": 28,
+        "rot": 0,
+        "tagOffset": {
+          "dx": 1.762,
+          "dy": -1.271
+        }
+      },
+      {
+        "id": "s_7a_2212ff3e",
+        "deviceId": "d_79_348ec152",
+        "variant": "body",
+        "x": 19,
+        "y": 11,
+        "rot": 90,
+        "flipX": false,
+        "flipY": false,
+        "tagOffset": {
+          "dx": 0.636,
+          "dy": -0.19
+        }
+      },
+      {
+        "id": "s_7e_afcb64f3",
+        "deviceId": "d_7d_d6967434",
+        "variant": "body",
+        "x": 19,
+        "y": 13,
+        "rot": 90,
+        "flipX": false,
+        "flipY": false,
+        "tagOffset": {
+          "dx": 0.576,
+          "dy": -0.384
+        }
+      },
+      {
+        "id": "s_7v_1a029898",
+        "deviceId": "d_7u_87ab5238",
+        "variant": "body",
+        "x": 25,
+        "y": 7,
         "rot": 0
       },
       {
-        "id": "s_3a_30b99743",
-        "deviceId": "d_39_1f94ebdc",
+        "id": "s_7z_a1188a5f",
+        "deviceId": "d_7y_13f83aa0",
         "variant": "body",
-        "x": 26,
-        "y": 14,
+        "x": 31,
+        "y": 9,
         "rot": 0
       },
       {
-        "id": "s_3c_c3dbbe7b",
-        "deviceId": "d_3b_5ae5b988",
+        "id": "s_8b_826cedc0",
+        "deviceId": "d_8a_7413e59c",
         "variant": "body",
-        "x": 36,
-        "y": 17.5,
-        "rot": 0
-      },
-      {
-        "id": "s_3e_705a528c",
-        "deviceId": "d_3d_d30cf705",
-        "variant": "body",
-        "x": 4,
-        "y": 16,
-        "rot": 0
+        "x": 11,
+        "y": 4,
+        "rot": 0,
+        "flipX": false,
+        "flipY": false
       }
     ],
     "wires": [
       {
-        "id": "w_3f_35021bc8",
+        "id": "w_3u_cd96cb3a",
         "a": {
-          "symbolId": "s_2u_8cc49038",
-          "term": "L1"
-        },
-        "b": {
-          "symbolId": "s_2w_acf9f03d",
-          "term": "L1"
-        }
-      },
-      {
-        "id": "w_3g_7ca52a41",
-        "a": {
-          "symbolId": "s_2u_8cc49038",
-          "term": "L2"
-        },
-        "b": {
-          "symbolId": "s_2w_acf9f03d",
-          "term": "L2"
-        }
-      },
-      {
-        "id": "w_3h_c574559a",
-        "a": {
-          "symbolId": "s_2u_8cc49038",
-          "term": "L3"
-        },
-        "b": {
-          "symbolId": "s_2w_acf9f03d",
-          "term": "L3"
-        }
-      },
-      {
-        "id": "w_3i_7c7d39bc",
-        "a": {
-          "symbolId": "s_2w_acf9f03d",
-          "term": "T1"
-        },
-        "b": {
-          "symbolId": "s_2y_4e5911d5",
-          "term": "L1"
-        }
-      },
-      {
-        "id": "w_3j_dbb1536b",
-        "a": {
-          "symbolId": "s_2w_acf9f03d",
-          "term": "T2"
-        },
-        "b": {
-          "symbolId": "s_2y_4e5911d5",
-          "term": "L2"
-        }
-      },
-      {
-        "id": "w_3k_a3e88bcc",
-        "a": {
-          "symbolId": "s_2w_acf9f03d",
-          "term": "T3"
-        },
-        "b": {
-          "symbolId": "s_2y_4e5911d5",
-          "term": "L3"
-        }
-      },
-      {
-        "id": "w_3l_839f94a8",
-        "a": {
-          "symbolId": "s_2y_4e5911d5",
-          "term": "T1"
-        },
-        "b": {
-          "symbolId": "s_31_c65eab10",
-          "term": "L1"
-        }
-      },
-      {
-        "id": "w_3m_afd08771",
-        "a": {
-          "symbolId": "s_2y_4e5911d5",
-          "term": "T2"
-        },
-        "b": {
-          "symbolId": "s_31_c65eab10",
-          "term": "L2"
-        }
-      },
-      {
-        "id": "w_3n_42aaa82a",
-        "a": {
-          "symbolId": "s_2y_4e5911d5",
-          "term": "T3"
-        },
-        "b": {
-          "symbolId": "s_31_c65eab10",
-          "term": "L3"
-        }
-      },
-      {
-        "id": "w_3o_2e58d55c",
-        "a": {
-          "symbolId": "s_31_c65eab10",
-          "term": "T1"
-        },
-        "b": {
-          "symbolId": "s_34_eb3d7099",
-          "term": "U"
-        }
-      },
-      {
-        "id": "w_3p_3f1dcbda",
-        "a": {
-          "symbolId": "s_31_c65eab10",
-          "term": "T2"
-        },
-        "b": {
-          "symbolId": "s_34_eb3d7099",
-          "term": "V"
-        }
-      },
-      {
-        "id": "w_3q_cb4325d6",
-        "a": {
-          "symbolId": "s_31_c65eab10",
-          "term": "T3"
-        },
-        "b": {
-          "symbolId": "s_34_eb3d7099",
-          "term": "W"
-        }
-      },
-      {
-        "id": "w_3r_7ed32c28",
-        "a": {
-          "symbolId": "s_2u_8cc49038",
-          "term": "PE"
-        },
-        "b": {
-          "symbolId": "s_3e_705a528c",
-          "term": "1"
-        }
-      },
-      {
-        "id": "w_3s_77835a62",
-        "a": {
-          "symbolId": "s_2w_acf9f03d",
-          "term": "T1"
-        },
-        "b": {
-          "symbolId": "s_36_0f1560c4",
-          "term": "H1"
-        }
-      },
-      {
-        "id": "w_3t_5f0a0d1e",
-        "a": {
-          "symbolId": "s_2w_acf9f03d",
-          "term": "T2"
-        },
-        "b": {
-          "symbolId": "s_36_0f1560c4",
-          "term": "H2"
-        }
-      },
-      {
-        "id": "w_3u_5bdc50be",
-        "a": {
-          "symbolId": "s_36_0f1560c4",
+          "symbolId": "s_36_14312182",
           "term": "X1"
         },
         "b": {
-          "symbolId": "s_38_76f4ee03",
+          "symbolId": "s_38_9e17968e",
           "term": "1"
-        }
+        },
+        "label": "1"
       },
       {
-        "id": "w_3v_82f5c512",
+        "id": "w_3v_faf78bf3",
         "a": {
-          "symbolId": "s_38_76f4ee03",
+          "symbolId": "s_38_9e17968e",
           "term": "2"
         },
         "b": {
-          "symbolId": "s_3a_30b99743",
+          "symbolId": "s_56_d8931109",
           "term": "1"
-        }
+        },
+        "label": "9"
       },
       {
-        "id": "w_3w_8922f74f",
+        "id": "w_3x_1dc376f6",
         "a": {
-          "symbolId": "s_38_76f4ee03",
+          "symbolId": "s_3a_cc38841e",
           "term": "2"
         },
         "b": {
-          "symbolId": "s_32_85ab15e0",
+          "symbolId": "s_5a_6337b533",
+          "term": "1"
+        },
+        "label": "10"
+      },
+      {
+        "id": "w_57_b4d294a1",
+        "a": {
+          "symbolId": "s_56_d8931109",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_3a_cc38841e",
+          "term": "1"
+        },
+        "label": "9"
+      },
+      {
+        "id": "w_58_990a3561",
+        "a": {
+          "symbolId": "s_32_d5a4dd3b",
           "term": "13"
-        }
-      },
-      {
-        "id": "w_3x_9c13e302",
-        "a": {
-          "symbolId": "s_3a_30b99743",
-          "term": "2"
         },
         "b": {
-          "symbolId": "s_30_868156cd",
-          "term": "A1"
+          "symbolId": "s_56_d8931109",
+          "term": "1"
+        },
+        "label": "9",
+        "jog": {
+          "axis": "x",
+          "pos": 770,
+          "x": 770
         }
       },
       {
-        "id": "w_3y_a79c32c8",
+        "id": "w_5b_8f733c51",
         "a": {
-          "symbolId": "s_32_85ab15e0",
+          "symbolId": "s_5a_6337b533",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_30_8f1f4b1f",
+          "term": "A1"
+        },
+        "jog": {
+          "axis": "y",
+          "pos": 396,
+          "y": 396
+        },
+        "label": "10"
+      },
+      {
+        "id": "w_5c_a04b8fd2",
+        "a": {
+          "symbolId": "s_32_d5a4dd3b",
           "term": "14"
         },
         "b": {
-          "symbolId": "s_30_868156cd",
-          "term": "A1"
-        }
-      },
-      {
-        "id": "w_3z_b0e8ac83",
-        "a": {
-          "symbolId": "s_30_868156cd",
-          "term": "A2"
-        },
-        "b": {
-          "symbolId": "s_36_0f1560c4",
-          "term": "X2"
-        }
-      },
-      {
-        "id": "w_40_df548587",
-        "a": {
-          "symbolId": "s_36_0f1560c4",
-          "term": "X2"
-        },
-        "b": {
-          "symbolId": "s_3e_705a528c",
+          "symbolId": "s_5a_6337b533",
           "term": "1"
-        }
-      },
-      {
-        "id": "w_41_d2a90a07",
-        "a": {
-          "symbolId": "s_30_868156cd",
-          "term": "A1"
         },
-        "b": {
-          "symbolId": "s_3c_c3dbbe7b",
-          "term": "1"
-        }
+        "label": "10"
       },
       {
-        "id": "w_42_1dd2b04b",
+        "id": "w_5e_c0f8d0fc",
         "a": {
-          "symbolId": "s_3c_c3dbbe7b",
+          "symbolId": "s_3c_4100409d",
           "term": "2"
         },
         "b": {
-          "symbolId": "s_36_0f1560c4",
+          "symbolId": "s_30_8f1f4b1f",
+          "term": "A1"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 1012,
+          "x": 1012
+        },
+        "label": "10"
+      },
+      {
+        "id": "w_5s_a5a598b9",
+        "a": {
+          "symbolId": "s_30_8f1f4b1f",
+          "term": "A2"
+        },
+        "b": {
+          "symbolId": "s_5v_d9a2086b",
+          "term": "1"
+        },
+        "broken": false,
+        "jog": {
+          "axis": "x",
+          "pos": 1100,
+          "x": 1100
+        },
+        "label": "2"
+      },
+      {
+        "id": "w_5t_477b589e",
+        "a": {
+          "symbolId": "s_5m_1981c918",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_3c_4100409d",
+          "term": "1"
+        },
+        "label": "2"
+      },
+      {
+        "id": "w_5x_2a8e4663",
+        "a": {
+          "symbolId": "s_3c_4100409d",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_5v_d9a2086b",
+          "term": "1"
+        },
+        "label": "2"
+      },
+      {
+        "id": "w_68_62623380",
+        "a": {
+          "symbolId": "s_36_14312182",
           "term": "X2"
+        },
+        "b": {
+          "symbolId": "s_6a_7b229f20",
+          "term": "1"
+        },
+        "label": "2"
+      },
+      {
+        "id": "w_6b_5545e94d",
+        "a": {
+          "symbolId": "s_6a_7b229f20",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_3c_4100409d",
+          "term": "1"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 1100,
+          "x": 1100,
+          "y": 616
+        },
+        "label": "2"
+      },
+      {
+        "id": "w_6c_1ac7f175",
+        "a": {
+          "symbolId": "s_2u_4e70fc6a",
+          "term": "PE"
+        },
+        "b": {
+          "symbolId": "s_6a_7b229f20",
+          "term": "1"
+        },
+        "jog": {
+          "axis": "y",
+          "pos": 616,
+          "y": 616
+        },
+        "label": "2"
+      },
+      {
+        "id": "w_7k_d5d2d315",
+        "a": {
+          "symbolId": "s_6t_f7d66567",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_2y_a0bc2ff4",
+          "term": "6"
+        },
+        "label": "16"
+      },
+      {
+        "id": "w_7n_a9129840",
+        "a": {
+          "symbolId": "s_31_d252d0c7",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_34_7d9275d8",
+          "term": "W"
+        },
+        "label": "11"
+      },
+      {
+        "id": "w_7o_a30f1011",
+        "a": {
+          "symbolId": "s_31_d252d0c7",
+          "term": "4"
+        },
+        "b": {
+          "symbolId": "s_34_7d9275d8",
+          "term": "V"
+        },
+        "label": "12"
+      },
+      {
+        "id": "w_7p_c7289504",
+        "a": {
+          "symbolId": "s_31_d252d0c7",
+          "term": "6"
+        },
+        "b": {
+          "symbolId": "s_34_7d9275d8",
+          "term": "U"
+        },
+        "label": "15"
+      },
+      {
+        "id": "w_7r_351d2eb4",
+        "a": {
+          "symbolId": "s_2y_a0bc2ff4",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_31_d252d0c7",
+          "term": "1"
+        },
+        "label": "7"
+      },
+      {
+        "id": "w_7s_ccb49301",
+        "a": {
+          "symbolId": "s_2y_a0bc2ff4",
+          "term": "4"
+        },
+        "b": {
+          "symbolId": "s_7v_1a029898",
+          "term": "1"
+        },
+        "label": "8"
+      },
+      {
+        "id": "w_7t_906944c8",
+        "a": {
+          "symbolId": "s_2y_a0bc2ff4",
+          "term": "6"
+        },
+        "b": {
+          "symbolId": "s_7z_a1188a5f",
+          "term": "1"
+        },
+        "label": "16"
+      },
+      {
+        "id": "w_7w_5eeddd09",
+        "a": {
+          "symbolId": "s_7v_1a029898",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_31_d252d0c7",
+          "term": "3"
+        },
+        "label": "8"
+      },
+      {
+        "id": "w_7x_e4521147",
+        "a": {
+          "symbolId": "s_7a_2212ff3e",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_7v_1a029898",
+          "term": "1"
+        },
+        "label": "8",
+        "jog": {
+          "axis": "x",
+          "pos": 550,
+          "x": 550
         }
+      },
+      {
+        "id": "w_80_6bd2c0f6",
+        "a": {
+          "symbolId": "s_7z_a1188a5f",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_31_d252d0c7",
+          "term": "5"
+        },
+        "label": "16"
+      },
+      {
+        "id": "w_81_a257669a",
+        "a": {
+          "symbolId": "s_7e_afcb64f3",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_7z_a1188a5f",
+          "term": "1"
+        },
+        "label": "16"
+      },
+      {
+        "id": "w_82_37e037fa",
+        "a": {
+          "symbolId": "s_7e_afcb64f3",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_36_14312182",
+          "term": "H1"
+        },
+        "label": "3"
+      },
+      {
+        "id": "w_83_615972aa",
+        "a": {
+          "symbolId": "s_6x_ca33efd6",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_7a_2212ff3e",
+          "term": "2"
+        },
+        "label": "17"
+      },
+      {
+        "id": "w_84_99417b39",
+        "a": {
+          "symbolId": "s_7a_2212ff3e",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_36_14312182",
+          "term": "H4"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 264,
+          "x": 264
+        },
+        "label": "17"
+      },
+      {
+        "id": "w_85_25dd07bb",
+        "a": {
+          "symbolId": "s_36_14312182",
+          "term": "H3"
+        },
+        "b": {
+          "symbolId": "s_36_14312182",
+          "term": "H4"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 330,
+          "x": 330
+        },
+        "label": "17"
+      },
+      {
+        "id": "w_86_586ba4f3",
+        "a": {
+          "symbolId": "s_36_14312182",
+          "term": "H2"
+        },
+        "b": {
+          "symbolId": "s_36_14312182",
+          "term": "H1"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 330,
+          "x": 330
+        },
+        "label": "3"
+      },
+      {
+        "id": "w_8c_30cda738",
+        "a": {
+          "symbolId": "s_8b_826cedc0",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_2y_a0bc2ff4",
+          "term": "1"
+        },
+        "label": "4"
+      },
+      {
+        "id": "w_8d_c76b909e",
+        "a": {
+          "symbolId": "s_8b_826cedc0",
+          "term": "4"
+        },
+        "b": {
+          "symbolId": "s_2y_a0bc2ff4",
+          "term": "3"
+        },
+        "label": "5"
+      },
+      {
+        "id": "w_8e_3fc742d6",
+        "a": {
+          "symbolId": "s_8b_826cedc0",
+          "term": "6"
+        },
+        "b": {
+          "symbolId": "s_2y_a0bc2ff4",
+          "term": "5"
+        },
+        "label": "6"
+      },
+      {
+        "id": "w_8f_75658b2b",
+        "a": {
+          "symbolId": "s_8b_826cedc0",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_2u_4e70fc6a",
+          "term": "L1"
+        },
+        "label": "90"
+      },
+      {
+        "id": "w_8g_2e48b88b",
+        "a": {
+          "symbolId": "s_8b_826cedc0",
+          "term": "3"
+        },
+        "b": {
+          "symbolId": "s_2u_4e70fc6a",
+          "term": "L2"
+        },
+        "label": "91"
+      },
+      {
+        "id": "w_8h_4d206b7b",
+        "a": {
+          "symbolId": "s_8b_826cedc0",
+          "term": "5"
+        },
+        "b": {
+          "symbolId": "s_2u_4e70fc6a",
+          "term": "L3"
+        },
+        "label": "92"
       }
     ],
     "groups": []
+  },
+  "process": {
+    "temperature": 34,
+    "pressure": 0,
+    "level": 0,
+    "flow": 0,
+    "limitHit": false,
+    "proxHit": false,
+    "photoHit": false
   }
 }

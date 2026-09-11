@@ -4,25 +4,25 @@
   "circuit": {
     "devices": [
       {
-        "id": "d_b_03825137",
+        "id": "d_b_5f284ea0",
         "kind": "dc-supply",
         "tag": "PWS1",
         "params": {}
       },
       {
-        "id": "d_d_72b9723e",
+        "id": "d_d_8c13c455",
         "kind": "pb-nc",
         "tag": "PB1",
         "params": {}
       },
       {
-        "id": "d_f_005e070c",
+        "id": "d_f_4b706ad9",
         "kind": "pb-no",
         "tag": "PB2",
         "params": {}
       },
       {
-        "id": "d_h_7fab3914",
+        "id": "d_h_41ac0237",
         "kind": "lamp",
         "tag": "LT1",
         "params": {
@@ -30,124 +30,189 @@
         }
       },
       {
-        "id": "d_j_2392697c",
+        "id": "d_j_e3872dad",
         "kind": "lamp",
         "tag": "LT2",
         "params": {
           "color": "red"
         }
+      },
+      {
+        "id": "d_u_a3feb205",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
+      },
+      {
+        "id": "d_z_6a9c2855",
+        "kind": "junction",
+        "tag": "",
+        "params": {}
       }
     ],
     "symbols": [
       {
-        "id": "s_c_2f21fc16",
-        "deviceId": "d_b_03825137",
+        "id": "s_c_e591d2b8",
+        "deviceId": "d_b_5f284ea0",
         "variant": "body",
-        "x": 4,
-        "y": 4,
+        "x": 3,
+        "y": 3,
         "rot": 0
       },
       {
-        "id": "s_e_4f3d48ac",
-        "deviceId": "d_d_72b9723e",
+        "id": "s_e_c27d32b9",
+        "deviceId": "d_d_8c13c455",
         "variant": "body",
         "x": 14,
-        "y": 4,
+        "y": 3,
         "rot": 0
       },
       {
-        "id": "s_g_321337c3",
-        "deviceId": "d_f_005e070c",
+        "id": "s_g_9a9ce57d",
+        "deviceId": "d_f_4b706ad9",
+        "variant": "body",
+        "x": 22,
+        "y": 3,
+        "rot": 0
+      },
+      {
+        "id": "s_i_844b6798",
+        "deviceId": "d_h_41ac0237",
+        "variant": "body",
+        "x": 29.75,
+        "y": 6,
+        "rot": 90
+      },
+      {
+        "id": "s_k_9e9efb6b",
+        "deviceId": "d_j_e3872dad",
+        "variant": "body",
+        "x": 14.25,
+        "y": 9.6875,
+        "rot": 90
+      },
+      {
+        "id": "s_v_d835e348",
+        "deviceId": "d_u_a3feb205",
         "variant": "body",
         "x": 20,
         "y": 4,
         "rot": 0
       },
       {
-        "id": "s_i_672c646f",
-        "deviceId": "d_h_7fab3914",
+        "id": "s_10_c53cf685",
+        "deviceId": "d_z_6a9c2855",
         "variant": "body",
-        "x": 28,
-        "y": 3.5,
-        "rot": 0
-      },
-      {
-        "id": "s_k_c996cafc",
-        "deviceId": "d_j_2392697c",
-        "variant": "body",
-        "x": 28,
-        "y": 8.5,
+        "x": 13,
+        "y": 7,
         "rot": 0
       }
     ],
     "wires": [
       {
-        "id": "w_l_bef60558",
+        "id": "w_l_2b7536e1",
         "a": {
-          "symbolId": "s_c_2f21fc16",
+          "symbolId": "s_c_e591d2b8",
           "term": "+"
         },
         "b": {
-          "symbolId": "s_e_4f3d48ac",
+          "symbolId": "s_e_c27d32b9",
           "term": "1"
         }
       },
       {
-        "id": "w_m_c5d2fc3b",
+        "id": "w_m_b5681ad4",
         "a": {
-          "symbolId": "s_e_4f3d48ac",
+          "symbolId": "s_e_c27d32b9",
           "term": "2"
         },
         "b": {
-          "symbolId": "s_g_321337c3",
+          "symbolId": "s_v_d835e348",
+          "term": "1"
+        },
+        "broken": false
+      },
+      {
+        "id": "w_n_c2e7fde1",
+        "a": {
+          "symbolId": "s_g_9a9ce57d",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_i_844b6798",
           "term": "1"
         }
       },
       {
-        "id": "w_n_bf55b291",
+        "id": "w_o_ce3f1f4a",
         "a": {
-          "symbolId": "s_g_321337c3",
+          "symbolId": "s_i_844b6798",
           "term": "2"
         },
         "b": {
-          "symbolId": "s_i_672c646f",
+          "symbolId": "s_10_c53cf685",
+          "term": "1"
+        },
+        "jog": {
+          "axis": "y",
+          "pos": 154
+        }
+      },
+      {
+        "id": "w_w_d054891b",
+        "a": {
+          "symbolId": "s_v_d835e348",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_g_9a9ce57d",
+          "term": "1"
+        },
+        "broken": false
+      },
+      {
+        "id": "w_y_667904b0",
+        "a": {
+          "symbolId": "s_k_9e9efb6b",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_v_d835e348",
           "term": "1"
         }
       },
       {
-        "id": "w_o_8e8a5302",
+        "id": "w_11_8e0c6282",
         "a": {
-          "symbolId": "s_i_672c646f",
-          "term": "2"
+          "symbolId": "s_10_c53cf685",
+          "term": "1"
         },
         "b": {
-          "symbolId": "s_c_2f21fc16",
+          "symbolId": "s_c_e591d2b8",
           "term": "-"
         }
       },
       {
-        "id": "w_p_ace55f06",
+        "id": "w_12_bf1fdc70",
         "a": {
-          "symbolId": "s_e_4f3d48ac",
-          "term": "2"
-        },
-        "b": {
-          "symbolId": "s_k_c996cafc",
+          "symbolId": "s_10_c53cf685",
           "term": "1"
-        }
-      },
-      {
-        "id": "w_q_fe5cdac5",
-        "a": {
-          "symbolId": "s_k_c996cafc",
-          "term": "2"
         },
         "b": {
-          "symbolId": "s_c_2f21fc16",
-          "term": "-"
+          "symbolId": "s_k_9e9efb6b",
+          "term": "2"
         }
       }
     ],
     "groups": []
+  },
+  "process": {
+    "temperature": 34,
+    "pressure": 0,
+    "level": 0,
+    "flow": 0,
+    "limitHit": false,
+    "proxHit": false,
+    "photoHit": false
   }
 }

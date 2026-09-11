@@ -79,9 +79,9 @@ describe("20 Progressive Example Circuits", () => {
   it("should test interactive self-holding simulation on 04-relay-self-holding", () => {
     const ex = ALL_20_EXAMPLES.find((e) => e.id === "04-relay-self-holding")!;
     const circuit = ex.build();
-    const sbStart = circuit.devices.find((d) => d.tag === "SB2")!;
-    const ka1 = circuit.devices.find((d) => d.tag === "KA1")!;
-    const hl1 = circuit.devices.find((d) => d.tag === "HL1")!;
+    const sbStart = circuit.devices.find((d) => d.tag === "PB2")!;
+    const ka1 = circuit.devices.find((d) => d.tag === "CR1")!;
+    const hl1 = circuit.devices.find((d) => d.tag === "LT1")!;
 
     let snap = emptySnapshot(circuit);
     const process = { temperature: 25, pressure: 0, level: 0, flow: 0, limitHit: false, proxHit: false, photoHit: false };

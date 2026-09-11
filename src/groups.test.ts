@@ -18,8 +18,8 @@ import { GRID } from "./types";
 describe("symbol groups", () => {
   it("expands a member click to the whole group", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "LT2", "body", 4, 0);
     const g = groupSymbols(c, [a.symbol.id, b.symbol.id]);
     expect(g).not.toBeNull();
     expect(expandIds(c, [a.symbol.id]).sort()).toEqual([a.symbol.id, b.symbol.id].sort());
@@ -28,8 +28,8 @@ describe("symbol groups", () => {
 
   it("automatically includes internal junctions within a group", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "LT2", "body", 4, 0);
     const j = addDevice(c, "junction", "J1", "dot", 2, 0);
     addWire(c, a.symbol.id, "1", j.symbol.id, "1");
     addWire(c, j.symbol.id, "1", b.symbol.id, "1");
@@ -77,8 +77,8 @@ describe("symbol groups", () => {
 
   it("moves internal wire jogs when moving a group", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "LT2", "body", 4, 0);
     addWire(c, a.symbol.id, "1", b.symbol.id, "1");
     const w = c.wires[c.wires.length - 1];
     w.jog = { axis: "x", pos: 2 * GRID };
@@ -97,8 +97,8 @@ describe("symbol groups", () => {
 
   it("moves internal wire jogs when nudging a group", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "LT2", "body", 4, 0);
     addWire(c, a.symbol.id, "1", b.symbol.id, "1");
     const w = c.wires[c.wires.length - 1];
     w.jog = { axis: "y", pos: 3 * GRID };
@@ -114,8 +114,8 @@ describe("symbol groups", () => {
 
   it("updates group color in store and retains it", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "LT2", "body", 4, 0);
     const g = groupSymbols(c, [a.symbol.id, b.symbol.id]);
     expect(g).not.toBeNull();
 
@@ -129,8 +129,8 @@ describe("symbol groups", () => {
 
   it("preserves group color when duplicating/pasting", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "LT2", "body", 4, 0);
     const g = groupSymbols(c, [a.symbol.id, b.symbol.id], "#10b981");
     expect(g?.color).toBe("#10b981");
 
@@ -146,8 +146,8 @@ describe("symbol groups", () => {
 
   it("toggles hideOnPrint and copies it when pasting", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "LT2", "body", 4, 0);
     const g = groupSymbols(c, [a.symbol.id, b.symbol.id]);
     expect(g).not.toBeNull();
 
@@ -166,8 +166,8 @@ describe("symbol groups", () => {
 
   it("stores a group comment and shows it independently of member comments", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "LT2", "body", 4, 0);
     const g = groupSymbols(c, [a.symbol.id, b.symbol.id]);
     expect(g).not.toBeNull();
 
@@ -218,9 +218,9 @@ describe("symbol groups", () => {
 
   it("treats only internal wires as print-hidden", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0);
-    const d = addDevice(c, "lamp", "HL3", "body", 8, 0);
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const b = addDevice(c, "lamp", "LT2", "body", 4, 0);
+    const d = addDevice(c, "lamp", "LT3", "body", 8, 0);
     groupSymbols(c, [a.symbol.id, b.symbol.id]);
     c.groups![0].hideOnPrint = true;
     addWire(c, a.symbol.id, "1", b.symbol.id, "1");
@@ -233,13 +233,13 @@ describe("symbol groups", () => {
   it("aligns groups as whole units without modifying internal relative positions", () => {
     const c = emptyCircuit();
     // Group 1: 2 lamps at (0, 0) and (4, 0) -> width 6, x from 0 to 6
-    const a1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const a2 = addDevice(c, "lamp", "HL2", "body", 4, 0);
+    const a1 = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const a2 = addDevice(c, "lamp", "LT2", "body", 4, 0);
     groupSymbols(c, [a1.symbol.id, a2.symbol.id]);
 
     // Group 2: 2 lamps at (10, 10) and (12, 10) -> width 4, x from 10 to 14
-    const b1 = addDevice(c, "lamp", "HL3", "body", 10, 10);
-    const b2 = addDevice(c, "lamp", "HL4", "body", 12, 10);
+    const b1 = addDevice(c, "lamp", "LT3", "body", 10, 10);
+    const b2 = addDevice(c, "lamp", "LT4", "body", 12, 10);
     groupSymbols(c, [b1.symbol.id, b2.symbol.id]);
 
     useLab.setState({
@@ -266,8 +266,8 @@ describe("symbol groups", () => {
 
   it("rotates a group around its center preserving internal layout and rotating wire jogs", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0); // box (0,0) to (2,4), center (1,2)
-    const b = addDevice(c, "lamp", "HL2", "body", 4, 0); // box (4,0) to (6,4), center (5,2)
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0); // box (0,0) to (2,4), center (1,2)
+    const b = addDevice(c, "lamp", "LT2", "body", 4, 0); // box (4,0) to (6,4), center (5,2)
     addWire(c, a.symbol.id, "1", b.symbol.id, "1");
     const w = c.wires[c.wires.length - 1];
     w.jog = { axis: "x", pos: 3 * GRID }; // vertical line at x=3 (group center)
@@ -299,8 +299,8 @@ describe("symbol groups", () => {
 
   it("disables flip operations on symbols in groups", () => {
     const c = emptyCircuit();
-    const km = addDevice(c, "contactor", "KM1", "coil", 4, 4);
-    const lamp = addDevice(c, "lamp", "HL1", "body", 8, 4);
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 4);
+    const lamp = addDevice(c, "lamp", "LT1", "body", 8, 4);
     groupSymbols(c, [km.symbol.id, lamp.symbol.id]);
 
     useLab.setState({ circuit: c, selectedIds: [km.symbol.id, lamp.symbol.id] });
@@ -315,9 +315,9 @@ describe("symbol groups", () => {
     const c = emptyCircuit();
     // 3 lamps: Lamp 1 at x=0 (w=2, right=2), Lamp 2 at x=6 (w=2, left=6, right=8) -> gap = 6 - 2 = 4
     // Lamp 3 at x=20 (w=2)
-    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const l2 = addDevice(c, "lamp", "HL2", "body", 6, 0);
-    const l3 = addDevice(c, "lamp", "HL3", "body", 20, 0);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 6, 0);
+    const l3 = addDevice(c, "lamp", "LT3", "body", 20, 0);
 
     useLab.setState({ circuit: c, selectedIds: [l1.symbol.id, l2.symbol.id, l3.symbol.id] });
     useLab.getState().alignSelected("distribute-h");
@@ -337,9 +337,9 @@ describe("symbol groups", () => {
     const c = emptyCircuit();
     // 3 lamps: Lamp 1 at y=0 (h=2, bottom=2), Lamp 2 at y=5 (h=2, top=5, bottom=7) -> gap = 5 - 2 = 3
     // Lamp 3 at y=30 (h=2)
-    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const l2 = addDevice(c, "lamp", "HL2", "body", 0, 5);
-    const l3 = addDevice(c, "lamp", "HL3", "body", 0, 30);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 0, 5);
+    const l3 = addDevice(c, "lamp", "LT3", "body", 0, 30);
 
     useLab.setState({ circuit: c, selectedIds: [l1.symbol.id, l2.symbol.id, l3.symbol.id] });
     useLab.getState().alignSelected("distribute-v");
@@ -358,15 +358,15 @@ describe("symbol groups", () => {
   it("distributes mixed groups and symbols with equal gap preserving group internal layout", () => {
     const c = emptyCircuit();
     // Element 1: Single lamp at x=0 (w=2, right=2)
-    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 0, 0);
 
     // Element 2: Group of 2 lamps at x=5 and x=7 (group box: x=5 to x=9, w=4) -> gap = 5 - 2 = 3
-    const g1a = addDevice(c, "lamp", "HL2", "body", 5, 0);
-    const g1b = addDevice(c, "lamp", "HL3", "body", 7, 0);
+    const g1a = addDevice(c, "lamp", "LT2", "body", 5, 0);
+    const g1b = addDevice(c, "lamp", "LT3", "body", 7, 0);
     groupSymbols(c, [g1a.symbol.id, g1b.symbol.id]);
 
     // Element 3: Single lamp at x=25 (w=2)
-    const l4 = addDevice(c, "lamp", "HL4", "body", 25, 0);
+    const l4 = addDevice(c, "lamp", "LT4", "body", 25, 0);
 
     useLab.setState({
       circuit: c,
@@ -390,9 +390,9 @@ describe("symbol groups", () => {
   it("prevents vertical overlap when aligning multiple elements to left/right/hcenter", () => {
     const c = emptyCircuit();
     // 3 lamps at the same y=0, but different x
-    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0); // h=4
-    const l2 = addDevice(c, "lamp", "HL2", "body", 10, 0); // h=4
-    const l3 = addDevice(c, "lamp", "HL3", "body", 20, 0); // h=4
+    const l1 = addDevice(c, "lamp", "LT1", "body", 0, 0); // h=4
+    const l2 = addDevice(c, "lamp", "LT2", "body", 10, 0); // h=4
+    const l3 = addDevice(c, "lamp", "LT3", "body", 20, 0); // h=4
 
     useLab.setState({ circuit: c, selectedIds: [l1.symbol.id, l2.symbol.id, l3.symbol.id] });
     useLab.getState().alignSelected("left");
@@ -417,9 +417,9 @@ describe("symbol groups", () => {
   it("prevents horizontal overlap when aligning multiple elements to top/bottom/vcenter", () => {
     const c = emptyCircuit();
     // 3 lamps at the same x=0, but different y
-    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0); // w=2
-    const l2 = addDevice(c, "lamp", "HL2", "body", 0, 10); // w=2
-    const l3 = addDevice(c, "lamp", "HL3", "body", 0, 20); // w=2
+    const l1 = addDevice(c, "lamp", "LT1", "body", 0, 0); // w=2
+    const l2 = addDevice(c, "lamp", "LT2", "body", 0, 10); // w=2
+    const l3 = addDevice(c, "lamp", "LT3", "body", 0, 20); // w=2
 
     useLab.setState({ circuit: c, selectedIds: [l1.symbol.id, l2.symbol.id, l3.symbol.id] });
     useLab.getState().alignSelected("top");
@@ -443,8 +443,8 @@ describe("symbol groups", () => {
 
   it("sets selected to specifically clicked symbol when selecting within a group", () => {
     const c = emptyCircuit();
-    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const l2 = addDevice(c, "lamp", "HL2", "body", 10, 0);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 10, 0);
     groupSymbols(c, [l1.symbol.id, l2.symbol.id]);
 
     useLab.setState({ circuit: c });
@@ -465,7 +465,7 @@ describe("symbol groups", () => {
     const relay = addDevice(c, "relay", "TR1", "coil", 0, 0);
     const noSym = addSymbol(c, relay.device.id, "aux-no", 10, 0);
     const ncSym = addSymbol(c, relay.device.id, "aux-nc", 20, 0);
-    const lamp = addDevice(c, "lamp", "HL1", "body", 30, 0);
+    const lamp = addDevice(c, "lamp", "LT1", "body", 30, 0);
 
     useLab.setState({ circuit: c });
     useLab.getState().select({ type: "symbol", id: relay.symbol.id });
@@ -489,8 +489,8 @@ describe("symbol groups", () => {
 
   it("isolates a single component when double-clicked inside a group allowing property updates", () => {
     const c = emptyCircuit();
-    const l1 = addDevice(c, "lamp", "HL1", "body", 0, 0);
-    const l2 = addDevice(c, "lamp", "HL2", "body", 10, 0);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 10, 0);
     groupSymbols(c, [l1.symbol.id, l2.symbol.id]);
 
     useLab.setState({ circuit: c, sideOpen: false });
@@ -509,9 +509,9 @@ describe("symbol groups", () => {
     expect(useLab.getState().sideOpen).toBe(true);
 
     // Adjusting properties of l1 while inside the group
-    useLab.getState().updateDevice(l1.device.id, { tag: "HL_UPDATED", color: "red" });
+    useLab.getState().updateDevice(l1.device.id, { tag: "LT_UPDATED", color: "red" });
     const updatedDev = useLab.getState().circuit.devices.find((d) => d.id === l1.device.id);
-    expect(updatedDev?.tag).toBe("HL_UPDATED");
+    expect(updatedDev?.tag).toBe("LT_UPDATED");
     expect(updatedDev?.params?.color).toBe("red");
   });
 });

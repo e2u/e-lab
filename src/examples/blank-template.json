@@ -6,7 +6,7 @@
       {
         "id": "d_2v_17d5b719",
         "kind": "mains-3ph",
-        "tag": "G1",
+        "tag": "PWR1",
         "params": {
           "supplyType": "delta"
         }
@@ -44,7 +44,7 @@
       {
         "id": "d_b5_d4f113fc",
         "kind": "ground",
-        "tag": "PE1",
+        "tag": "GND1",
         "params": {}
       }
     ],

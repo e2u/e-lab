@@ -8,8 +8,8 @@ import { useLab } from "./store";
 describe("wire routing stubs", () => {
   it("leaves a coil terminal in a straight stub before turning", () => {
     const c = emptyCircuit();
-    const km = addDevice(c, "contactor", "KM1", "coil", 4, 4);
-    const lamp = addDevice(c, "lamp", "HL1", "body", 10, 10);
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 4);
+    const lamp = addDevice(c, "lamp", "LT1", "body", 10, 10);
     addWire(c, km.symbol, "A2", lamp.symbol, "1");
     const w = c.wires[0];
     const pts = wireRoute(c, w.a, w.b);
@@ -26,8 +26,8 @@ describe("wire routing stubs", () => {
 
   it("does not bend inside the stub of the destination", () => {
     const c = emptyCircuit();
-    const km = addDevice(c, "contactor", "KM1", "coil", 4, 4);
-    const lamp = addDevice(c, "lamp", "HL1", "body", 10, 10);
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 4);
+    const lamp = addDevice(c, "lamp", "LT1", "body", 10, 10);
     addWire(c, km.symbol, "A2", lamp.symbol, "1");
     const w = c.wires[0];
     const pts = wireRoute(c, w.a, w.b);
@@ -45,8 +45,8 @@ describe("wire routing stubs", () => {
 
   it("offsets a jogged run without moving the stubs", () => {
     const c = emptyCircuit();
-    const km = addDevice(c, "contactor", "KM1", "coil", 4, 4);
-    const lamp = addDevice(c, "lamp", "HL1", "body", 10, 10);
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 4);
+    const lamp = addDevice(c, "lamp", "LT1", "body", 10, 10);
     addWire(c, km.symbol, "A2", lamp.symbol, "1");
     const w = c.wires[0];
     const start = terminalWorld(c, w.a)!;
@@ -58,8 +58,8 @@ describe("wire routing stubs", () => {
 
   it("connects vertically or horizontally collinear terminals with a straight grid-aligned line without stub offsets", () => {
     const c = emptyCircuit();
-    const btn = addDevice(c, "pb-no", "SB1", "body", 4, 4);
-    const relay = addDevice(c, "relay", "KA1", "aux-no", 4, 8);
+    const btn = addDevice(c, "pb-no", "PB1", "body", 4, 4);
+    const relay = addDevice(c, "relay", "CR1", "aux-no", 4, 8);
 
     // Terminal 1 of button (13) is at (4, 5)*GRID, terminal 1 of KA1 is at (4, 9)*GRID
     addWire(c, btn.symbol, "1", relay.symbol, "1");
@@ -99,7 +99,7 @@ describe("wire T-junctions", () => {
   it("does not add a terminal stub on a net label", () => {
     const c = emptyCircuit();
     const lab = addDevice(c, "net-label", "L1", "body", 8, 8);
-    const hl = addDevice(c, "lamp", "HL1", "body", 16, 8);
+    const hl = addDevice(c, "lamp", "LT1", "body", 16, 8);
     addWire(c, lab.symbol, "1", hl.symbol, "1");
     const pts = wireRoute(c, { symbolId: lab.symbol.id, term: "1" }, { symbolId: hl.symbol.id, term: "1" });
     const start = terminalWorld(c, { symbolId: lab.symbol.id, term: "1" })!;
@@ -111,7 +111,7 @@ describe("wire T-junctions", () => {
   it("does not add a terminal stub on a junction", () => {
     const c = emptyCircuit();
     const j = addJunction(c, 8, 8);
-    const hl = addDevice(c, "lamp", "HL1", "body", 16, 8);
+    const hl = addDevice(c, "lamp", "LT1", "body", 16, 8);
     addWire(c, j.symbol, "1", hl.symbol, "1");
     const pts = wireRoute(c, { symbolId: j.symbol.id, term: "1" }, { symbolId: hl.symbol.id, term: "1" });
     const start = terminalWorld(c, { symbolId: j.symbol.id, term: "1" })!;
@@ -124,7 +124,7 @@ describe("wire T-junctions", () => {
 describe("symbol flip", () => {
   it("mirrors a coil terminal left-right and keeps the stub outward", () => {
     const c = emptyCircuit();
-    const km = addDevice(c, "contactor", "KM1", "coil", 4, 4);
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 4);
     const a1 = terminalWorld(c, { symbolId: km.symbol.id, term: "A1" })!;
     const out0 = terminalOutward(c, { symbolId: km.symbol.id, term: "A1" });
     expect(out0.x).toBe(-1);
@@ -138,7 +138,7 @@ describe("symbol flip", () => {
 
   it("treats 左右 as world-horizontal after a 90° rotate", () => {
     const c = emptyCircuit();
-    const km = addDevice(c, "contactor", "KM1", "coil", 4, 4, {}, 90);
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 4, {}, 90);
     toggleWorldFlip(km.symbol, "h");
     expect(km.symbol.flipY).toBe(true);
     expect(Boolean(km.symbol.flipX)).toBe(false);
@@ -547,8 +547,8 @@ describe("wire crossovers", () => {
 
   it("routes in the middle channel between horizontal terminals avoiding terminal overlap", () => {
     const c = emptyCircuit();
-    const km1 = addDevice(c, "contactor", "KM1", "coil", 4, 4); // A2 at right (out.x = 1)
-    const km2 = addDevice(c, "contactor", "KM2", "coil", 16, 8); // A1 at left (out.x = -1)
+    const km1 = addDevice(c, "contactor", "M1", "coil", 4, 4); // A2 at right (out.x = 1)
+    const km2 = addDevice(c, "contactor", "M2", "coil", 16, 8); // A1 at left (out.x = -1)
     addWire(c, km1.symbol, "A2", km2.symbol, "A1");
     const pts = wireRoute(c, c.wires[0].a, c.wires[0].b);
     const start = terminalWorld(c, c.wires[0].a)!;
@@ -578,8 +578,8 @@ describe("wire crossovers", () => {
 
   it("routes U-turn for same-direction terminals without folding back onto symbols", () => {
     const c = emptyCircuit();
-    const km1 = addDevice(c, "contactor", "KM1", "coil", 4, 4); // A2 at right (out.x = 1)
-    const km2 = addDevice(c, "contactor", "KM2", "coil", 4, 8); // A2 at right (out.x = 1)
+    const km1 = addDevice(c, "contactor", "M1", "coil", 4, 4); // A2 at right (out.x = 1)
+    const km2 = addDevice(c, "contactor", "M2", "coil", 4, 8); // A2 at right (out.x = 1)
     addWire(c, km1.symbol, "A2", km2.symbol, "A2");
     const pts = wireRoute(c, c.wires[0].a, c.wires[0].b);
     const start = terminalWorld(c, c.wires[0].a)!;
@@ -621,8 +621,8 @@ describe("wire crossovers", () => {
   it("handles parallel straight wires between two devices without spurious crossovers", () => {
     for (const dy of [0, 1, 2, 3, 4, 5, 6, -1, -2, -3]) {
       const c = emptyCircuit();
-      const tc1 = addDevice(c, "transformer", "TC1", "body", 4, 4);
-      const tc2 = addDevice(c, "transformer", "TC2", "body", 16, 4 + dy);
+      const tc1 = addDevice(c, "transformer", "T1", "body", 4, 4);
+      const tc2 = addDevice(c, "transformer", "T2", "body", 16, 4 + dy);
       addWire(c, tc1.symbol, "X1", tc2.symbol, "H1");
       addWire(c, tc1.symbol, "X2", tc2.symbol, "H4");
       const routes = allWireRoutes(c);
@@ -634,8 +634,8 @@ describe("wire crossovers", () => {
   it("handles cross-connected wires cleanly with at most one crossover", () => {
     for (const dy of [0, 2, 4, 6]) {
       const c = emptyCircuit();
-      const tc1 = addDevice(c, "transformer", "TC1", "body", 4, 4);
-      const tc2 = addDevice(c, "transformer", "TC2", "body", 16, 4 + dy);
+      const tc1 = addDevice(c, "transformer", "T1", "body", 4, 4);
+      const tc2 = addDevice(c, "transformer", "T2", "body", 16, 4 + dy);
       addWire(c, tc1.symbol, "X1", tc2.symbol, "H4");
       addWire(c, tc1.symbol, "X2", tc2.symbol, "H1");
       const routes = allWireRoutes(c);
@@ -646,8 +646,8 @@ describe("wire crossovers", () => {
 
   it("straightens a jogged wire by resetting its jog offset", () => {
     const c = emptyCircuit();
-    const km = addDevice(c, "contactor", "KM1", "coil", 4, 4);
-    const lamp = addDevice(c, "lamp", "HL1", "body", 10, 10);
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 4);
+    const lamp = addDevice(c, "lamp", "LT1", "body", 10, 10);
     addWire(c, km.symbol, "A2", lamp.symbol, "1");
     const w = c.wires[0];
     w.jog = { axis: "y", pos: 120 };
@@ -662,8 +662,8 @@ describe("wire crossovers", () => {
 
   it("calculates junction position on a wire via pickJunctionPositionOnWire", () => {
     const c = emptyCircuit();
-    const lamp1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
-    const lamp2 = addDevice(c, "lamp", "HL2", "body", 16, 4);
+    const lamp1 = addDevice(c, "lamp", "LT1", "body", 4, 4);
+    const lamp2 = addDevice(c, "lamp", "LT2", "body", 16, 4);
     addWire(c, lamp1.symbol, "1", lamp2.symbol, "1");
     const wire = c.wires[0];
 
@@ -681,7 +681,7 @@ describe("wire crossovers", () => {
 
   it("finds closest port with findPortAtPoint", () => {
     const c = emptyCircuit();
-    const lamp = addDevice(c, "lamp", "HL1", "body", 4, 4);
+    const lamp = addDevice(c, "lamp", "LT1", "body", 4, 4);
     const world = terminalWorld(c, { symbolId: lamp.symbol.id, term: "1" })!;
 
     const port = findPortAtPoint(c, world.x + 2, world.y + 2, 10);
@@ -716,9 +716,9 @@ describe("wire crossovers", () => {
 describe("wire merge and optimal junction point", () => {
   it("detects connected wires via areWiresConnected", () => {
     const c = emptyCircuit();
-    const l1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
-    const l2 = addDevice(c, "lamp", "HL2", "body", 14, 4);
-    const l3 = addDevice(c, "lamp", "HL3", "body", 14, 14);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 4, 4);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 14, 4);
+    const l3 = addDevice(c, "lamp", "LT3", "body", 14, 14);
 
     const w1 = addWire(c, l1.symbol, "1", l2.symbol, "1");
     const w2 = addWire(c, l2.symbol, "1", l3.symbol, "1");
@@ -727,17 +727,17 @@ describe("wire merge and optimal junction point", () => {
     expect(areWiresConnected(c, w1.id, w2.id)).toBe(true);
 
     // Add unconnected device & wire
-    const l4 = addDevice(c, "lamp", "HL4", "body", 24, 24);
-    const l5 = addDevice(c, "lamp", "HL5", "body", 34, 24);
+    const l4 = addDevice(c, "lamp", "LT4", "body", 24, 24);
+    const l5 = addDevice(c, "lamp", "LT5", "body", 34, 24);
     const w3 = addWire(c, l4.symbol, "1", l5.symbol, "1");
     expect(areWiresConnected(c, w1.id, w3.id)).toBe(false);
   });
 
   it("calculates optimal junction position when merging T-connected or intersecting wires", () => {
     const c = emptyCircuit();
-    const l1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
-    const l2 = addDevice(c, "lamp", "HL2", "body", 16, 4);
-    const l3 = addDevice(c, "lamp", "HL3", "body", 10, 14);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 4, 4);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 16, 4);
+    const l3 = addDevice(c, "lamp", "LT3", "body", 10, 14);
 
     const w1 = addWire(c, l1.symbol, "1", l2.symbol, "1");
     const w2 = addWire(c, l3.symbol, "1", l1.symbol, "1");
@@ -749,9 +749,9 @@ describe("wire merge and optimal junction point", () => {
 
   it("merges two connected wires and creates junction with clean connections", () => {
     const c = emptyCircuit();
-    const l1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
-    const l2 = addDevice(c, "lamp", "HL2", "body", 16, 4);
-    const l3 = addDevice(c, "lamp", "HL3", "body", 10, 14);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 4, 4);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 16, 4);
+    const l3 = addDevice(c, "lamp", "LT3", "body", 10, 14);
 
     const w1 = addWire(c, l1.symbol, "1", l2.symbol, "1");
     const w2 = addWire(c, l3.symbol, "1", l1.symbol, "1");
@@ -769,8 +769,8 @@ describe("wire merge and optimal junction point", () => {
 
   it("finds wires within rectangular marquee selection using wiresInRect", () => {
     const c = emptyCircuit();
-    const l1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
-    const l2 = addDevice(c, "lamp", "HL2", "body", 16, 4);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 4, 4);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 16, 4);
     const w = addWire(c, l1.symbol, "1", l2.symbol, "1");
 
     const inBox = wiresInRect(c, { x: 6, y: 2, w: 6, h: 4 });
@@ -782,11 +782,11 @@ describe("wire merge and optimal junction point", () => {
 
   it("finds all connected/contiguous wires across junctions, shared ports, and net labels", () => {
     const c = emptyCircuit();
-    const l1 = addDevice(c, "lamp", "HL1", "body", 4, 4);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 4, 4);
     const j1 = addJunction(c, 10, 4);
     const j2 = addJunction(c, 16, 4);
-    const l2 = addDevice(c, "lamp", "HL2", "body", 22, 4);
-    const l3 = addDevice(c, "lamp", "HL3", "body", 10, 12);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 22, 4);
+    const l3 = addDevice(c, "lamp", "LT3", "body", 10, 12);
 
     // Segment 1: l1 -> j1
     const w1 = addWire(c, l1.symbol, "1", j1.symbol, "1");
@@ -798,8 +798,8 @@ describe("wire merge and optimal junction point", () => {
     const w4 = addWire(c, j1.symbol, "1", l3.symbol, "1");
 
     // Independent wire elsewhere
-    const l4 = addDevice(c, "lamp", "HL4", "body", 30, 30);
-    const l5 = addDevice(c, "lamp", "HL5", "body", 40, 30);
+    const l4 = addDevice(c, "lamp", "LT4", "body", 30, 30);
+    const l5 = addDevice(c, "lamp", "LT5", "body", 40, 30);
     const wIsolated = addWire(c, l4.symbol, "1", l5.symbol, "1");
 
     // Selecting w1 should find all connected wire segments: w1, w2, w3, w4
@@ -839,7 +839,7 @@ describe("wire merge and optimal junction point", () => {
 
   it("routes around the component when connecting different terminals of the same symbol (self-loopback)", () => {
     const c = emptyCircuit();
-    const btn = addDevice(c, "pb-no", "SB_START", "body", 4, 4);
+    const btn = addDevice(c, "pb-no", "PB_START", "body", 4, 4);
     // Connect terminal 1 (x=0, y=1) and 2 (x=4, y=1) of the same push button
     addWire(c, btn.symbol, "1", btn.symbol, "2");
     const w = c.wires[0];
@@ -860,8 +860,8 @@ describe("wire merge and optimal junction point", () => {
 
   it("strictly aligns all vertices to GRID during autorouting", () => {
     const c = emptyCircuit();
-    const tc = addDevice(c, "transformer", "TC1", "body", 2, 10);
-    const fr = addDevice(c, "overload", "FR1", "aux-nc", 12, 2);
+    const tc = addDevice(c, "transformer", "T1", "body", 2, 10);
+    const fr = addDevice(c, "overload", "OL1", "aux-nc", 12, 2);
     addWire(c, tc.symbol, "X1", fr.symbol, "95");
     const w = c.wires[0];
 
@@ -875,8 +875,8 @@ describe("wire merge and optimal junction point", () => {
 
   it("left/right wire jog movement does not affect horizontal segments and stays grid aligned", () => {
     const c = emptyCircuit();
-    const tc = addDevice(c, "transformer", "TC1", "body", 2, 10);
-    const fr = addDevice(c, "overload", "FR1", "aux-nc", 12, 2);
+    const tc = addDevice(c, "transformer", "T1", "body", 2, 10);
+    const fr = addDevice(c, "overload", "OL1", "aux-nc", 12, 2);
     addWire(c, tc.symbol, "X1", fr.symbol, "95");
     const w = c.wires[0];
 
@@ -956,8 +956,8 @@ describe("wire merge and optimal junction point", () => {
 
   it("ensures no wire route ever contains diagonal lines (all segments are purely horizontal or vertical)", () => {
     const c = emptyCircuit();
-    const fr = addDevice(c, "overload", "FR1", "aux-nc", 22, 4);
-    const sb = addDevice(c, "pb-nc", "SB1", "body", 16, 17);
+    const fr = addDevice(c, "overload", "OL1", "aux-nc", 22, 4);
+    const sb = addDevice(c, "pb-nc", "PB1", "body", 16, 17);
     // FR1 aux-nc terminal 96 faces RIGHT; SB1 terminal 1 faces LEFT and is located to the left and lower than FR1
     addWire(c, fr.symbol, "96", sb.symbol, "1");
     const w = c.wires[0];
@@ -975,7 +975,7 @@ describe("wire merge and optimal junction point", () => {
   it("ensures vertical-to-horizontal crossed-over routes contain no diagonal lines", () => {
     const c = emptyCircuit();
     const fu = addDevice(c, "fuse", "FU1", "body", 10, 4); // term 2 exits DOWN
-    const sb = addDevice(c, "pb-nc", "SB1", "body", 4, 2); // term 1 exits LEFT
+    const sb = addDevice(c, "pb-nc", "PB1", "body", 4, 2); // term 1 exits LEFT
     addWire(c, fu.symbol, "2", sb.symbol, "1");
     const w = c.wires[0];
 
@@ -991,9 +991,9 @@ describe("wire merge and optimal junction point", () => {
   describe("junction deletion preserves wire layout", () => {
     it("preserves layout when deleting junction on a straight horizontal line", () => {
       const c = emptyCircuit();
-      const left = addDevice(c, "lamp", "HL1", "body", 4, 4);
+      const left = addDevice(c, "lamp", "LT1", "body", 4, 4);
       const mid = addJunction(c, 10, 5);
-      const right = addDevice(c, "lamp", "HL2", "body", 16, 4);
+      const right = addDevice(c, "lamp", "LT2", "body", 16, 4);
 
       addWire(c, left.symbol, "2", mid.symbol, "1");
       addWire(c, mid.symbol, "1", right.symbol, "1");
@@ -1013,7 +1013,7 @@ describe("wire merge and optimal junction point", () => {
       const c = emptyCircuit();
       const top = addDevice(c, "fuse", "FU1", "body", 4, 2); // term 2 exits DOWN at (4, 4)*GRID
       const corner = addJunction(c, 4, 10);
-      const right = addDevice(c, "pb-no", "SB1", "body", 12, 10); // term 1 exits LEFT at (12, 10)*GRID
+      const right = addDevice(c, "pb-no", "PB1", "body", 12, 10); // term 1 exits LEFT at (12, 10)*GRID
 
       addWire(c, top.symbol, "2", corner.symbol, "1");
       addWire(c, corner.symbol, "1", right.symbol, "1");
@@ -1054,10 +1054,10 @@ describe("wire merge and optimal junction point", () => {
 
     it("preserves through-wire layout when deleting a T-junction with 3 legs", () => {
       const c = emptyCircuit();
-      const left = addDevice(c, "lamp", "HL1", "body", 2, 4);
+      const left = addDevice(c, "lamp", "LT1", "body", 2, 4);
       const mid = addJunction(c, 8, 5);
-      const right = addDevice(c, "lamp", "HL2", "body", 14, 4);
-      const tap = addDevice(c, "lamp", "HL3", "body", 8, 12);
+      const right = addDevice(c, "lamp", "LT2", "body", 14, 4);
+      const tap = addDevice(c, "lamp", "LT3", "body", 8, 12);
 
       // Left to mid (horizontal through)
       addWire(c, left.symbol, "2", mid.symbol, "1");
@@ -1083,8 +1083,8 @@ describe("wire merge and optimal junction point", () => {
       const c = emptyCircuit();
       
       // Create a horizontal wire
-      const left = addDevice(c, "lamp", "HL1", "body", 2, 4);
-      const right = addDevice(c, "lamp", "HL2", "body", 14, 4);
+      const left = addDevice(c, "lamp", "LT1", "body", 2, 4);
+      const right = addDevice(c, "lamp", "LT2", "body", 14, 4);
       addWire(c, left.symbol, "2", right.symbol, "1");
       
       // Add a junction very close to the wire's midpoint

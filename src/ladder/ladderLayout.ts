@@ -243,7 +243,7 @@ export function buildLadderDiagram(
   const isRightRailLive = true;
 
   if (transformer) {
-    const tTag = transformer.tag || "TC1";
+    const tTag = transformer.tag || "T1";
     leftRailLabel = `${tTag} (X1) [120V]`;
     rightRailLabel = `${tTag} (X2) [0V/GND]`;
     leftRailVoltage = "120VAC";
@@ -1087,7 +1087,7 @@ export function buildLadderDiagram(
 
     transformerBranch = {
       id: "cpt_branch",
-      title: `${transformer.tag || "TC1"}  ${isNaN(priV) ? 480 : priV}/${isNaN(secV) ? 120 : secV} V`,
+      title: `${transformer.tag || "T1"}  ${isNaN(priV) ? 480 : priV}/${isNaN(secV) ? 120 : secV} V`,
       transformer,
       mains,
       primaryVoltage: isNaN(priV) ? 480 : priV,

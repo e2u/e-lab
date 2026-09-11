@@ -8,11 +8,11 @@ describe("schematic interact dispatcher", () => {
       mode: "run",
       circuit: {
         devices: [
-          { id: "pb1", kind: "pb-no", tag: "SB1", params: {} },
-          { id: "es1", kind: "estop", tag: "SB0", params: {} },
-          { id: "qf1", kind: "breaker-1p", tag: "QF1", params: {} },
+          { id: "pb1", kind: "pb-no", tag: "PB1", params: {} },
+          { id: "es1", kind: "estop", tag: "PB0", params: {} },
+          { id: "qf1", kind: "breaker-1p", tag: "CB1", params: {} },
           { id: "fu1", kind: "fuse", tag: "FU1", params: {} },
-          { id: "sa1", kind: "selector-2", tag: "SA1", params: {} },
+          { id: "sa1", kind: "selector-2", tag: "SS1", params: {} },
         ],
         symbols: [],
         wires: [],
@@ -81,8 +81,8 @@ describe("schematic interact dispatcher", () => {
     useLab.setState({
       circuit: {
         devices: [
-          { id: "fl1", kind: "float", tag: "SL1", params: { setpoint: 30 } },
-          { id: "fl2", kind: "float", tag: "SL2", params: { setpoint: 80 } },
+          { id: "fl1", kind: "float", tag: "FS1", params: { setpoint: 30 } },
+          { id: "fl2", kind: "float", tag: "FS2", params: { setpoint: 80 } },
         ],
         symbols: [
           { id: "sfl1", deviceId: "fl1", variant: "contact-no", x: 10, y: 10, rot: 0 },
@@ -121,9 +121,9 @@ describe("schematic interact dispatcher", () => {
     useLab.setState({
       circuit: {
         devices: [
-          { id: "ts1", kind: "temp-no", tag: "ST1", params: { setpoint: 150 } },
-          { id: "ps1", kind: "pressure-no", tag: "SP1", params: { setpoint: 6 } },
-          { id: "fs1", kind: "flow-no", tag: "SF1", params: { setpoint: 45 } },
+          { id: "ts1", kind: "temp-no", tag: "TAS1", params: { setpoint: 150 } },
+          { id: "ps1", kind: "pressure-no", tag: "PS1", params: { setpoint: 6 } },
+          { id: "fs1", kind: "flow-no", tag: "FLS1", params: { setpoint: 45 } },
         ],
         symbols: [],
         wires: [],
@@ -163,8 +163,8 @@ describe("schematic interact dispatcher", () => {
       mode: "edit",
       circuit: {
         devices: [
-          { id: "d1", kind: "lamp", tag: "HL1", params: {} },
-          { id: "d2", kind: "lamp", tag: "HL2", params: {} },
+          { id: "d1", kind: "lamp", tag: "LT1", params: {} },
+          { id: "d2", kind: "lamp", tag: "LT2", params: {} },
         ],
         symbols: [
           { id: "s1", deviceId: "d1", variant: "body", x: 2, y: 10, rot: 0 },

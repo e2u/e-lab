@@ -6,9 +6,9 @@ import type { Circuit } from "./types";
  */
 export function ex01BasicLamp(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "dc-supply", "G1", "body", 4, 4);
-  const sb = addDevice(c, "pb-no", "SB1", "body", 14, 4);
-  const hl = addDevice(c, "lamp", "HL1", "body", 22, 3.5, { color: "green" });
+  const g = addDevice(c, "dc-supply", "PWS1", "body", 4, 4);
+  const sb = addDevice(c, "pb-no", "PB1", "body", 14, 4);
+  const hl = addDevice(c, "lamp", "LT1", "body", 22, 3.5, { color: "green" });
 
   addWire(c, g.symbol, "+", sb.symbol, "1");
   addWire(c, sb.symbol, "2", hl.symbol, "1");
@@ -21,11 +21,11 @@ export function ex01BasicLamp(): Circuit {
  */
 export function ex02StartStopLamp(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "dc-supply", "G1", "body", 4, 4);
-  const sb1 = addDevice(c, "pb-nc", "SB1", "body", 14, 4);
-  const sb2 = addDevice(c, "pb-no", "SB2", "body", 20, 4);
-  const hl1 = addDevice(c, "lamp", "HL1", "body", 28, 3.5, { color: "green" });
-  const hl2 = addDevice(c, "lamp", "HL2", "body", 28, 8.5, { color: "red" });
+  const g = addDevice(c, "dc-supply", "PWS1", "body", 4, 4);
+  const sb1 = addDevice(c, "pb-nc", "PB1", "body", 14, 4);
+  const sb2 = addDevice(c, "pb-no", "PB2", "body", 20, 4);
+  const hl1 = addDevice(c, "lamp", "LT1", "body", 28, 3.5, { color: "green" });
+  const hl2 = addDevice(c, "lamp", "LT2", "body", 28, 8.5, { color: "red" });
 
   addWire(c, g.symbol, "+", sb1.symbol, "1");
   addWire(c, sb1.symbol, "2", sb2.symbol, "1");
@@ -43,18 +43,18 @@ export function ex02StartStopLamp(): Circuit {
  */
 export function ex03TransformerFuse(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
   const fu1 = addDevice(c, "fuse", "FU1", "body", 14, 4);
   const fu2 = addDevice(c, "fuse", "FU2", "body", 14, 6);
-  const tc = addDevice(c, "transformer", "TC1", "body", 22, 4, {
+  const tc = addDevice(c, "transformer", "T1", "body", 22, 4, {
     ratio: "480/120",
     primaryVoltage: 480,
     secondaryVoltage: 120,
   });
   const fu3 = addDevice(c, "fuse", "FU3", "body", 34, 4);
   const vm = addDevice(c, "voltmeter", "VM1", "body", 42, 3.5);
-  const hl = addDevice(c, "lamp", "HL1", "body", 42, 8.5, { color: "green" });
-  const pe = addDevice(c, "ground", "PE1", "body", 22, 10);
+  const hl = addDevice(c, "lamp", "LT1", "body", 42, 8.5, { color: "green" });
+  const pe = addDevice(c, "ground", "GND1", "body", 22, 10);
 
   addWire(c, g.symbol, "L1", fu1.symbol, "1");
   addWire(c, fu1.symbol, "2", tc.symbol, "H1");
@@ -78,14 +78,14 @@ export function ex03TransformerFuse(): Circuit {
  */
 export function ex04RelaySelfHolding(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "dc-supply", "G1", "body", 4, 4);
-  const sb1 = addDevice(c, "pb-nc", "SB1", "body", 14, 4);
-  const sb2 = addDevice(c, "pb-no", "SB2", "body", 20, 4);
-  const ka1 = addDevice(c, "relay", "KA1", "coil", 30, 3.5);
+  const g = addDevice(c, "dc-supply", "PWS1", "body", 4, 4);
+  const sb1 = addDevice(c, "pb-nc", "PB1", "body", 14, 4);
+  const sb2 = addDevice(c, "pb-no", "PB2", "body", 20, 4);
+  const ka1 = addDevice(c, "relay", "CR1", "coil", 30, 3.5);
   const ka1No = addSymbol(c, ka1.device.id, "aux-no", 20, 8);
   const ka1Nc = addSymbol(c, ka1.device.id, "aux-nc", 20, 13);
-  const hl1 = addDevice(c, "lamp", "HL1", "body", 30, 7.5, { color: "green" });
-  const hl2 = addDevice(c, "lamp", "HL2", "body", 30, 12.5, { color: "red" });
+  const hl1 = addDevice(c, "lamp", "LT1", "body", 30, 7.5, { color: "green" });
+  const hl2 = addDevice(c, "lamp", "LT2", "body", 30, 12.5, { color: "red" });
 
   addWire(c, g.symbol, "+", sb1.symbol, "1");
   addWire(c, sb1.symbol, "2", sb2.symbol, "1");
@@ -108,13 +108,13 @@ export function ex04RelaySelfHolding(): Circuit {
  */
 export function ex05Motor1phManual(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "wye", 4, 4, { supplyType: "wye", voltage: 208 });
-  const qf = addDevice(c, "breaker-1p", "QF1", "body", 14, 4);
-  const sa = addDevice(c, "toggle-spst", "SA1", "body", 20, 4);
+  const g = addDevice(c, "mains-3ph", "PWR1", "wye", 4, 4, { supplyType: "wye", voltage: 208 });
+  const qf = addDevice(c, "breaker-1p", "CB1", "body", 14, 4);
+  const sa = addDevice(c, "toggle-spst", "TGS1", "body", 20, 4);
   const am = addDevice(c, "ammeter", "AM1", "body", 26, 3.5);
-  const m = addDevice(c, "motor-1ph", "M1", "body", 36, 3.5, { power: 1.5 });
+  const m = addDevice(c, "motor-1ph", "MTR1", "body", 36, 3.5, { power: 1.5 });
   const vm = addDevice(c, "voltmeter", "VM1", "body", 26, 9.5);
-  const pe = addDevice(c, "ground", "PE1", "body", 36, 11);
+  const pe = addDevice(c, "ground", "GND1", "body", 36, 11);
 
   addWire(c, g.symbol, "L1", qf.symbol, "1");
   addWire(c, qf.symbol, "2", sa.symbol, "1");
@@ -134,19 +134,19 @@ export function ex05Motor1phManual(): Circuit {
  */
 export function ex06Motor3phDol(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480, maxCurrent: 400 });
-  const qs = addDevice(c, "isolator", "QS1", "body", 14, 4);
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 22, 4);
-  const km = addDevice(c, "contactor", "KM1", "coil", 36, 13.5);
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480, maxCurrent: 400 });
+  const qs = addDevice(c, "isolator", "DISC1", "body", 14, 4);
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 22, 4);
+  const km = addDevice(c, "contactor", "M1", "coil", 36, 13.5);
   const kmMain = addSymbol(c, km.device.id, "main", 30, 4);
   const kmNo = addSymbol(c, km.device.id, "aux-no", 26, 18);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 38, 4, { power: 5.5 });
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 38, 4, { power: 5.5 });
 
-  const tc = addDevice(c, "transformer", "TC1", "body", 12, 14, { ratio: "480/120", primaryVoltage: 480, secondaryVoltage: 120 });
-  const stop = addDevice(c, "pb-nc", "SB1", "body", 20, 14);
-  const start = addDevice(c, "pb-no", "SB2", "body", 26, 14);
-  const hl = addDevice(c, "lamp", "HL1", "body", 36, 17.5, { color: "green" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 16);
+  const tc = addDevice(c, "transformer", "T1", "body", 12, 14, { ratio: "480/120", primaryVoltage: 480, secondaryVoltage: 120 });
+  const stop = addDevice(c, "pb-nc", "PB1", "body", 20, 14);
+  const start = addDevice(c, "pb-no", "PB2", "body", 26, 14);
+  const hl = addDevice(c, "lamp", "LT1", "body", 36, 17.5, { color: "green" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 16);
 
   // 3-Phase Power (Y=5, 7, 9 straight lines)
   addWire(c, g.symbol, "L1", qs.symbol, "L1");
@@ -185,23 +185,23 @@ export function ex06Motor3phDol(): Circuit {
  */
 export function ex07OverloadAlarm(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 14, 4);
-  const km = addDevice(c, "contactor", "KM1", "coil", 36, 13.5);
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 14, 4);
+  const km = addDevice(c, "contactor", "M1", "coil", 36, 13.5);
   const kmMain = addSymbol(c, km.device.id, "main", 22, 4);
   const kmNo = addSymbol(c, km.device.id, "aux-no", 26, 18);
-  const fr = addDevice(c, "overload", "FR1", "body", 30, 4);
+  const fr = addDevice(c, "overload", "OL1", "body", 30, 4);
   const frNc = addSymbol(c, fr.device.id, "aux-nc", 15, 14);
   const frNo = addSymbol(c, fr.device.id, "aux-no", 20, 22.5);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 38, 4, { power: 7.5 });
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 38, 4, { power: 7.5 });
 
-  const tc = addDevice(c, "transformer", "TC1", "body", 10, 14, { ratio: "480/120" });
-  const stop = addDevice(c, "pb-nc", "SB1", "body", 20, 14);
-  const start = addDevice(c, "pb-no", "SB2", "body", 26, 14);
-  const hlRun = addDevice(c, "lamp", "HL1", "body", 36, 17.5, { color: "green" });
-  const alTrip = addDevice(c, "alarm", "AL1", "body", 36, 22.5);
-  const horn = addDevice(c, "horn", "HA1", "body", 42, 22.5);
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 16);
+  const tc = addDevice(c, "transformer", "T1", "body", 10, 14, { ratio: "480/120" });
+  const stop = addDevice(c, "pb-nc", "PB1", "body", 20, 14);
+  const start = addDevice(c, "pb-no", "PB2", "body", 26, 14);
+  const hlRun = addDevice(c, "lamp", "LT1", "body", 36, 17.5, { color: "green" });
+  const alTrip = addDevice(c, "alarm", "ABE1", "body", 36, 22.5);
+  const horn = addDevice(c, "horn", "AH1", "body", 42, 22.5);
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 16);
 
   // Power (Y=5, 7, 9 straight lines)
   addWire(c, g.symbol, "L1", qf.symbol, "L1");
@@ -248,27 +248,27 @@ export function ex07OverloadAlarm(): Circuit {
  */
 export function ex08EstopSafety(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 14, 4);
-  const km = addDevice(c, "contactor", "KM1", "coil", 38, 21.5);
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 14, 4);
+  const km = addDevice(c, "contactor", "M1", "coil", 38, 21.5);
   const kmMain = addSymbol(c, km.device.id, "main", 22, 4);
   const kmNo = addSymbol(c, km.device.id, "aux-no", 30, 26);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 30, 4, { power: 5.5 });
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 30, 4, { power: 5.5 });
 
-  const tc = addDevice(c, "transformer", "TC1", "body", 10, 14, { ratio: "480/120" });
-  const estop = addDevice(c, "estop-nc", "SB0", "body", 18, 14);
-  const sbRst = addDevice(c, "pb-no", "SB_RST", "body", 24, 14);
-  const ka0 = addDevice(c, "relay", "KA0", "coil", 34, 13.5);
+  const tc = addDevice(c, "transformer", "T1", "body", 10, 14, { ratio: "480/120" });
+  const estop = addDevice(c, "estop-nc", "PB0", "body", 18, 14);
+  const sbRst = addDevice(c, "pb-no", "PB_RST", "body", 24, 14);
+  const ka0 = addDevice(c, "relay", "CR0", "coil", 34, 13.5);
   const ka0Hold = addSymbol(c, ka0.device.id, "aux-no", 24, 18);
   const ka0Gate = addSymbol(c, ka0.device.id, "aux-no", 18, 22);
   const ka0Estop = addSymbol(c, ka0.device.id, "aux-nc", 18, 30);
 
-  const stop = addDevice(c, "pb-nc", "SB1", "body", 24, 22);
-  const start = addDevice(c, "pb-no", "SB2", "body", 30, 22);
-  const hlSafe = addDevice(c, "lamp", "HL_SAFE", "body", 42, 13.5, { color: "green" });
-  const hlEstop = addDevice(c, "lamp", "HL_ESTOP", "body", 34, 29.5, { color: "red" });
-  const hlRun = addDevice(c, "lamp", "HL_RUN", "body", 44, 21.5, { color: "blue" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 16);
+  const stop = addDevice(c, "pb-nc", "PB1", "body", 24, 22);
+  const start = addDevice(c, "pb-no", "PB2", "body", 30, 22);
+  const hlSafe = addDevice(c, "lamp", "LT_SAFE", "body", 42, 13.5, { color: "green" });
+  const hlEstop = addDevice(c, "lamp", "LT_ESTOP", "body", 34, 29.5, { color: "red" });
+  const hlRun = addDevice(c, "lamp", "LT_RUN", "body", 44, 21.5, { color: "blue" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 16);
 
   // Power (Y=5, 7, 9 straight lines)
   addWire(c, g.symbol, "L1", qf.symbol, "L1");
@@ -322,20 +322,20 @@ export function ex08EstopSafety(): Circuit {
  */
 export function ex09HoaSelector(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "wye", 4, 4, { supplyType: "wye", voltage: 208 });
-  const qf = addDevice(c, "breaker-1p", "QF1", "body", 14, 4);
-  const kmMain = addDevice(c, "contactor", "KM1", "coil", 32, 13.5);
+  const g = addDevice(c, "mains-3ph", "PWR1", "wye", 4, 4, { supplyType: "wye", voltage: 208 });
+  const qf = addDevice(c, "breaker-1p", "CB1", "body", 14, 4);
+  const kmMain = addDevice(c, "contactor", "M1", "coil", 32, 13.5);
   const kmMainCont = addSymbol(c, kmMain.device.id, "main", 22, 4);
   const kmNo = addSymbol(c, kmMain.device.id, "aux-no", 22, 25);
-  const m = addDevice(c, "motor-1ph", "M1", "body", 32, 3.5, { power: 1.5 });
+  const m = addDevice(c, "motor-1ph", "MTR1", "body", 32, 3.5, { power: 1.5 });
 
-  const sa = addDevice(c, "selector-3", "SA1", "body", 14, 14);
-  const sb = addDevice(c, "pb-no", "SB1", "body", 22, 14);
-  const sl = addDevice(c, "float", "SL1", "body", 22, 19);
-  const yv = addDevice(c, "solenoid", "YV1", "body", 32, 24.5);
-  const hlHand = addDevice(c, "lamp", "HL_MAN", "body", 40, 13.5, { color: "green" });
-  const hlAuto = addDevice(c, "lamp", "HL_AUTO", "body", 40, 18.5, { color: "blue" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 14);
+  const sa = addDevice(c, "selector-3", "SS1", "body", 14, 14);
+  const sb = addDevice(c, "pb-no", "PB1", "body", 22, 14);
+  const sl = addDevice(c, "float", "FS1", "body", 22, 19);
+  const yv = addDevice(c, "solenoid", "SOL1", "body", 32, 24.5);
+  const hlHand = addDevice(c, "lamp", "LT_MAN", "body", 40, 13.5, { color: "green" });
+  const hlAuto = addDevice(c, "lamp", "LT_AUTO", "body", 40, 18.5, { color: "blue" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 14);
 
   // Power
   addWire(c, g.symbol, "L1", qf.symbol, "1");
@@ -371,23 +371,23 @@ export function ex09HoaSelector(): Circuit {
  */
 export function ex10DualStation(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
-  const qs = addDevice(c, "isolator", "QS1", "body", 14, 4);
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 22, 4);
-  const km = addDevice(c, "contactor", "KM1", "coil", 38, 13.5);
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qs = addDevice(c, "isolator", "DISC1", "body", 14, 4);
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 22, 4);
+  const km = addDevice(c, "contactor", "M1", "coil", 38, 13.5);
   const kmMain = addSymbol(c, km.device.id, "main", 30, 4);
   const kmNo = addSymbol(c, km.device.id, "aux-no", 28, 22);
-  const fr = addDevice(c, "overload", "FR1", "body", 38, 4);
+  const fr = addDevice(c, "overload", "OL1", "body", 38, 4);
   const frNc = addSymbol(c, fr.device.id, "aux-nc", 12, 14);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 46, 4, { power: 5.5 });
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 46, 4, { power: 5.5 });
 
-  const tc = addDevice(c, "transformer", "TC1", "body", 8, 14, { ratio: "480/120" });
-  const sb1Loc = addDevice(c, "pb-nc", "SB1_LOC", "body", 16, 14);
-  const sb2Rem = addDevice(c, "pb-nc", "SB2_REM", "body", 22, 14);
-  const sb3Loc = addDevice(c, "pb-no", "SB3_LOC", "body", 28, 14);
-  const sb4Rem = addDevice(c, "pb-no", "SB4_REM", "body", 28, 18);
-  const hl = addDevice(c, "lamp", "HL1", "body", 46, 13.5, { color: "green" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 16);
+  const tc = addDevice(c, "transformer", "T1", "body", 8, 14, { ratio: "480/120" });
+  const sb1Loc = addDevice(c, "pb-nc", "PB1_LOC", "body", 16, 14);
+  const sb2Rem = addDevice(c, "pb-nc", "PB2_REM", "body", 22, 14);
+  const sb3Loc = addDevice(c, "pb-no", "PB3_LOC", "body", 28, 14);
+  const sb4Rem = addDevice(c, "pb-no", "PB4_REM", "body", 28, 18);
+  const hl = addDevice(c, "lamp", "LT1", "body", 46, 13.5, { color: "green" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 16);
 
   // Power (Y=5, 7, 9 straight lines)
   addWire(c, g.symbol, "L1", qs.symbol, "L1");
@@ -438,31 +438,31 @@ export function ex10DualStation(): Circuit {
  */
 export function ex11FwdRevInterlock(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 14, 4);
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 14, 4);
 
-  const kmFwd = addDevice(c, "contactor", "KM_FWD", "coil", 34, 17.5);
+  const kmFwd = addDevice(c, "contactor", "M_FWD", "coil", 34, 17.5);
   const kmFwdMain = addSymbol(c, kmFwd.device.id, "main", 22, 4);
   const kmFwdHold = addSymbol(c, kmFwd.device.id, "aux-no", 22, 22);
   const kmFwdLock = addSymbol(c, kmFwd.device.id, "aux-nc", 28, 26);
 
-  const kmRev = addDevice(c, "contactor", "KM_REV", "coil", 34, 25.5);
+  const kmRev = addDevice(c, "contactor", "M_REV", "coil", 34, 25.5);
   const kmRevMain = addSymbol(c, kmRev.device.id, "main", 22, 11);
   const kmRevHold = addSymbol(c, kmRev.device.id, "aux-no", 22, 30);
   const kmRevLock = addSymbol(c, kmRev.device.id, "aux-nc", 28, 18);
 
-  const fr = addDevice(c, "overload", "FR1", "body", 34, 4);
+  const fr = addDevice(c, "overload", "OL1", "body", 34, 4);
   const frNc = addSymbol(c, fr.device.id, "aux-nc", 12, 18);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 42, 4, { power: 7.5 });
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 42, 4, { power: 7.5 });
 
-  const tc = addDevice(c, "transformer", "TC1", "body", 8, 18, { ratio: "480/120" });
-  const stop = addDevice(c, "pb-nc", "SB_STOP", "body", 16, 18);
-  const fwd = addDevice(c, "pb-no", "SB_FWD", "body", 22, 18);
-  const rev = addDevice(c, "pb-no", "SB_REV", "body", 22, 26);
+  const tc = addDevice(c, "transformer", "T1", "body", 8, 18, { ratio: "480/120" });
+  const stop = addDevice(c, "pb-nc", "PB_STOP", "body", 16, 18);
+  const fwd = addDevice(c, "pb-no", "PB_FWD", "body", 22, 18);
+  const rev = addDevice(c, "pb-no", "PB_REV", "body", 22, 26);
 
-  const hlFwd = addDevice(c, "lamp", "HL_FWD", "body", 42, 17.5, { color: "green" });
-  const hlRev = addDevice(c, "lamp", "HL_REV", "body", 42, 25.5, { color: "yellow" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 18);
+  const hlFwd = addDevice(c, "lamp", "LT_FWD", "body", 42, 17.5, { color: "green" });
+  const hlRev = addDevice(c, "lamp", "LT_REV", "body", 42, 25.5, { color: "yellow" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 18);
 
   // Power Main
   addWire(c, g.symbol, "L1", qf.symbol, "L1");
@@ -527,30 +527,30 @@ export function ex11FwdRevInterlock(): Circuit {
  */
 export function ex12LimitReciprocating(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 14, 4);
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 14, 4);
 
-  const kmFwd = addDevice(c, "contactor", "KM1", "coil", 40, 17.5);
+  const kmFwd = addDevice(c, "contactor", "M1", "coil", 40, 17.5);
   const kmFwdMain = addSymbol(c, kmFwd.device.id, "main", 22, 4);
   const kmFwdHold = addSymbol(c, kmFwd.device.id, "aux-no", 22, 22);
   const kmFwdLock = addSymbol(c, kmFwd.device.id, "aux-nc", 34, 26);
 
-  const kmRev = addDevice(c, "contactor", "KM2", "coil", 40, 25.5);
+  const kmRev = addDevice(c, "contactor", "M2", "coil", 40, 25.5);
   const kmRevMain = addSymbol(c, kmRev.device.id, "main", 22, 11);
   const kmRevHold = addSymbol(c, kmRev.device.id, "aux-no", 22, 30);
   const kmRevLock = addSymbol(c, kmRev.device.id, "aux-nc", 34, 18);
 
-  const m = addDevice(c, "motor-3ph", "M1", "body", 32, 4, { power: 5.5 });
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 32, 4, { power: 5.5 });
 
-  const tc = addDevice(c, "transformer", "TC1", "body", 8, 18, { ratio: "480/120" });
-  const stop = addDevice(c, "pb-nc", "SB_STOP", "body", 16, 18);
-  const start = addDevice(c, "pb-no", "SB_START", "body", 22, 18);
-  const sqFwd = addDevice(c, "limit-nc", "SQ_FWD", "body", 28, 18);
-  const sqRev = addDevice(c, "limit-nc", "SQ_REV", "body", 28, 26);
+  const tc = addDevice(c, "transformer", "T1", "body", 8, 18, { ratio: "480/120" });
+  const stop = addDevice(c, "pb-nc", "PB_STOP", "body", 16, 18);
+  const start = addDevice(c, "pb-no", "PB_START", "body", 22, 18);
+  const sqFwd = addDevice(c, "limit-nc", "LS_FWD", "body", 28, 18);
+  const sqRev = addDevice(c, "limit-nc", "LS_REV", "body", 28, 26);
 
-  const hlFwd = addDevice(c, "lamp", "HL_FWD", "body", 48, 17.5, { color: "green" });
-  const hlRev = addDevice(c, "lamp", "HL_REV", "body", 48, 25.5, { color: "yellow" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 18);
+  const hlFwd = addDevice(c, "lamp", "LT_FWD", "body", 48, 17.5, { color: "green" });
+  const hlRev = addDevice(c, "lamp", "LT_REV", "body", 48, 25.5, { color: "yellow" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 18);
 
   // Power
   addWire(c, g.symbol, "L1", qf.symbol, "L1");
@@ -607,27 +607,27 @@ export function ex12LimitReciprocating(): Circuit {
  */
 export function ex13TimerOnSequence(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 14, 4);
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 14, 4);
 
-  const km1 = addDevice(c, "contactor", "KM1", "coil", 30, 17.5);
+  const km1 = addDevice(c, "contactor", "M1", "coil", 30, 17.5);
   const km1Main = addSymbol(c, km1.device.id, "main", 22, 4);
   const km1No = addSymbol(c, km1.device.id, "aux-no", 22, 22);
-  const m1 = addDevice(c, "motor-3ph", "M1", "body", 30, 4, { power: 5.5 });
+  const m1 = addDevice(c, "motor-3ph", "MTR1", "body", 30, 4, { power: 5.5 });
 
-  const km2 = addDevice(c, "contactor", "KM2", "coil", 30, 25.5);
+  const km2 = addDevice(c, "contactor", "M2", "coil", 30, 25.5);
   const km2Main = addSymbol(c, km2.device.id, "main", 38, 4);
-  const m2 = addDevice(c, "motor-3ph", "M2", "body", 46, 4, { power: 3.7 });
+  const m2 = addDevice(c, "motor-3ph", "MTR2", "body", 46, 4, { power: 3.7 });
 
-  const kt = addDevice(c, "timer-on", "KT1", "coil", 38, 17.5, { delayMs: 3000 });
+  const kt = addDevice(c, "timer-on", "TR1", "coil", 38, 17.5, { delayMs: 3000 });
   const ktNo = addSymbol(c, kt.device.id, "delayed-no", 22, 26);
 
-  const tc = addDevice(c, "transformer", "TC1", "body", 8, 18, { ratio: "480/120" });
-  const stop = addDevice(c, "pb-nc", "SB1", "body", 16, 18);
-  const start = addDevice(c, "pb-no", "SB2", "body", 22, 18);
-  const hl1 = addDevice(c, "lamp", "HL1", "body", 46, 17.5, { color: "green" });
-  const hl2 = addDevice(c, "lamp", "HL2", "body", 46, 25.5, { color: "blue" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 18);
+  const tc = addDevice(c, "transformer", "T1", "body", 8, 18, { ratio: "480/120" });
+  const stop = addDevice(c, "pb-nc", "PB1", "body", 16, 18);
+  const start = addDevice(c, "pb-no", "PB2", "body", 22, 18);
+  const hl1 = addDevice(c, "lamp", "LT1", "body", 46, 17.5, { color: "green" });
+  const hl2 = addDevice(c, "lamp", "LT2", "body", 46, 25.5, { color: "blue" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 18);
 
   // Power
   addWire(c, g.symbol, "L1", qf.symbol, "L1");
@@ -685,27 +685,27 @@ export function ex13TimerOnSequence(): Circuit {
  */
 export function ex14TimerOffCooling(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 14, 4);
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 14, 4);
 
-  const kmHeat = addDevice(c, "contactor", "KM_HEAT", "coil", 30, 17.5);
+  const kmHeat = addDevice(c, "contactor", "M_HEAT", "coil", 30, 17.5);
   const kmHeatMain = addSymbol(c, kmHeat.device.id, "main", 22, 4);
   const kmHeatNo = addSymbol(c, kmHeat.device.id, "aux-no", 22, 22);
-  const heater = addDevice(c, "heater", "EH1", "body", 32, 3.5);
+  const heater = addDevice(c, "heater", "HTR1", "body", 32, 3.5);
 
-  const kmFan = addDevice(c, "contactor", "KM_FAN", "coil", 30, 25.5);
+  const kmFan = addDevice(c, "contactor", "M_FAN", "coil", 30, 25.5);
   const kmFanMain = addSymbol(c, kmFan.device.id, "main", 38, 4);
   const fan = addDevice(c, "fan", "FAN1", "body", 46, 3.5);
 
-  const ktOff = addDevice(c, "timer-off", "KT1", "coil", 38, 17.5, { delayMs: 4000 });
+  const ktOff = addDevice(c, "timer-off", "TR1", "coil", 38, 17.5, { delayMs: 4000 });
   const ktDelayed = addSymbol(c, ktOff.device.id, "delayed-no", 22, 26);
 
-  const tc = addDevice(c, "transformer", "TC1", "body", 8, 18, { ratio: "480/120" });
-  const stop = addDevice(c, "pb-nc", "SB_STOP", "body", 16, 18);
-  const start = addDevice(c, "pb-no", "SB_START", "body", 22, 18);
-  const hlHeat = addDevice(c, "lamp", "HL_HEAT", "body", 46, 17.5, { color: "red" });
-  const hlFan = addDevice(c, "lamp", "HL_FAN", "body", 46, 25.5, { color: "blue" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 18);
+  const tc = addDevice(c, "transformer", "T1", "body", 8, 18, { ratio: "480/120" });
+  const stop = addDevice(c, "pb-nc", "PB_STOP", "body", 16, 18);
+  const start = addDevice(c, "pb-no", "PB_START", "body", 22, 18);
+  const hlHeat = addDevice(c, "lamp", "LT_HEAT", "body", 46, 17.5, { color: "red" });
+  const hlFan = addDevice(c, "lamp", "LT_FAN", "body", 46, 25.5, { color: "blue" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 18);
 
   // Power
   addWire(c, g.symbol, "L1", qf.symbol, "L1");
@@ -757,36 +757,36 @@ export function ex14TimerOffCooling(): Circuit {
  */
 export function ex15StarDeltaStarter(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 14, 4);
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 14, 4);
 
-  const kmMain = addDevice(c, "contactor", "KM1", "coil", 30, 17.5);
+  const kmMain = addDevice(c, "contactor", "M1", "coil", 30, 17.5);
   const kmMainCont = addSymbol(c, kmMain.device.id, "main", 22, 4);
   const kmMainNo = addSymbol(c, kmMain.device.id, "aux-no", 22, 22);
 
-  const kmStar = addDevice(c, "contactor", "KM2", "coil", 38, 25.5);
+  const kmStar = addDevice(c, "contactor", "M2", "coil", 38, 25.5);
   const kmStarMain = addSymbol(c, kmStar.device.id, "main", 30, 11);
   const kmStarNc = addSymbol(c, kmStar.device.id, "aux-nc", 30, 34);
 
-  const kmDelta = addDevice(c, "contactor", "KM3", "coil", 38, 33.5);
+  const kmDelta = addDevice(c, "contactor", "M3", "coil", 38, 33.5);
   const kmDeltaNc = addSymbol(c, kmDelta.device.id, "aux-nc", 30, 26);
 
-  const kt = addDevice(c, "timer-on", "KT1", "coil", 38, 17.5, { delayMs: 2500 });
+  const kt = addDevice(c, "timer-on", "TR1", "coil", 38, 17.5, { delayMs: 2500 });
   const ktNc = addSymbol(c, kt.device.id, "delayed-nc", 22, 26);
   const ktNo = addSymbol(c, kt.device.id, "delayed-no", 22, 34);
 
-  const fr = addDevice(c, "overload", "FR1", "body", 30, 4);
+  const fr = addDevice(c, "overload", "OL1", "body", 30, 4);
   const frNc = addSymbol(c, fr.device.id, "aux-nc", 12, 18);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 38, 4, { power: 11 });
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 38, 4, { power: 11 });
 
-  const tc = addDevice(c, "transformer", "TC1", "body", 8, 18, { ratio: "480/120" });
-  const stop = addDevice(c, "pb-nc", "SB1", "body", 16, 18);
-  const start = addDevice(c, "pb-no", "SB2", "body", 22, 18);
+  const tc = addDevice(c, "transformer", "T1", "body", 8, 18, { ratio: "480/120" });
+  const stop = addDevice(c, "pb-nc", "PB1", "body", 16, 18);
+  const start = addDevice(c, "pb-no", "PB2", "body", 22, 18);
 
-  const hlRun = addDevice(c, "lamp", "HL_RUN", "body", 48, 17.5, { color: "green" });
-  const hlStar = addDevice(c, "lamp", "HL_STAR", "body", 48, 25.5, { color: "yellow" });
-  const hlDelta = addDevice(c, "lamp", "HL_DELTA", "body", 48, 33.5, { color: "blue" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 18);
+  const hlRun = addDevice(c, "lamp", "LT_RUN", "body", 48, 17.5, { color: "green" });
+  const hlStar = addDevice(c, "lamp", "LT_STAR", "body", 48, 25.5, { color: "yellow" });
+  const hlDelta = addDevice(c, "lamp", "LT_DELTA", "body", 48, 33.5, { color: "blue" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 18);
 
   // Power
   addWire(c, g.symbol, "L1", qf.symbol, "L1");
@@ -853,21 +853,21 @@ export function ex15StarDeltaStarter(): Circuit {
  */
 export function ex16TankLevelPump(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "dc-supply", "G1", "body", 4, 4);
-  const slLow = addDevice(c, "float", "SL_LOW", "body", 14, 4);
-  const slHigh = addDevice(c, "float", "SL_HIGH", "body", 20, 4);
-  const slOver = addDevice(c, "float", "SL_OVER", "body", 20, 20);
+  const g = addDevice(c, "dc-supply", "PWS1", "body", 4, 4);
+  const slLow = addDevice(c, "float", "FS_LOW", "body", 14, 4);
+  const slHigh = addDevice(c, "float", "FS_HIGH", "body", 20, 4);
+  const slOver = addDevice(c, "float", "FS_OVER", "body", 20, 20);
 
-  const kaPump = addDevice(c, "relay", "KA_PUMP", "coil", 30, 3.5);
+  const kaPump = addDevice(c, "relay", "CR_PUMP", "coil", 30, 3.5);
   const kaHold = addSymbol(c, kaPump.device.id, "aux-no", 20, 8);
   const kaPower = addSymbol(c, kaPump.device.id, "aux-no", 20, 12);
 
-  const m = addDevice(c, "motor-dc", "M_PUMP", "body", 30, 11.5);
-  const yv = addDevice(c, "solenoid", "YV_VALVE", "body", 38, 11.5);
+  const m = addDevice(c, "motor-dc", "MTR_PUMP", "body", 30, 11.5);
+  const yv = addDevice(c, "solenoid", "SOL_VALVE", "body", 38, 11.5);
 
-  const horn = addDevice(c, "horn", "HA_OVERFLOW", "body", 30, 19.5);
-  const al = addDevice(c, "alarm", "AL_OVERFLOW", "body", 38, 19.5);
-  const hlPump = addDevice(c, "lamp", "HL_PUMPING", "body", 38, 3.5, { color: "blue" });
+  const horn = addDevice(c, "horn", "AH_OVERFLOW", "body", 30, 19.5);
+  const al = addDevice(c, "alarm", "ABE_OVERFLOW", "body", 38, 19.5);
+  const hlPump = addDevice(c, "lamp", "LT_PUMPING", "body", 38, 3.5, { color: "blue" });
 
   // Low float and High float start & self hold (Y=5 straight line)
   addWire(c, g.symbol, "+", slLow.symbol, "1");
@@ -902,25 +902,25 @@ export function ex16TankLevelPump(): Circuit {
  */
 export function ex17TempPressureHeater(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 14, 4);
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 14, 4);
 
-  const kmHeat = addDevice(c, "contactor", "KM1", "coil", 50, 13.5);
+  const kmHeat = addDevice(c, "contactor", "M1", "coil", 50, 13.5);
   const kmHeatMain = addSymbol(c, kmHeat.device.id, "main", 22, 4);
   const kmHeatNo = addSymbol(c, kmHeat.device.id, "aux-no", 40, 18);
-  const heater = addDevice(c, "heater", "EH1", "body", 32, 3.5);
+  const heater = addDevice(c, "heater", "HTR1", "body", 32, 3.5);
   const fan = addDevice(c, "fan", "FAN1", "body", 40, 3.5);
 
-  const tc = addDevice(c, "transformer", "TC1", "body", 8, 14, { ratio: "480/120" });
-  const flow = addDevice(c, "flow-no", "SQ_FLOW", "body", 16, 14);
-  const temp = addDevice(c, "temp-nc", "ST_TEMP", "body", 22, 14);
-  const press = addDevice(c, "pressure-nc", "SP_PRESS", "body", 28, 14);
+  const tc = addDevice(c, "transformer", "T1", "body", 8, 14, { ratio: "480/120" });
+  const flow = addDevice(c, "flow-no", "FLS_FLOW", "body", 16, 14);
+  const temp = addDevice(c, "temp-nc", "TAS_TEMP", "body", 22, 14);
+  const press = addDevice(c, "pressure-nc", "PS_PRESS", "body", 28, 14);
 
-  const stop = addDevice(c, "pb-nc", "SB_STOP", "body", 34, 14);
-  const start = addDevice(c, "pb-no", "SB_START", "body", 40, 14);
+  const stop = addDevice(c, "pb-nc", "PB_STOP", "body", 34, 14);
+  const start = addDevice(c, "pb-no", "PB_START", "body", 40, 14);
 
-  const hlHeat = addDevice(c, "lamp", "HL_HEAT", "body", 58, 13.5, { color: "red" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 14);
+  const hlHeat = addDevice(c, "lamp", "LT_HEAT", "body", 58, 13.5, { color: "red" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 14);
 
   // Power (Y=5, 7 straight lines)
   addWire(c, g.symbol, "L1", qf.symbol, "L1");
@@ -963,18 +963,18 @@ export function ex17TempPressureHeater(): Circuit {
  */
 export function ex18ConveyorCounterSorter(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "dc-supply", "G1", "body", 4, 4);
-  const photo = addDevice(c, "photo", "SQ_PHOTO", "body", 14, 4);
-  const ct = addDevice(c, "counter", "CT1", "body", 22, 4, { preset: 5 });
-  const hlCount = addDevice(c, "lamp", "HL_COUNT", "body", 30, 3.5, { color: "yellow" });
+  const g = addDevice(c, "dc-supply", "PWS1", "body", 4, 4);
+  const photo = addDevice(c, "photo", "PEC_PHOTO", "body", 14, 4);
+  const ct = addDevice(c, "counter", "CTR1", "body", 22, 4, { preset: 5 });
+  const hlCount = addDevice(c, "lamp", "LT_COUNT", "body", 30, 3.5, { color: "yellow" });
 
-  const sbReset = addDevice(c, "pb-no", "SB_RST", "body", 14, 7.5);
+  const sbReset = addDevice(c, "pb-no", "PB_RST", "body", 14, 7.5);
 
-  const prox = addDevice(c, "prox", "SQ_PROX", "body", 14, 13);
-  const mConv = addDevice(c, "motor-dc", "M_CONV", "body", 22, 12.5);
+  const prox = addDevice(c, "prox", "PRS_PROX", "body", 14, 13);
+  const mConv = addDevice(c, "motor-dc", "MTR_CONV", "body", 22, 12.5);
 
-  const yvPush = addDevice(c, "solenoid", "YV_PUSH", "body", 30, 20.5);
-  const hlDone = addDevice(c, "lamp", "HL_DONE", "body", 38, 20.5, { color: "green" });
+  const yvPush = addDevice(c, "solenoid", "SOL_PUSH", "body", 30, 20.5);
+  const hlDone = addDevice(c, "lamp", "LT_DONE", "body", 38, 20.5, { color: "green" });
 
   // Photo Sensor counting pulse & count indicator (Y=5 straight line)
   addWire(c, g.symbol, "+", photo.symbol, "1");
@@ -1010,14 +1010,14 @@ export function ex19AtsDualPower(): Circuit {
   const g1 = addDevice(c, "mains-3ph", "Utility Grid", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
   const g2 = addDevice(c, "gen-ac", "Diesel Gen", "body", 4, 14);
 
-  const qf1 = addDevice(c, "breaker-3p", "QF_GRID", "body", 14, 4);
-  const qf2 = addDevice(c, "breaker-3p", "QF_GEN", "body", 14, 14);
+  const qf1 = addDevice(c, "breaker-3p", "CB_GRID", "body", 14, 4);
+  const qf2 = addDevice(c, "breaker-3p", "CB_GEN", "body", 14, 14);
 
-  const kmGrid = addDevice(c, "contactor", "KM_GRID", "coil", 32, 23.5);
+  const kmGrid = addDevice(c, "contactor", "M_GRID", "coil", 32, 23.5);
   const kmGridMain = addSymbol(c, kmGrid.device.id, "main", 22, 4);
   const kmGridLock = addSymbol(c, kmGrid.device.id, "aux-nc", 22, 32);
 
-  const kmGen = addDevice(c, "contactor", "KM_GEN", "coil", 32, 31.5);
+  const kmGen = addDevice(c, "contactor", "M_GEN", "coil", 32, 31.5);
   const kmGenMain = addSymbol(c, kmGen.device.id, "main", 22, 14);
   const kmGenLock = addSymbol(c, kmGen.device.id, "aux-nc", 22, 24);
 
@@ -1026,9 +1026,9 @@ export function ex19AtsDualPower(): Circuit {
   const vm2 = addDevice(c, "voltmeter", "VM_GEN", "body", 14, 19.5);
   const am = addDevice(c, "ammeter", "AM_LOAD", "body", 34, 3.5);
 
-  const hlGrid = addDevice(c, "lamp", "HL_GRID", "body", 40, 23.5, { color: "green" });
-  const hlGen = addDevice(c, "lamp", "HL_GEN", "body", 40, 31.5, { color: "yellow" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 24);
+  const hlGrid = addDevice(c, "lamp", "LT_GRID", "body", 40, 23.5, { color: "green" });
+  const hlGen = addDevice(c, "lamp", "LT_GEN", "body", 40, 31.5, { color: "yellow" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 24);
 
   // Grid Power Path (Y=5, 7, 9 straight line)
   addWire(c, g1.symbol, "L1", qf1.symbol, "L1");
@@ -1103,12 +1103,12 @@ export function ex20AutomatedCell(): Circuit {
   });
 
   // 2. Main Power Distribution (480V 3Φ, Y=14)
-  const g = addDevice(c, "mains-3ph", "G1", "delta", 4, 14, { supplyType: "delta", voltage: 480, maxCurrent: 400 });
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 14, { supplyType: "delta", voltage: 480, maxCurrent: 400 });
   const qs = addDevice(c, "isolator", "Main Disconnect", "body", 14, 14);
   const qfMain = addDevice(c, "breaker-3p", "Main Breaker", "body", 22, 14);
 
   // 3. Spindle Motor Branch (15kW, Y=14)
-  const kmSpindle = addDevice(c, "contactor", "KM_SPINDLE", "coil", 48, 29.5);
+  const kmSpindle = addDevice(c, "contactor", "M_SPINDLE", "coil", 48, 29.5);
   const kmSpindleMain = addSymbol(c, kmSpindle.device.id, "main", 30, 14);
   const kmSpindleNo = addSymbol(c, kmSpindle.device.id, "aux-no", 38, 34);
   const frSpindle = addDevice(c, "overload", "Spindle OL", "body", 38, 14);
@@ -1117,37 +1117,37 @@ export function ex20AutomatedCell(): Circuit {
   const mSpindle = addDevice(c, "motor-3ph", "Main Spindle 15kW", "body", 46, 14, { power: 15 });
 
   // 4. Feed Axis Motor Branch (3.7kW, Y=22)
-  const kmFeed = addDevice(c, "contactor", "KM_FEED", "coil", 48, 37.5);
+  const kmFeed = addDevice(c, "contactor", "M_FEED", "coil", 48, 37.5);
   const kmFeedMain = addSymbol(c, kmFeed.device.id, "main", 30, 22);
   const amFeed = addDevice(c, "ammeter", "AM1", "body", 38, 21.5);
   const mFeed = addDevice(c, "motor-3ph", "Feed Axis 3.7kW", "body", 46, 21.5, { power: 3.7 });
 
   // 5. Control Transformer 480/120V & DC 24V Power Supply
-  const tc = addDevice(c, "transformer", "TC1", "body", 12, 30, { ratio: "480/120", primaryVoltage: 480, secondaryVoltage: 120 });
+  const tc = addDevice(c, "transformer", "T1", "body", 12, 30, { ratio: "480/120", primaryVoltage: 480, secondaryVoltage: 120 });
   const dcSupply = addDevice(c, "dc-supply", "24VDC Supply", "body", 12, 40);
 
   // 6. Safety & Sensors String (Y=31)
-  const estop = addDevice(c, "estop-nc", "SB_ESTOP", "body", 20, 30);
+  const estop = addDevice(c, "estop-nc", "PB_ESTOP", "body", 20, 30);
   const temp = addDevice(c, "temp-nc", "Spindle Temp Cutoff", "body", 26, 30);
-  const stop = addDevice(c, "pb-nc", "SB_STOP", "body", 32, 30);
-  const start = addDevice(c, "pb-no", "SB_START", "body", 38, 30);
+  const stop = addDevice(c, "pb-nc", "PB_STOP", "body", 32, 30);
+  const start = addDevice(c, "pb-no", "PB_START", "body", 38, 30);
 
   // 7. Workholding & Optical Curtain (Y=41)
   const photo = addDevice(c, "photo", "Safety Light Curtain", "body", 20, 40);
   const foot = addDevice(c, "foot-no", "Foot Clamp Switch", "body", 26, 40);
   const yvClamp = addDevice(c, "solenoid", "Hydraulic Clamp", "body", 38, 39.5);
-  const hlClamp = addDevice(c, "lamp", "HL_CLAMP", "body", 46, 39.5, { color: "blue" });
+  const hlClamp = addDevice(c, "lamp", "LT_CLAMP", "body", 46, 39.5, { color: "blue" });
 
   // 8. Cabinet Cooling & Clamping (Y=49)
   const stCabinet = addDevice(c, "temp-no", "Cabinet Thermostat", "body", 26, 48);
   const fan = addDevice(c, "fan", "Cabinet Cooler", "body", 38, 47.5);
-  const horn = addDevice(c, "horn", "HA_FAULT", "body", 46, 47.5);
-  const al = addDevice(c, "alarm", "AL_FAULT", "body", 54, 47.5);
+  const horn = addDevice(c, "horn", "AH_FAULT", "body", 46, 47.5);
+  const al = addDevice(c, "alarm", "ABE_FAULT", "body", 54, 47.5);
 
   // 9. Indicators & Metering
   const vm = addDevice(c, "voltmeter", "VM1", "body", 22, 23.5);
-  const hlRun = addDevice(c, "lamp", "HL_RUN", "body", 56, 29.5, { color: "green" });
-  const pe = addDevice(c, "ground", "PE1", "body", 4, 30);
+  const hlRun = addDevice(c, "lamp", "LT_RUN", "body", 56, 29.5, { color: "green" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 30);
 
   // Power Connections (Y=15, 17, 19 straight line)
   addWire(c, g.symbol, "L1", qs.symbol, "L1");

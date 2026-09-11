@@ -21,7 +21,7 @@ describe("print bounds calculation", () => {
 
   it("calculates tight bounding box with padding for single symbol", () => {
     const c = emptyCircuit();
-    addDevice(c, "lamp", "HL1", "body", 10, 15);
+    addDevice(c, "lamp", "LT1", "body", 10, 15);
     const bounds = getPrintContentBounds(c, 2);
 
     expect(bounds.hasElements).toBe(true);
@@ -36,8 +36,8 @@ describe("print bounds calculation", () => {
 
   it("calculates accurate bounding box enclosing multiple components and wires", () => {
     const c = emptyCircuit();
-    const m = addDevice(c, "mains-3ph", "G1", "delta", 5, 5);
-    const b = addDevice(c, "breaker-3p", "QF1", "body", 20, 5);
+    const m = addDevice(c, "mains-3ph", "PWR1", "delta", 5, 5);
+    const b = addDevice(c, "breaker-3p", "CB1", "body", 20, 5);
     addWire(c, m.symbol, "L1", b.symbol, "L1");
 
     const bounds = getPrintContentBounds(c, 2);
@@ -50,8 +50,8 @@ describe("print bounds calculation", () => {
 
   it("includes wire jogs in the bounding box", () => {
     const c = emptyCircuit();
-    const l1 = addDevice(c, "lamp", "HL1", "body", 10, 10);
-    const l2 = addDevice(c, "lamp", "HL2", "body", 30, 10);
+    const l1 = addDevice(c, "lamp", "LT1", "body", 10, 10);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 30, 10);
     addWire(c, l1.symbol, "1", l2.symbol, "1");
     const w = c.wires[0];
     w.jog = { axis: "y", pos: 50 * GRID }; // jog way down at y=50
@@ -62,11 +62,11 @@ describe("print bounds calculation", () => {
 
   it("excludes hide-on-print groups from content bounds", () => {
     const c = emptyCircuit();
-    const hiddenA = addDevice(c, "lamp", "HL1", "body", 2, 2);
-    const hiddenB = addDevice(c, "lamp", "HL2", "body", 4, 2);
+    const hiddenA = addDevice(c, "lamp", "LT1", "body", 2, 2);
+    const hiddenB = addDevice(c, "lamp", "LT2", "body", 4, 2);
     groupSymbols(c, [hiddenA.symbol.id, hiddenB.symbol.id]);
     c.groups![0].hideOnPrint = true;
-    const visible = addDevice(c, "lamp", "HL3", "body", 30, 20);
+    const visible = addDevice(c, "lamp", "LT3", "body", 30, 20);
 
     const bounds = getPrintContentBounds(c, 2);
     expect(bounds.hasElements).toBe(true);
@@ -77,8 +77,8 @@ describe("print bounds calculation", () => {
 
   it("falls back to full canvas when every symbol is hide-on-print", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 10, 10);
-    const b = addDevice(c, "lamp", "HL2", "body", 14, 10);
+    const a = addDevice(c, "lamp", "LT1", "body", 10, 10);
+    const b = addDevice(c, "lamp", "LT2", "body", 14, 10);
     addWire(c, a.symbol.id, "1", b.symbol.id, "1");
     groupSymbols(c, [a.symbol.id, b.symbol.id]);
     c.groups![0].hideOnPrint = true;

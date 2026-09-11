@@ -95,7 +95,7 @@ describe("Comment Component & Binding", () => {
     setLang("en");
     useLab.getState().newBoard();
     const c = createEmptyCircuit();
-    const motor = addDevice(c, "motor-3ph", "M1", "body", 10, 10);
+    const motor = addDevice(c, "motor-3ph", "MTR1", "body", 10, 10);
     useLab.getState().loadCircuit(c);
 
     // Call addCommentForSymbol for the motor symbol
@@ -105,7 +105,7 @@ describe("Comment Component & Binding", () => {
     const commentDev = circuit.devices.find((d) => d.kind === "comment");
     expect(commentDev).toBeDefined();
     expect(commentDev?.params.targetDeviceId).toBe(motor.device.id);
-    expect(commentDev?.params.text).toBe("M1 Note");
+    expect(commentDev?.params.text).toBe("MTR1 Note");
     expect(commentDev?.params.text).not.toMatch(/[\u4e00-\u9fff]/);
     expect(commentDev?.params.showLeaderLine).toBe(true);
 
@@ -128,7 +128,7 @@ describe("Comment Component & Binding", () => {
   it("can hide a comment from print while keeping it on the canvas", () => {
     const c = createEmptyCircuit();
     const rem = addDevice(c, "comment", "REM1", "body", 2, 2, { text: "note" });
-    const lamp = addDevice(c, "lamp", "HL1", "body", 30, 20);
+    const lamp = addDevice(c, "lamp", "LT1", "body", 30, 20);
     useLab.getState().loadCircuit(c);
     useLab.getState().updateDevice(rem.device.id, { hideOnPrint: true });
 

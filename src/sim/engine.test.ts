@@ -33,9 +33,9 @@ function run(
 describe("sim engine", () => {
   it("lights a lamp through a NO pushbutton", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const sb = addDevice(c, "pb-no", "SB1", "body", 4, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 8, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const sb = addDevice(c, "pb-no", "PB1", "body", 4, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 8, 0);
     addWire(c, g.symbol, "L1", sb.symbol, "1");
     addWire(c, sb.symbol, "2", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -53,9 +53,9 @@ describe("sim engine", () => {
 
   it("closes a temperature NO switch when process temperature exceeds setpoint", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const st = addDevice(c, "temp-no", "ST1", "body", 6, 0, { setpoint: 60 });
-    const hl = addDevice(c, "lamp", "HL1", "body", 12, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const st = addDevice(c, "temp-no", "TAS1", "body", 6, 0, { setpoint: 60 });
+    const hl = addDevice(c, "lamp", "LT1", "body", 12, 0);
     addWire(c, g.symbol, "L1", st.symbol, "1");
     addWire(c, st.symbol, "2", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -68,8 +68,8 @@ describe("sim engine", () => {
 
   it("animates L→N even if a return wire is drawn N first", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 8, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 8, 0);
     addWire(c, g.symbol, "N", hl.symbol, "2");
     addWire(c, hl.symbol, "1", g.symbol, "L1");
     const snap = run(c, [], 3);
@@ -82,9 +82,9 @@ describe("sim engine", () => {
 
   it("NC stop is closed until pressed", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const sb = addDevice(c, "pb-nc", "SB1", "body", 4, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 8, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const sb = addDevice(c, "pb-nc", "PB1", "body", 4, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 8, 0);
     addWire(c, g.symbol, "L1", sb.symbol, "1");
     addWire(c, sb.symbol, "2", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -95,10 +95,10 @@ describe("sim engine", () => {
 
   it("holds a contactor after start is released", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const stop = addDevice(c, "pb-nc", "SB1", "body", 4, 0);
-    const start = addDevice(c, "pb-no", "SB2", "body", 8, 0);
-    const km = addDevice(c, "contactor", "KM1", "coil", 12, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const stop = addDevice(c, "pb-nc", "PB1", "body", 4, 0);
+    const start = addDevice(c, "pb-no", "PB2", "body", 8, 0);
+    const km = addDevice(c, "contactor", "M1", "coil", 12, 0);
     const aux = addSymbol(c, km.device.id, "aux-no", 8, 4);
 
     addWire(c, g.symbol, "L1", stop.symbol, "1");
@@ -126,8 +126,8 @@ describe("sim engine", () => {
 
   it("runs a 3-phase motor forward and reverse", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const m = addDevice(c, "motor-3ph", "M1", "body", 8, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const m = addDevice(c, "motor-3ph", "MTR1", "body", 8, 0);
     addWire(c, g.symbol, "L1", m.symbol, "U");
     addWire(c, g.symbol, "L2", m.symbol, "V");
     addWire(c, g.symbol, "L3", m.symbol, "W");
@@ -136,8 +136,8 @@ describe("sim engine", () => {
     expect(fwd.runtime[m.device.id].direction).toBe(1);
 
     const c2 = emptyCircuit();
-    const g2 = addDevice(c2, "mains-3ph", "G2", "body", 0, 0);
-    const m2 = addDevice(c2, "motor-3ph", "M2", "body", 8, 0);
+    const g2 = addDevice(c2, "mains-3ph", "PWR2", "body", 0, 0);
+    const m2 = addDevice(c2, "motor-3ph", "MTR2", "body", 8, 0);
     addWire(c2, g2.symbol, "L1", m2.symbol, "U");
     addWire(c2, g2.symbol, "L3", m2.symbol, "V");
     addWire(c2, g2.symbol, "L2", m2.symbol, "W");
@@ -147,9 +147,9 @@ describe("sim engine", () => {
 
   it("isolates transformer secondary until primary is live", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const tc = addDevice(c, "transformer", "TC1", "body", 6, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const tc = addDevice(c, "transformer", "T1", "body", 6, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 14, 0);
     addWire(c, g.symbol, "L1", tc.symbol, "H1");
     addWire(c, g.symbol, "L2", tc.symbol, "H2");
     addWire(c, tc.symbol, "X1", hl.symbol, "1");
@@ -159,10 +159,10 @@ describe("sim engine", () => {
 
   it("delays a TON contact", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
     const kt = addDevice(c, "timer-on", "KT1", "coil", 6, 0, { delayMs: 120 });
     const ktNo = addSymbol(c, kt.device.id, "delayed-no", 10, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 14, 0);
     addWire(c, g.symbol, "L1", kt.symbol, "A1");
     addWire(c, kt.symbol, "A2", g.symbol, "N");
     addWire(c, g.symbol, "L1", ktNo, "15");
@@ -180,9 +180,9 @@ describe("sim engine", () => {
 
   it("opens overload 95-96 when tripped", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const fr = addDevice(c, "overload", "FR1", "body", 6, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const fr = addDevice(c, "overload", "OL1", "body", 6, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 14, 0);
     addWire(c, g.symbol, "L1", fr.symbol, "95");
     addWire(c, fr.symbol, "96", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -196,9 +196,9 @@ describe("sim engine", () => {
 
   it("closes overload 97-98 when tripped", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const fr = addDevice(c, "overload", "FR1", "body", 6, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const fr = addDevice(c, "overload", "OL1", "body", 6, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 14, 0);
     addWire(c, g.symbol, "L1", fr.symbol, "97");
     addWire(c, fr.symbol, "98", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -212,10 +212,10 @@ describe("sim engine", () => {
 
   it("closes timer instantaneous 21-24 while the coil is on", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
     const kt = addDevice(c, "timer-on", "KT1", "coil", 6, 0, { delayMs: 5000 });
     const ktInst = addSymbol(c, kt.device.id, "inst-no", 10, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 14, 0);
     addWire(c, g.symbol, "L1", kt.symbol, "A1");
     addWire(c, kt.symbol, "A2", g.symbol, "N");
     addWire(c, g.symbol, "L1", ktInst, "21");
@@ -226,9 +226,9 @@ describe("sim engine", () => {
 
   it("keeps e-stop NC 11-12 closed until latched", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const sb = addDevice(c, "estop-nc", "SB0", "body", 4, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 8, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const sb = addDevice(c, "estop-nc", "PB0", "body", 4, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 8, 0);
     addWire(c, g.symbol, "L1", sb.symbol, "11");
     addWire(c, sb.symbol, "12", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -241,9 +241,9 @@ describe("sim engine", () => {
 
   it("closes e-stop NO 13-14 when latched", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const sb = addDevice(c, "estop-no", "SB1", "body", 4, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 8, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const sb = addDevice(c, "estop-no", "PB1", "body", 4, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 8, 0);
     addWire(c, g.symbol, "L1", sb.symbol, "13");
     addWire(c, sb.symbol, "14", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -256,9 +256,9 @@ describe("sim engine", () => {
 
   it("closes a foot-switch NO while held", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const fs = addDevice(c, "foot-no", "SF1", "body", 6, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 12, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const fs = addDevice(c, "foot-no", "FTS1", "body", 6, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 12, 0);
     addWire(c, g.symbol, "L1", fs.symbol, "1");
     addWire(c, fs.symbol, "2", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -268,9 +268,9 @@ describe("sim engine", () => {
 
   it("opens a foot-switch NC while held", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const fs = addDevice(c, "foot-nc", "SF1", "body", 6, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 12, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const fs = addDevice(c, "foot-nc", "FTS1", "body", 6, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 12, 0);
     addWire(c, g.symbol, "L1", fs.symbol, "1");
     addWire(c, fs.symbol, "2", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -280,9 +280,9 @@ describe("sim engine", () => {
 
   it("closes an SPST toggle when thrown", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const sw = addDevice(c, "toggle-spst", "SA1", "body", 6, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 12, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const sw = addDevice(c, "toggle-spst", "TGS1", "body", 6, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 12, 0);
     addWire(c, g.symbol, "L1", sw.symbol, "1");
     addWire(c, sw.symbol, "2", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -294,9 +294,9 @@ describe("sim engine", () => {
 
   it("throws an SPDT toggle from NC to NO", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const sw = addDevice(c, "toggle-spdt", "SA1", "body", 6, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 12, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const sw = addDevice(c, "toggle-spdt", "TGS1", "body", 6, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 12, 0);
     addWire(c, g.symbol, "L1", sw.symbol, "1");
     addWire(c, sw.symbol, "2", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -308,9 +308,9 @@ describe("sim engine", () => {
 
   it("closes both poles of a DPST toggle when thrown", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const sw = addDevice(c, "toggle-dpst", "SA1", "body", 6, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 12, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const sw = addDevice(c, "toggle-dpst", "TGS1", "body", 6, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 12, 0);
     addWire(c, g.symbol, "L1", sw.symbol, "1");
     addWire(c, sw.symbol, "2", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -322,11 +322,11 @@ describe("sim engine", () => {
 
   it("runs the textbook DOL self-hold example", () => {
     const c = selfHoldMotor();
-    const start = c.devices.find((d) => d.tag === "SB2")!;
-    const stop = c.devices.find((d) => d.tag === "SB1")!;
-    const km = c.devices.find((d) => d.tag === "KM1")!;
-    const motor = c.devices.find((d) => d.tag === "M1")!;
-    const lamp = c.devices.find((d) => d.tag === "HL1")!;
+    const start = c.devices.find((d) => d.tag === "PB2")!;
+    const stop = c.devices.find((d) => d.tag === "PB1")!;
+    const km = c.devices.find((d) => d.kind === "contactor" && d.tag === "M1")!;
+    const motor = c.devices.find((d) => d.kind === "motor-3ph")!;
+    const lamp = c.devices.find((d) => d.tag === "LT1")!;
 
     let snap = run(c, []);
     expect(snap.runtime[km.id].energized).toBe(false);
@@ -351,8 +351,8 @@ describe("sim engine", () => {
 
   it("opens a broken wire", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 8, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 8, 0);
     addWire(c, g.symbol, "L1", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
     expect(run(c).runtime[hl.device.id].lit).toBe(true);
@@ -362,10 +362,10 @@ describe("sim engine", () => {
 
   it("keeps a welded contactor closed after the coil drops", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const km = addDevice(c, "contactor", "KM1", "coil", 6, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const km = addDevice(c, "contactor", "M1", "coil", 6, 0);
     const main = addSymbol(c, km.device.id, "main", 12, 0);
-    const m = addDevice(c, "motor-3ph", "M1", "body", 20, 0);
+    const m = addDevice(c, "motor-3ph", "MTR1", "body", 20, 0);
     addWire(c, g.symbol, "L1", km.symbol, "A1");
     addWire(c, km.symbol, "A2", g.symbol, "N");
     addWire(c, g.symbol, "L1", main, "L1");
@@ -388,13 +388,13 @@ describe("sim engine", () => {
 
   it("switches star-delta after the timer", () => {
     const c = starDeltaStart();
-    const kt = c.devices.find((d) => d.tag === "KT1")!;
+    const kt = c.devices.find((d) => d.tag === "TR1")!;
     kt.params.delayMs = 400;
-    const start = c.devices.find((d) => d.tag === "SB2")!;
-    const kmL = c.devices.find((d) => d.tag === "KM1")!;
-    const kmY = c.devices.find((d) => d.tag === "KM2")!;
-    const kmD = c.devices.find((d) => d.tag === "KM3")!;
-    const motor = c.devices.find((d) => d.tag === "M1")!;
+    const start = c.devices.find((d) => d.tag === "PB2")!;
+    const kmL = c.devices.find((d) => d.kind === "contactor" && d.tag === "M1")!;
+    const kmY = c.devices.find((d) => d.kind === "contactor" && d.tag === "M2")!;
+    const kmD = c.devices.find((d) => d.kind === "contactor" && d.tag === "M3")!;
+    const motor = c.devices.find((d) => d.kind === "motor-3ph")!;
 
     let snap = run(c, [start.id], 5, 50);
     expect(snap.runtime[kmL.id].energized).toBe(true);
@@ -414,10 +414,10 @@ describe("sim engine", () => {
 
   it("uses delayed NC 15-16 before a TON times out", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
     const kt = addDevice(c, "timer-on", "KT1", "coil", 6, 0, { delayMs: 200 });
     const ktNc = addSymbol(c, kt.device.id, "delayed-nc", 10, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 14, 0);
     addWire(c, g.symbol, "L1", kt.symbol, "A1");
     addWire(c, kt.symbol, "A2", g.symbol, "N");
     addWire(c, g.symbol, "L1", ktNc, "15");
@@ -435,10 +435,10 @@ describe("sim engine", () => {
     const c = selectorReversing();
     const start = c.devices.find((d) => d.tag === "START")!;
     const stop = c.devices.find((d) => d.tag === "STOP")!;
-    const sa = c.devices.find((d) => d.tag === "SA1")!;
+    const sa = c.devices.find((d) => d.tag === "SS1")!;
     const f = c.devices.find((d) => d.tag === "F")!;
     const r = c.devices.find((d) => d.tag === "R")!;
-    const motor = c.devices.find((d) => d.tag === "M1")!;
+    const motor = c.devices.find((d) => d.kind === "motor-3ph")!;
 
     const rt = createRuntime(c);
     rt[sa.id].position = 1;
@@ -470,10 +470,10 @@ describe("sim engine", () => {
 
   it("supports wiring to both COM (top-left) and COM2 (bottom-left) on selector-3", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const sa = addDevice(c, "selector-3", "SA1", "body", 6, 0);
-    const hlF = addDevice(c, "lamp", "HL_F", "body", 16, 0);
-    const hlR = addDevice(c, "lamp", "HL_R", "body", 16, 6);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const sa = addDevice(c, "selector-3", "SS1", "body", 6, 0);
+    const hlF = addDevice(c, "lamp", "LT_F", "body", 16, 0);
+    const hlR = addDevice(c, "lamp", "LT_R", "body", 16, 6);
 
     // Wire power directly to bottom-left terminal COM2
     addWire(c, g.symbol, "L1", sa.symbol, "COM2");
@@ -504,11 +504,11 @@ describe("sim engine", () => {
 
   it("connects distant halves through matching net labels", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
     const a = addDevice(c, "net-label", "L1", "body", 4, 0);
     const b = addDevice(c, "net-label", "L1", "body", 20, 0);
     const n = addDevice(c, "net-label", "N", "body", 20, 4);
-    const hl = addDevice(c, "lamp", "HL1", "body", 24, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 24, 0);
     addWire(c, g.symbol, "L1", a.symbol, "1");
     addWire(c, g.symbol, "N", n.symbol, "1");
     addWire(c, b.symbol, "1", hl.symbol, "1");
@@ -527,12 +527,12 @@ describe("sim engine", () => {
 
   it("does not bridge net labels with different or empty tags", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
     const a = addDevice(c, "net-label", "L1", "body", 4, 0);
     const other = addDevice(c, "net-label", "L2", "body", 20, 0);
     const blank = addDevice(c, "net-label", "  ", "body", 20, 2);
     const blank2 = addDevice(c, "net-label", "", "body", 22, 2);
-    const hl = addDevice(c, "lamp", "HL1", "body", 24, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 24, 0);
     addWire(c, g.symbol, "L1", a.symbol, "1");
     addWire(c, other.symbol, "1", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
@@ -546,9 +546,9 @@ describe("sim engine", () => {
 
   it("lights a lamp tapped off the middle of another wire", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "body", 0, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 20, 2);
-    const hl2 = addDevice(c, "lamp", "HL2", "body", 12, 10);
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 20, 2);
+    const hl2 = addDevice(c, "lamp", "LT2", "body", 12, 10);
     addWire(c, g.symbol, "L1", hl.symbol, "1");
     addWire(c, hl.symbol, "2", g.symbol, "N");
     addWire(c, hl2.symbol, "2", g.symbol, "N");
@@ -565,7 +565,7 @@ describe("sim engine", () => {
 
   it("seeds PE potential from a ground component and tracks energized state", () => {
     const c = emptyCircuit();
-    const gnd = addDevice(c, "ground", "PE1", "body", 0, 0);
+    const gnd = addDevice(c, "ground", "GND1", "body", 0, 0);
     const nl = addDevice(c, "net-label", "PE", "body", 6, 0);
     addWire(c, gnd.symbol, "1", nl.symbol, "1");
 
@@ -578,8 +578,8 @@ describe("sim engine", () => {
 
   it("supports Wye and Delta supply modes for 3-phase mains", () => {
     const cWye = emptyCircuit();
-    const gWye = addDevice(cWye, "mains-3ph", "G1", "wye", 0, 0, { supplyType: "wye" });
-    const hlWye = addDevice(cWye, "lamp", "HL1", "body", 6, 0);
+    const gWye = addDevice(cWye, "mains-3ph", "PWR1", "wye", 0, 0, { supplyType: "wye" });
+    const hlWye = addDevice(cWye, "lamp", "LT1", "body", 6, 0);
     addWire(cWye, gWye.symbol, "L1", hlWye.symbol, "1");
     addWire(cWye, hlWye.symbol, "2", gWye.symbol, "N");
 
@@ -587,8 +587,8 @@ describe("sim engine", () => {
     expect(snapWye.runtime[hlWye.device.id].lit).toBe(true);
 
     const cDelta = emptyCircuit();
-    const gDelta = addDevice(cDelta, "mains-3ph", "G2", "delta", 0, 0, { supplyType: "delta" });
-    const mDelta = addDevice(cDelta, "motor-3ph", "M1", "body", 10, 0);
+    const gDelta = addDevice(cDelta, "mains-3ph", "PWR2", "delta", 0, 0, { supplyType: "delta" });
+    const mDelta = addDevice(cDelta, "motor-3ph", "MTR1", "body", 10, 0);
     addWire(cDelta, gDelta.symbol, "L1", mDelta.symbol, "U");
     addWire(cDelta, gDelta.symbol, "L2", mDelta.symbol, "V");
     addWire(cDelta, gDelta.symbol, "L3", mDelta.symbol, "W");
@@ -600,8 +600,8 @@ describe("sim engine", () => {
 
   it("does not trigger short circuit when multiple PE grounds connect together", () => {
     const c = emptyCircuit();
-    const gMains = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
-    const gnd = addDevice(c, "ground", "PE1", "body", 6, 6);
+    const gMains = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0, { supplyType: "delta" });
+    const gnd = addDevice(c, "ground", "GND1", "body", 6, 6);
     const nl = addDevice(c, "net-label", "G", "body", 6, 2);
 
     addWire(c, gMains.symbol, "PE", nl.symbol, "1");
@@ -617,8 +617,8 @@ describe("sim engine", () => {
 
   it("does not trigger short circuit when transformer secondary X2 is connected to ground PE", () => {
     const c = emptyCircuit();
-    const gMains = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
-    const pe1 = addDevice(c, "ground", "PE1", "body", 6, 12);
+    const gMains = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0, { supplyType: "delta" });
+    const pe1 = addDevice(c, "ground", "GND1", "body", 6, 12);
     const nlG = addDevice(c, "net-label", "G", "body", 6, 10);
     const nlL1 = addDevice(c, "net-label", "L1", "body", 10, 0);
     const nlL2 = addDevice(c, "net-label", "L2", "body", 10, 2);
@@ -630,7 +630,7 @@ describe("sim engine", () => {
     addWire(c, gMains.symbol, "L2", nlL2.symbol, "1");
 
     // Transformer
-    const tc1 = addDevice(c, "transformer", "TC1", "body", 16, 4);
+    const tc1 = addDevice(c, "transformer", "T1", "body", 16, 4);
     const tcL1 = addDevice(c, "net-label", "L1", "body", 16, 0);
     const tcL2 = addDevice(c, "net-label", "L2", "body", 14, 0);
     addWire(c, tcL1.symbol, "1", tc1.symbol, "H1");
@@ -639,13 +639,13 @@ describe("sim engine", () => {
     // Secondary X1 -> A1, X2 -> A2 and PE2
     const nlA1 = addDevice(c, "net-label", "A1", "body", 16, 10);
     const nlA2 = addDevice(c, "net-label", "A2", "body", 14, 10);
-    const pe2 = addDevice(c, "ground", "PE2", "body", 12, 10);
+    const pe2 = addDevice(c, "ground", "GND2", "body", 12, 10);
     addWire(c, tc1.symbol, "X1", nlA1.symbol, "1");
     addWire(c, tc1.symbol, "X2", nlA2.symbol, "1");
     addWire(c, pe2.symbol, "1", nlA2.symbol, "1");
 
     // Load between A1 and A2
-    const hl = addDevice(c, "lamp", "HL1", "body", 22, 10);
+    const hl = addDevice(c, "lamp", "LT1", "body", 22, 10);
     const loadA1 = addDevice(c, "net-label", "A1", "body", 22, 8);
     const loadA2 = addDevice(c, "net-label", "A2", "body", 22, 12);
     addWire(c, loadA1.symbol, "1", hl.symbol, "1");
@@ -662,12 +662,12 @@ describe("sim engine", () => {
 
   it("detects short circuit when BOTH X1 and X2 of transformer secondary are connected to PE", () => {
     const c = emptyCircuit();
-    const gMains = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
-    const tc1 = addDevice(c, "transformer", "TC1", "body", 10, 0);
+    const gMains = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0, { supplyType: "delta" });
+    const tc1 = addDevice(c, "transformer", "T1", "body", 10, 0);
     addWire(c, gMains.symbol, "L1", tc1.symbol, "H1");
     addWire(c, gMains.symbol, "L2", tc1.symbol, "H2");
 
-    const pe = addDevice(c, "ground", "PE", "body", 10, 8);
+    const pe = addDevice(c, "ground", "GND", "body", 10, 8);
     // Short secondary by connecting both X1 and X2 to the same PE ground
     addWire(c, tc1.symbol, "X1", pe.symbol, "1");
     addWire(c, tc1.symbol, "X2", pe.symbol, "1");
@@ -680,7 +680,7 @@ describe("sim engine", () => {
 
   it("detects direct short circuits and flags runtime and wires with short strobe state", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "wye", 0, 0);
     // Directly short L1 and L2
     addWire(c, g.symbol, "L1", g.symbol, "L2");
 
@@ -693,8 +693,8 @@ describe("sim engine", () => {
 
   it("treats each overload 95-96 symbol as its own pole so two copies do not short X1 to X2", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
-    const xf = addDevice(c, "transformer", "TC1", "body", 6, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0, { supplyType: "delta" });
+    const xf = addDevice(c, "transformer", "T1", "body", 6, 0);
     addWire(c, g.symbol, "L1", xf.symbol, "H1");
     addWire(c, g.symbol, "L2", xf.symbol, "H2");
 
@@ -764,14 +764,14 @@ describe("sim engine", () => {
       const tA = terms[0];
       const tB = terms[terms.length - 1];
       const c = emptyCircuit();
-      const g = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
-      const xf = addDevice(c, "transformer", "TC1", "body", 4, 0);
+      const g = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0, { supplyType: "delta" });
+      const xf = addDevice(c, "transformer", "T1", "body", 4, 0);
       addWire(c, g.symbol, "L1", xf.symbol, "H1");
       addWire(c, g.symbol, "L2", xf.symbol, "H2");
       const host = addDevice(c, kind, "D1", hostVariant, 8, 0, kind.startsWith("timer") ? { delayMs: 80 } : {});
       const p1 = addSymbol(c, host.device.id, contactVariant, 8, 8);
       const p2 = addSymbol(c, host.device.id, contactVariant, 8, 12);
-      const hl = addDevice(c, "lamp", "HL1", "body", 16, 8);
+      const hl = addDevice(c, "lamp", "LT1", "body", 16, 8);
       if (layout === "parallel") {
         addWire(c, xf.symbol, "X1", p1, tA);
         addWire(c, xf.symbol, "X1", p2, tA);
@@ -793,7 +793,7 @@ describe("sim engine", () => {
         rt[hostId].tripped = true;
         return tick(c, rt, { held: new Set(), process }, 50, 50);
       }
-      const hostSym = c.symbols.find((s) => s.deviceId === hostId && s.variant === (kind === "overload" ? "body" : "coil"));
+      const hostSym = c.symbols.find((s) => s.deviceId === hostId && s.variant === "coil");
       const xf = c.devices.find((d) => d.kind === "transformer")!;
       const xfSym = c.symbols.find((s) => s.deviceId === xf.id)!;
       if (hostSym) {
@@ -847,14 +847,14 @@ describe("sim engine", () => {
 
     it("contactor NO || NC of the same coil stays conducting and does not short", () => {
       const c = emptyCircuit();
-      const g = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
-      const xf = addDevice(c, "transformer", "TC1", "body", 4, 0);
+      const g = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0, { supplyType: "delta" });
+      const xf = addDevice(c, "transformer", "T1", "body", 4, 0);
       addWire(c, g.symbol, "L1", xf.symbol, "H1");
       addWire(c, g.symbol, "L2", xf.symbol, "H2");
-      const km = addDevice(c, "contactor", "KM1", "coil", 8, 0);
+      const km = addDevice(c, "contactor", "M1", "coil", 8, 0);
       const no = addSymbol(c, km.device.id, "aux-no", 8, 8);
       const nc = addSymbol(c, km.device.id, "aux-nc", 8, 12);
-      const hl = addDevice(c, "lamp", "HL1", "body", 16, 8);
+      const hl = addDevice(c, "lamp", "LT1", "body", 16, 8);
       addWire(c, xf.symbol, "X1", no, "13");
       addWire(c, xf.symbol, "X1", nc, "21");
       addWire(c, no, "14", hl.symbol, "1");
@@ -907,13 +907,13 @@ describe("sim engine", () => {
         it(`${host.kind} ${host.hostVariant} does not feed ${contactVariant} without contact wiring`, () => {
           const terms = KINDS[host.kind].variants[contactVariant].terminals.map((t) => t.id);
           const c = emptyCircuit();
-          const g = addDevice(c, "mains-3ph", "G1", "delta", 0, 0, { supplyType: "delta" });
-          const xf = addDevice(c, "transformer", "TC1", "body", 4, 0);
+          const g = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0, { supplyType: "delta" });
+          const xf = addDevice(c, "transformer", "T1", "body", 4, 0);
           addWire(c, g.symbol, "L1", xf.symbol, "H1");
           addWire(c, g.symbol, "L2", xf.symbol, "H2");
           const dev = addDevice(c, host.kind, "D1", host.hostVariant, 8, 0, { delayMs: 80 });
           const pole = addSymbol(c, dev.device.id, contactVariant, 8, 8);
-          const hl = addDevice(c, "lamp", "HL1", "body", 16, 8);
+          const hl = addDevice(c, "lamp", "LT1", "body", 16, 8);
 
           powerHost(c, xf.symbol, dev, host.hostVariant);
           addWire(c, pole, terms[0], hl.symbol, "1");
@@ -935,7 +935,7 @@ describe("sim engine", () => {
             expect(late.runtime[hl.device.id].lit, `${host.kind} ${contactVariant} energized leak`).toBe(false);
           }
 
-          const other = addDevice(c, "lamp", "HL2", "body", 20, 8);
+          const other = addDevice(c, "lamp", "LT2", "body", 20, 8);
           addWire(c, pole, terms[terms.length - 1], other.symbol, "1");
           addWire(c, other.symbol, "2", xf.symbol, "X2");
           const bothPins = run(c, [], 6, 50);
@@ -949,10 +949,10 @@ describe("sim engine", () => {
 
   it("colors wires according to their phase in both edit and run modes", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
-    const m = addDevice(c, "motor-3ph", "M1", "body", 12, 0);
-    const gnd = addDevice(c, "ground", "PE1", "body", 12, 8);
-    const hl = addDevice(c, "lamp", "HL1", "body", 12, 12);
+    const g = addDevice(c, "mains-3ph", "PWR1", "wye", 0, 0);
+    const m = addDevice(c, "motor-3ph", "MTR1", "body", 12, 0);
+    const gnd = addDevice(c, "ground", "GND1", "body", 12, 8);
+    const hl = addDevice(c, "lamp", "LT1", "body", 12, 12);
 
     const wL1 = addWire(c, g.symbol, "L1", m.symbol, "U");
     const wL2 = addWire(c, g.symbol, "L2", m.symbol, "V");
@@ -989,8 +989,8 @@ describe("sim engine", () => {
 
   it("colors transformer secondary X1 red and X2 light blue", () => {
     const c = emptyCircuit();
-    const tc = addDevice(c, "transformer", "TC1", "body", 0, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 8, 0);
+    const tc = addDevice(c, "transformer", "T1", "body", 0, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 8, 0);
     const wX1 = addWire(c, tc.symbol, "X1", hl.symbol, "1");
     const wX2 = addWire(c, hl.symbol, "2", tc.symbol, "X2");
 
@@ -1004,7 +1004,7 @@ describe("sim engine", () => {
   it("colors DC supply wires correctly with DC+ and DC- phases", () => {
     const c = emptyCircuit();
     const dc = addDevice(c, "dc-supply", "DC1", "body", 0, 0);
-    const hl = addDevice(c, "lamp", "HL1", "body", 8, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 8, 0);
     const wPos = addWire(c, dc.symbol, "+", hl.symbol, "1");
     const wNeg = addWire(c, dc.symbol, "-", hl.symbol, "2");
 
@@ -1019,9 +1019,9 @@ describe("sim engine", () => {
 
   it("colors ground / earth wires green (PE) when connected to ground or PE net label", () => {
     const c = emptyCircuit();
-    const gnd1 = addDevice(c, "ground", "PE1", "body", 0, 0);
-    const gnd2 = addDevice(c, "ground", "PE2", "body", 8, 0);
-    const m = addDevice(c, "motor-3ph", "M1", "body", 0, 6);
+    const gnd1 = addDevice(c, "ground", "GND1", "body", 0, 0);
+    const gnd2 = addDevice(c, "ground", "GND2", "body", 8, 0);
+    const m = addDevice(c, "motor-3ph", "MTR1", "body", 0, 6);
     const nlPE = addDevice(c, "net-label", "PE", "body", 8, 6);
 
     const wGnd = addWire(c, gnd1.symbol, "1", gnd2.symbol, "1");
@@ -1040,8 +1040,8 @@ describe("sim engine", () => {
 
   it("energizes and runs single-phase motor (motor-1ph) with live voltage between U1/1 and U2/2", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
-    const m1 = addDevice(c, "motor-1ph", "M1", "body", 12, 0);
+    const g = addDevice(c, "mains-3ph", "PWR1", "wye", 0, 0);
+    const m1 = addDevice(c, "motor-1ph", "MTR1", "body", 12, 0);
 
     addWire(c, g.symbol, "L1", m1.symbol, "U1");
     addWire(c, g.symbol, "N", m1.symbol, "U2");
@@ -1055,11 +1055,11 @@ describe("sim engine", () => {
   describe("same-tag limit switches mutual exclusion and linkage (up to 2)", () => {
     it("coordinates 1 NO + 1 NC limit switch with same tag (SQ1) as linked contacts", () => {
       const c = emptyCircuit();
-      const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
-      const sqNo = addDevice(c, "limit-no", "SQ1", "body", 6, 0);
-      const sqNc = addDevice(c, "limit-nc", "SQ1", "body", 6, 6);
-      const hl1 = addDevice(c, "lamp", "HL1", "body", 12, 0);
-      const hl2 = addDevice(c, "lamp", "HL2", "body", 12, 6);
+      const g = addDevice(c, "mains-3ph", "PWR1", "wye", 0, 0);
+      const sqNo = addDevice(c, "limit-no", "LS1", "body", 6, 0);
+      const sqNc = addDevice(c, "limit-nc", "LS1", "body", 6, 6);
+      const hl1 = addDevice(c, "lamp", "LT1", "body", 12, 0);
+      const hl2 = addDevice(c, "lamp", "LT2", "body", 12, 6);
 
       addWire(c, g.symbol, "L1", sqNo.symbol, "1");
       addWire(c, sqNo.symbol, "2", hl1.symbol, "1");
@@ -1093,11 +1093,11 @@ describe("sim engine", () => {
 
     it("enforces mutual exclusion for 2 NO limit switches with same tag (SQ1)", () => {
       const c = emptyCircuit();
-      const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
-      const sq1 = addDevice(c, "limit-no", "SQ1", "body", 6, 0);
-      const sq2 = addDevice(c, "limit-no", "SQ1", "body", 6, 6);
-      const hl1 = addDevice(c, "lamp", "HL1", "body", 12, 0);
-      const hl2 = addDevice(c, "lamp", "HL2", "body", 12, 6);
+      const g = addDevice(c, "mains-3ph", "PWR1", "wye", 0, 0);
+      const sq1 = addDevice(c, "limit-no", "LS1", "body", 6, 0);
+      const sq2 = addDevice(c, "limit-no", "LS1", "body", 6, 6);
+      const hl1 = addDevice(c, "lamp", "LT1", "body", 12, 0);
+      const hl2 = addDevice(c, "lamp", "LT2", "body", 12, 6);
 
       addWire(c, g.symbol, "L1", sq1.symbol, "1");
       addWire(c, sq1.symbol, "2", hl1.symbol, "1");
@@ -1124,11 +1124,11 @@ describe("sim engine", () => {
 
     it("enforces mutual exclusion for 2 NC limit switches with same tag (SQ1)", () => {
       const c = emptyCircuit();
-      const g = addDevice(c, "mains-3ph", "G1", "wye", 0, 0);
-      const sq1 = addDevice(c, "limit-nc", "SQ1", "body", 6, 0);
-      const sq2 = addDevice(c, "limit-nc", "SQ1", "body", 6, 6);
-      const hl1 = addDevice(c, "lamp", "HL1", "body", 12, 0);
-      const hl2 = addDevice(c, "lamp", "HL2", "body", 12, 6);
+      const g = addDevice(c, "mains-3ph", "PWR1", "wye", 0, 0);
+      const sq1 = addDevice(c, "limit-nc", "LS1", "body", 6, 0);
+      const sq2 = addDevice(c, "limit-nc", "LS1", "body", 6, 6);
+      const hl1 = addDevice(c, "lamp", "LT1", "body", 12, 0);
+      const hl2 = addDevice(c, "lamp", "LT2", "body", 12, 6);
 
       addWire(c, g.symbol, "L1", sq1.symbol, "1");
       addWire(c, sq1.symbol, "2", hl1.symbol, "1");
@@ -1164,11 +1164,11 @@ describe("sim engine", () => {
   describe("preset counter and reset terminals", () => {
     it("counts pulses on rising edges of A1-A2, trips output contact 1-2, and resets via R1-R2", () => {
       const c = emptyCircuit();
-      const g = addDevice(c, "dc-supply", "G1", "body", 0, 0);
-      const pbPulse = addDevice(c, "pb-no", "SB_PULSE", "body", 6, 0);
-      const pbReset = addDevice(c, "pb-no", "SB_RST", "body", 6, 6);
-      const ct = addDevice(c, "counter", "CT1", "body", 12, 0, { preset: 3 });
-      const hlDone = addDevice(c, "lamp", "HL_DONE", "body", 18, 0);
+      const g = addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
+      const pbPulse = addDevice(c, "pb-no", "PB_PULSE", "body", 6, 0);
+      const pbReset = addDevice(c, "pb-no", "PB_RST", "body", 6, 6);
+      const ct = addDevice(c, "counter", "CTR1", "body", 12, 0, { preset: 3 });
+      const hlDone = addDevice(c, "lamp", "LT_DONE", "body", 18, 0);
 
       // Pulse circuit (A1 - A2)
       addWire(c, g.symbol, "+", pbPulse.symbol, "1");
@@ -1238,9 +1238,9 @@ describe("sim engine", () => {
 
   it("energizes lamp through fuse-2p (body2 variant)", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "dc-supply", "G1", "body", 0, 0);
+    const g = addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
     const fu = addDevice(c, "fuse", "FU1", "body2", 6, 0); // 2-pole fuse
-    const hl = addDevice(c, "lamp", "HL1", "body", 12, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 12, 0);
 
     // Connect DC+ to fuse pole 1 (terminal 3)
     addWire(c, g.symbol, "+", fu.symbol, "3");
@@ -1257,9 +1257,9 @@ describe("sim engine", () => {
 
   it("energizes lamp through fuse-3p (body3 variant)", () => {
     const c = emptyCircuit();
-    const g = addDevice(c, "dc-supply", "G1", "body", 0, 0);
+    const g = addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
     const fu = addDevice(c, "fuse", "FU1", "body3", 6, 0); // 3-pole fuse
-    const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 14, 0);
 
     // Connect DC+ to fuse input pole 1 (terminal 1)
     addWire(c, g.symbol, "+", fu.symbol, "1");
@@ -1277,9 +1277,9 @@ describe("sim engine", () => {
   it("energizes lamp through fuse-2p with user-provided circuit configuration", () => {
     // This test replicates the exact wiring from the user's provided circuit
     const c = emptyCircuit();
-    const g = addDevice(c, "dc-supply", "G1", "body", 0, 0);
+    const g = addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
     const fu = addDevice(c, "fuse", "FU1", "body2", 6, 0); // 2-pole fuse
-    const hl = addDevice(c, "lamp", "HL1", "body", 14, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 14, 0);
 
     // User's wiring:
     // DC+ (terminal +) -> fuse terminal 3 (input pole 2)

@@ -519,7 +519,7 @@ export function synthesizeToggleContactVariant(
 }
 
 // Supported rung ID prefixes (used for cleanup)
-const RUNG_ID_PREFIXES = ["rung_", "rung_aux_"];
+const RUNG_ID_PREFIXES = ["rung_, rung_aux_"];
 
 /**
  * Check if an ID is a valid rung ID that should be tracked in ladderRungOrder

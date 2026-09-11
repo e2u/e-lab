@@ -6,13 +6,13 @@
       {
         "id": "d_2_f6778c04",
         "kind": "mains-3ph",
-        "tag": "G1",
+        "tag": "PWR1",
         "params": {}
       },
       {
         "id": "d_8_e832a89c",
         "kind": "transformer",
-        "tag": "TC1",
+        "tag": "T1",
         "params": {
           "ratio": "480/120"
         }
@@ -20,7 +20,7 @@
       {
         "id": "d_a_a885dbe7",
         "kind": "lamp",
-        "tag": "HL1",
+        "tag": "LT1",
         "params": {
           "color": "green"
         }

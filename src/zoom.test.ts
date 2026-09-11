@@ -84,8 +84,8 @@ describe("canvas width and zoom features", () => {
     useLab.setState({
       circuit: {
         devices: [
-          { id: "d1", kind: "mains-3ph", tag: "G1", params: {} },
-          { id: "d2", kind: "motor-3ph", tag: "M1", params: {} },
+          { id: "d1", kind: "mains-3ph", tag: "PWR1", params: {} },
+          { id: "d2", kind: "motor-3ph", tag: "MTR1", params: {} },
         ],
         symbols: [
           { id: "s1", deviceId: "d1", variant: "body", x: 10, y: 10, rot: 0 },

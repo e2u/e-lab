@@ -721,15 +721,15 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "tutorial.pc.step4.tip": "Terminal labels: Left side shows H1/H2, right side shows X1/X2. Secondary PE grounding coexists without short circuits.",
 
     "tutorial.pc.step5.title": "Step 3: Self-Holding Latch (Buttons & Contactor)",
-    "tutorial.pc.step5.desc": "Across the A1-A2 control lines, wire a normally-closed 'Stop (SB1)' and normally-open 'Start (SB2)' button in series to contactor coil 'M1 (KM1)'. Connect the contactor's normally-open auxiliary contact 'M1 (Aux-NO)' in parallel with the Start button to form electrical latching.",
+    "tutorial.pc.step5.desc": "Across the A1-A2 control lines, wire a normally-closed 'Stop (PB1)' and normally-open 'Start (PB2)' button in series to contactor coil 'M1'. Connect the contactor's normally-open auxiliary contact 'M1 (Aux-NO)' in parallel with the Start button to form electrical latching.",
     "tutorial.pc.step5.tip": "Latching principle: Pressing Start energizes the coil and closes the auxiliary contact; when released, current continues flowing through the auxiliary contact!",
 
     "tutorial.pc.step6.title": "Step 4: Connect Three-Phase Motor & Overload",
-    "tutorial.pc.step6.desc": "Insert contactor main contacts 'M1 (Main)' and thermal overload relay 'OL1 (Overload)' down the main lines, then connect directly to '3-Phase Motor M1'. When the contactor pulls in, 3-phase power drives the motor.",
+    "tutorial.pc.step6.desc": "Insert contactor main contacts 'M1 (Main)' and thermal overload relay 'OL1 (Overload)' down the main lines, then connect directly to '3-Phase Motor MTR1'. When the contactor pulls in, 3-phase power drives the motor.",
     "tutorial.pc.step6.tip": "Grid Alignment: All terminals follow unified grid spacing, rendering clean straight horizontal connections.",
 
     "tutorial.pc.step7.title": "Step 5: Switch to RUN Mode & Simulate",
-    "tutorial.pc.step7.desc": "Click 'RUN' in the top toolbar to switch to simulation mode. Click to close the Main Disconnect Breaker, then click the normally-open 'Start (SB2)' button to watch the contactor engage, latch itself, and spin the motor at high speed!",
+    "tutorial.pc.step7.desc": "Click 'RUN' in the top toolbar to switch to simulation mode. Click to close the Main Disconnect Breaker, then click the normally-open 'Start (PB2)' button to watch the contactor engage, latch itself, and spin the motor at high speed!",
     "tutorial.pc.step7.tip": "Interactive: Click 'Stop' anytime to de-energize; the right-side Inspector monitors real-time RPM and process variables.",
 
     "tutorial.pc.step8.title": "🎉 Congratulations! You Mastered 3Φ Motor Control",
@@ -757,7 +757,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "tutorial.mobile.step5.tip": "Haptic feedback: Supported phones provide realistic vibration feedback when operating industrial buttons and switches!",
 
     "tutorial.mobile.step6.title": "Tap Start Button to Run the Motor!",
-    "tutorial.mobile.step6.desc": "Tap the normally-open 'Start (SB2)' button on screen. Contactor coil KM1 energizes, auxiliary latch closes, and 3-Phase Motor M1 starts spinning! Tap 'Stop' to cut power and stop the motor.",
+    "tutorial.mobile.step6.desc": "Tap the normally-open 'Start (PB2)' button on screen. Contactor coil M1 energizes, auxiliary latch closes, and 3-Phase Motor MTR1 starts spinning! Tap 'Stop' to cut power and stop the motor.",
     "tutorial.mobile.step6.tip": "Fit screen: Tap '[⛶ Fit]' in the bottom floating toolbar to center and fit the entire diagram on your mobile screen!",
 
     "tutorial.mobile.step7.title": "🎉 Mobile Tutorial Completed!",
@@ -890,15 +890,15 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "tutorial.pc.step4.tip": "端子標籤：變壓器左側標記 H1/H2，右側標記 X1/X2，接地 PE 與電源端共地不短路。",
 
     "tutorial.pc.step5.title": "第 3 步：自鎖控制核心（按鈕與接觸器）",
-    "tutorial.pc.step5.desc": "在 A1-A2 控制母線間，串聯「常閉停止按鈕 Stop (SB1)」與「常開起動按鈕 Start (SB2)」至接觸器線圈「M1 (KM1)」。將接觸器的常開輔助觸點「M1 (Aux-NO)」與起動按鈕並聯，形成經典的「自保持自鎖迴路」。",
+    "tutorial.pc.step5.desc": "在 A1-A2 控制母線間，串聯「常閉停止按鈕 Stop (PB1)」與「常開起動按鈕 Start (PB2)」至接觸器線圈「M1」。將接觸器的常開輔助觸點「M1 (Aux-NO)」與起動按鈕並聯，形成經典的「自保持自鎖迴路」。",
     "tutorial.pc.step5.tip": "自鎖原理：當按下起動按鈕時線圈得電，輔助常開觸點閉合；鬆開按鈕後電流改由輔助觸點持續供電！",
 
     "tutorial.pc.step6.title": "第 4 步：連接三相馬達與過載保護",
-    "tutorial.pc.step6.desc": "在主迴路下方串接接觸器主觸點「M1 (Main)」、熱過載繼電器「OL1 (Overload)」，最後三相線條直連至「三相馬達 M1」。當接觸器吸合時，三相動力電源將直接驅動馬達旋轉。",
+    "tutorial.pc.step6.desc": "在主迴路下方串接接觸器主觸點「M1 (Main)」、熱過載繼電器「OL1 (Overload)」，最後三相線條直連至「三相馬達 MTR1」。當接觸器吸合時，三相動力電源將直接驅動馬達旋轉。",
     "tutorial.pc.step6.tip": "佈線對齊：元件端子均遵循標準網格間距，水平連接時導線會呈現乾淨的水平直線。",
 
     "tutorial.pc.step7.title": "第 5 步：切換運行模式並啟動仿真",
-    "tutorial.pc.step7.desc": "點擊頂部工具列的「RUN」切換為運行模式。首先點擊合上主隔離開關 (Main Disconnect Breaker)，接著點擊常開起動按鈕「Start (SB2)」，觀察接觸器吸合、自鎖維持，三相馬達高速旋轉！",
+    "tutorial.pc.step7.desc": "點擊頂部工具列的「RUN」切換為運行模式。首先點擊合上主隔離開關 (Main Disconnect Breaker)，接著點擊常開起動按鈕「Start (PB2)」，觀察接觸器吸合、自鎖維持，三相馬達高速旋轉！",
     "tutorial.pc.step7.tip": "交互操作：點擊「Stop」按鈕可隨時切斷迴路停機；右側 Inspector 面板可即時監控馬達轉速與工藝變量。",
 
     "tutorial.pc.step8.title": "🎉 恭喜！你已掌握三相馬達控制電路",
@@ -926,7 +926,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "tutorial.mobile.step5.tip": "觸覺反饋：在支援的手機上，操作工控開關與按鈕時享有真實震動回饋！",
 
     "tutorial.mobile.step6.title": "輕觸 Start 按鈕，啟動馬達！",
-    "tutorial.mobile.step6.desc": "在畫布上點擊常開起動按鈕「Start (SB2)」。接觸器線圈 KM1 得電吸合，自鎖觸點閉合，三相馬達 M1 高速轉動！點擊「Stop (SB1)」可隨時切斷控制電路停止馬達。",
+    "tutorial.mobile.step6.desc": "在畫布上點擊常開起動按鈕「Start (PB2)」。接觸器線圈 M1 得電吸合，自鎖觸點閉合，三相馬達 MTR1 高速轉動！點擊「Stop (PB1)」可隨時切斷控制電路停止馬達。",
     "tutorial.mobile.step6.tip": "一鍵適應：點擊底部工具列的「[⛶ 適應屏幕]」按鈕，可自動讓電路在手機螢幕中居中完整顯示！",
 
     "tutorial.mobile.step7.title": "🎉 移動端指引完成！",

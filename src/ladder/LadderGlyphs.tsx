@@ -1718,7 +1718,7 @@ export function LadderPowerSection({
             fontWeight={mode === "edit" && contactor && selectedDeviceId === contactor.id ? "800" : "700"}
             fill={mode === "edit" && contactor && selectedDeviceId === contactor.id ? "#b45309" : "var(--ladder-tag, #0f172a)"}
           >
-            {contactor.tag || "KM1"} (Main)
+            {contactor.tag || "M1"} (Main)
           </text>
         </g>
       )}
@@ -1804,7 +1804,7 @@ export function LadderPowerSection({
             fontWeight={mode === "edit" && overload && selectedDeviceId === overload.id ? "800" : "700"}
             fill={mode === "edit" && overload && selectedDeviceId === overload.id ? "#b45309" : "#dc2626"}
           >
-            {overload.tag || "FR1"} (O.L.)
+            {overload.tag || "OL1"} (O.L.)
           </text>
         </g>
       )}
@@ -1871,7 +1871,7 @@ export function LadderPowerSection({
 
           {/* Motor Tag Above */}
           <text x="0" y="-36" textAnchor="middle" fontSize="11" fontWeight="800" fill="var(--ladder-tag, #0f172a)">
-            {motor.tag || "M1"}
+            {motor.tag || "MTR1"}
           </text>
 
           {/* Operational Status Badge Below */}
@@ -2002,7 +2002,7 @@ export function LadderTransformerSection({
         fontWeight="800"
         fill="var(--ladder-cpt-title, #b45309)"
       >
-        {transformer.tag || "TC1"}  Control Transformer  {primaryVoltage} / {secondaryVoltage} V
+        {transformer.tag || "T1"}  Control Transformer  {primaryVoltage} / {secondaryVoltage} V
       </text>
 
       {/* Primary: L1 — H1 (T) H2 — L2 */}

@@ -6,7 +6,7 @@
       {
         "id": "d_2v_17d5b719",
         "kind": "mains-3ph",
-        "tag": "G1",
+        "tag": "PWR1",
         "params": {
           "supplyType": "delta"
         }
@@ -62,7 +62,7 @@
       {
         "id": "d_3q_1c2f072e",
         "kind": "transformer",
-        "tag": "TC1",
+        "tag": "T1",
         "params": {
           "ratio": "480/120"
         }
@@ -130,19 +130,19 @@
       {
         "id": "d_4t_3ce87b90",
         "kind": "overload",
-        "tag": "FR1",
+        "tag": "OL1",
         "params": {}
       },
       {
         "id": "d_4y_5335245d",
         "kind": "motor-3ph",
-        "tag": "M2",
+        "tag": "MTR1",
         "params": {}
       },
       {
         "id": "d_5m_dbaf78e4",
         "kind": "estop-nc",
-        "tag": "SB1",
+        "tag": "PB1",
         "params": {}
       },
       {
@@ -154,25 +154,25 @@
       {
         "id": "d_74_aca81ad3",
         "kind": "net-label",
-        "tag": "FR1_95",
+        "tag": "OL1_95",
         "params": {}
       },
       {
         "id": "d_77_8059f0c5",
         "kind": "net-label",
-        "tag": "FR1_95",
+        "tag": "OL1_95",
         "params": {}
       },
       {
         "id": "d_7a_fccf479c",
         "kind": "net-label",
-        "tag": "FR1_96",
+        "tag": "OL1_96",
         "params": {}
       },
       {
         "id": "d_7d_a47b4fb5",
         "kind": "net-label",
-        "tag": "FR1_96",
+        "tag": "OL1_96",
         "params": {}
       },
       {
@@ -206,7 +206,7 @@
       {
         "id": "d_7r_752e1e60",
         "kind": "alarm",
-        "tag": "HA1",
+        "tag": "ABE1",
         "params": {}
       },
       {
@@ -226,13 +226,13 @@
       {
         "id": "d_b5_d4f113fc",
         "kind": "ground",
-        "tag": "PE1",
+        "tag": "GND1",
         "params": {}
       },
       {
         "id": "d_ba_94851291",
         "kind": "ground",
-        "tag": "PE2",
+        "tag": "GND2",
         "params": {}
       }
     ],

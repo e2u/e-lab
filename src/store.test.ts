@@ -105,7 +105,7 @@ describe("autoLabelWires", () => {
   it("does not assign wire numbers to transformer internal jumpers (H1-H3, H2-H4 modes)", () => {
     // Create a single-phase transformer with internal jumper connections
     const c = emptyCircuit();
-    const tSym = addDevice(c, "transformer", "TC1", "body", 5, 5).symbol;
+    const tSym = addDevice(c, "transformer", "T1", "body", 5, 5).symbol;
 
     // Add external connection to H1 (from a source)
     const s1 = addDevice(c, "fuse", "FU1", "body", 0, 5).symbol;
@@ -194,12 +194,12 @@ describe("autoLabelWires", () => {
   it("high-voltage power path DISC→CB→KM→OL→Motor uses 90/10x numbers", () => {
     const c = emptyCircuit();
 
-    const g1 = addDevice(c, "mains-3ph", "G1", "delta", 0, 0).symbol;
+    const g1 = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0).symbol;
     const disc = addDevice(c, "isolator", "DISC1", "body", 5, 0).symbol;
     const cb = addDevice(c, "breaker-3p", "CB1", "body", 10, 0).symbol;
-    const km = addDevice(c, "contactor", "KM1", "main", 15, 0).symbol;
+    const km = addDevice(c, "contactor", "M1", "main", 15, 0).symbol;
     const ol = addDevice(c, "overload", "OL1", "body", 20, 0).symbol;
-    const motor = addDevice(c, "motor-3ph", "M1", "body", 25, 0).symbol;
+    const motor = addDevice(c, "motor-3ph", "MTR1", "body", 25, 0).symbol;
 
     // L1 phase: G1 → DISC1 → CB1 → KM1 main → OL → Motor
     addWire(c, g1, "L1", disc, "1");
@@ -220,12 +220,12 @@ describe("autoLabelWires", () => {
 
   it("numbers 3-phase HV by hop then L1/L2/L3, not one phase all the way", () => {
     const c = emptyCircuit();
-    const g1 = addDevice(c, "mains-3ph", "G1", "delta", 0, 0).symbol;
+    const g1 = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0).symbol;
     const disc = addDevice(c, "isolator", "DISC1", "body", 8, 0).symbol;
     const cb = addDevice(c, "breaker-3p", "CB1", "body", 16, 0).symbol;
-    const km = addDevice(c, "contactor", "KM1", "main", 24, 0).symbol;
+    const km = addDevice(c, "contactor", "M1", "main", 24, 0).symbol;
     const ol = addDevice(c, "overload", "OL1", "body", 32, 0).symbol;
-    const motor = addDevice(c, "motor-3ph", "M1", "body", 40, 0).symbol;
+    const motor = addDevice(c, "motor-3ph", "MTR1", "body", 40, 0).symbol;
 
     addWire(c, g1, "L1", disc, "L1");
     addWire(c, g1, "L2", disc, "L2");
@@ -272,11 +272,11 @@ describe("autoLabelWires", () => {
 
   it("gives transformer primary T-offs the same number as the power net they tap", () => {
     const c = emptyCircuit();
-    const g1 = addDevice(c, "mains-3ph", "G1", "delta", 0, 0).symbol;
+    const g1 = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0).symbol;
     const disc = addDevice(c, "isolator", "DISC1", "body", 8, 0).symbol;
     const cb = addDevice(c, "breaker-3p", "CB1", "body", 16, 0).symbol;
-    const motor = addDevice(c, "motor-3ph", "M1", "body", 24, 0).symbol;
-    const tc = addDevice(c, "transformer", "TC1", "body", 8, 12).symbol;
+    const motor = addDevice(c, "motor-3ph", "MTR1", "body", 24, 0).symbol;
+    const tc = addDevice(c, "transformer", "T1", "body", 8, 12).symbol;
 
     addWire(c, g1, "L1", disc, "L1");
     addWire(c, g1, "L2", disc, "L2");
@@ -308,15 +308,15 @@ describe("autoLabelWires", () => {
 
   it("numbers transformer-fuse spurs after the motor 3-phase path, not in the middle", () => {
     const c = emptyCircuit();
-    const g1 = addDevice(c, "mains-3ph", "G1", "delta", 0, 0).symbol;
+    const g1 = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0).symbol;
     const disc = addDevice(c, "isolator", "DISC1", "body", 8, 0).symbol;
     const cb = addDevice(c, "breaker-3p", "CB1", "body", 16, 0).symbol;
-    const km = addDevice(c, "contactor", "KM1", "main", 24, 0).symbol;
+    const km = addDevice(c, "contactor", "M1", "main", 24, 0).symbol;
     const ol = addDevice(c, "overload", "OL1", "body", 32, 0).symbol;
-    const motor = addDevice(c, "motor-3ph", "M1", "body", 40, 0).symbol;
+    const motor = addDevice(c, "motor-3ph", "MTR1", "body", 40, 0).symbol;
     const fu1 = addDevice(c, "fuse", "FU1", "body", 12, 10).symbol;
     const fu2 = addDevice(c, "fuse", "FU2", "body", 12, 14).symbol;
-    const tc = addDevice(c, "transformer", "TC1", "body", 18, 10).symbol;
+    const tc = addDevice(c, "transformer", "T1", "body", 18, 10).symbol;
 
     addWire(c, g1, "L1", disc, "L1");
     addWire(c, g1, "L2", disc, "L2");
@@ -366,9 +366,9 @@ describe("autoLabelWires", () => {
 
   it("does not give the same number to series segments through a power device", () => {
     const c = emptyCircuit();
-    const g1 = addDevice(c, "mains-3ph", "G1", "delta", 0, 0).symbol;
+    const g1 = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0).symbol;
     const disc = addDevice(c, "isolator", "DISC1", "body", 5, 0).symbol;
-    const motor = addDevice(c, "motor-3ph", "M1", "body", 10, 0).symbol;
+    const motor = addDevice(c, "motor-3ph", "MTR1", "body", 10, 0).symbol;
 
     addWire(c, g1, "L1", disc, "1");
     addWire(c, disc, "2", motor, "U");
@@ -384,10 +384,10 @@ describe("autoLabelWires", () => {
 
   it("keeps transformer secondary / control circuit on 1, 2, 3… numbering", () => {
     const c = emptyCircuit();
-    const g1 = addDevice(c, "mains-3ph", "G1", "delta", 0, 0).symbol;
-    const tc = addDevice(c, "transformer", "TC1", "body", 8, 0).symbol;
-    const pb = addDevice(c, "pb-no", "SB1", "body", 14, 8).symbol;
-    const lamp = addDevice(c, "lamp", "HL1", "body", 20, 8).symbol;
+    const g1 = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0).symbol;
+    const tc = addDevice(c, "transformer", "T1", "body", 8, 0).symbol;
+    const pb = addDevice(c, "pb-no", "PB1", "body", 14, 8).symbol;
+    const lamp = addDevice(c, "lamp", "LT1", "body", 20, 8).symbol;
 
     addWire(c, g1, "L1", tc, "H1");
     addWire(c, g1, "L2", tc, "H4");
@@ -408,12 +408,12 @@ describe("autoLabelWires", () => {
 
   it("does not leak HV numbering through a contactor coil", () => {
     const c = emptyCircuit();
-    const g1 = addDevice(c, "mains-3ph", "G1", "delta", 0, 0).symbol;
-    const km = addDevice(c, "contactor", "KM1", "main", 10, 0);
+    const g1 = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0).symbol;
+    const km = addDevice(c, "contactor", "M1", "main", 10, 0);
     const kmCoil = addSymbol(c, km.device.id, "coil", 10, 10);
-    const motor = addDevice(c, "motor-3ph", "M1", "body", 16, 0).symbol;
-    const tc = addDevice(c, "transformer", "TC1", "body", 4, 10).symbol;
-    const pb = addDevice(c, "pb-no", "SB1", "body", 8, 10).symbol;
+    const motor = addDevice(c, "motor-3ph", "MTR1", "body", 16, 0).symbol;
+    const tc = addDevice(c, "transformer", "T1", "body", 4, 10).symbol;
+    const pb = addDevice(c, "pb-no", "PB1", "body", 8, 10).symbol;
 
     addWire(c, g1, "L1", km.symbol, "1");
     addWire(c, km.symbol, "2", motor, "U");
@@ -485,11 +485,11 @@ describe("autoLabelWires", () => {
 
   it("finishes the X1→coil path before numbering an indicator branch", () => {
     const c = emptyCircuit();
-    const tc = addDevice(c, "transformer", "TC1", "body", 0, 10).symbol;
-    const stop = addDevice(c, "pb-nc", "SB1", "body", 8, 10).symbol;
-    const start = addDevice(c, "pb-no", "SB2", "body", 16, 10).symbol;
-    const km = addDevice(c, "contactor", "KM1", "coil", 24, 10).symbol;
-    const frNo = addDevice(c, "overload", "FR1", "aux-no", 8, 20).symbol;
+    const tc = addDevice(c, "transformer", "T1", "body", 0, 10).symbol;
+    const stop = addDevice(c, "pb-nc", "PB1", "body", 8, 10).symbol;
+    const start = addDevice(c, "pb-no", "PB2", "body", 16, 10).symbol;
+    const km = addDevice(c, "contactor", "M1", "coil", 24, 10).symbol;
+    const frNo = addDevice(c, "overload", "OL1", "aux-no", 8, 20).symbol;
     const alarm = addDevice(c, "alarm", "AL1", "body", 16, 20).symbol;
 
     addWire(c, tc, "X1", stop, "1");
@@ -522,8 +522,8 @@ describe("autoLabelWires", () => {
 describe("wire label instances", () => {
   it("hides one copy of a wire number without deleting the wire", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0).symbol;
-    const b = addDevice(c, "lamp", "HL2", "body", 10, 0).symbol;
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0).symbol;
+    const b = addDevice(c, "lamp", "LT2", "body", 10, 0).symbol;
     const w = addWire(c, a, "1", b, "2");
     w.label = "2";
     useLab.setState({ circuit: c, selected: { type: "wire-label", id: `${w.id}@0.500` } });
@@ -535,8 +535,8 @@ describe("wire label instances", () => {
 
   it("pins a dragged copy along the same wire", () => {
     const c = emptyCircuit();
-    const a = addDevice(c, "lamp", "HL1", "body", 0, 0).symbol;
-    const b = addDevice(c, "lamp", "HL2", "body", 10, 0).symbol;
+    const a = addDevice(c, "lamp", "LT1", "body", 0, 0).symbol;
+    const b = addDevice(c, "lamp", "LT2", "body", 10, 0).symbol;
     const w = addWire(c, a, "1", b, "2");
     w.label = "2";
     useLab.setState({ circuit: c });

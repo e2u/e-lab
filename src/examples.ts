@@ -10,11 +10,11 @@ export interface Example {
 
 export function lampJog(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "body", 2, 4);
+  const g = addDevice(c, "mains-3ph", "PWR1", "body", 2, 4);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 6, 1);
   const nl2 = addDevice(c, "net-label", "NL2", "body", 6, 3);
-  const sb = addDevice(c, "pb-no", "SB1", "body", 12, 4);
-  const hl = addDevice(c, "lamp", "HL1", "body", 20, 4, { color: "green" });
+  const sb = addDevice(c, "pb-no", "PB1", "body", 12, 4);
+  const hl = addDevice(c, "lamp", "LT1", "body", 20, 4, { color: "green" });
   
   // Use net labels for power connections
   addWire(c, g.symbol, "L1", nl1.symbol, "1");
@@ -27,11 +27,11 @@ export function lampJog(): Circuit {
 
 export function transformer(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "body", 2, 2);
+  const g = addDevice(c, "mains-3ph", "PWR1", "body", 2, 2);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 10, 1);
   const nl2 = addDevice(c, "net-label", "NL2", "body", 10, 3);
-  const tc = addDevice(c, "transformer", "TC1", "body", 18, 2, { ratio: "480/120" });
-  const hl = addDevice(c, "lamp", "HL1", "body", 26, 2, { color: "green" });
+  const tc = addDevice(c, "transformer", "T1", "body", 18, 2, { ratio: "480/120" });
+  const hl = addDevice(c, "lamp", "LT1", "body", 26, 2, { color: "green" });
 
   addWire(c, g.symbol, "L1", nl1.symbol, "1");
   addWire(c, g.symbol, "L2", nl2.symbol, "1");
@@ -44,22 +44,22 @@ export function transformer(): Circuit {
 
 export function selfHoldMotor(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "body", 1, 1);
+  const g = addDevice(c, "mains-3ph", "PWR1", "body", 1, 1);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 4, 1);
   const nl2 = addDevice(c, "net-label", "NL2", "body", 4, 3);
   const nl3 = addDevice(c, "net-label", "NL3", "body", 4, 5);
   const nlS1 = addDevice(c, "net-label", "NL_S1", "body", 1, 15);
   const nlS2 = addDevice(c, "net-label", "NL_S2", "body", 4, 17);
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 8, 2);
-  const km = addDevice(c, "contactor", "KM1", "coil", 30, 14);
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 8, 2);
+  const km = addDevice(c, "contactor", "M1", "coil", 30, 14);
   const kmMain = addSymbol(c, km.device.id, "main", 16, 2);
   const kmNo = addSymbol(c, km.device.id, "aux-no", 22, 13);
-  const fr = addDevice(c, "overload", "FR1", "body", 24, 2);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 34, 2);
-  const tc = addDevice(c, "transformer", "TC1", "body", 1, 13, { ratio: "480/120" });
-  const stop = addDevice(c, "pb-nc", "SB1", "body", 10, 13);
-  const start = addDevice(c, "pb-no", "SB2", "body", 16, 13);
-  const hl = addDevice(c, "lamp", "HL1", "body", 30, 19, { color: "green" });
+  const fr = addDevice(c, "overload", "OL1", "body", 24, 2);
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 34, 2);
+  const tc = addDevice(c, "transformer", "T1", "body", 1, 13, { ratio: "480/120" });
+  const stop = addDevice(c, "pb-nc", "PB1", "body", 10, 13);
+  const start = addDevice(c, "pb-no", "PB2", "body", 16, 13);
+  const hl = addDevice(c, "lamp", "LT1", "body", 30, 19, { color: "green" });
 
   // Power distribution using net labels
   addWire(c, g.symbol, "L1", nl1.symbol, "1");
@@ -105,17 +105,17 @@ export function selfHoldMotor(): Circuit {
 
 export function fwdRevJog(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "body", 1, 1);
+  const g = addDevice(c, "mains-3ph", "PWR1", "body", 1, 1);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 4, 1);
   const nl2 = addDevice(c, "net-label", "NL2", "body", 4, 3);
   const nl3 = addDevice(c, "net-label", "NL3", "body", 4, 5);
   const nlN = addDevice(c, "net-label", "N", "body", 4, 17);
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 8, 2);
-  const kmr = addDevice(c, "starter-rev-combo", "KMR1", "body", 16, 1);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 32, 2);
-  const stop = addDevice(c, "pb-nc", "SB1", "body", 8, 14);
-  const fwd = addDevice(c, "pb-no", "SB2", "body", 14, 14);
-  const rev = addDevice(c, "pb-no", "SB3", "body", 20, 14);
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 8, 2);
+  const kmr = addDevice(c, "starter-rev-combo", "M1", "body", 16, 1);
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 32, 2);
+  const stop = addDevice(c, "pb-nc", "PB1", "body", 8, 14);
+  const fwd = addDevice(c, "pb-no", "PB2", "body", 14, 14);
+  const rev = addDevice(c, "pb-no", "PB3", "body", 20, 14);
 
   // Power distribution using net labels
   addWire(c, g.symbol, "L1", nl1.symbol, "1");
@@ -147,33 +147,33 @@ export function fwdRevJog(): Circuit {
 
 export function starDeltaStart(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "body", 1, 1);
+  const g = addDevice(c, "mains-3ph", "PWR1", "body", 1, 1);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 4, 1);
   const nl2 = addDevice(c, "net-label", "NL2", "body", 4, 3);
   const nl3 = addDevice(c, "net-label", "NL3", "body", 4, 5);
   const nlS1 = addDevice(c, "net-label", "NL_S1", "body", 1, 18);
   const nlS2 = addDevice(c, "net-label", "NL_S2", "body", 4, 20);
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 8, 2);
-  const kmL = addDevice(c, "contactor", "KM1", "coil", 26, 16);
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 8, 2);
+  const kmL = addDevice(c, "contactor", "M1", "coil", 26, 16);
   const kmLMain = addSymbol(c, kmL.device.id, "main", 16, 2);
   const kmLNo = addSymbol(c, kmL.device.id, "aux-no", 20, 16);
-  const kmY = addDevice(c, "contactor", "KM2", "coil", 26, 22);
+  const kmY = addDevice(c, "contactor", "M2", "coil", 26, 22);
   const kmYMain = addSymbol(c, kmY.device.id, "main", 42, 2);
   const kmYNc = addSymbol(c, kmY.device.id, "aux-nc", 20, 22);
-  const kmD = addDevice(c, "contactor", "KM3", "coil", 38, 22);
+  const kmD = addDevice(c, "contactor", "M3", "coil", 38, 22);
   addSymbol(c, kmD.device.id, "main", 16, 10);
   const kmDNc = addSymbol(c, kmD.device.id, "aux-nc", 32, 22);
-  const fr = addDevice(c, "overload", "FR1", "body", 24, 2);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 32, 1);
-  const tc = addDevice(c, "transformer", "TC1", "body", 1, 16, { ratio: "480/120" });
-  const stop = addDevice(c, "pb-nc", "SB1", "body", 9, 16);
-  const start = addDevice(c, "pb-no", "SB2", "body", 14, 16);
-  const kt = addDevice(c, "timer-on", "KT1", "coil", 32, 16, { delayMs: 2000 });
+  const fr = addDevice(c, "overload", "OL1", "body", 24, 2);
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 32, 1);
+  const tc = addDevice(c, "transformer", "T1", "body", 1, 16, { ratio: "480/120" });
+  const stop = addDevice(c, "pb-nc", "PB1", "body", 9, 16);
+  const start = addDevice(c, "pb-no", "PB2", "body", 14, 16);
+  const kt = addDevice(c, "timer-on", "TR1", "coil", 32, 16, { delayMs: 2000 });
   const ktNc = addSymbol(c, kt.device.id, "delayed-nc", 38, 16);
   const ktNo = addSymbol(c, kt.device.id, "delayed-no", 38, 19);
-  const hlRun = addDevice(c, "lamp", "HL1", "body", 46, 16, { color: "green" });
-  const hlY = addDevice(c, "lamp", "HL2", "body", 46, 21, { color: "yellow" });
-  const hlD = addDevice(c, "lamp", "HL3", "body", 46, 26, { color: "blue" });
+  const hlRun = addDevice(c, "lamp", "LT1", "body", 46, 16, { color: "green" });
+  const hlY = addDevice(c, "lamp", "LT2", "body", 46, 21, { color: "yellow" });
+  const hlD = addDevice(c, "lamp", "LT3", "body", 46, 26, { color: "blue" });
 
   // Power distribution using net labels
   addWire(c, g.symbol, "L1", nl1.symbol, "1");
@@ -235,11 +235,11 @@ export function starDeltaStart(): Circuit {
 
 export function selectorReversing(): Circuit {
   const c = emptyCircuit();
-  const g = addDevice(c, "mains-3ph", "G1", "body", 1, 1);
+  const g = addDevice(c, "mains-3ph", "PWR1", "body", 1, 1);
   const nl1 = addDevice(c, "net-label", "NL1", "body", 4, 1);
   const nl2 = addDevice(c, "net-label", "NL2", "body", 4, 3);
   const nl3 = addDevice(c, "net-label", "NL3", "body", 4, 5);
-  const qf = addDevice(c, "breaker-3p", "QF1", "body", 8, 2);
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 8, 2);
   const f = addDevice(c, "contactor", "F", "coil", 38, 14);
   const fMain = addSymbol(c, f.device.id, "main", 16, 2);
   const fHold = addSymbol(c, f.device.id, "aux-no", 16, 18);
@@ -249,10 +249,10 @@ export function selectorReversing(): Circuit {
   const rHold = addSymbol(c, r.device.id, "aux-no", 16, 22);
   const rInt = addSymbol(c, r.device.id, "aux-nc", 30, 14);
   const ol = addDevice(c, "overload", "OL", "body", 24, 2);
-  const m = addDevice(c, "motor-3ph", "M1", "body", 32, 1);
+  const m = addDevice(c, "motor-3ph", "MTR1", "body", 32, 1);
   const stop = addDevice(c, "pb-nc", "STOP", "body", 8, 14, {}, 90);
   const start = addDevice(c, "pb-no", "START", "body", 14, 14, {}, 90);
-  const sa = addDevice(c, "selector-3", "SA1", "body", 22, 13);
+  const sa = addDevice(c, "selector-3", "SS1", "body", 22, 13);
   const hlF = addDevice(c, "lamp", "LF", "body", 22, 27, { color: "green" }, 90);
   const hlR = addDevice(c, "lamp", "LR", "body", 30, 27, { color: "red" }, 90);
   const nlA1F = addDevice(c, "net-label", "NA1F", "body", 36, 15);

@@ -79,8 +79,8 @@ describe("Ladder Diagram System", () => {
     it("should generate standard ladder rungs for motor start-stop circuit", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye", voltage: 480 } },
-          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye", voltage: 480 } },
+          { id: "tc1", kind: "transformer", tag: "T1", params: { ratio: "480/120" } },
           { id: "ol1", kind: "overload", tag: "OL1", params: {} },
           { id: "sb1", kind: "pb-nc", tag: "Stop", params: {} },
           { id: "sb2", kind: "pb-no", tag: "Start", params: {} },
@@ -124,8 +124,8 @@ describe("Ladder Diagram System", () => {
       );
 
       // Verify rails
-      expect(model.leftRailLabel).toContain("TC1");
-      expect(model.rightRailLabel).toContain("TC1");
+      expect(model.leftRailLabel).toContain("T1");
+      expect(model.rightRailLabel).toContain("T1");
       expect(model.isLeftRailLive).toBe(true);
 
       // Verify Power Branch
@@ -170,12 +170,12 @@ describe("Ladder Diagram System", () => {
 
       const circuit: Circuit = {
         devices: [
-          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
+          { id: "tc1", kind: "transformer", tag: "T1", params: { ratio: "480/120" } },
           { id: "sb1", kind: "pb-nc", tag: "Stop", params: {} },
           { id: "sb2", kind: "pb-no", tag: "Start", params: {} },
-          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
-          { id: "ka1", kind: "relay", tag: "KA1", params: {} },
-          { id: "hl1", kind: "lamp", tag: "HL1", params: { color: "green" } },
+          { id: "km1", kind: "contactor", tag: "M1", params: {} },
+          { id: "ka1", kind: "relay", tag: "CR1", params: {} },
+          { id: "hl1", kind: "lamp", tag: "LT1", params: { color: "green" } },
           { id: "tr1", kind: "timer-on", tag: "TR1", params: {} },
         ],
         symbols: [
@@ -215,7 +215,7 @@ describe("Ladder Diagram System", () => {
         photoHit: false,
       });
 
-      const kmRung = model.rungs.find((r) => r.coils.some((c) => c.label === "KM1"));
+      const kmRung = model.rungs.find((r) => r.coils.some((c) => c.label === "M1"));
       expect(kmRung).toBeDefined();
       const kmContacts = flatten(kmRung!);
       expect(kmContacts.some((c) => c.label === "Start")).toBe(true);
@@ -226,7 +226,7 @@ describe("Ladder Diagram System", () => {
       expect(startCopies).toHaveLength(1);
       expect(stopCopies).toHaveLength(1);
 
-      expect(kmRung!.coils.map((c) => c.label).sort()).toEqual(["HL1", "KA1", "KM1", "TR1"].sort());
+      expect(kmRung!.coils.map((c) => c.label).sort()).toEqual(["LT1", "CR1", "M1", "TR1"].sort());
     });
 
     it("should evaluate real-time contact conduction states accurately", () => {
@@ -234,7 +234,7 @@ describe("Ladder Diagram System", () => {
       const devPbNc = { id: "d_stop", kind: "pb-nc" as const, tag: "Stop", params: {} };
       const devEstop = { id: "d_estop", kind: "estop" as const, tag: "E-Stop", params: {} };
       const devOverload = { id: "d_ol", kind: "overload" as const, tag: "OL", params: {} };
-      const devContactor = { id: "d_km", kind: "contactor" as const, tag: "KM1", params: {} };
+      const devContactor = { id: "d_km", kind: "contactor" as const, tag: "M1", params: {} };
 
       const testCircuit: Circuit = {
         devices: [devPbNo, devPbNc, devEstop, devOverload, devContactor],
@@ -275,10 +275,10 @@ describe("Ladder Diagram System", () => {
           { id: "sb1", kind: "pb-no", tag: "Start PB", params: {} },
           { id: "sb2", kind: "pb-nc", tag: "Stop PB", params: {} },
           { id: "es1", kind: "estop", tag: "E-Stop", params: {} },
-          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
+          { id: "km1", kind: "contactor", tag: "M1", params: {} },
           { id: "ts1", kind: "temp-no", tag: "TS1", params: { setpoint: 40 } },
           { id: "ps1", kind: "pressure-no", tag: "PS1", params: { setpoint: 6 } },
-          { id: "fs1", kind: "flow-no", tag: "FS1", params: { setpoint: 10 } },
+          { id: "fs1", kind: "flow-no", tag: "FLS1", params: { setpoint: 10 } },
           { id: "ls1", kind: "float", tag: "LS1", params: { setpoint: 50 } },
           { id: "tr1", kind: "timer-on", tag: "TR1", params: { delayMs: 3000 } },
         ],
@@ -371,15 +371,15 @@ describe("Ladder Diagram System", () => {
     it("should build a comprehensive high-voltage power branch and independent control transformer branch", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "delta", voltage: 480 } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "delta", voltage: 480 } },
           { id: "ds1", kind: "isolator", tag: "Main Disconnect", params: {} },
           { id: "cb1", kind: "breaker-3p", tag: "CB1", params: {} },
           { id: "fu1", kind: "fuse", tag: "FU1", params: {} },
-          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
+          { id: "tc1", kind: "transformer", tag: "T1", params: { ratio: "480/120" } },
           { id: "km1", kind: "contactor", tag: "M1", params: {} },
           { id: "ol1", kind: "overload", tag: "OL1", params: {} },
-          { id: "m1", kind: "motor-3ph", tag: "M1", params: { power: 15 } },
-          { id: "pe1", kind: "ground", tag: "PE1", params: {} },
+          { id: "m1", kind: "motor-3ph", tag: "MTR1", params: { power: 15 } },
+          { id: "pe1", kind: "ground", tag: "GND1", params: {} },
         ],
         symbols: [],
         wires: [],
@@ -410,10 +410,10 @@ describe("Ladder Diagram System", () => {
 
       // Verify independent control transformer branch
       expect(model.transformerBranch).toBeDefined();
-      expect(model.transformerBranch?.transformer.tag).toBe("TC1");
+      expect(model.transformerBranch?.transformer.tag).toBe("T1");
       expect(model.transformerBranch?.primaryVoltage).toBe(480);
       expect(model.transformerBranch?.secondaryVoltage).toBe(120);
-      expect(model.transformerBranch?.title).toMatch(/TC1/);
+      expect(model.transformerBranch?.title).toMatch(/T1/);
       expect(model.transformerBranch?.title).not.toMatch(/STEP-DOWN SUPPLY/);
     });
 
@@ -421,7 +421,7 @@ describe("Ladder Diagram System", () => {
       const circuit: Circuit = {
         devices: [
           { id: "sb1", kind: "pb-no", tag: "Start", params: {} },
-          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
+          { id: "km1", kind: "contactor", tag: "M1", params: {} },
         ],
         symbols: [
           { id: "s1", deviceId: "sb1", variant: "body", x: 0, y: 0, rot: 0 },
@@ -449,10 +449,10 @@ describe("Ladder Diagram System", () => {
         devices: [
           { id: "sb1", kind: "pb-nc", tag: "Stop 1", params: {} },
           { id: "sb2", kind: "pb-no", tag: "Forward Start", params: {} },
-          { id: "km1", kind: "contactor", tag: "KM_FWD", params: {} },
+          { id: "km1", kind: "contactor", tag: "M_FWD", params: {} },
           { id: "sb3", kind: "pb-no", tag: "Reverse Start", params: {} },
-          { id: "km2", kind: "contactor", tag: "KM_REV", params: {} },
-          { id: "ka1", kind: "relay", tag: "KA1", params: {} },
+          { id: "km2", kind: "contactor", tag: "M_REV", params: {} },
+          { id: "ka1", kind: "relay", tag: "CR1", params: {} },
           { id: "sw1", kind: "toggle", tag: "SW_AUTO", params: {} },
         ],
         symbols: [
@@ -480,19 +480,19 @@ describe("Ladder Diagram System", () => {
 
       // Contactor 1 (KM_FWD), Contactor 2 (KM_REV), Relay (KA1)
       expect(model.rungs.length).toBeGreaterThanOrEqual(3);
-      expect(model.rungs[0].coils[0].label).toBe("KM_FWD");
-      expect(model.rungs[1].coils[0].label).toBe("KM_REV");
-      expect(model.rungs[2].coils[0].label).toBe("KA1");
+      expect(model.rungs[0].coils[0].label).toBe("M_FWD");
+      expect(model.rungs[1].coils[0].label).toBe("M_REV");
+      expect(model.rungs[2].coils[0].label).toBe("CR1");
     });
 
     it("should accurately identify Overload FR1 NO contact for Overload lamp and M1 contacts for status lamps", () => {
       // Circuit with Overload FR1 (NO 97-98 -> Trip Lamp), M1 (NC 31-32 -> Stop Lamp), M1 (NO 43-44 -> Run Lamp)
       const circuit: Circuit = {
         devices: [
-          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
+          { id: "tc1", kind: "transformer", tag: "T1", params: { ratio: "480/120" } },
           { id: "nl_hot", kind: "net-label", tag: "A1", params: {} },
           { id: "nl_ret", kind: "net-label", tag: "A2", params: {} },
-          { id: "ol1", kind: "overload", tag: "FR1", params: {} },
+          { id: "ol1", kind: "overload", tag: "OL1", params: {} },
           { id: "km1", kind: "contactor", tag: "M1", params: {} },
           { id: "hl_trip", kind: "lamp", tag: "Overload", params: { color: "red" } },
           { id: "hl_stop", kind: "lamp", tag: "Stop", params: { color: "red" } },
@@ -557,7 +557,7 @@ describe("Ladder Diagram System", () => {
       expect(tripContact?.deviceId).toBe("ol1");
       expect(tripContact?.address).toBe("97-98");
       expect(tripContact?.contactType).toBe("no");
-      expect(tripContact?.label).toContain("FR1");
+      expect(tripContact?.label).toContain("OL1");
 
       // Stop Rung must have M1 NC contact (address 31-32)
       const stopContact = stopRung?.items[0]?.type === "contact" ? stopRung.items[0].element : null;
@@ -600,7 +600,7 @@ describe("Ladder Diagram System", () => {
       expect(olLampRung).toBeDefined();
       const olContact = olLampRung?.items[0]?.type === "contact" ? olLampRung.items[0].element : null;
       expect(olContact).toBeDefined();
-      expect(olContact?.label).toContain("FR1");
+      expect(olContact?.label).toContain("OL1");
       expect(olContact?.address).toBe("97-98");
 
       // Stop indicator lamp rung (tag: "Stop")
@@ -800,7 +800,7 @@ describe("Ladder Diagram System", () => {
     it("should synthesize adding a new ladder rung with contact and coil", () => {
       const baseCircuit: Circuit = {
         devices: [
-          { id: "tc1", kind: "transformer", tag: "TC1", params: {} },
+          { id: "tc1", kind: "transformer", tag: "T1", params: {} },
         ],
         symbols: [
           { id: "s_tc1", deviceId: "tc1", variant: "body", x: 10, y: 10, rot: 0 },
@@ -809,22 +809,22 @@ describe("Ladder Diagram System", () => {
       };
 
       const { circuit: next, newSymbolIds } = synthesizeAddRung(baseCircuit, {
-        contact: { kind: "pb-no", tag: "SB_START" },
-        coil: { kind: "lamp", color: "green", tag: "HL_RUN" },
+        contact: { kind: "pb-no", tag: "PB_START" },
+        coil: { kind: "lamp", color: "green", tag: "LT_RUN" },
       });
 
       expect(newSymbolIds.length).toBe(2);
       expect(next.symbols.length).toBe(3);
-      expect(next.devices.some((d) => d.tag === "SB_START")).toBe(true);
-      expect(next.devices.some((d) => d.tag === "HL_RUN")).toBe(true);
+      expect(next.devices.some((d) => d.tag === "PB_START")).toBe(true);
+      expect(next.devices.some((d) => d.tag === "LT_RUN")).toBe(true);
       expect(next.wires.length).toBeGreaterThanOrEqual(2);
     });
 
     it("should synthesize inserting a series contact into an existing rung", () => {
       const baseCircuit: Circuit = {
         devices: [
-          { id: "sb1", kind: "pb-no", tag: "SB1", params: {} },
-          { id: "hl1", kind: "lamp", tag: "HL1", params: {} },
+          { id: "sb1", kind: "pb-no", tag: "PB1", params: {} },
+          { id: "hl1", kind: "lamp", tag: "LT1", params: {} },
         ],
         symbols: [
           { id: "s1", deviceId: "sb1", variant: "body", x: 10, y: 10, rot: 0 },
@@ -836,21 +836,20 @@ describe("Ladder Diagram System", () => {
       };
 
       const { circuit: next, newSymbolId } = synthesizeInsertContact(baseCircuit, "s1", {
-        kind: "pb-nc",
-        tag: "SB_STOP",
+        kind: "pb-nc", tag: "PB_STOP",
       });
 
       expect(newSymbolId).toBeDefined();
       expect(next.symbols.length).toBe(3);
-      expect(next.devices.some((d) => d.tag === "SB_STOP")).toBe(true);
+      expect(next.devices.some((d) => d.tag === "PB_STOP")).toBe(true);
       expect(next.wires.length).toBe(2);
     });
 
     it("should synthesize adding a parallel seal-in contact branch across a target contact", () => {
       const baseCircuit: Circuit = {
         devices: [
-          { id: "sb1", kind: "pb-no", tag: "SB1", params: {} },
-          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
+          { id: "sb1", kind: "pb-no", tag: "PB1", params: {} },
+          { id: "km1", kind: "contactor", tag: "M1", params: {} },
         ],
         symbols: [
           { id: "s1", deviceId: "sb1", variant: "body", x: 10, y: 10, rot: 0 },
@@ -875,7 +874,7 @@ describe("Ladder Diagram System", () => {
     it("should toggle contact variant between NO and NC correctly", () => {
       const baseCircuit: Circuit = {
         devices: [
-          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
+          { id: "km1", kind: "contactor", tag: "M1", params: {} },
         ],
         symbols: [
           { id: "s1", deviceId: "km1", variant: "aux-no", x: 10, y: 10, rot: 0 },
@@ -893,8 +892,8 @@ describe("Ladder Diagram System", () => {
     it("should delete an element cleanly and prune its wires", () => {
       const baseCircuit: Circuit = {
         devices: [
-          { id: "sb1", kind: "pb-no", tag: "SB1", params: {} },
-          { id: "hl1", kind: "lamp", tag: "HL1", params: {} },
+          { id: "sb1", kind: "pb-no", tag: "PB1", params: {} },
+          { id: "hl1", kind: "lamp", tag: "LT1", params: {} },
         ],
         symbols: [
           { id: "s1", deviceId: "sb1", variant: "body", x: 10, y: 10, rot: 0 },
@@ -919,7 +918,7 @@ describe("Ladder Diagram System", () => {
         devices: [
           { id: "d_iso", kind: "isolator", tag: "Main Switch", params: {} },
           { id: "d_cb", kind: "breaker-3p", tag: "CB1", params: {} },
-          { id: "d_ol", kind: "overload", tag: "FR1", params: {} },
+          { id: "d_ol", kind: "overload", tag: "OL1", params: {} },
           { id: "d_pb", kind: "pb-no", tag: "Start PB", params: {} },
         ],
         symbols: [
@@ -960,12 +959,12 @@ describe("Ladder Diagram System", () => {
     it("should support reordering ladder rungs and updating rung numbers and coil cross references", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye", voltage: 480 } },
-          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye", voltage: 480 } },
+          { id: "tc1", kind: "transformer", tag: "T1", params: { ratio: "480/120" } },
           { id: "sb1", kind: "pb-no", tag: "Start", params: {} },
-          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
-          { id: "hl1", kind: "lamp", tag: "HL1", params: {} },
-          { id: "ka1", kind: "relay", tag: "KA1", params: {} },
+          { id: "km1", kind: "contactor", tag: "M1", params: {} },
+          { id: "hl1", kind: "lamp", tag: "LT1", params: {} },
+          { id: "ka1", kind: "relay", tag: "CR1", params: {} },
         ],
         symbols: [
           { id: "s_tc1", deviceId: "tc1", variant: "body", x: 0, y: 0, rot: 0 },
@@ -999,10 +998,10 @@ describe("Ladder Diagram System", () => {
       // console.log(initialModel.rungs.map((r) => ({ id: r.id, title: r.title })));
       // ✅ Updated to match new rung ID format: rung_<tag> for coils/runs, rung_aux_<deviceId> for aux contacts
       expect(initialModel.rungs.map((r) => r.id)).toEqual([
-        "rung_KM1",
-        "rung_HL1",
+        "rung_M1",
+        "rung_LT1",
       ]);
-      expect(initialModel.rungs.some((r) => r.coils.some((c) => c.label === "KA1"))).toBe(false);
+      expect(initialModel.rungs.some((r) => r.coils.some((c) => c.label === "CR1"))).toBe(false);
       const initialRung1 = initialModel.rungs[0];
       const initialRung2 = initialModel.rungs[1];
 
@@ -1081,7 +1080,7 @@ describe("Ladder Diagram System", () => {
       // Circuit with standalone transformer (no fuses, no PE connection)
       const circuit: Circuit = {
         devices: [
-          { id: "tc1", kind: "transformer", tag: "TC1", params: { primaryVoltage: 480, secondaryVoltage: 120 } },
+          { id: "tc1", kind: "transformer", tag: "T1", params: { primaryVoltage: 480, secondaryVoltage: 120 } },
         ],
         symbols: [
           { id: "s_tc1", deviceId: "tc1", variant: "body", x: 0, y: 0, rot: 0 },
@@ -1111,11 +1110,11 @@ describe("Ladder Diagram System", () => {
     it("draws one overload 95-96 pole in series, not a parallel stack of copies", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
+          { id: "tc1", kind: "transformer", tag: "T1", params: { ratio: "480/120" } },
           { id: "ol2", kind: "overload", tag: "OL2", params: {} },
           { id: "sb1", kind: "pb-nc", tag: "Stop", params: {} },
           { id: "sb2", kind: "pb-no", tag: "Start", params: {} },
-          { id: "km1", kind: "contactor", tag: "KA2", params: {} },
+          { id: "km1", kind: "contactor", tag: "CR2", params: {} },
         ],
         symbols: [
           { id: "s_tc1", deviceId: "tc1", variant: "body", x: 0, y: 0, rot: 0 },
@@ -1148,7 +1147,7 @@ describe("Ladder Diagram System", () => {
         photoHit: false,
       });
 
-      const coilRung = model.rungs.find((r) => r.coils.some((c) => c.label === "KA2"));
+      const coilRung = model.rungs.find((r) => r.coils.some((c) => c.label === "CR2"));
       expect(coilRung).toBeDefined();
       const poles = coilRung!.items.flatMap((it) =>
         it.type === "contact" ? [it.element] : it.group.branches.flatMap((b) => b.contacts),
@@ -1172,23 +1171,23 @@ describe("Ladder Diagram System", () => {
 
       const circuit: Circuit = {
         devices: [
-          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "208/120" } },
+          { id: "tc1", kind: "transformer", tag: "T1", params: { ratio: "208/120" } },
           { id: "fu2", kind: "fuse", tag: "FU2", params: {} },
           { id: "ol1", kind: "overload", tag: "OL1", params: {} },
           { id: "ol2", kind: "overload", tag: "OL2", params: {} },
           { id: "stop", kind: "pb-nc", tag: "STOP", params: {} },
           { id: "start", kind: "pb-no", tag: "START", params: {} },
           { id: "cr1", kind: "relay", tag: "CR1", params: {} },
-          { id: "ka2", kind: "relay", tag: "KA2", params: {} },
-          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
-          { id: "km2", kind: "contactor", tag: "KM2", params: {} },
+          { id: "ka2", kind: "relay", tag: "CR2", params: {} },
+          { id: "km1", kind: "contactor", tag: "M1", params: {} },
+          { id: "km2", kind: "contactor", tag: "M2", params: {} },
           { id: "tr1", kind: "timer-on", tag: "TR1", params: {} },
           { id: "tr2", kind: "timer-off", tag: "TR2", params: {} },
-          { id: "hl1", kind: "lamp", tag: "HL1", params: { color: "green" } },
-          { id: "hl2", kind: "lamp", tag: "HL2", params: { color: "yellow" } },
-          { id: "m1", kind: "motor-3ph", tag: "M1", params: { power: 5.5 } },
-          { id: "m2", kind: "motor-3ph", tag: "M2", params: { power: 5.5 } },
-          { id: "ghost", kind: "relay", tag: "KA1", params: {} },
+          { id: "hl1", kind: "lamp", tag: "LT1", params: { color: "green" } },
+          { id: "hl2", kind: "lamp", tag: "LT2", params: { color: "yellow" } },
+          { id: "m1", kind: "motor-3ph", tag: "MTR1", params: { power: 5.5 } },
+          { id: "m2", kind: "motor-3ph", tag: "MTR2", params: { power: 5.5 } },
+          { id: "ghost", kind: "relay", tag: "CR0", params: {} },
         ],
         symbols: [
           { id: "s_tc1", deviceId: "tc1", variant: "body", x: 0, y: 0, rot: 0 },
@@ -1257,8 +1256,8 @@ describe("Ladder Diagram System", () => {
         photoHit: false,
       });
 
-      expect(model.powerBranches.map((b) => b.motor?.tag).sort()).toEqual(["M1", "M2"]);
-      expect(model.rungs.some((r) => r.coils.some((c) => c.label === "KA1"))).toBe(false);
+      expect(model.powerBranches.map((b) => b.motor?.tag).sort()).toEqual(["MTR1", "MTR2"]);
+      expect(model.rungs.some((r) => r.coils.some((c) => c.label === "CR0"))).toBe(false);
 
       const cr1 = model.rungs.find((r) => r.coils.some((c) => c.label === "CR1"));
       expect(cr1).toBeDefined();
@@ -1267,24 +1266,24 @@ describe("Ladder Diagram System", () => {
       expect(cr1c.some((c) => c.label === "STOP")).toBe(true);
       expect(cr1c.filter((c) => c.kind === "pb-no")).toHaveLength(1);
 
-      const km1 = model.rungs.find((r) => r.coils.some((c) => c.label === "KM1"));
+      const km1 = model.rungs.find((r) => r.coils.some((c) => c.label === "M1"));
       expect(km1).toBeDefined();
-      expect(km1!.coils.map((c) => c.label).sort()).toEqual(["HL1", "KM1", "TR1"]);
+      expect(km1!.coils.map((c) => c.label).sort()).toEqual(["LT1", "M1", "TR1"]);
       const km1c = flatten(km1!);
       expect(km1c.some((c) => c.kind === "pb-no")).toBe(false);
       expect(km1c.some((c) => c.deviceId === "ka2" && (c.address === "3-4" || c.contactType === "nc"))).toBe(true);
 
-      const km2 = model.rungs.find((r) => r.coils.some((c) => c.label === "KM2"));
+      const km2 = model.rungs.find((r) => r.coils.some((c) => c.label === "M2"));
       expect(km2).toBeDefined();
-      expect(km2!.coils.map((c) => c.label).sort()).toEqual(["HL2", "KM2", "TR2"]);
+      expect(km2!.coils.map((c) => c.label).sort()).toEqual(["LT2", "M2", "TR2"]);
       expect(km2!.id).not.toBe(cr1!.id);
       const km2c = flatten(km2!);
       expect(km2c.some((c) => c.deviceId === "ka2" && (c.address === "1-2" || c.contactType === "no"))).toBe(true);
 
-      const ka2 = model.rungs.find((r) => r.coils.some((c) => c.label === "KA2") && !r.coils.some((c) => c.label.startsWith("KM")));
+      const ka2 = model.rungs.find((r) => r.coils.some((c) => c.label === "CR2") && !r.coils.some((c) => /^M\d/.test(c.label)));
       expect(ka2).toBeDefined();
       expect(ka2!.id).not.toBe(km2!.id);
-      expect(ka2!.coils.map((c) => c.label)).toEqual(["KA2"]);
+      expect(ka2!.coils.map((c) => c.label)).toEqual(["CR2"]);
       const ka2c = flatten(ka2!);
       expect(ka2c.some((c) => c.deviceId === "tr1")).toBe(true);
       expect(ka2c.some((c) => c.deviceId === "tr2")).toBe(true);
@@ -1296,8 +1295,8 @@ describe("Ladder Diagram System", () => {
       // Overload body only wired at 95-96 into a contactor circuit; 97-98 is unused
       const circuit: Circuit = {
         devices: [
-          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
-          { id: "ol1", kind: "overload", tag: "FR1", params: {} },
+          { id: "tc1", kind: "transformer", tag: "T1", params: { ratio: "480/120" } },
+          { id: "ol1", kind: "overload", tag: "OL1", params: {} },
           { id: "km1", kind: "contactor", tag: "M1", params: {} },
         ],
         symbols: [

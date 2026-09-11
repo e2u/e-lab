@@ -84,8 +84,8 @@ describe("Meters & Historical Curves", () => {
     it("should calculate custom secondary voltage (e.g. 24V, 220V) for transformer", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "tr24", kind: "transformer", tag: "TC1", params: { primaryVoltage: 480, secondaryVoltage: 24 } },
-          { id: "tr220", kind: "transformer", tag: "TC2", params: { primaryVoltage: 380, secondaryVoltage: 220 } },
+          { id: "tr24", kind: "transformer", tag: "T1", params: { primaryVoltage: 480, secondaryVoltage: 24 } },
+          { id: "tr220", kind: "transformer", tag: "T2", params: { primaryVoltage: 380, secondaryVoltage: 220 } },
         ],
         symbols: [],
         wires: [],
@@ -103,7 +103,7 @@ describe("Meters & Historical Curves", () => {
     it("should simulate a live voltmeter in a circuit", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye" } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye" } },
           { id: "vm1", kind: "voltmeter", tag: "VM1", params: {} },
         ],
         symbols: [
@@ -131,7 +131,7 @@ describe("Meters & Historical Curves", () => {
     it("should measure custom voltage set on 3-phase mains supply", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye", voltage: 380 } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye", voltage: 380 } },
           { id: "vm1", kind: "voltmeter", tag: "VM1", params: {} },
           { id: "vm2", kind: "voltmeter", tag: "VM2", params: {} },
         ],
@@ -167,9 +167,9 @@ describe("Meters & Historical Curves", () => {
     it("should simulate an ammeter measuring lamp current", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye" } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye" } },
           { id: "am1", kind: "ammeter", tag: "AM1", params: {} },
-          { id: "hl1", kind: "lamp", tag: "HL1", params: { color: "green" } },
+          { id: "hl1", kind: "lamp", tag: "LT1", params: { color: "green" } },
         ],
         symbols: [
           { id: "s1", deviceId: "g1", variant: "wye", x: 0, y: 0, rot: 0 },
@@ -200,7 +200,7 @@ describe("Meters & Historical Curves", () => {
     it("should measure 0A when circuit is open", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye" } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye" } },
           { id: "am1", kind: "ammeter", tag: "AM1", params: {} },
         ],
         symbols: [
@@ -226,9 +226,9 @@ describe("Meters & Historical Curves", () => {
     it("should measure current by clamping directly onto a wire without breaking the circuit", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye" } },
-          { id: "m1", kind: "motor-3ph", tag: "M1", params: {} },
-          { id: "cm1", kind: "ammeter", tag: "CM1", params: { clampedWireId: "w_main_l1" } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye" } },
+          { id: "m1", kind: "motor-3ph", tag: "MTR1", params: {} },
+          { id: "cm1", kind: "ammeter", tag: "AM1", params: { clampedWireId: "w_main_l1" } },
         ],
         symbols: [
           { id: "s1", deviceId: "g1", variant: "wye", x: 0, y: 0, rot: 0 },
@@ -261,8 +261,8 @@ describe("Meters & Historical Curves", () => {
     it("should allow quick attaching clamp meter in store", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye" } },
-          { id: "hl1", kind: "lamp", tag: "HL1", params: { color: "green" } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye" } },
+          { id: "hl1", kind: "lamp", tag: "LT1", params: { color: "green" } },
         ],
         symbols: [
           { id: "s1", deviceId: "g1", variant: "wye", x: 0, y: 0, rot: 0 },
@@ -298,10 +298,10 @@ describe("Meters & Historical Curves", () => {
     it("should automatically detect wire under clamp meter symbol without explicit clampedWireId", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye", maxCurrent: 400 } },
-          { id: "m1", kind: "motor-3ph", tag: "M1", params: {} },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye", maxCurrent: 400 } },
+          { id: "m1", kind: "motor-3ph", tag: "MTR1", params: {} },
           // No clampedWireId in params
-          { id: "cm1", kind: "ammeter", tag: "CM1", params: {} },
+          { id: "cm1", kind: "ammeter", tag: "AM1", params: {} },
         ],
         symbols: [
           { id: "s1", deviceId: "g1", variant: "wye", x: 0, y: 0, rot: 0 },
@@ -332,9 +332,9 @@ describe("Meters & Historical Curves", () => {
     it("should measure transformer primary current when clamped onto transformer feed wire", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye", voltage: 480, maxCurrent: 400 } },
-          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
-          { id: "cm1", kind: "ammeter", tag: "CM1", params: { clampedWireId: "w_h1" } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye", voltage: 480, maxCurrent: 400 } },
+          { id: "tc1", kind: "transformer", tag: "T1", params: { ratio: "480/120" } },
+          { id: "cm1", kind: "ammeter", tag: "AM1", params: { clampedWireId: "w_h1" } },
         ],
         symbols: [
           { id: "s1", deviceId: "g1", variant: "wye", x: 0, y: 0, rot: 0 },
@@ -363,10 +363,10 @@ describe("Meters & Historical Curves", () => {
     it("should scale branch current proportionally when motor rated power is changed", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye", voltage: 480, maxCurrent: 400 } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye", voltage: 480, maxCurrent: 400 } },
           // Motor customized to 11 kW (approx double of default 5.5 kW)
-          { id: "m1", kind: "motor-3ph", tag: "M1", params: { power: 11 } },
-          { id: "cm1", kind: "ammeter", tag: "CM1", params: { clampedWireId: "w_l1" } },
+          { id: "m1", kind: "motor-3ph", tag: "MTR1", params: { power: 11 } },
+          { id: "cm1", kind: "ammeter", tag: "AM1", params: { clampedWireId: "w_l1" } },
         ],
         symbols: [
           { id: "s1", deviceId: "g1", variant: "wye", x: 0, y: 0, rot: 0 },
@@ -396,10 +396,10 @@ describe("Meters & Historical Curves", () => {
     it("should compute single phase and DC motor current with custom power", () => {
       const circuit1ph: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye" } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye" } },
           // 1ph motor with 3.0 kW
-          { id: "m1", kind: "motor-1ph", tag: "M1", params: { power: 3.0 } },
-          { id: "cm1", kind: "ammeter", tag: "CM1", params: { clampedWireId: "w_u1" } },
+          { id: "m1", kind: "motor-1ph", tag: "MTR1", params: { power: 3.0 } },
+          { id: "cm1", kind: "ammeter", tag: "AM1", params: { clampedWireId: "w_u1" } },
         ],
         symbols: [
           { id: "s1", deviceId: "g1", variant: "wye", x: 0, y: 0, rot: 0 },
@@ -430,7 +430,7 @@ describe("Meters & Historical Curves", () => {
     it("should record meter data points on simulation steps", () => {
       const circuit: Circuit = {
         devices: [
-          { id: "g1", kind: "mains-3ph", tag: "G1", params: { supplyType: "wye" } },
+          { id: "g1", kind: "mains-3ph", tag: "PWR1", params: { supplyType: "wye" } },
           { id: "vm1", kind: "voltmeter", tag: "VM1", params: {} },
         ],
         symbols: [

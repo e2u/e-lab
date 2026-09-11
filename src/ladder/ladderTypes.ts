@@ -45,7 +45,7 @@ export interface LadderElement {
   deviceId: string;        // Reference to logical Device
   symbolId?: string;       // Reference to original SymbolInst if any
   device: Device;          // Device instance
-  label: string;           // Display tag / name (e.g., "M1", "SB1", "KM1", "HL1")
+  label: string;           // Display tag / name (e.g., "M1", "PB1", "CR1", "LT1")
   address?: string;        // Industrial terminal/address (e.g. "13-14", "1-2", "A1-A2", "95-96", "X1-X2")
   isClosed: boolean;       // Real-time contact closed / coil energized
   isLive: boolean;         // Real-time potential / power flowing through

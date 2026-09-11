@@ -97,20 +97,20 @@ describe("autoLayoutCircuit", () => {
 
   it("organizes forward-reverse interlock circuit into separate rungs and horizontal sequence", () => {
     const c = emptyCircuit();
-    const mains = addDevice(c, "mains-3ph", "G1", "delta", 0, 0);
-    const brk = addDevice(c, "breaker-3p", "QF1", "body", 0, 0);
-    const km1Main = addDevice(c, "contactor", "KM1", "main", 0, 0);
-    const km2Main = addDevice(c, "contactor", "KM2", "main-rev", 0, 0);
-    const motor = addDevice(c, "motor-3ph", "M1", "body", 0, 0);
+    const mains = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0);
+    const brk = addDevice(c, "breaker-3p", "CB1", "body", 0, 0);
+    const km1Main = addDevice(c, "contactor", "M1", "main", 0, 0);
+    const km2Main = addDevice(c, "contactor", "M2", "main-rev", 0, 0);
+    const motor = addDevice(c, "motor-3ph", "MTR1", "body", 0, 0);
 
-    const tc = addDevice(c, "transformer", "TC1", "body", 0, 0);
-    const sbStop = addDevice(c, "pb-nc", "SB1", "body", 0, 0);
-    const sbFwd = addDevice(c, "pb-no", "SB2", "body", 0, 0);
+    const tc = addDevice(c, "transformer", "T1", "body", 0, 0);
+    const sbStop = addDevice(c, "pb-nc", "PB1", "body", 0, 0);
+    const sbFwd = addDevice(c, "pb-no", "PB2", "body", 0, 0);
     const km1AuxNo = addSymbol(c, km1Main.device.id, "aux-no", 0, 0);
     const km2AuxNc = addSymbol(c, km2Main.device.id, "aux-nc", 0, 0);
     const km1Coil = addSymbol(c, km1Main.device.id, "coil", 0, 0);
 
-    const sbRev = addDevice(c, "pb-no", "SB3", "body", 0, 0);
+    const sbRev = addDevice(c, "pb-no", "PB3", "body", 0, 0);
     const km2AuxNo = addSymbol(c, km2Main.device.id, "aux-no", 0, 0);
     const km1AuxNc = addSymbol(c, km1Main.device.id, "aux-nc", 0, 0);
     const km2Coil = addSymbol(c, km2Main.device.id, "coil", 0, 0);

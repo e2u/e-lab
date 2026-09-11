@@ -1581,7 +1581,7 @@ export const useLab = create<LabState>((set, get) => ({
     const created = addDevice(
       next,
       "ammeter",
-      nextTag(next.devices.map((d) => d.tag), "CM"),
+      nextTag(next.devices.map((d) => d.tag), "AM"),
       "body",
       gx,
       gy,

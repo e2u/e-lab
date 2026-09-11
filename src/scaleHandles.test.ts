@@ -8,7 +8,7 @@ import { SymbolGlyph } from "./Glyphs";
 describe("Symbol Scale & Control Handles", () => {
   it("scales transformer proportionally and strictly aligns to grid", () => {
     const c = emptyCircuit();
-    const { device, symbol } = addDevice(c, "transformer", "TC1", "body", 10, 10);
+    const { device, symbol } = addDevice(c, "transformer", "T1", "body", 10, 10);
     // Base size 6x8
     const b1 = symbolBounds(c, symbol);
     expect(b1).toEqual({ x: 10, y: 10, w: 6, h: 8 });
@@ -30,7 +30,7 @@ describe("Symbol Scale & Control Handles", () => {
 
   it("calculates accurate world terminal positions across scales", () => {
     const c = emptyCircuit();
-    const { device, symbol } = addDevice(c, "transformer", "TC1", "body", 4, 6);
+    const { device, symbol } = addDevice(c, "transformer", "T1", "body", 4, 6);
     // Terminals: H1(0, 1), H2(0, 3), H3(0, 5), H4(0, 7), X1(6, 1), X2(6, 7)
     // Scale = 1.0 (GRID = 22)
     const tH1_1 = terminalWorld(c, { symbolId: symbol.id, term: "H1" });
@@ -166,7 +166,7 @@ describe("Symbol Scale & Control Handles", () => {
 
   it("handles breaker-1p bounds and terminal coordinates properly", () => {
     const c = emptyCircuit();
-    const { device, symbol } = addDevice(c, "breaker-1p", "QF1", "body", 5, 5);
+    const { device, symbol } = addDevice(c, "breaker-1p", "CB1", "body", 5, 5);
     const b = symbolBounds(c, symbol);
     expect(b).toEqual({ x: 5, y: 5, w: 2, h: 4 });
 
@@ -178,7 +178,7 @@ describe("Symbol Scale & Control Handles", () => {
 
   it("handles overload relay bounds, terminals and aux contacts properly", () => {
     const c = emptyCircuit();
-    const { device, symbol } = addDevice(c, "overload", "FR1", "body", 5, 5);
+    const { device, symbol } = addDevice(c, "overload", "OL1", "body", 5, 5);
     const b = symbolBounds(c, symbol);
     expect(b).toEqual({ x: 5, y: 5, w: 6, h: 4 });
 
@@ -235,7 +235,7 @@ describe("Symbol Scale & Control Handles", () => {
     expect(cbT1).toEqual({ x: (5 + 5) * 22, y: (5 + 4) * 22 });
 
     // Contactor main terminals: L1(0, 1), L2(0, 3), L3(0, 5), T1(6, 1), T2(6, 3), T3(6, 5)
-    const km = addDevice(c, "contactor", "KM1", "main", 10, 10);
+    const km = addDevice(c, "contactor", "M1", "main", 10, 10);
     const kmL1 = terminalWorld(c, { symbolId: km.symbol.id, term: "L1" });
     const kmL2 = terminalWorld(c, { symbolId: km.symbol.id, term: "L2" });
     const kmL3 = terminalWorld(c, { symbolId: km.symbol.id, term: "L3" });
@@ -287,7 +287,7 @@ describe("Symbol Scale & Control Handles", () => {
 
   it("renders scaled SVG dimensions for push button and other symbols", () => {
     const c = emptyCircuit();
-    const { device, symbol } = addDevice(c, "pb-no", "SB1", "body", 0, 0);
+    const { device, symbol } = addDevice(c, "pb-no", "PB1", "body", 0, 0);
     device.params.scale = 3;
     const v = variantDef("pb-no", "body");
     const scaledW = v.w * 3;

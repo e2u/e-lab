@@ -219,9 +219,9 @@ describe("catalog labels", () => {
         level: "warn",
         message: "fallback",
         msgKey: "fault.weldedContact",
-        msgParams: { tag: "KM1" },
+        msgParams: { tag: "M1" },
       }),
-    ).toBe("KM1 welded contact");
+    ).toBe("M1 welded contact");
     expect(
       formatFaultMessage({
         level: "error",
@@ -240,9 +240,9 @@ describe("catalog labels", () => {
         level: "warn",
         message: "fallback",
         msgKey: "fault.weldedContact",
-        msgParams: { tag: "KM1" },
+        msgParams: { tag: "M1" },
       }),
-    ).toBe("KM1 觸點熔死");
+    ).toBe("M1 觸點熔死");
     expect(
       formatFaultMessage({
         level: "error",

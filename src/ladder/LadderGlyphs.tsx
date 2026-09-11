@@ -1903,6 +1903,31 @@ export function LadderPowerSection({
   );
 }
 
+/** IEC-style control transformer header: primary on top, secondary feeding the two rails. */
+export const LADDER_TRANSFORMER_HEIGHT = 108;
+export const LADDER_TRANSFORMER_SEC_Y = 82;
+
+function LadderCptFuse({ x, y, tag }: { x: number; y: number; tag: string }) {
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      <rect
+        x="0"
+        y="-7"
+        width="22"
+        height="14"
+        rx="2"
+        fill="var(--ladder-paper, #ffffff)"
+        stroke="var(--ladder-ink, #334155)"
+        strokeWidth="1.6"
+      />
+      <line x1="11" y1="-7" x2="11" y2="7" stroke="var(--ladder-ink, #334155)" strokeWidth="1.4" />
+      <text x="11" y="-11" textAnchor="middle" fontSize="8" fontWeight="700" fill="var(--ladder-tag, #0f172a)">
+        {tag}
+      </text>
+    </g>
+  );
+}
+
 interface TransformerSectionProps {
   branch: LadderTransformerBranch;
   x: number;
@@ -1923,7 +1948,6 @@ export function LadderTransformerSection({
   onSelectDevice,
 }: TransformerSectionProps) {
   const {
-    title,
     transformer,
     primaryVoltage = 480,
     secondaryVoltage = 120,
@@ -1935,224 +1959,155 @@ export function LadderTransformerSection({
     isEnergized,
   } = branch;
 
-  const height = 125;
+  const height = LADDER_TRANSFORMER_HEIGHT;
+  const priY = y + 40;
+  const secY = y + LADDER_TRANSFORMER_SEC_Y;
+  const cx = x + width / 2;
+  const cy = (priY + secY) / 2;
+  const coilR = 16;
+  const h1x = cx - coilR - 10;
+  const h2x = cx + coilR + 10;
+  const x1x = h1x;
+  const x2x = h2x;
+
   const priColor = isEnergized ? "#dc2626" : "var(--ladder-wire, #64748b)";
+  const pri2Color = isEnergized ? "#ca8a04" : "var(--ladder-wire, #64748b)";
   const secHotColor = isEnergized ? "#f59e0b" : "var(--ladder-wire, #64748b)";
-  const secGndColor = isEnergized ? "#3b82f6" : "var(--ladder-wire, #64748b)";
-
-  const lineY1 = y + 44; // H1 / X1 level
-  const lineY2 = y + 84; // H2 / X2 level
-
-  const xformCx = x + width * 0.44;
-  const xformCy = (lineY1 + lineY2) / 2;
+  const secComColor = isEnergized ? "#3b82f6" : "var(--ladder-wire, #64748b)";
   const hasGround = Boolean(isGrounded || ground);
+  const selected = mode === "edit" && selectedDeviceId === transformer.id;
+
+  const leftInner = x + 64;
+  const rightInner = x + width - 64;
+  const fuseW = 22;
 
   return (
     <g className="ladder-transformer-section">
-      {/* Container Box */}
       <rect
         x={x}
         y={y}
         width={width}
         height={height}
         rx="8"
-        fill="var(--ladder-cpt-bg, rgba(245, 158, 11, 0.03))"
+        fill="var(--ladder-cpt-bg, rgba(245, 158, 11, 0.04))"
         stroke="var(--ladder-cpt-border, #fcd34d)"
-        strokeWidth="1.6"
-        strokeDasharray="5 4"
+        strokeWidth="1.4"
       />
 
-      {/* Section Title */}
       <text
-        x={x + 14}
-        y={y + 22}
-        fontSize="12.5"
+        x={cx}
+        y={y + 16}
+        textAnchor="middle"
+        fontSize="11"
         fontWeight="800"
-        letterSpacing="0.05em"
         fill="var(--ladder-cpt-title, #b45309)"
       >
-        🔌 {title} [{primaryVoltage}V PRIMARY ➔ {secondaryVoltage}V SECONDARY STEP-DOWN]
+        {transformer.tag || "TC1"}  Control Transformer  {primaryVoltage} / {secondaryVoltage} V
       </text>
 
-      {/* Primary 480V Incoming Taps (L1 & L2) */}
-      <g className="ladder-cpt-primary">
-        {/* L1 Tap pill */}
-        <rect x={x + 12} y={lineY1 - 10} width="66" height="20" rx="4" fill="#fee2e2" stroke="#dc2626" strokeWidth="1" />
-        <text x={x + 45} y={lineY1 + 4} textAnchor="middle" fontSize="9.5" fontWeight="800" fill="#dc2626">
-          L1 ({primaryVoltage}V)
-        </text>
-        {/* Line to Primary Fuse FU1 or direct */}
-        {primaryFuse1 ? (
-          <>
-            <line x1={x + 78} y1={lineY1} x2={x + 135} y2={lineY1} stroke={priColor} strokeWidth="2.5" />
-            <g transform={`translate(${x + 135}, ${lineY1})`}>
-              <rect x="0" y="-6" width="26" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="1.8" />
-              <line x1="13" y1="-6" x2="13" y2="6" stroke="var(--ladder-ink, #334155)" strokeWidth="1.5" />
-              <text x="13" y="-10" textAnchor="middle" fontSize="8" fontWeight="700" fill="var(--ladder-tag, #0f172a)">{primaryFuse1.tag || "FU1"}</text>
-            </g>
-            <line x1={x + 161} y1={lineY1} x2={xformCx - 26} y2={lineY1} stroke={priColor} strokeWidth="2.5" />
-          </>
-        ) : (
-          <line x1={x + 78} y1={lineY1} x2={xformCx - 26} y2={lineY1} stroke={priColor} strokeWidth="2.5" />
-        )}
+      {/* Primary: L1 — H1 (T) H2 — L2 */}
+      <rect x={x + 8} y={priY - 9} width="44" height="18" rx="3" fill="#fee2e2" stroke="#dc2626" strokeWidth="1" />
+      <text x={x + 30} y={priY + 4} textAnchor="middle" fontSize="9" fontWeight="800" fill="#dc2626">
+        L1
+      </text>
+      {primaryFuse1 ? (
+        <>
+          <line x1={x + 52} y1={priY} x2={leftInner} y2={priY} stroke={priColor} strokeWidth="2.2" />
+          <LadderCptFuse x={leftInner} y={priY} tag={primaryFuse1.tag || "FU"} />
+          <line x1={leftInner + fuseW} y1={priY} x2={h1x} y2={priY} stroke={priColor} strokeWidth="2.2" />
+        </>
+      ) : (
+        <line x1={x + 52} y1={priY} x2={h1x} y2={priY} stroke={priColor} strokeWidth="2.2" />
+      )}
+      <circle cx={h1x} cy={priY} r="3" fill="#fee2e2" stroke="#dc2626" strokeWidth="1.6" />
+      <text x={h1x} y={priY - 8} textAnchor="middle" fontSize="8" fontWeight="800" fill="#dc2626">
+        H1
+      </text>
 
-        {/* L2 Tap pill */}
-        <rect x={x + 12} y={lineY2 - 10} width="66" height="20" rx="4" fill="#fef9c3" stroke="#ca8a04" strokeWidth="1" />
-        <text x={x + 45} y={lineY2 + 4} textAnchor="middle" fontSize="9.5" fontWeight="800" fill="#ca8a04">
-          L2 ({primaryVoltage}V)
-        </text>
-        {/* Line to Primary Fuse FU2 or direct */}
-        {primaryFuse2 ? (
-          <>
-            <line x1={x + 78} y1={lineY2} x2={x + 135} y2={lineY2} stroke={priColor} strokeWidth="2.5" />
-            <g transform={`translate(${x + 135}, ${lineY2})`}>
-              <rect x="0" y="-6" width="26" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="1.8" />
-              <line x1="13" y1="-6" x2="13" y2="6" stroke="var(--ladder-ink, #334155)" strokeWidth="1.5" />
-              <text x="13" y="-10" textAnchor="middle" fontSize="8" fontWeight="700" fill="var(--ladder-tag, #0f172a)">{primaryFuse2.tag || "FU2"}</text>
-            </g>
-            <line x1={x + 161} y1={lineY2} x2={xformCx - 26} y2={lineY2} stroke={priColor} strokeWidth="2.5" />
-          </>
-        ) : (
-          <line x1={x + 78} y1={lineY2} x2={xformCx - 26} y2={lineY2} stroke={priColor} strokeWidth="2.5" />
-        )}
-      </g>
+      {primaryFuse2 ? (
+        <>
+          <line x1={h2x} y1={priY} x2={rightInner - fuseW} y2={priY} stroke={pri2Color} strokeWidth="2.2" />
+          <LadderCptFuse x={rightInner - fuseW} y={priY} tag={primaryFuse2.tag || "FU"} />
+          <line x1={rightInner} y1={priY} x2={x + width - 52} y2={priY} stroke={pri2Color} strokeWidth="2.2" />
+        </>
+      ) : (
+        <line x1={h2x} y1={priY} x2={x + width - 52} y2={priY} stroke={pri2Color} strokeWidth="2.2" />
+      )}
+      <circle cx={h2x} cy={priY} r="3" fill="#fef9c3" stroke="#ca8a04" strokeWidth="1.6" />
+      <text x={h2x} y={priY - 8} textAnchor="middle" fontSize="8" fontWeight="800" fill="#ca8a04">
+        H2
+      </text>
+      <rect x={x + width - 52} y={priY - 9} width="44" height="18" rx="3" fill="#fef9c3" stroke="#ca8a04" strokeWidth="1" />
+      <text x={x + width - 30} y={priY + 4} textAnchor="middle" fontSize="9" fontWeight="800" fill="#ca8a04">
+        L2
+      </text>
 
-      {/* Transformer Dual Circles & Core (TC1) */}
+      {/* IEC dual-circle transformer */}
       <g
         className="ladder-cpt-item"
-        transform={`translate(${xformCx}, ${xformCy})`}
+        transform={`translate(${cx}, ${cy})`}
         onClick={(e) => {
-          if (mode === "edit" && transformer) {
+          if (mode === "edit") {
             e.stopPropagation();
             onSelectDevice?.(transformer.id);
           }
         }}
         style={{ cursor: mode === "edit" ? "pointer" : "default" }}
       >
-        {/* Hit box overlay */}
-        <rect
-          x="-58"
-          y="-48"
-          width="116"
-          height="96"
-          rx="8"
-          fill="transparent"
-          style={{ pointerEvents: "all" }}
-        />
-
-        {/* Selection Halo in Edit Mode */}
-        {mode === "edit" && transformer && selectedDeviceId === transformer.id && (
+        {selected && (
           <rect
-            x="-52"
-            y="-42"
-            width="104"
-            height="84"
+            x="-40"
+            y="-28"
+            width="80"
+            height="56"
             rx="8"
-            fill="rgba(245, 158, 11, 0.12)"
+            fill="rgba(245, 158, 11, 0.1)"
             stroke="#f59e0b"
-            strokeWidth="2"
+            strokeWidth="1.6"
             strokeDasharray="4 2"
             pointerEvents="none"
           />
         )}
-
-        {/* Primary Coils (Left) */}
-        <circle cx="-13" cy="0" r="15" fill="none" stroke="var(--ladder-ink, #334155)" strokeWidth="2.4" />
-        {/* Secondary Coils (Right) */}
-        <circle cx="13" cy="0" r="15" fill="none" stroke="var(--ladder-ink, #334155)" strokeWidth="2.4" />
-
-        {/* Iron Core Dual Bars */}
-        <line x1="-2" y1="-20" x2="-2" y2="20" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
-        <line x1="2" y1="-20" x2="2" y2="20" stroke="var(--ladder-ink, #334155)" strokeWidth="2" />
-
-        {/* Terminal Pins & Labels */}
-        {/* H1 */}
-        <circle cx="-26" cy={lineY1 - xformCy} r="3.5" fill="#fee2e2" stroke="#dc2626" strokeWidth="1.8" />
-        <text x="-26" y={lineY1 - xformCy - 7} textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#dc2626">H1</text>
-
-        {/* H2 */}
-        <circle cx="-26" cy={lineY2 - xformCy} r="3.5" fill="#fef9c3" stroke="#ca8a04" strokeWidth="1.8" />
-        <text x="-26" y={lineY2 - xformCy + 14} textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#ca8a04">H2</text>
-
-        {/* X1 */}
-        <circle cx="26" cy={lineY1 - xformCy} r="3.5" fill="#fef3c7" stroke="#f59e0b" strokeWidth="1.8" />
-        <text x="26" y={lineY1 - xformCy - 7} textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#b45309">X1</text>
-
-        {/* X2 */}
-        <circle cx="26" cy={lineY2 - xformCy} r="3.5" fill="#dbeafe" stroke="#3b82f6" strokeWidth="1.8" />
-        <text x="26" y={lineY2 - xformCy + 14} textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#1e40af">X2</text>
-
-        {/* Transformer Tag & Info Badge */}
-        <rect
-          x="-45"
-          y="-35"
-          width="90"
-          height="17"
-          rx="3.5"
-          fill="var(--ladder-paper, #ffffff)"
-          stroke={mode === "edit" && selectedDeviceId === transformer.id ? "#f59e0b" : "#b45309"}
-          strokeWidth={mode === "edit" && selectedDeviceId === transformer.id ? "2" : "1"}
-        />
-        <text
-          x="0"
-          y="-23"
-          textAnchor="middle"
-          fontSize="9.5"
-          fontWeight="800"
-          fill={mode === "edit" && selectedDeviceId === transformer.id ? "#b45309" : "#b45309"}
-        >
-          {transformer.tag || "TC1"} ({primaryVoltage}/{secondaryVoltage}V)
-        </text>
+        <circle cx={-10} cy="0" r={coilR} fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2.2" />
+        <circle cx={10} cy="0" r={coilR} fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="2.2" />
+        <line x1="-1.5" y1={-coilR + 2} x2="-1.5" y2={coilR - 2} stroke="var(--ladder-ink, #334155)" strokeWidth="1.8" />
+        <line x1="1.5" y1={-coilR + 2} x2="1.5" y2={coilR - 2} stroke="var(--ladder-ink, #334155)" strokeWidth="1.8" />
       </g>
 
-      {/* Secondary Output Lines (120V Hot -> Left Rail, 0V/GND -> Right Rail) */}
-      <g className="ladder-cpt-secondary">
-        {/* Secondary Fuse on X1 (120V Hot) */}
-        {secondaryFuse ? (
-          <>
-            <line x1={xformCx + 26} y1={lineY1} x2={xformCx + 75} y2={lineY1} stroke={secHotColor} strokeWidth="2.5" />
-            <g transform={`translate(${xformCx + 75}, ${lineY1})`}>
-              <rect x="0" y="-6" width="26" height="12" rx="2" fill="var(--ladder-paper, #ffffff)" stroke="var(--ladder-ink, #334155)" strokeWidth="1.8" />
-              <line x1="13" y1="-6" x2="13" y2="6" stroke="var(--ladder-ink, #334155)" strokeWidth="1.5" />
-              <text x="13" y="-10" textAnchor="middle" fontSize="8" fontWeight="700" fill="var(--ladder-tag, #0f172a)">{secondaryFuse.tag || "FU3"}</text>
-            </g>
-            <line x1={xformCx + 101} y1={lineY1} x2={x + width - 195} y2={lineY1} stroke={secHotColor} strokeWidth="2.5" />
-          </>
-        ) : (
-          <line x1={xformCx + 26} y1={lineY1} x2={x + width - 195} y2={lineY1} stroke={secHotColor} strokeWidth="2.5" />
-        )}
+      {/* Secondary: left rail X1 — winding — X2 right rail */}
+      <text x={x + 4} y={secY - 10} fontSize="9" fontWeight="800" fill="#b45309">
+        X1 {secondaryVoltage}V
+      </text>
+      {secondaryFuse ? (
+        <>
+          <line x1={x} y1={secY} x2={leftInner} y2={secY} stroke={secHotColor} strokeWidth="2.4" />
+          <LadderCptFuse x={leftInner} y={secY} tag={secondaryFuse.tag || "FU"} />
+          <line x1={leftInner + fuseW} y1={secY} x2={x1x} y2={secY} stroke={secHotColor} strokeWidth="2.4" />
+        </>
+      ) : (
+        <line x1={x} y1={secY} x2={x1x} y2={secY} stroke={secHotColor} strokeWidth="2.4" />
+      )}
+      <circle cx={x1x} cy={secY} r="3" fill="#fef3c7" stroke="#f59e0b" strokeWidth="1.6" />
+      <text x={x1x} y={secY + 14} textAnchor="middle" fontSize="8" fontWeight="800" fill="#b45309">
+        X1
+      </text>
 
-        {/* X1 Output Tag & Lead to Left Rail */}
-        <g transform={`translate(${x + width - 195}, ${lineY1})`}>
-          <rect x="0" y="-10" width="180" height="20" rx="4" fill={isEnergized ? "#fef3c7" : "var(--ladder-paper, #f1f5f9)"} stroke="#f59e0b" strokeWidth="1.5" />
-          <text x="90" y="4" textAnchor="middle" fontSize="9.5" fontWeight="800" fill={isEnergized ? "#b45309" : "var(--ladder-ink, #475569)"}>
-            ⚡ {secondaryVoltage}VAC HOT ➔ LEFT RAIL
-          </text>
+      <circle cx={x2x} cy={secY} r="3" fill="#dbeafe" stroke="#3b82f6" strokeWidth="1.6" />
+      <text x={x2x} y={secY + 14} textAnchor="middle" fontSize="8" fontWeight="800" fill="#1e40af">
+        X2
+      </text>
+      <line x1={x2x} y1={secY} x2={x + width} y2={secY} stroke={secComColor} strokeWidth="2.4" />
+      {hasGround && (
+        <g transform={`translate(${x + width - 78}, ${secY})`}>
+          <line x1="0" y1="0" x2="0" y2="12" stroke="#059669" strokeWidth="1.8" />
+          <line x1="-8" y1="12" x2="8" y2="12" stroke="#059669" strokeWidth="2" />
+          <line x1="-5" y1="15" x2="5" y2="15" stroke="#059669" strokeWidth="1.6" />
+          <line x1="-2.5" y1="18" x2="2.5" y2="18" stroke="#059669" strokeWidth="1.3" />
         </g>
-
-        {/* Secondary X2 Line (0V / Common Return) */}
-        <line x1={xformCx + 26} y1={lineY2} x2={x + width - 195} y2={lineY2} stroke={secGndColor} strokeWidth="2.5" />
-
-        {/* Ground Connection on X2 (Standard Industrial Neutral Grounding) */}
-        {hasGround && (
-          <g transform={`translate(${xformCx + 88}, ${lineY2})`}>
-            <circle cx="0" cy="0" r="3.5" fill="#10b981" />
-            <line x1="0" y1="0" x2="0" y2="18" stroke="#10b981" strokeWidth="2" />
-            <line x1="-9" y1="18" x2="9" y2="18" stroke="#10b981" strokeWidth="2.5" />
-            <line x1="-6" y1="21" x2="6" y2="21" stroke="#10b981" strokeWidth="2" />
-            <line x1="-3" y1="24" x2="3" y2="24" stroke="#10b981" strokeWidth="1.5" />
-            <text x="16" y="24" fontSize="8" fontWeight="800" fill="#10b981">⏚ GND</text>
-          </g>
-        )}
-
-        {/* X2 Output Tag & Lead to Right Rail */}
-        <g transform={`translate(${x + width - 195}, ${lineY2})`}>
-          <rect x="0" y="-10" width="180" height="20" rx="4" fill={isEnergized ? "#dbeafe" : "var(--ladder-paper, #f1f5f9)"} stroke="#3b82f6" strokeWidth="1.5" />
-          <text x="90" y="4" textAnchor="middle" fontSize="9.5" fontWeight="800" fill={isEnergized ? "#1e40af" : "var(--ladder-ink, #475569)"}>
-            0V / COM (GND) ➔ RIGHT RAIL
-          </text>
-        </g>
-      </g>
+      )}
+      <text x={x + width - 4} y={secY - 10} textAnchor="end" fontSize="9" fontWeight="800" fill="#1e40af">
+        X2 COM
+      </text>
     </g>
   );
 }

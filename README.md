@@ -100,9 +100,11 @@
   - English and Traditional Chinese (`en` / `zh`) UI, including component library and inspector names.
   - 英文與繁體中文介面切換，元件庫與屬性檢查器名稱隨語言顯示。
 
-- **🧪 Optional: Ladder view & Auto Layout / 可選：梯形圖與自動排版**
-  - NEMA/JIC ladder synthesis and auto-layout exist in the codebase but are **off by default** (`ENABLE_LADDER` / `ENABLE_AUTO_LAYOUT` compile flags). GitHub Pages and a plain `yarn dev` / `deno task dev` do not show them unless the env vars below are set.
-  - 梯形圖合成與自動排版已實作，但**預設關閉**。GitHub Pages 與一般 `yarn dev` / `deno task dev` 不會顯示，除非設定下列環境變數。
+- **🪜 Schematic / Ladder view / 設計圖與梯形圖切換**
+  - Toggle the canvas between the wiring schematic and a read-only NEMA/JIC ladder synthesized from the same circuit (toolbar, mobile menu, or `L`).
+  - 可在接線設計圖與唯讀梯形圖之間切換（工具列、手機選單，或快捷鍵 `L`）。梯形圖由同一張電路自動合成，此階段只供查看。
+  - Auto-layout remains a compile-time flag (`ENABLE_AUTO_LAYOUT`, default off).
+  - 自動排版仍為編譯開關（`ENABLE_AUTO_LAYOUT`，預設關閉）。
 
 ---
 
@@ -143,18 +145,16 @@ yarn build
 ```
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-Optional compile-time flags (default **off**):
+Optional compile-time flag (default **off**):
 
 ```bash
-# Show ladder diagram UI / 顯示梯形圖
-VITE_ENABLE_LADDER=true yarn dev
-
 # Show auto-layout action / 顯示自動排版
 VITE_ENABLE_AUTO_LAYOUT=true yarn dev
 ```
 
-The same `VITE_ENABLE_LADDER` / `VITE_ENABLE_AUTO_LAYOUT` variables work with `deno task dev` and production builds.  
-上述變數同樣適用於 `deno task dev` 與正式構建。
+The same `VITE_ENABLE_AUTO_LAYOUT` variable works with `deno task dev` and production builds.  
+上述變數同樣適用於 `deno task dev` 與正式構建。 Schematic / ladder **viewing** needs no flag.  
+設計圖／梯形圖**查看**無需開關。
 
 ---
 

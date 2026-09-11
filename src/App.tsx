@@ -16,7 +16,7 @@ import { MobileMenuModal } from "./ui/MobileMenuModal";
 import { PrintModal } from "./ui/PrintModal";
 import { TutorialOverlay } from "./tutorial/TutorialOverlay";
 import { setupKeyboardShortcuts } from "./keyboard";
-import { ENABLE_AUTO_LAYOUT, ENABLE_LADDER } from "./features";
+import { ENABLE_AUTO_LAYOUT } from "./features";
 
 
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
@@ -52,7 +52,6 @@ export function App() {
   const paletteWidth = useLab((s) => s.paletteWidth);
   const sideWidth = useLab((s) => s.sideWidth);
   const layoutMode = useLab((s) => s.layoutMode);
-  const showLadderMenu = useLab((s) => s.showLadderMenu);
   const zoom = useLab((s) => s.zoom);
   const printOpen = useLab((s) => s.printOpen);
   const tutorialOpen = useLab((s) => s.tutorialOpen);
@@ -300,6 +299,15 @@ export function App() {
             <div className="mobile-header-actions">
               <button
                 type="button"
+                className={`btn-icon mobile-header-btn ${layoutMode === "ladder" ? "active" : ""}`}
+                onClick={() => useLab.getState().toggleLayoutMode()}
+                title={layoutMode === "ladder" ? t("toolbar.switchToSchematic") : t("toolbar.switchToLadder")}
+                aria-label={layoutMode === "ladder" ? t("toolbar.switchToSchematic") : t("toolbar.switchToLadder")}
+              >
+                {layoutMode === "ladder" ? "📐" : "🪜"}
+              </button>
+              <button
+                type="button"
                 className="btn-tutorial-mobile-highlight"
                 onClick={() => useLab.getState().openTutorial("mobile")}
                 title={t("tutorial.buttonTooltip")}
@@ -307,20 +315,22 @@ export function App() {
               >
                 ✨ {t("tutorial.button")}
               </button>
-              <button
-                type="button"
-                className={`btn-icon mobile-header-btn ${mobilePaletteOpen ? "active" : ""}`}
-                onClick={() => {
-                  const next = !mobilePaletteOpen;
-                  setMobilePaletteOpen(next);
-                  setMobileSideOpen(false);
-                  useLab.getState().setPaletteOpen(next);
-                }}
-                title={t("toolbar.palette")}
-                aria-label={t("toolbar.palette")}
-              >
-                ☰
-              </button>
+              {layoutMode !== "ladder" && (
+                <button
+                  type="button"
+                  className={`btn-icon mobile-header-btn ${mobilePaletteOpen ? "active" : ""}`}
+                  onClick={() => {
+                    const next = !mobilePaletteOpen;
+                    setMobilePaletteOpen(next);
+                    setMobileSideOpen(false);
+                    useLab.getState().setPaletteOpen(next);
+                  }}
+                  title={t("toolbar.palette")}
+                  aria-label={t("toolbar.palette")}
+                >
+                  ☰
+                </button>
+              )}
               <button
                 type="button"
                 className={`btn-icon mobile-header-btn ${mobileSideOpen ? "active" : ""}`}
@@ -470,34 +480,29 @@ export function App() {
 
               <div className="topbar-divider" />
 
-              {/* Only show Layout Mode switch button when ENABLE_LADDER and showLadderMenu are true */}
-              {ENABLE_LADDER && showLadderMenu && (
-                <>
-                  {/* Layout Mode Toggle - Schematic / Ladder */}
-                  <div className="segmented-group layout-mode-switch">
-                    <button
-                      type="button"
-                      className={`seg-btn ${layoutMode === "schematic" ? "active" : ""}`}
-                      onClick={() => useLab.getState().setLayoutMode("schematic")}
-                      title={t("toolbar.schematic")}
-                    >
-                      <span className="seg-icon">📐</span>
-                      <span>{t("toolbar.schematic")}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`seg-btn ${layoutMode === "ladder" ? "active" : ""}`}
-                      onClick={() => useLab.getState().setLayoutMode("ladder")}
-                      title={t("toolbar.ladder")}
-                    >
-                      <span className="seg-icon">🪜</span>
-                      <span>{t("toolbar.ladder")}</span>
-                    </button>
-                  </div>
+              {/* Schematic / Ladder view toggle */}
+              <div className="segmented-group layout-mode-switch">
+                <button
+                  type="button"
+                  className={`seg-btn ${layoutMode === "schematic" ? "active" : ""}`}
+                  onClick={() => useLab.getState().setLayoutMode("schematic")}
+                  title={t("toolbar.schematic")}
+                >
+                  <span className="seg-icon">📐</span>
+                  <span>{t("toolbar.schematic")}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`seg-btn ${layoutMode === "ladder" ? "active" : ""}`}
+                  onClick={() => useLab.getState().setLayoutMode("ladder")}
+                  title={t("toolbar.ladder")}
+                >
+                  <span className="seg-icon">🪜</span>
+                  <span>{t("toolbar.ladder")}</span>
+                </button>
+              </div>
 
-                  <div className="topbar-divider" />
-                </>
-              )}
+              <div className="topbar-divider" />
 
               {/* Interactive Tutorial Button */}
               <button
@@ -561,18 +566,6 @@ export function App() {
                 </select>
               </div>
 
-              {/* Ladder menu toggle */}
-              {ENABLE_LADDER && (
-                <button
-                  type="button"
-                  className={`btn-icon ${showLadderMenu ? "active" : ""}`}
-                  onClick={() => useLab.getState().toggleShowLadderMenu()}
-                  title={showLadderMenu ? t("toolbar.hideLadder") : t("toolbar.showLadder")}
-                  aria-label={t("toolbar.ladderToggle")}
-                >
-                  🪜
-                </button>
-              )}
             </div>
           </>
         )}
@@ -618,15 +611,15 @@ export function App() {
 
       {/* Add data-layout-mode attribute to workspace div to support ladder mode CSS layout */}
       <div 
-        className={`workspace ${!paletteOpen ? "palette-collapsed" : ""} ${!sideOpen ? "side-collapsed" : ""}`} 
+        className={`workspace ${!paletteOpen || layoutMode === "ladder" ? "palette-collapsed" : ""} ${!sideOpen ? "side-collapsed" : ""}`} 
         data-layout-mode={layoutMode}
         style={{
           "--palette-width": `${paletteWidth}px`,
           "--side-width": `${sideWidth}px`,
         } as React.CSSProperties}
       >
-        {/* Palette - desktop: inline, mobile: drawer */}
-        {isMobile ? (
+        {/* Palette stays on the schematic. Ladder view is read-only for now. */}
+        {layoutMode !== "ladder" && (isMobile ? (
           <Palette
             className={mobilePaletteOpen ? "open" : ""}
             onClose={() => {
@@ -636,10 +629,10 @@ export function App() {
           />
         ) : (
           paletteOpen && <Palette />
-        )}
+        ))}
 
         {/* Desktop left panel resizer */}
-        {!isMobile && paletteOpen && (
+        {!isMobile && layoutMode !== "ladder" && paletteOpen && (
           <PanelResizer
             direction="left"
             currentWidth={paletteWidth}
@@ -648,8 +641,7 @@ export function App() {
           />
         )}
 
-        {/* Ladder diagram conditional rendering: switch canvas based on layoutMode */}
-        {ENABLE_LADDER && layoutMode === "ladder" ? (
+        {layoutMode === "ladder" ? (
           <LadderSchematic />
         ) : (
           <>
@@ -718,20 +710,22 @@ export function App() {
         )}
 
         {/* Panel toggles for both desktop and small screens */}
-        <TogglePanelButton
-          direction="left"
-          isOpen={isMobile ? mobilePaletteOpen : paletteOpen}
-          onClick={() => {
-            if (isMobile) {
-              const next = !mobilePaletteOpen;
-              setMobilePaletteOpen(next);
-              if (next) setMobileSideOpen(false);
-              useLab.getState().setPaletteOpen(next);
-            } else {
-              useLab.getState().togglePalette();
-            }
-          }}
-        />
+        {layoutMode !== "ladder" && (
+          <TogglePanelButton
+            direction="left"
+            isOpen={isMobile ? mobilePaletteOpen : paletteOpen}
+            onClick={() => {
+              if (isMobile) {
+                const next = !mobilePaletteOpen;
+                setMobilePaletteOpen(next);
+                if (next) setMobileSideOpen(false);
+                useLab.getState().setPaletteOpen(next);
+              } else {
+                useLab.getState().togglePalette();
+              }
+            }}
+          />
+        )}
         <TogglePanelButton
           direction="right"
           isOpen={isMobile ? mobileSideOpen : sideOpen}

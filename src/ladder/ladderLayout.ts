@@ -1,3 +1,4 @@
+import { variantDef } from "../catalog";
 import type { Circuit, Device, DeviceKind, ProcessVars, SimSnapshot, SymbolInst } from "../types";
 import type {
   LadderBranch,
@@ -266,8 +267,13 @@ export function buildLadderDiagram(
   const powerBranches: LadderPowerBranch[] = [];
   const disconnect = devices.find((d) => d.kind === "isolator");
   const breaker3p = devices.find((d) => d.kind === "breaker-3p" || d.kind === "rcd");
-  const fuses = devices.find((d) => d.kind === "fuse");
-  const contactor = devices.find(
+  const fuses = devices.find((d) => {
+    if (d.kind !== "fuse") return false;
+    const sym = symbols.find((s) => s.deviceId === d.id);
+    if (!sym) return true;
+    return sym.variant === "body2" || sym.variant === "body3";
+  });
+  const contactors = devices.filter(
     (d) =>
       d.kind === "contactor" ||
       d.kind === "starter-dol" ||
@@ -275,48 +281,56 @@ export function buildLadderDiagram(
       d.kind === "starter-rev" ||
       d.kind === "starter-rev-combo",
   );
-  const overload = devices.find((d) => d.kind === "overload");
-  const motor3p = devices.find((d) => d.kind === "motor-3ph");
-  const motor1p = devices.find((d) => d.kind === "motor-1ph");
-  const motorDc = devices.find((d) => d.kind === "motor-dc");
+  const overloads = devices.filter((d) => d.kind === "overload");
+  const motors = devices.filter((d) => d.kind === "motor-3ph" || d.kind === "motor-1ph" || d.kind === "motor-dc");
   const ground = devices.find((d) => d.kind === "ground");
+  const tagIndex = (tag: string): string => (tag.match(/(\d+)\s*$/) || ["", ""])[1];
+  const matchByTag = <T extends Device>(pool: T[], motor: Device, i: number): T | undefined =>
+    pool.find((d) => tagIndex(d.tag) && tagIndex(d.tag) === tagIndex(motor.tag)) ?? pool[i];
 
-  if (mains || motor3p || motor1p || breaker3p || disconnect) {
-    const activeMotor = motor3p || motor1p || motorDc;
-    const motorRt = activeMotor ? snapshot.runtime[activeMotor.id] : undefined;
-    const disconnectRt = disconnect ? snapshot.runtime[disconnect.id] : undefined;
-    const breakerRt = breaker3p ? snapshot.runtime[breaker3p.id] : undefined;
-    const fusesRt = fuses ? snapshot.runtime[fuses.id] : undefined;
-    const overloadRt = overload ? snapshot.runtime[overload.id] : undefined;
-    const contactorRt = contactor ? snapshot.runtime[contactor.id] : undefined;
+  if (mains || motors.length || breaker3p || disconnect) {
+    const rows = motors.length > 0 ? motors : [undefined];
+    rows.forEach((motor, i) => {
+      const contactor = motor ? matchByTag(contactors, motor, i) : contactors[0];
+      const overload = motor ? matchByTag(overloads, motor, i) : overloads[0];
+      const motorRt = motor ? snapshot.runtime[motor.id] : undefined;
+      const disconnectRt = disconnect ? snapshot.runtime[disconnect.id] : undefined;
+      const breakerRt = breaker3p ? snapshot.runtime[breaker3p.id] : undefined;
+      const fusesRt = fuses ? snapshot.runtime[fuses.id] : undefined;
+      const overloadRt = overload ? snapshot.runtime[overload.id] : undefined;
+      const contactorRt = contactor ? snapshot.runtime[contactor.id] : undefined;
+      const isDisconnectClosed = disconnectRt ? Boolean(disconnectRt.on && !disconnectRt.tripped) : true;
+      const isBreakerClosed = breakerRt ? Boolean(breakerRt.on && !breakerRt.tripped) : true;
+      const isFusesIntact = fusesRt ? !fusesRt.tripped : true;
+      const isOverloadTripped = overloadRt ? Boolean(overloadRt.tripped) : false;
+      const isContactorClosed = contactorRt
+        ? Boolean(contactorRt.energized || contactorRt.on)
+        : Boolean(motorRt && (motorRt.energized || Math.abs(motorRt.rpm) > 0.1));
 
-    const isDisconnectClosed = disconnectRt ? Boolean(disconnectRt.on && !disconnectRt.tripped) : true;
-    const isBreakerClosed = breakerRt ? Boolean(breakerRt.on && !breakerRt.tripped) : true;
-    const isFusesIntact = fusesRt ? !fusesRt.tripped : true;
-    const isOverloadTripped = overloadRt ? Boolean(overloadRt.tripped) : false;
-    const isContactorClosed = contactorRt ? Boolean(contactorRt.energized || contactorRt.on) : Boolean(motorRt && (motorRt.energized || Math.abs(motorRt.rpm) > 0.1));
-
-    powerBranches.push({
-      id: "pwr_main_branch",
-      title: "3-PHASE POWER & MOTOR MAIN CIRCUIT",
-      mains,
-      disconnect,
-      breaker: breaker3p,
-      fuses,
-      contactor,
-      overload,
-      motor: activeMotor,
-      ground,
-      isDisconnectClosed,
-      isBreakerClosed,
-      isFusesIntact,
-      isOverloadTripped,
-      isContactorClosed,
-      isRunning: Boolean(motorRt && Math.abs(motorRt.rpm) > 0.1),
-      isEnergized: Boolean(motorRt?.energized),
-      speedRpm: motorRt?.rpm,
-      voltage: mains?.params.voltage ?? 480,
-      power: activeMotor?.params.power ?? 5.5,
+      powerBranches.push({
+        id: `pwr_branch_${motor?.id ?? i}`,
+        title: motor
+          ? `3-PHASE POWER — ${motor.tag}`
+          : "3-PHASE POWER & MOTOR MAIN CIRCUIT",
+        mains: i === 0 ? mains : undefined,
+        disconnect: i === 0 ? disconnect : undefined,
+        breaker: i === 0 ? breaker3p : undefined,
+        fuses: i === 0 ? fuses : undefined,
+        contactor,
+        overload,
+        motor,
+        ground: i === 0 ? ground : undefined,
+        isDisconnectClosed,
+        isBreakerClosed,
+        isFusesIntact,
+        isOverloadTripped,
+        isContactorClosed,
+        isRunning: Boolean(motorRt && Math.abs(motorRt.rpm) > 0.1),
+        isEnergized: Boolean(motorRt?.energized),
+        speedRpm: motorRt?.rpm,
+        voltage: mains?.params.voltage ?? 480,
+        power: motor?.params.power ?? 5.5,
+      });
     });
   }
 
@@ -436,30 +450,42 @@ export function buildLadderDiagram(
 
     if (dev.kind === "overload") {
       if (sym.variant === "body") {
-        contactUnits.push({
-          id: `${sym.id}_95_96`,
-          deviceId: dev.id,
-          symbolId: sym.id,
-          device: dev,
-          symbol: sym,
-          variant: "aux-nc",
-          address: "95-96",
-          contactType: "overload",
-          termA: "95",
-          termB: "96",
-        });
-        contactUnits.push({
-          id: `${sym.id}_97_98`,
-          deviceId: dev.id,
-          symbolId: sym.id,
-          device: dev,
-          symbol: sym,
-          variant: "aux-no",
-          address: "97-98",
-          contactType: "no",
-          termA: "97",
-          termB: "98",
-        });
+        const hasAuxNc = allSymbols.some(
+          (s) => s.deviceId === dev.id && (s.variant === "aux-nc" || s.variant === "nc"),
+        );
+        const hasAuxNo = allSymbols.some(
+          (s) => s.deviceId === dev.id && (s.variant === "aux-no" || s.variant === "no"),
+        );
+        // Body already contains 95-96 / 97-98. Only synthesize those poles if no
+        // dedicated aux symbol exists — otherwise the same NC is drawn twice.
+        if (!hasAuxNc) {
+          contactUnits.push({
+            id: `${sym.id}_95_96`,
+            deviceId: dev.id,
+            symbolId: sym.id,
+            device: dev,
+            symbol: sym,
+            variant: "aux-nc",
+            address: "95-96",
+            contactType: "overload",
+            termA: "95",
+            termB: "96",
+          });
+        }
+        if (!hasAuxNo) {
+          contactUnits.push({
+            id: `${sym.id}_97_98`,
+            deviceId: dev.id,
+            symbolId: sym.id,
+            device: dev,
+            symbol: sym,
+            variant: "aux-no",
+            address: "97-98",
+            contactType: "no",
+            termA: "97",
+            termB: "98",
+          });
+        }
       } else if (sym.variant === "aux-no" || sym.variant === "no") {
         contactUnits.push({
           id: sym.id,
@@ -553,7 +579,7 @@ export function buildLadderDiagram(
           device: dev,
           symbol: sym,
           variant: "aux-no",
-          address: "13-14",
+          address: "1-2",
           contactType: "no",
           termA: "1",
           termB: "2",
@@ -566,7 +592,7 @@ export function buildLadderDiagram(
           device: dev,
           symbol: sym,
           variant: "aux-nc",
-          address: "21-22",
+          address: "3-4",
           contactType: "nc",
           termA: "3",
           termB: "4",
@@ -579,7 +605,7 @@ export function buildLadderDiagram(
           device: dev,
           symbol: sym,
           variant: "aux-no2",
-          address: "43-44",
+          address: "5-6",
           contactType: "no",
           termA: "5",
           termB: "6",
@@ -592,7 +618,7 @@ export function buildLadderDiagram(
           device: dev,
           symbol: sym,
           variant: "aux-nc2",
-          address: "31-32",
+          address: "7-8",
           contactType: "nc",
           termA: "7",
           termB: "8",
@@ -870,6 +896,22 @@ export function buildLadderDiagram(
     if (ra !== rb) parent.set(ra, rb);
   };
 
+  const isPerSymbolLadderContact = (kind: DeviceKind, variant: string): boolean => {
+    if (
+      variant === "aux-nc" ||
+      variant === "aux-no" ||
+      variant === "aux-nc2" ||
+      variant === "aux-no2" ||
+      variant === "delayed-nc" ||
+      variant === "delayed-no" ||
+      variant === "inst-nc" ||
+      variant === "inst-no"
+    ) {
+      return kind === "overload" || kind === "contactor" || kind === "relay" || kind === "timer-on" || kind === "timer-off";
+    }
+    return false;
+  };
+
   const symToDev = new Map<string, Device>();
   for (const s of allSymbols) {
     const d = devices.find((dev) => dev.id === s.deviceId);
@@ -880,12 +922,20 @@ export function buildLadderDiagram(
   for (const s of allSymbols) {
     const d = symToDev.get(s.id);
     if (!d) continue;
-    // Link symbol terminals to device terminals
-    ["1", "2", "3", "4", "5", "6", "11", "12", "13", "14", "21", "22", "31", "32", "43", "44", "95", "96", "97", "98", "A1", "A2", "X1", "X2", "U", "V", "W", "L1", "L2", "L3", "T1", "T2", "T3", "COM", "COM2", "FWD", "REV", "PLUS", "MINUS", "+", "-"].forEach((term) => {
-      unionNode(`${s.id}:${term}`, `${d.id}:${term}`);
-    });
+    const def = variantDef(d.kind, s.variant);
+    const perSymbol = isPerSymbolLadderContact(d.kind, s.variant);
+    for (const term of def.terminals) {
+      addNode(`${s.id}:${term.id}`);
+      if (!perSymbol) {
+        unionNode(`${s.id}:${term.id}`, `${d.id}:${term.id}`);
+        if (term.label && term.label !== term.id) {
+          unionNode(`${s.id}:${term.id}`, `${s.id}:${term.label}`);
+          unionNode(`${d.id}:${term.id}`, `${d.id}:${term.label}`);
+        }
+      }
+    }
 
-    // Terminal alias unification (so wires using 1/2, 11/12, 3/4, 13/14, X1/X2, A1/A2 resolve consistently)
+    // Terminal alias unification — only on the same symbol, never mix coil A1 with aux 1-2.
     if (d.kind === "estop" || d.kind === "estop-nc" || d.kind === "pb-nc") {
       unionNode(`${s.id}:1`, `${s.id}:11`);
       unionNode(`${s.id}:2`, `${s.id}:12`);
@@ -908,11 +958,12 @@ export function buildLadderDiagram(
       unionNode(`${s.id}:2`, `${s.id}:X2`);
       unionNode(`${d.id}:1`, `${d.id}:X1`);
       unionNode(`${d.id}:2`, `${d.id}:X2`);
-    } else if (d.kind === "contactor" || d.kind === "relay" || d.kind.startsWith("starter-")) {
+    } else if (
+      (d.kind === "contactor" || d.kind === "relay" || d.kind.startsWith("starter-") || d.kind.startsWith("timer-")) &&
+      (s.variant === "coil" || s.variant === "body")
+    ) {
       unionNode(`${s.id}:1`, `${s.id}:A1`);
       unionNode(`${s.id}:2`, `${s.id}:A2`);
-      unionNode(`${d.id}:1`, `${d.id}:A1`);
-      unionNode(`${d.id}:2`, `${d.id}:A2`);
     }
   }
 
@@ -983,7 +1034,7 @@ export function buildLadderDiagram(
 
   // Net label aliases for Hot (Left) and Return (Right)
   for (const [tagNorm, nodes] of netLabelGroups.entries()) {
-    if (/^(a1|x1|l1|24v\+|hot|\+|v\+|120v|24v|p1|vcc)$/.test(tagNorm)) {
+    if (/^(x1|l1|24v\+|hot|\+|v\+|120v|24v|p1|vcc)$/.test(tagNorm)) {
       nodes.forEach((n) => leftRailNets.add(findNode(n)));
     }
     if (/^(a2|x2|n|com|0v|gnd|-|v-|p2|pe|g)$/.test(tagNorm)) {
@@ -1005,22 +1056,30 @@ export function buildLadderDiagram(
     const x1Net = findNode(`${transformer.id}:X1`);
     const x2Net = findNode(`${transformer.id}:X2`);
 
-    // Detect actual fuses connected to primary or secondary
+    const fuseVariantOf = (d: Device) => symbols.find((s) => s.deviceId === d.id)?.variant;
+    const isCptProtect = (d: Device) =>
+      d.kind === "breaker-1p" ||
+      (d.kind === "fuse" && fuseVariantOf(d) !== "body2" && fuseVariantOf(d) !== "body3");
+
     const priFuse1 = devices.find(
-      (d) => (d.kind === "fuse" || d.kind === "breaker-1p") &&
-        (findNode(`${d.id}:1`) === h1Net || findNode(`${d.id}:2`) === h1Net)
+      (d) =>
+        isCptProtect(d) &&
+        (findNode(`${d.id}:1`) === h1Net || findNode(`${d.id}:2`) === h1Net),
     );
     const priFuse2 = devices.find(
-      (d) => (d.kind === "fuse" || d.kind === "breaker-1p") &&
+      (d) =>
+        isCptProtect(d) &&
         d.id !== priFuse1?.id &&
-        (findNode(`${d.id}:1`) === h2Net || findNode(`${d.id}:2`) === h2Net)
+        (findNode(`${d.id}:1`) === h2Net || findNode(`${d.id}:2`) === h2Net),
     );
     const secFuse = devices.find(
-      (d) => (d.kind === "fuse" || d.kind === "breaker-1p") &&
-        (findNode(`${d.id}:1`) === x1Net || findNode(`${d.id}:2`) === x1Net)
+      (d) =>
+        isCptProtect(d) &&
+        d.id !== priFuse1?.id &&
+        d.id !== priFuse2?.id &&
+        (findNode(`${d.id}:1`) === x1Net || findNode(`${d.id}:2`) === x1Net),
     );
 
-    // Detect if X2 is grounded to PE or a ground device
     const isX2Grounded = rightRailNets.has(x2Net) && (
       Boolean(ground) ||
       (mains ? x2Net === findNode(`${mains.id}:PE`) : false)
@@ -1028,7 +1087,7 @@ export function buildLadderDiagram(
 
     transformerBranch = {
       id: "cpt_branch",
-      title: "CONTROL POWER TRANSFORMER (CPT) - STEP-DOWN SUPPLY",
+      title: `${transformer.tag || "TC1"}  ${isNaN(priV) ? 480 : priV}/${isNaN(secV) ? 120 : secV} V`,
       transformer,
       mains,
       primaryVoltage: isNaN(priV) ? 480 : priV,
@@ -1141,79 +1200,69 @@ export function buildLadderDiagram(
     }
   };
 
-  // Helper to convert traced paths into structured LadderRungItems (series + parallel)
+  const poleKey = (c: DiscoveredContact): string =>
+    `${c.deviceId}:${c.address || c.variant || c.id}`;
+
+  const dedupePoles = (path: DiscoveredContact[]): DiscoveredContact[] => {
+    const seen = new Set<string>();
+    const out: DiscoveredContact[] = [];
+    for (const c of path) {
+      const k = poleKey(c);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(c);
+    }
+    return out;
+  };
+
+  const uniquePathSequences = (paths: DiscoveredContact[][]): DiscoveredContact[][] => {
+    const seen = new Set<string>();
+    const out: DiscoveredContact[][] = [];
+    for (const raw of paths) {
+      const p = dedupePoles(raw);
+      if (p.length === 0) continue;
+      const key = p.map(poleKey).join(">");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(p);
+    }
+    return out;
+  };
+
+  // Contacts that appear on every path belong in series (Stop, OL 95-96), even if DFS order differs.
   const pathsToRungItems = (paths: DiscoveredContact[][]): LadderRungItem[] => {
-    if (paths.length === 0) return [];
+    const uniq = uniquePathSequences(paths);
+    if (uniq.length === 0) return [];
+    if (uniq.length === 1) return uniq[0].map(contactToElem);
 
-    // Convert all paths to rung items for single-path case
-    const itemsMap: Record<number, LadderRungItem[]> = {};
-    paths.forEach((p, _idx) => {
-      itemsMap[_idx] = p.map(contactToElem);
-    });
+    const inAll = new Set(
+      uniq[0].map(poleKey).filter((k) => uniq.every((p) => p.some((c) => poleKey(c) === k))),
+    );
+    const series = uniq[0].filter((c) => inAll.has(poleKey(c)));
 
-    if (paths.length === 1) {
-      return itemsMap[0];
-    }
-
-    // Multiple paths: find common prefix and suffix
-    const first = paths[0];
-    let prefixLen = 0;
-    while (prefixLen < first.length) {
-      const candidateId = first[prefixLen].id;
-      const allMatch = paths.every((p) => p[prefixLen] && p[prefixLen].id === candidateId);
-      if (allMatch) prefixLen++;
-      else break;
-    }
-
-    let suffixLen = 0;
-    while (suffixLen < first.length - prefixLen) {
-      const candidateId = first[first.length - 1 - suffixLen].id;
-      const allMatch = paths.every(
-        (p) => p[p.length - 1 - suffixLen] && p[p.length - 1 - suffixLen].id === candidateId
-      );
-      if (allMatch) suffixLen++;
-      else break;
-    }
-
-    // Get prefix and suffix contacts (as LadderContactElement arrays)
-    const prefixContactsRaw = first.slice(0, prefixLen).map(contactToElem);
-    const suffixContactsRaw = first.slice(first.length - suffixLen).map(contactToElem);
-
-    // Extract middle parallel branches - directly create LadderBranch objects
     const branchMap = new Map<string, LadderBranch>();
-    paths.forEach((p) => {
-      const middle = p.slice(prefixLen, p.length - suffixLen);
-      if (middle.length > 0) {
-        const branchContacts = middle.map(contactToElem);
-        const contactsAsElements = branchContacts
-          .map((item) => (item.type === "contact" ? item.element : null))
-          .filter((c): c is LadderContactElement => c !== null);
-
-        const branchKey = contactsAsElements.map((c) => c.id).join(",");
-
-        if (!branchMap.has(branchKey) && contactsAsElements.length > 0) {
-          branchMap.set(branchKey, {
-            id: `br_${contactsAsElements[0].deviceId}_${branchKey.substring(0, 16)}`,
-            contacts: contactsAsElements,
-            isConducting: contactsAsElements.every((c) => c.isClosed),
-          });
-        }
+    for (const p of uniq) {
+      const middle = p.filter((c) => !inAll.has(poleKey(c)));
+      if (middle.length === 0) continue;
+      const contactsAsElements = middle.map((c) => contactToElem(c).element);
+      const branchKey = contactsAsElements.map((c) => `${c.deviceId}:${c.address || c.id}`).join(",");
+      if (!branchMap.has(branchKey) && contactsAsElements.length > 0) {
+        branchMap.set(branchKey, {
+          id: `br_${contactsAsElements[0].deviceId}_${branchKey.substring(0, 16)}`,
+          contacts: contactsAsElements,
+          isConducting: contactsAsElements.every((c) => c.isClosed),
+        });
       }
-    });
+    }
 
     const branches = Array.from(branchMap.values());
+    const items: LadderRungItem[] = series.map(contactToElem);
 
-    const items: LadderRungItem[] = [];
-
-    // Add prefix contacts
-    prefixContactsRaw.forEach((item) => items.push(item));
-
-    // Add parallel group or single branches
     if (branches.length > 1) {
       items.push({
         type: "parallel",
         group: {
-          id: `par_${first[0]?.deviceId || "grp"}`,
+          id: `par_${series[0]?.deviceId || uniq[0][0]?.deviceId || "grp"}`,
           branches,
           isConducting: branches.some((b) => b.isConducting),
         },
@@ -1224,9 +1273,6 @@ export function buildLadderDiagram(
       });
     }
 
-    // Add suffix contacts
-    suffixContactsRaw.forEach((item) => items.push(item));
-
     return items;
   };
 
@@ -1234,68 +1280,107 @@ export function buildLadderDiagram(
   const rungs: LadderRung[] = [];
   const usedContactIds = new Set<string>();
 
-  // Process Output Devices (Coils, Relays, Lamps, Alarms, Solenoids, etc.)
-  outputDevices.forEach(({ device, symbol }) => {
-    const coil = makeCoilElement(device, symbol);
-    let rungItems: LadderRungItem[] = [];
+  const isOperatorContact = (c: DiscoveredContact): boolean => {
+    const k = c.device.kind;
+    return k === "pb-no" || k === "pb-nc" || k === "estop" || k === "estop-nc" || k === "estop-no";
+  };
 
-    // Find inlet/hot terminal of the load
+  const isSharedProtect = (c: DiscoveredContact): boolean =>
+    c.device.kind === "overload" && (c.address === "95-96" || c.variant === "aux-nc" || c.variant === "nc");
+
+  const isInterposingAux = (c: DiscoveredContact): boolean => {
+    const k = c.device.kind;
+    if (k === "contactor" || k === "relay" || k.startsWith("starter-") || k.startsWith("timer-")) {
+      return Boolean(c.variant && c.variant !== "coil" && c.variant !== "main" && c.variant !== "body");
+    }
+    return false;
+  };
+
+  const pathsForOutput = (device: Device, symbol?: SymbolInst): { paths: DiscoveredContact[][]; hotNet: string } => {
     const term1 = device.kind === "lamp" || device.kind === "alarm" || device.kind === "horn" || device.kind === "heater" ? "1" : "A1";
     const term2 = device.kind === "lamp" || device.kind === "alarm" || device.kind === "horn" || device.kind === "heater" ? "2" : "A2";
-
     const net1 = findNode(`${symbol?.id || device.id}:${term1}`);
     const net2 = findNode(`${symbol?.id || device.id}:${term2}`);
-
     let targetHotNet = net1;
     if (rightRailNets.has(net1)) targetHotNet = net2;
     else if (rightRailNets.has(net2)) targetHotNet = net1;
-
-    // Try tracing exact schematic wiring path
-    const paths = findPathsToLoad(targetHotNet);
-    if (paths.length === 0 && targetHotNet !== net2) {
-      // Also try alternate terminal if not connected to return
+    const found = findPathsToLoad(targetHotNet);
+    if (found.length === 0 && targetHotNet !== net2) {
       const altPaths = findPathsToLoad(net2);
-      if (altPaths.length > 0) paths.push(...altPaths);
+      if (altPaths.length > 0) found.push(...altPaths);
     }
+    return { paths: found, hotNet: targetHotNet };
+  };
+
+  const isPushbuttonHost = (device: Device, paths: DiscoveredContact[][]): boolean => {
+    if (!(device.kind === "contactor" || device.kind === "relay" || device.kind.startsWith("starter-"))) {
+      return false;
+    }
+    return paths.some((p) => {
+      if (!p.some(isOperatorContact)) return false;
+      const lastOp = p.findLastIndex(isOperatorContact);
+      return !p.slice(lastOp + 1).some((c) => isInterposingAux(c) && c.deviceId !== device.id);
+    });
+  };
+
+  // Downstream rungs keep the branch-selecting aux/timer contacts, not Start/Stop/OL or the host coil's own seal-in.
+  const simplifyDownstreamPaths = (paths: DiscoveredContact[][]): DiscoveredContact[][] =>
+    paths
+      .map((p) => {
+        const lastOp = p.findLastIndex(isOperatorContact);
+        let after = lastOp >= 0 ? p.slice(lastOp + 1) : p.slice();
+        after = after.filter(
+          (c) => !isOperatorContact(c) && !isSharedProtect(c) && !hostSealKeys.has(poleKey(c)),
+        );
+        const firstAux = after.findIndex(isInterposingAux);
+        if (firstAux >= 0) return after.slice(firstAux);
+        return after;
+      })
+      .filter((p) => p.length > 0);
+
+  const outputPlans = outputDevices.map(({ device, symbol }) => {
+    const { paths, hotNet } = pathsForOutput(device, symbol);
+    return { device, symbol, paths, hotNet, host: isPushbuttonHost(device, paths) };
+  });
+  const hostSealKeys = new Set<string>();
+  for (const plan of outputPlans) {
+    if (!plan.host) continue;
+    for (const path of plan.paths) {
+      for (const c of path) {
+        if (c.deviceId === plan.device.id && isInterposingAux(c)) hostSealKeys.add(poleKey(c));
+      }
+    }
+  }
+
+  const grouped = new Map<string, typeof outputPlans>();
+  for (const plan of outputPlans) {
+    const key = plan.paths.length === 0 ? `open:${plan.device.id}` : plan.hotNet;
+    const list = grouped.get(key) ?? [];
+    list.push(plan);
+    grouped.set(key, list);
+  }
+
+  const hostRank = (kind: string): number => {
+    if (kind === "contactor" || kind.startsWith("starter-")) return 0;
+    if (kind === "relay") return 1;
+    if (kind.startsWith("timer-")) return 2;
+    return 3;
+  };
+
+  const anyWiredOutput = outputPlans.some((p) => p.paths.length > 0);
+
+  grouped.forEach((group) => {
+    group.sort((a, b) => hostRank(a.device.kind) - hostRank(b.device.kind) || Number(b.host) - Number(a.host));
+    const lead = group.find((p) => p.host) ?? group[0];
+    if (anyWiredOutput && lead.paths.length === 0) return;
+    const coils = group.map((p) => makeCoilElement(p.device, p.symbol));
+    let rungItems: LadderRungItem[] = [];
+    const paths = lead.host ? lead.paths : simplifyDownstreamPaths(lead.paths);
 
     if (paths.length > 0) {
-      // For indicator lamps, alarms, and annunciators:
-      // If the path passes through a dedicated auxiliary or switching contact (e.g. M1 aux-no, M1 aux-nc, FR1 97-98),
-      // the dedicated rung should focus on the controlling contact rather than duplicating the upstream power circuit.
-      if (device.kind === "lamp" || device.kind === "alarm" || device.kind === "horn") {
-        const simplifiedPaths: DiscoveredContact[][] = [];
-        for (const p of paths) {
-          const lastAuxIdx = p.findLastIndex((c) =>
-            c.variant === "aux-no" ||
-            c.variant === "aux-nc" ||
-            c.variant === "aux-no2" ||
-            c.variant === "aux-nc2" ||
-            c.variant === "delayed-no" ||
-            c.variant === "delayed-nc" ||
-            c.variant === "inst-no" ||
-            c.variant === "inst-nc" ||
-            c.address === "97-98" ||
-            c.address === "43-44" ||
-            c.address === "31-32" ||
-            c.address === "13-14" ||
-            c.address === "21-22" ||
-            c.device.kind === "contactor" ||
-            c.device.kind === "relay"
-          );
-          if (lastAuxIdx >= 0) {
-            simplifiedPaths.push([p[lastAuxIdx]]);
-          } else {
-            simplifiedPaths.push(p);
-          }
-        }
-        rungItems = pathsToRungItems(simplifiedPaths);
-      } else {
-        rungItems = pathsToRungItems(paths);
-      }
+      rungItems = pathsToRungItems(paths);
       paths.forEach((p) => p.forEach((c) => usedContactIds.add(c.id)));
-    } else {
-      // Unwired or not connected to power rails: strictly no artificial contacts
-      rungItems = [];
+      if (lead.host) lead.paths.forEach((p) => p.forEach((c) => usedContactIds.add(c.id)));
     }
 
     const isConducted = isLeftRailLive && (rungItems.length === 0 || rungItems.every((item) => {
@@ -1304,6 +1389,7 @@ export function buildLadderDiagram(
       return true;
     }));
 
+    const device = lead.device;
     let rungTitle = `${device.tag.toUpperCase()} OUTPUT CONTROL`;
     if (device.kind === "contactor" || device.kind.startsWith("starter-")) {
       rungTitle = `${device.tag.toUpperCase()} START / STOP & SEAL-IN LATCH`;
@@ -1316,15 +1402,17 @@ export function buildLadderDiagram(
     } else if (device.kind === "alarm" || device.kind === "horn") {
       rungTitle = `${device.tag.toUpperCase()} ALARM & ANNUNCIATOR`;
     }
+    if (coils.length > 1) {
+      rungTitle = `${rungTitle} (${coils.map((c) => c.label).join(", ")})`;
+    }
 
     rungs.push({
-      // Use simple and stable ID format based on device tag
-      id: `rung_${device.tag.replace(/[^a-zA-Z0-9]/g, "_")}`,
+      id: `rung_${group.map((p) => p.device.tag.replace(/[^a-zA-Z0-9]/g, "_")).join("_")}`,
       rungNumber: 0,
       title: rungTitle,
-      comment: `Controls ${device.tag || device.kind} operation based on schematic interlocks.`,
+      comment: `Controls ${coils.map((c) => c.label).join(", ")} based on schematic interlocks.`,
       items: rungItems,
-      coils: [coil],
+      coils,
       isEnergized: isConducted,
       leftRailLive: isLeftRailLive,
       rightRailLive: isRightRailLive,
@@ -1332,12 +1420,22 @@ export function buildLadderDiagram(
   });
 
   // 9. Auxiliary / Unassigned Sensor & Switch Contacts Rungs
-  const remainingContacts = contactUnits.filter((c) => 
-    !usedContactIds.has(c.id) && 
+  const remainingContacts = contactUnits.filter((c) =>
+    !usedContactIds.has(c.id) &&
     c.address !== "95-96" &&
     c.address !== "97-98" &&
     c.device.kind !== "overload" &&
-    c.device.kind !== "contactor"
+    c.device.kind !== "contactor" &&
+    c.device.kind !== "pb-no" &&
+    c.device.kind !== "pb-nc" &&
+    c.device.kind !== "estop" &&
+    c.device.kind !== "estop-nc" &&
+    c.device.kind !== "estop-no" &&
+    c.device.kind !== "fuse" &&
+    c.device.kind !== "breaker-1p" &&
+    c.device.kind !== "relay" &&
+    c.device.kind !== "timer-on" &&
+    c.device.kind !== "timer-off",
   );
   if (remainingContacts.length > 0) {
     let auxIdx = 1;

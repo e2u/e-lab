@@ -7,6 +7,7 @@ import {
   synthesizeInsertContact,
   synthesizeToggleContactVariant,
 } from "./ladder/ladderSynthesis";
+import { ENABLE_LADDER } from "./features";
 import { useLab } from "./store";
 import { emptySnapshot } from "./sim/engine";
 import type { Circuit } from "./types";
@@ -44,6 +45,15 @@ describe("Ladder Diagram System", () => {
       expect(useLab.getState().layoutMode).toBe("ladder");
       expect(useLab.getState().mode).toBe("run");
       expect(useLab.getState().running).toBe(true);
+    });
+
+    it("lets the user switch to ladder view without ENABLE_LADDER", () => {
+      expect(ENABLE_LADDER).toBe(false);
+      expect(useLab.getState().layoutMode).toBe("schematic");
+      useLab.getState().setLayoutMode("ladder");
+      expect(useLab.getState().layoutMode).toBe("ladder");
+      useLab.getState().setLayoutMode("schematic");
+      expect(useLab.getState().layoutMode).toBe("schematic");
     });
 
     it("should keep sideOpen and inspection accessible in ladder mode", () => {
@@ -124,28 +134,99 @@ describe("Ladder Diagram System", () => {
       expect(model.powerBranches[0].power).toBe(7.5);
 
       // Verify Control Rungs
-      expect(model.rungs.length).toBeGreaterThanOrEqual(2);
+      expect(model.rungs.length).toBeGreaterThanOrEqual(1);
 
-      // Rung 1: Start / Stop & Seal-In
-      const rung1 = model.rungs[0];
-      expect(rung1.rungNumber).toBe(1);
-      expect(rung1.title).toContain("START");
-      expect(rung1.coils.length).toBe(1);
-      expect(rung1.coils[0].label).toBe("M1");
+      // Start / Stop & Seal-In (pilot lamp may share this rung when paralleled with the coil)
+      const rung1 = model.rungs.find((r) => r.coils.some((c) => c.label === "M1"));
+      expect(rung1).toBeDefined();
+      expect(rung1!.title).toContain("START");
+      expect(rung1!.coils.some((c) => c.label === "M1")).toBe(true);
 
       // Verify Stop and Overload are in Rung 1 items
-      const hasStop = rung1.items.some((it) => it.type === "contact" && it.element.label === "Stop");
-      const hasOverload = rung1.items.some((it) => it.type === "contact" && it.element.label === "OL1");
-      const hasParallel = rung1.items.some((it) => it.type === "parallel");
+      const hasStop = rung1!.items.some((it) => it.type === "contact" && it.element.label === "Stop");
+      const hasOverload = rung1!.items.some((it) => it.type === "contact" && it.element.label === "OL1");
+      const hasParallel = rung1!.items.some((it) => it.type === "parallel");
       expect(hasStop).toBe(true);
       expect(hasOverload).toBe(true);
       expect(hasParallel).toBe(true);
 
-      // Rung 2: Pilot Light
-      const rung2 = model.rungs[1];
-      expect(rung2.title).toContain("STATUS INDICATOR");
-      expect(rung2.coils.length).toBe(1);
-      expect(rung2.coils[0].label).toBe("Run Lamp");
+      const olPoles = rung1!.items.flatMap((it) =>
+        it.type === "contact"
+          ? [it.element]
+          : it.group.branches.flatMap((b) => b.contacts),
+      ).filter((c) => c.address === "95-96" || (c.kind === "overload" && c.contactType === "overload"));
+      expect(olPoles).toHaveLength(1);
+
+      expect(model.rungs.some((r) => r.coils.some((c) => c.label === "Run Lamp"))).toBe(true);
+    });
+
+    it("shows each Start/Stop pushbutton once on the host coil rung, not on every output", () => {
+      const flatten = (rung: { items: { type: string; element?: { kind: string; label: string }; group?: { branches: { contacts: { kind: string; label: string }[] }[] } }[] }) =>
+        rung.items.flatMap((it) =>
+          it.type === "contact" && it.element
+            ? [it.element]
+            : (it.group?.branches.flatMap((b) => b.contacts) ?? []),
+        );
+
+      const circuit: Circuit = {
+        devices: [
+          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
+          { id: "sb1", kind: "pb-nc", tag: "Stop", params: {} },
+          { id: "sb2", kind: "pb-no", tag: "Start", params: {} },
+          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
+          { id: "ka1", kind: "relay", tag: "KA1", params: {} },
+          { id: "hl1", kind: "lamp", tag: "HL1", params: { color: "green" } },
+          { id: "tr1", kind: "timer-on", tag: "TR1", params: {} },
+        ],
+        symbols: [
+          { id: "s_tc1", deviceId: "tc1", variant: "body", x: 0, y: 0, rot: 0 },
+          { id: "s_sb1", deviceId: "sb1", variant: "body", x: 4, y: 0, rot: 0 },
+          { id: "s_sb2", deviceId: "sb2", variant: "body", x: 8, y: 0, rot: 0 },
+          { id: "s_km1", deviceId: "km1", variant: "coil", x: 12, y: 0, rot: 0 },
+          { id: "s_km1_no", deviceId: "km1", variant: "aux-no", x: 8, y: 4, rot: 0 },
+          { id: "s_ka1", deviceId: "ka1", variant: "coil", x: 16, y: 4, rot: 0 },
+          { id: "s_hl1", deviceId: "hl1", variant: "body", x: 16, y: 8, rot: 0 },
+          { id: "s_tr1", deviceId: "tr1", variant: "coil", x: 20, y: 4, rot: 0 },
+        ],
+        wires: [
+          { id: "w1", a: { symbolId: "s_tc1", term: "X1" }, b: { symbolId: "s_sb1", term: "1" } },
+          { id: "w2", a: { symbolId: "s_sb1", term: "2" }, b: { symbolId: "s_sb2", term: "3" } },
+          { id: "w3", a: { symbolId: "s_sb2", term: "4" }, b: { symbolId: "s_km1", term: "A1" } },
+          { id: "w4", a: { symbolId: "s_km1", term: "A2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w5", a: { symbolId: "s_sb1", term: "2" }, b: { symbolId: "s_km1_no", term: "13" } },
+          { id: "w6", a: { symbolId: "s_km1_no", term: "14" }, b: { symbolId: "s_km1", term: "A1" } },
+          { id: "w7", a: { symbolId: "s_km1_no", term: "14" }, b: { symbolId: "s_ka1", term: "A1" } },
+          { id: "w8", a: { symbolId: "s_ka1", term: "A2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w9", a: { symbolId: "s_km1_no", term: "14" }, b: { symbolId: "s_hl1", term: "1" } },
+          { id: "w10", a: { symbolId: "s_hl1", term: "2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w11", a: { symbolId: "s_km1_no", term: "14" }, b: { symbolId: "s_tr1", term: "A1" } },
+          { id: "w12", a: { symbolId: "s_tr1", term: "A2" }, b: { symbolId: "s_tc1", term: "X2" } },
+        ],
+      };
+
+      const snap = emptySnapshot(circuit);
+      const model = buildLadderDiagram(circuit, snap, [], {
+        temperature: 25,
+        pressure: 0,
+        level: 0,
+        flow: 0,
+        limitHit: false,
+        proxHit: false,
+        photoHit: false,
+      });
+
+      const kmRung = model.rungs.find((r) => r.coils.some((c) => c.label === "KM1"));
+      expect(kmRung).toBeDefined();
+      const kmContacts = flatten(kmRung!);
+      expect(kmContacts.some((c) => c.label === "Start")).toBe(true);
+      expect(kmContacts.some((c) => c.label === "Stop")).toBe(true);
+
+      const startCopies = model.rungs.flatMap(flatten).filter((c) => c.kind === "pb-no");
+      const stopCopies = model.rungs.flatMap(flatten).filter((c) => c.kind === "pb-nc");
+      expect(startCopies).toHaveLength(1);
+      expect(stopCopies).toHaveLength(1);
+
+      expect(kmRung!.coils.map((c) => c.label).sort()).toEqual(["HL1", "KA1", "KM1", "TR1"].sort());
     });
 
     it("should evaluate real-time contact conduction states accurately", () => {
@@ -332,6 +413,8 @@ describe("Ladder Diagram System", () => {
       expect(model.transformerBranch?.transformer.tag).toBe("TC1");
       expect(model.transformerBranch?.primaryVoltage).toBe(480);
       expect(model.transformerBranch?.secondaryVoltage).toBe(120);
+      expect(model.transformerBranch?.title).toMatch(/TC1/);
+      expect(model.transformerBranch?.title).not.toMatch(/STEP-DOWN SUPPLY/);
     });
 
     it("should dynamically update ladder diagram title with document name or title-block", () => {
@@ -460,9 +543,9 @@ describe("Ladder Diagram System", () => {
       });
 
       // Find the rungs for each lamp
-      const tripRung = model.rungs.find((r) => r.coils[0]?.device.id === "hl_trip");
-      const stopRung = model.rungs.find((r) => r.coils[0]?.device.id === "hl_stop");
-      const runRung = model.rungs.find((r) => r.coils[0]?.device.id === "hl_run");
+      const tripRung = model.rungs.find((r) => r.coils.some((c) => c.device.id === "hl_trip"));
+      const stopRung = model.rungs.find((r) => r.coils.some((c) => c.device.id === "hl_stop"));
+      const runRung = model.rungs.find((r) => r.coils.some((c) => c.device.id === "hl_run"));
 
       expect(tripRung).toBeDefined();
       expect(stopRung).toBeDefined();
@@ -508,12 +591,12 @@ describe("Ladder Diagram System", () => {
 
 
       // Motor starter rung - now has simpler ID based on tag
-      const m1Rung = model.rungs.find((r) => r.coils[0]?.device.tag === "M1");
+      const m1Rung = model.rungs.find((r) => r.coils.some((c) => c.device.tag === "M1"));
       
       expect(m1Rung).toBeDefined();
 
       // Overload trip lamp rung (tag: "Overload")  
-      const olLampRung = model.rungs.find((r) => r.coils[0]?.device.tag === "Overload");
+      const olLampRung = model.rungs.find((r) => r.coils.some((c) => c.device.tag === "Overload"));
       expect(olLampRung).toBeDefined();
       const olContact = olLampRung?.items[0]?.type === "contact" ? olLampRung.items[0].element : null;
       expect(olContact).toBeDefined();
@@ -521,7 +604,7 @@ describe("Ladder Diagram System", () => {
       expect(olContact?.address).toBe("97-98");
 
       // Stop indicator lamp rung (tag: "Stop")
-      const stopLampRung = model.rungs.find((r) => r.coils[0]?.device.tag === "Stop");
+      const stopLampRung = model.rungs.find((r) => r.coils.some((c) => c.device.tag === "Stop"));
       expect(stopLampRung).toBeDefined();
       
       // ✅ Updated: M1 NC contact may be at different index due to improved path finding algorithm
@@ -536,7 +619,7 @@ describe("Ladder Diagram System", () => {
       }
 
       // Running indicator lamp rung (tag: "Running")
-      const runLampRung = model.rungs.find((r) => r.coils[0]?.device.tag === "Running");
+      const runLampRung = model.rungs.find((r) => r.coils.some((c) => c.device.tag === "Running"));
       expect(runLampRung).toBeDefined();
       // Should cleanly show 1 direct contact (M1 NO) controlling the Running lamp
       expect(runLampRung?.items).toHaveLength(1);
@@ -610,9 +693,9 @@ describe("Ladder Diagram System", () => {
         useLab.getState().process
       );
 
-      const m1Rung = liveLadder.rungs.find((r) => r.coils[0]?.device.tag === "M1");
+      const m1Rung = liveLadder.rungs.find((r) => r.coils.some((c) => c.device.tag === "M1"));
       expect(m1Rung?.isEnergized).toBe(true);
-      expect(m1Rung?.coils[0]?.isClosed).toBe(true);
+      expect(m1Rung?.coils.find((c) => c.device.tag === "M1")?.isClosed).toBe(true);
     });
   });
 
@@ -916,16 +999,15 @@ describe("Ladder Diagram System", () => {
       // console.log(initialModel.rungs.map((r) => ({ id: r.id, title: r.title })));
       // ✅ Updated to match new rung ID format: rung_<tag> for coils/runs, rung_aux_<deviceId> for aux contacts
       expect(initialModel.rungs.map((r) => r.id)).toEqual([
-        "rung_KM1",  // Contactor coil rung
-        "rung_HL1",  // Lamp rung (includes KM1 aux-no contact at 13-14)
-        "rung_KA1",  // Relay coil rung
+        "rung_KM1",
+        "rung_HL1",
       ]);
+      expect(initialModel.rungs.some((r) => r.coils.some((c) => c.label === "KA1"))).toBe(false);
       const initialRung1 = initialModel.rungs[0];
       const initialRung2 = initialModel.rungs[1];
-      const initialRung3 = initialModel.rungs[2];
 
-      // Reorder: move rung 0 to rung 2 (KM1 output moved to bottom)
-      useLab.getState().reorderLadderRungs(0, 2);
+      // Reorder: swap KM1 and HL1
+      useLab.getState().reorderLadderRungs(0, 1);
 
       const reorderedCircuit = useLab.getState().circuit;
       expect(useLab.getState().isDirty).toBe(true);
@@ -944,13 +1026,11 @@ describe("Ladder Diagram System", () => {
 
       // Verify rungs reordered
       expect(reorderedModel.rungs[0].id).toBe(initialRung2.id);
-      expect(reorderedModel.rungs[1].id).toBe(initialRung3.id);
-      expect(reorderedModel.rungs[2].id).toBe(initialRung1.id);
+      expect(reorderedModel.rungs[1].id).toBe(initialRung1.id);
 
       // Verify sequential rung numbering
       expect(reorderedModel.rungs[0].rungNumber).toBe(1);
       expect(reorderedModel.rungs[1].rungNumber).toBe(2);
-      expect(reorderedModel.rungs[2].rungNumber).toBe(3);
 
       // Verify undo restores previous order
       useLab.getState().undo();
@@ -967,7 +1047,6 @@ describe("Ladder Diagram System", () => {
 
       expect(undoneModel.rungs[0].id).toBe(initialRung1.id);
       expect(undoneModel.rungs[1].id).toBe(initialRung2.id);
-      expect(undoneModel.rungs[2].id).toBe(initialRung3.id);
     });
 
     it("should strictly only include power section components that actually exist in the circuit", async () => {
@@ -1027,6 +1106,190 @@ describe("Ladder Diagram System", () => {
       expect(tb.primaryFuse2).toBeUndefined();
       expect(tb.secondaryFuse).toBeUndefined();
       expect(tb.isGrounded).toBe(false);
+    });
+
+    it("draws one overload 95-96 pole in series, not a parallel stack of copies", () => {
+      const circuit: Circuit = {
+        devices: [
+          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "480/120" } },
+          { id: "ol2", kind: "overload", tag: "OL2", params: {} },
+          { id: "sb1", kind: "pb-nc", tag: "Stop", params: {} },
+          { id: "sb2", kind: "pb-no", tag: "Start", params: {} },
+          { id: "km1", kind: "contactor", tag: "KA2", params: {} },
+        ],
+        symbols: [
+          { id: "s_tc1", deviceId: "tc1", variant: "body", x: 0, y: 0, rot: 0 },
+          { id: "s_ol2_body", deviceId: "ol2", variant: "body", x: 4, y: 0, rot: 0 },
+          { id: "s_ol2_nc", deviceId: "ol2", variant: "aux-nc", x: 8, y: 0, rot: 0 },
+          { id: "s_sb1", deviceId: "sb1", variant: "body", x: 12, y: 0, rot: 0 },
+          { id: "s_sb2", deviceId: "sb2", variant: "body", x: 16, y: 0, rot: 0 },
+          { id: "s_km1", deviceId: "km1", variant: "coil", x: 20, y: 0, rot: 0 },
+          { id: "s_km1_no", deviceId: "km1", variant: "aux-no", x: 16, y: 4, rot: 0 },
+        ],
+        wires: [
+          { id: "w1", a: { symbolId: "s_tc1", term: "X1" }, b: { symbolId: "s_ol2_nc", term: "95" } },
+          { id: "w2", a: { symbolId: "s_ol2_nc", term: "96" }, b: { symbolId: "s_sb1", term: "1" } },
+          { id: "w3", a: { symbolId: "s_sb1", term: "2" }, b: { symbolId: "s_sb2", term: "3" } },
+          { id: "w4", a: { symbolId: "s_sb2", term: "4" }, b: { symbolId: "s_km1", term: "A1" } },
+          { id: "w5", a: { symbolId: "s_km1", term: "A2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w6", a: { symbolId: "s_sb1", term: "2" }, b: { symbolId: "s_km1_no", term: "13" } },
+          { id: "w7", a: { symbolId: "s_km1_no", term: "14" }, b: { symbolId: "s_km1", term: "A1" } },
+        ],
+      };
+
+      const snap = emptySnapshot(circuit);
+      const model = buildLadderDiagram(circuit, snap, [], {
+        temperature: 25,
+        pressure: 0,
+        level: 0,
+        flow: 0,
+        limitHit: false,
+        proxHit: false,
+        photoHit: false,
+      });
+
+      const coilRung = model.rungs.find((r) => r.coils.some((c) => c.label === "KA2"));
+      expect(coilRung).toBeDefined();
+      const poles = coilRung!.items.flatMap((it) =>
+        it.type === "contact" ? [it.element] : it.group.branches.flatMap((b) => b.contacts),
+      );
+      const olNc = poles.filter((c) => c.deviceId === "ol2" && c.address === "95-96");
+      expect(olNc).toHaveLength(1);
+      expect(coilRung!.items.some((it) => it.type === "contact" && it.element.deviceId === "ol2")).toBe(true);
+      const olInParallel = coilRung!.items.some(
+        (it) => it.type === "parallel" && it.group.branches.every((b) => b.contacts.some((c) => c.deviceId === "ol2")),
+      );
+      expect(olInParallel).toBe(false);
+    });
+
+    it("matches a dual-motor schematic: CR1 start/stop, KA2 NC/NO branches, no coil-aux short", () => {
+      const flatten = (rung: { items: { type: string; element?: { kind: string; label: string; address?: string; deviceId: string }; group?: { branches: { contacts: { kind: string; label: string; address?: string; deviceId: string }[] }[] } }[] }) =>
+        rung.items.flatMap((it) =>
+          it.type === "contact" && it.element
+            ? [it.element]
+            : (it.group?.branches.flatMap((b) => b.contacts) ?? []),
+        );
+
+      const circuit: Circuit = {
+        devices: [
+          { id: "tc1", kind: "transformer", tag: "TC1", params: { ratio: "208/120" } },
+          { id: "fu2", kind: "fuse", tag: "FU2", params: {} },
+          { id: "ol1", kind: "overload", tag: "OL1", params: {} },
+          { id: "ol2", kind: "overload", tag: "OL2", params: {} },
+          { id: "stop", kind: "pb-nc", tag: "STOP", params: {} },
+          { id: "start", kind: "pb-no", tag: "START", params: {} },
+          { id: "cr1", kind: "relay", tag: "CR1", params: {} },
+          { id: "ka2", kind: "relay", tag: "KA2", params: {} },
+          { id: "km1", kind: "contactor", tag: "KM1", params: {} },
+          { id: "km2", kind: "contactor", tag: "KM2", params: {} },
+          { id: "tr1", kind: "timer-on", tag: "TR1", params: {} },
+          { id: "tr2", kind: "timer-off", tag: "TR2", params: {} },
+          { id: "hl1", kind: "lamp", tag: "HL1", params: { color: "green" } },
+          { id: "hl2", kind: "lamp", tag: "HL2", params: { color: "yellow" } },
+          { id: "m1", kind: "motor-3ph", tag: "M1", params: { power: 5.5 } },
+          { id: "m2", kind: "motor-3ph", tag: "M2", params: { power: 5.5 } },
+          { id: "ghost", kind: "relay", tag: "KA1", params: {} },
+        ],
+        symbols: [
+          { id: "s_tc1", deviceId: "tc1", variant: "body", x: 0, y: 0, rot: 0 },
+          { id: "s_fu2", deviceId: "fu2", variant: "body", x: 4, y: 0, rot: 0 },
+          { id: "s_ol1", deviceId: "ol1", variant: "aux-nc", x: 8, y: 0, rot: 0 },
+          { id: "s_ol2", deviceId: "ol2", variant: "aux-nc", x: 12, y: 0, rot: 0 },
+          { id: "s_stop", deviceId: "stop", variant: "body", x: 16, y: 0, rot: 0 },
+          { id: "s_start", deviceId: "start", variant: "body", x: 20, y: 0, rot: 0 },
+          { id: "s_cr1", deviceId: "cr1", variant: "coil", x: 24, y: 0, rot: 0 },
+          { id: "s_cr1_no", deviceId: "cr1", variant: "aux-no", x: 20, y: 4, rot: 0 },
+          { id: "s_ka2_nc", deviceId: "ka2", variant: "aux-nc", x: 8, y: 8, rot: 0 },
+          { id: "s_ka2_no", deviceId: "ka2", variant: "aux-no", x: 8, y: 12, rot: 0 },
+          { id: "s_km1", deviceId: "km1", variant: "coil", x: 16, y: 8, rot: 0 },
+          { id: "s_tr1", deviceId: "tr1", variant: "coil", x: 20, y: 8, rot: 0 },
+          { id: "s_hl1", deviceId: "hl1", variant: "body", x: 24, y: 8, rot: 0 },
+          { id: "s_km2", deviceId: "km2", variant: "coil", x: 16, y: 12, rot: 0 },
+          { id: "s_tr2", deviceId: "tr2", variant: "coil", x: 20, y: 12, rot: 0 },
+          { id: "s_hl2", deviceId: "hl2", variant: "body", x: 24, y: 12, rot: 0 },
+          { id: "s_tr1_no", deviceId: "tr1", variant: "delayed-no", x: 8, y: 16, rot: 0 },
+          { id: "s_tr2_nc", deviceId: "tr2", variant: "delayed-nc", x: 16, y: 16, rot: 0 },
+          { id: "s_ka2", deviceId: "ka2", variant: "coil", x: 24, y: 16, rot: 0 },
+          { id: "s_ka2_seal", deviceId: "ka2", variant: "aux-no", x: 12, y: 16, rot: 0 },
+          { id: "s_ghost", deviceId: "ghost", variant: "coil", x: 40, y: 0, rot: 0 },
+        ],
+        wires: [
+          { id: "w1", a: { symbolId: "s_tc1", term: "X1" }, b: { symbolId: "s_fu2", term: "1" } },
+          { id: "w2", a: { symbolId: "s_fu2", term: "2" }, b: { symbolId: "s_ol1", term: "95" } },
+          { id: "w3", a: { symbolId: "s_ol1", term: "96" }, b: { symbolId: "s_ol2", term: "95" } },
+          { id: "w4", a: { symbolId: "s_ol2", term: "96" }, b: { symbolId: "s_stop", term: "1" } },
+          { id: "w5", a: { symbolId: "s_stop", term: "2" }, b: { symbolId: "s_start", term: "3" } },
+          { id: "w6", a: { symbolId: "s_start", term: "4" }, b: { symbolId: "s_cr1", term: "A1" } },
+          { id: "w7", a: { symbolId: "s_cr1", term: "A2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w8", a: { symbolId: "s_stop", term: "2" }, b: { symbolId: "s_cr1_no", term: "1" } },
+          { id: "w9", a: { symbolId: "s_cr1_no", term: "2" }, b: { symbolId: "s_cr1", term: "A1" } },
+          { id: "w10", a: { symbolId: "s_cr1", term: "A1" }, b: { symbolId: "s_ka2_nc", term: "3" } },
+          { id: "w11", a: { symbolId: "s_ka2_nc", term: "4" }, b: { symbolId: "s_km1", term: "A1" } },
+          { id: "w12", a: { symbolId: "s_km1", term: "A1" }, b: { symbolId: "s_tr1", term: "A1" } },
+          { id: "w13", a: { symbolId: "s_km1", term: "A1" }, b: { symbolId: "s_hl1", term: "1" } },
+          { id: "w14", a: { symbolId: "s_km1", term: "A2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w15", a: { symbolId: "s_tr1", term: "A2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w16", a: { symbolId: "s_hl1", term: "2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w17", a: { symbolId: "s_cr1", term: "A1" }, b: { symbolId: "s_ka2_no", term: "1" } },
+          { id: "w18", a: { symbolId: "s_ka2_no", term: "2" }, b: { symbolId: "s_km2", term: "A1" } },
+          { id: "w19", a: { symbolId: "s_km2", term: "A1" }, b: { symbolId: "s_tr2", term: "A1" } },
+          { id: "w20", a: { symbolId: "s_km2", term: "A1" }, b: { symbolId: "s_hl2", term: "1" } },
+          { id: "w21", a: { symbolId: "s_km2", term: "A2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w22", a: { symbolId: "s_tr2", term: "A2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w23", a: { symbolId: "s_hl2", term: "2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w24", a: { symbolId: "s_cr1", term: "A1" }, b: { symbolId: "s_tr1_no", term: "15" } },
+          { id: "w25", a: { symbolId: "s_tr1_no", term: "18" }, b: { symbolId: "s_tr2_nc", term: "15" } },
+          { id: "w26", a: { symbolId: "s_tr2_nc", term: "16" }, b: { symbolId: "s_ka2", term: "A1" } },
+          { id: "w27", a: { symbolId: "s_ka2", term: "A2" }, b: { symbolId: "s_tc1", term: "X2" } },
+          { id: "w28", a: { symbolId: "s_cr1", term: "A1" }, b: { symbolId: "s_ka2_seal", term: "1" } },
+          { id: "w29", a: { symbolId: "s_ka2_seal", term: "2" }, b: { symbolId: "s_tr2_nc", term: "15" } },
+        ],
+      };
+
+      const snap = emptySnapshot(circuit);
+      const model = buildLadderDiagram(circuit, snap, [], {
+        temperature: 25,
+        pressure: 0,
+        level: 0,
+        flow: 0,
+        limitHit: false,
+        proxHit: false,
+        photoHit: false,
+      });
+
+      expect(model.powerBranches.map((b) => b.motor?.tag).sort()).toEqual(["M1", "M2"]);
+      expect(model.rungs.some((r) => r.coils.some((c) => c.label === "KA1"))).toBe(false);
+
+      const cr1 = model.rungs.find((r) => r.coils.some((c) => c.label === "CR1"));
+      expect(cr1).toBeDefined();
+      const cr1c = flatten(cr1!);
+      expect(cr1c.some((c) => c.label === "START")).toBe(true);
+      expect(cr1c.some((c) => c.label === "STOP")).toBe(true);
+      expect(cr1c.filter((c) => c.kind === "pb-no")).toHaveLength(1);
+
+      const km1 = model.rungs.find((r) => r.coils.some((c) => c.label === "KM1"));
+      expect(km1).toBeDefined();
+      expect(km1!.coils.map((c) => c.label).sort()).toEqual(["HL1", "KM1", "TR1"]);
+      const km1c = flatten(km1!);
+      expect(km1c.some((c) => c.kind === "pb-no")).toBe(false);
+      expect(km1c.some((c) => c.deviceId === "ka2" && (c.address === "3-4" || c.contactType === "nc"))).toBe(true);
+
+      const km2 = model.rungs.find((r) => r.coils.some((c) => c.label === "KM2"));
+      expect(km2).toBeDefined();
+      expect(km2!.coils.map((c) => c.label).sort()).toEqual(["HL2", "KM2", "TR2"]);
+      expect(km2!.id).not.toBe(cr1!.id);
+      const km2c = flatten(km2!);
+      expect(km2c.some((c) => c.deviceId === "ka2" && (c.address === "1-2" || c.contactType === "no"))).toBe(true);
+
+      const ka2 = model.rungs.find((r) => r.coils.some((c) => c.label === "KA2") && !r.coils.some((c) => c.label.startsWith("KM")));
+      expect(ka2).toBeDefined();
+      expect(ka2!.id).not.toBe(km2!.id);
+      expect(ka2!.coils.map((c) => c.label)).toEqual(["KA2"]);
+      const ka2c = flatten(ka2!);
+      expect(ka2c.some((c) => c.deviceId === "tr1")).toBe(true);
+      expect(ka2c.some((c) => c.deviceId === "tr2")).toBe(true);
+
+      expect(model.rungs.filter((r) => r.title?.includes("AUXILIARY")).length).toBe(0);
     });
 
     it("should not create phantom rungs for unwired components or unused overload auxiliary contacts", () => {

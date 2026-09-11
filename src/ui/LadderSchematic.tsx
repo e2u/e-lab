@@ -3,6 +3,7 @@ import { useLab } from "../store";
 import { GRID } from "../types";
 import { buildLadderDiagram } from "../ladder/ladderLayout";
 import {
+  LADDER_TRANSFORMER_SEC_Y,
   LadderCoilGlyph,
   LadderContactGlyph,
   LadderPowerSection,
@@ -65,21 +66,36 @@ export function LadderSchematic() {
 
   const powerY = 55;
   const powerHeight = 195;
+  const powerGap = 10;
+  const powerBlockHeight = hasPower
+    ? model.powerBranches.length * powerHeight + Math.max(0, model.powerBranches.length - 1) * powerGap
+    : 0;
 
-  const transformerY = hasPower ? powerY + powerHeight + 16 : 55;
-  const transformerHeight = 125;
+  const transformerY = hasPower ? powerY + powerBlockHeight + 12 : 58;
+  const transformerSecY = transformerY + LADDER_TRANSFORMER_SEC_Y;
 
   let startY = 60;
-  if (hasPower && hasTransformer) {
-    startY = transformerY + transformerHeight + 42;
+  if (hasTransformer) {
+    startY = transformerSecY + 36;
   } else if (hasPower) {
-    startY = powerY + powerHeight + 42;
-  } else if (hasTransformer) {
-    startY = transformerY + transformerHeight + 42;
+    startY = powerY + powerBlockHeight + 42;
   }
+  const railTopY = hasTransformer ? transformerSecY : startY - 20;
   const rungHeight = 110;
+  const coilStack = 38;
+  const rungPitch = model.rungs.map((rung) => rungHeight + Math.max(0, rung.coils.length - 1) * coilStack);
+  const rungYs: number[] = [];
+  {
+    let cursor = startY;
+    for (const pitch of rungPitch) {
+      const extra = pitch - rungHeight;
+      rungYs.push(cursor + 25 + extra / 2);
+      cursor += pitch;
+    }
+  }
+  const contentBottom = startY + rungPitch.reduce((s, p) => s + p, 0) + (mode === "edit" ? rungHeight : 0);
 
-  const totalHeight = Math.max(750, startY + (model.rungs.length + (mode === "edit" ? 1 : 0)) * rungHeight + 90);
+  const totalHeight = Math.max(750, contentBottom + 90);
   const totalWidth = 960;
 
   const leftRailColor = model.isLeftRailLive ? "#f59e0b" : "var(--ladder-wire, #64748b)";
@@ -127,7 +143,7 @@ export function LadderSchematic() {
               key={pb.id || idx}
               branch={pb}
               x={railLeftX}
-              y={powerY}
+              y={powerY + idx * (powerHeight + powerGap)}
               width={rungWidth}
               mode={mode}
               selectedDeviceId={selectedDeviceId}
@@ -152,73 +168,79 @@ export function LadderSchematic() {
           <g className="ladder-rail-left">
             <line
               x1={railLeftX}
-              y1={startY - 20}
+              y1={railTopY}
               x2={railLeftX}
-              y2={startY + Math.max(1, model.rungs.length) * rungHeight - 20}
+              y2={Math.max(railTopY + 40, contentBottom - 40)}
               stroke={leftRailColor}
               strokeWidth="5"
               strokeLinecap="round"
             />
-            {/* Left Rail Label Tag */}
-            <rect
-              x={railLeftX - 70}
-              y={startY - 42}
-              width="65"
-              height="22"
-              rx="4"
-              fill={model.isLeftRailLive ? "#fef3c7" : "var(--ladder-paper, #f1f5f9)"}
-              stroke={leftRailColor}
-              strokeWidth="1.5"
-            />
-            <text
-              x={railLeftX - 37}
-              y={startY - 28}
-              textAnchor="middle"
-              fontSize="10"
-              fontWeight="800"
-              fill={model.isLeftRailLive ? "#b45309" : "var(--ladder-ink, #475569)"}
-            >
-              {model.leftRailLabel.split(" ")[0]} (HOT)
-            </text>
+            {!hasTransformer && (
+              <>
+                <rect
+                  x={railLeftX - 70}
+                  y={startY - 42}
+                  width="65"
+                  height="22"
+                  rx="4"
+                  fill={model.isLeftRailLive ? "#fef3c7" : "var(--ladder-paper, #f1f5f9)"}
+                  stroke={leftRailColor}
+                  strokeWidth="1.5"
+                />
+                <text
+                  x={railLeftX - 37}
+                  y={startY - 28}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fontWeight="800"
+                  fill={model.isLeftRailLive ? "#b45309" : "var(--ladder-ink, #475569)"}
+                >
+                  {model.leftRailLabel.split(" ")[0]} (HOT)
+                </text>
+              </>
+            )}
           </g>
 
           {/* Right Vertical Power Rail */}
           <g className="ladder-rail-right">
             <line
               x1={railRightX}
-              y1={startY - 20}
+              y1={railTopY}
               x2={railRightX}
-              y2={startY + Math.max(1, model.rungs.length) * rungHeight - 20}
+              y2={Math.max(railTopY + 40, contentBottom - 40)}
               stroke={rightRailColor}
               strokeWidth="5"
               strokeLinecap="round"
             />
-            {/* Right Rail Label Tag */}
-            <rect
-              x={railRightX + 5}
-              y={startY - 42}
-              width="68"
-              height="22"
-              rx="4"
-              fill="var(--ladder-paper, #f1f5f9)"
-              stroke={rightRailColor}
-              strokeWidth="1.5"
-            />
-            <text
-              x={railRightX + 39}
-              y={startY - 28}
-              textAnchor="middle"
-              fontSize="10"
-              fontWeight="800"
-              fill="#2563eb"
-            >
-              {model.rightRailLabel.split(" ")[0]} (COM)
-            </text>
+            {!hasTransformer && (
+              <>
+                <rect
+                  x={railRightX + 5}
+                  y={startY - 42}
+                  width="68"
+                  height="22"
+                  rx="4"
+                  fill="var(--ladder-paper, #f1f5f9)"
+                  stroke={rightRailColor}
+                  strokeWidth="1.5"
+                />
+                <text
+                  x={railRightX + 39}
+                  y={startY - 28}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fontWeight="800"
+                  fill="#2563eb"
+                >
+                  {model.rightRailLabel.split(" ")[0]} (COM)
+                </text>
+              </>
+            )}
           </g>
 
           {/* Horizontal Rungs */}
           {model.rungs.map((rung, rIdx) => {
-            const rungY = startY + rIdx * rungHeight + 25;
+            const rungY = rungYs[rIdx];
             const isRungLive = rung.isEnergized && model.isLeftRailLive;
 
             // Collect symbol IDs on this rung for deleting the whole rung
@@ -398,20 +420,31 @@ export function LadderSchematic() {
                   />
                 )}
 
-                {/* Right Output Coils */}
-                {rung.coils.map((coil) => {
+                {/* Right Output Coils (stacked when several loads share this rung) */}
+                {rung.coils.length > 1 && (
+                  <line
+                    x1={railRightX - 130}
+                    y1={rungY - ((rung.coils.length - 1) / 2) * coilStack}
+                    x2={railRightX - 130}
+                    y2={rungY + ((rung.coils.length - 1) / 2) * coilStack}
+                    stroke={isRungLive ? "#f59e0b" : "var(--ladder-wire, #64748b)"}
+                    strokeWidth="2.5"
+                  />
+                )}
+                {rung.coils.map((coil, ci) => {
                   const isSel = Boolean(
                     selected?.type === "symbol" &&
                     (selected.id === coil.symbolId ||
                       (selectedDeviceId && selectedDeviceId === coil.deviceId))
                   );
+                  const coilY = rungY + (ci - (rung.coils.length - 1) / 2) * coilStack;
 
                   return (
                     <LadderCoilGlyph
                       key={coil.id}
                       element={coil}
                       x={railRightX - 130}
-                      y={rungY}
+                      y={coilY}
                       width={130}
                       isRungLive={isRungLive}
                       mode={mode}

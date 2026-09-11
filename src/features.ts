@@ -1,7 +1,10 @@
 /**
  * Compile-time Feature Flags (編譯開關)
  *
- * 1. ENABLE_LADDER: 控制是否開啟梯圖入口 (預設: false / 隱藏)
+ * Viewing schematic vs ladder is always on (toolbar toggle / L).
+ * 設計圖與梯形圖查看已常開（工具列切換 / L）。
+ *
+ * 1. ENABLE_LADDER: reserved for future ladder *editing* (default: false)
  * 2. ENABLE_AUTO_LAYOUT: 控制是否開啟自動佈局按鈕 (預設: false / 隱藏)
  *
  * 編譯或構建時可透過以下方式開啟：

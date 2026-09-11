@@ -5310,13 +5310,15 @@ html, body {
   border-top: 1px solid #e2e8f0;
 }
 
-.layout-mode-switch .btn {
+.layout-mode-switch .btn,
+.layout-mode-switch .seg-btn {
   font-weight: 700;
   letter-spacing: 0.03em;
   transition: all 0.2s ease;
 }
 
-.layout-mode-switch .btn.active {
+.layout-mode-switch .btn.active,
+.layout-mode-switch .seg-btn.active {
   background: #2563eb;
   color: #ffffff;
   border-color: #1d4ed8;

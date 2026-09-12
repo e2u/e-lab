@@ -1,3 +1,4 @@
+import { migrateDeviceHideTagToSymbols } from "./circuitBuilder";
 import { sanitizeCircuitIds } from "./ids";
 import type { Circuit, ProcessVars } from "./types";
 import { tOr } from "./i18n";
@@ -65,6 +66,7 @@ export function parseDoc(raw: unknown): LabDoc | null {
   if (d.version !== DOC_VERSION || !isCircuit(d.circuit)) return null;
   if (!Array.isArray(d.circuit.groups)) d.circuit.groups = [];
   sanitizeCircuitIds(d.circuit);
+  migrateDeviceHideTagToSymbols(d.circuit);
   return {
     version: DOC_VERSION,
     name: typeof d.name === "string" ? d.name : undefined,

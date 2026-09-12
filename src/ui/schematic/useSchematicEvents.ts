@@ -115,6 +115,7 @@ export function useSchematicEvents({
   useEffect(() => {
     const handleGlobalPointerUp = () => {
       cancelLongPress();
+      const dragging = drag.current;
       drag.current = null;
       resizeDrag.current = null;
       wireDrag.current = null;
@@ -122,6 +123,9 @@ export function useSchematicEvents({
       commitLabelDrag();
       junctionClick.current = null;
       paperTouchPanRef.current = null;
+      if (dragging?.pushedHistory && useLab.getState().mode === "edit") {
+        useLab.getState().connectOverlappingTerminals(Object.keys(dragging.origins));
+      }
     };
     window.addEventListener("pointerup", handleGlobalPointerUp);
     window.addEventListener("pointercancel", handleGlobalPointerUp);
@@ -381,7 +385,7 @@ export function useSchematicEvents({
       setRulerPos(p);
     }
     if (labWiring || placing) {
-      setCursor(p);
+      setCursor({ x: Math.round(p.x), y: Math.round(p.y) });
     } else if (cursor !== null) {
       setCursor(null);
     }
@@ -709,10 +713,14 @@ export function useSchematicEvents({
     }
     const jc = junctionClick.current;
     junctionClick.current = null;
+    const dragging = drag.current;
     drag.current = null;
     resizeDrag.current = null;
     wireDrag.current = null;
     tagDrag.current = null;
+    if (dragging?.pushedHistory && mode === "edit") {
+      useLab.getState().connectOverlappingTerminals(Object.keys(dragging.origins));
+    }
     if (jc && Math.hypot(e.clientX - jc.x, e.clientY - jc.y) < 6) {
       const lab = useLab.getState();
       if (lab.mode === "edit" && lab.editSubMode === "wiring") {

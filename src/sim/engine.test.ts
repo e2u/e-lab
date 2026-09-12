@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { addDevice, addSymbol, addWire, emptyCircuit, splitWireAt } from "../circuitBuilder";
 import { GRID, type DeviceKind } from "../types";
 import { KINDS } from "../catalog";
-import { wireRoute } from "../geometry";
+import { terminalWorld, wireRoute } from "../geometry";
 import { selectorReversing, selfHoldMotor, starDeltaStart } from "../examples";
 import { createRuntime, emptySnapshot, PHASE_COLOR, tick } from "./engine";
 import type { ProcessVars } from "../types";
@@ -1234,6 +1234,36 @@ describe("sim engine", () => {
     const c = ex06Motor3phDol();
     const snap0 = run(c, [], 2);
     expect(snap0.faults).toEqual([]);
+  });
+
+  it("conducts through an isolator L1 alias when power is wired to numeric 1", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const disc = addDevice(c, "isolator", "DISC1", "body", 6, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 14, 0);
+    addWire(c, g.symbol, "L1", disc.symbol, "1");
+    addWire(c, disc.symbol, "L1", hl.symbol, "1");
+    addWire(c, hl.symbol, "2", g.symbol, "N");
+    const snap = run(c, [], 2);
+    expect(snap.runtime[hl.device.id].lit).toBe(true);
+    expect(snap.wires[c.wires[1].id].live).toBe(true);
+  });
+
+  it("lights a lamp through an overlap-style zero-length wire", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const sb = addDevice(c, "pb-no", "PB1", "body", 4, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 8, 0);
+    addWire(c, g.symbol, "L1", sb.symbol, "1");
+    addWire(c, sb.symbol, "2", hl.symbol, "1");
+    addWire(c, hl.symbol, "2", g.symbol, "N");
+    const pb2 = terminalWorld(c, { symbolId: sb.symbol.id, term: "2" })!;
+    const hl1 = terminalWorld(c, { symbolId: hl.symbol.id, term: "1" })!;
+    hl.symbol.x += (pb2.x - hl1.x) / GRID;
+    hl.symbol.y += (pb2.y - hl1.y) / GRID;
+    const on = run(c, [sb.device.id]);
+    expect(on.runtime[hl.device.id].lit).toBe(true);
+    expect(on.wires[c.wires[1].id].live).toBe(true);
   });
 
   it("energizes lamp through fuse-2p (body2 variant)", () => {

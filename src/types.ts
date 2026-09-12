@@ -169,6 +169,8 @@ export interface SymbolInst {
   flipY?: boolean;
   /** Offset for draggable component tag/label in grid units. */
   tagOffset?: TagOffset;
+  /** Hide this symbol's tag on print only. Independent of other symbols on the same device. */
+  hideTag?: boolean;
 }
 
 export interface PortRef {

@@ -1,7 +1,9 @@
 import { memo, type MouseEvent, type PointerEvent } from "react";
 import { variantDef } from "../../../catalog";
 import { glyphTransform, isJunction, terminalWorld, textUnflipTransform } from "../../../geometry";
+import { isSymbolTagPrintHidden } from "../../../circuitBuilder";
 import { printHiddenSymbolIds, unionBounds } from "../../../groups";
+import { devicesAreRelated } from "../../../relatedSymbols";
 import { SymbolGlyph } from "../../../Glyphs";
 import { getSymbolTagPlacement } from "../../../tagPlacement";
 import { t } from "../../../i18n";
@@ -98,21 +100,9 @@ export const SymbolLayer = memo(function SymbolLayer({
           Boolean(selectedNetTag) &&
           dev.kind === "net-label" &&
           dev.tag.trim() === selectedNetTag;
-        const isSameDevice = Boolean(
-          selectedDev &&
-            dev.kind !== "junction" &&
-            dev.kind !== "net-label" &&
-            dev.kind !== "title-block" &&
-            ((dev.kind !== "comment" && sym.deviceId === selectedDev.id) ||
-              (selectedDev.kind === "comment" && dev.id === selectedDev.params?.targetDeviceId) ||
-              (dev.kind === "comment" && dev.params?.targetDeviceId === selectedDev.id) ||
-              (dev.kind !== "comment" && dev.kind === selectedDev.kind && dev.tag.trim() && dev.tag.trim() === selectedDev.tag.trim()))
-        );
+        const isSameDevice = Boolean(selectedDev && devicesAreRelated(selectedDev, dev, sym));
         const isRelatedSymbol = !sel && isSameDevice;
-        const wrapClass = [
-          hideOnPrint ? "group-print-hidden" : "",
-          dev.params.hideTag ? "tag-hidden" : "",
-        ].filter(Boolean).join(" ") || undefined;
+        const wrapClass = hideOnPrint ? "group-print-hidden" : undefined;
         return (
           <g key={sym.id} className={wrapClass}>
             {/* Symbol body - preserve rotation */}
@@ -287,17 +277,18 @@ export const SymbolLayer = memo(function SymbolLayer({
               const delayBadgeX = textAnchor === "start" ? tagX : tagX - delayBadgeW / 2;
               const delayTextX = textAnchor === "start" ? tagX + 4 : tagX;
               const delayTextAnchor = textAnchor === "start" ? "start" : "middle";
+              const hideTag = isSymbolTagPrintHidden(sym, dev);
 
               return (
                 <g pointerEvents="all">
                   <g
-                    className="sym-tag-group"
+                    className={`sym-tag-group${hideTag ? " tag-hidden" : ""}`}
                     style={{ cursor: "move" }}
                     onPointerDown={(e) => onTagPointerDown?.(e, sym, dev)}
                     onDoubleClick={(e) => onTagDoubleClick?.(e, sym, dev)}
                     onContextMenu={(e) => (onTagContextMenu ? onTagContextMenu(e, sym, dev) : onSymbolContextMenu(e, sym.id))}
                   >
-                    {!glyphHasTag && !(dev.params.hideTag && omitPrintHidden) && (
+                    {!glyphHasTag && !(hideTag && omitPrintHidden) && (
                       // Keyed by tag+position: renaming or moving the tag replaces these nodes
                       // wholesale instead of mutating them in place, which avoids stale-label
                       // repaints in Safari/WebKit after tag edits.

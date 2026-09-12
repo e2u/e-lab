@@ -46,13 +46,25 @@ describe("persist", () => {
     expect(saved?.params.hideOnPrint).toBe(true);
   });
 
-  it("round-trips device hideTag", () => {
+  it("round-trips per-symbol hideTag", () => {
+    const circuit = lampJog();
+    const lampSym = circuit.symbols.find((s) => circuit.devices.find((d) => d.id === s.deviceId)?.kind === "lamp")!;
+    lampSym.hideTag = true;
+    const back = decodeShare(encodeShare(makeDoc(circuit, "lab")));
+    const saved = back?.circuit.symbols.find((s) => s.id === lampSym.id);
+    expect(saved?.hideTag).toBe(true);
+  });
+
+  it("migrates legacy device hideTag onto each of that device's symbols", () => {
     const circuit = lampJog();
     const lamp = circuit.devices.find((d) => d.kind === "lamp")!;
     lamp.params.hideTag = true;
     const back = decodeShare(encodeShare(makeDoc(circuit, "lab")));
-    const saved = back?.circuit.devices.find((d) => d.id === lamp.id);
-    expect(saved?.params.hideTag).toBe(true);
+    const savedDev = back?.circuit.devices.find((d) => d.id === lamp.id);
+    expect(savedDev?.params.hideTag).toBeUndefined();
+    const savedSyms = back?.circuit.symbols.filter((s) => s.deviceId === lamp.id) ?? [];
+    expect(savedSyms.length).toBeGreaterThan(0);
+    expect(savedSyms.every((s) => s.hideTag === true)).toBe(true);
   });
 
   it("rejects junk", () => {
@@ -63,9 +75,12 @@ describe("persist", () => {
 
   it("loads blank template when creating a new diagram", () => {
     const c = createBlankTemplateCircuit();
-    expect(c.devices.length).toBe(templateData.circuit.devices.length);
     expect(c.symbols.length).toBe(templateData.circuit.symbols.length);
     expect(c.wires.length).toBe(templateData.circuit.wires.length);
+    expect(c.devices.every((d) => c.symbols.some((s) => s.deviceId === d.id))).toBe(true);
+    expect(c.devices.map((d) => d.tag)).toEqual(
+      expect.arrayContaining(["PWR1", "T1", "PB1", "PB2", "CR1", "FU1", "M1", "OL1", "MTR1"]),
+    );
 
     const proc = createBlankTemplateProcess();
     expect(proc.temperature).toBe(templateData.process.temperature);
@@ -73,7 +88,7 @@ describe("persist", () => {
     // Test store loadBlankTemplate
     useLab.getState().loadBlankTemplate(true);
     const state = useLab.getState();
-    expect(state.circuit.devices.length).toBe(templateData.circuit.devices.length);
+    expect(state.circuit.devices.length).toBe(c.devices.length);
     expect(state.circuit.symbols.length).toBe(templateData.circuit.symbols.length);
     expect(state.circuit.wires.length).toBe(templateData.circuit.wires.length);
     expect(state.isDirty).toBe(false);

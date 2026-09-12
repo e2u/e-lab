@@ -1,10 +1,20 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { addDevice, addWire, emptyCircuit } from "./circuitBuilder";
 import { groupSymbols } from "./groups";
-import { DEFAULT_PRINT_OPTIONS, getPrintContentBounds } from "./print";
+import {
+  DEFAULT_PRINT_OPTIONS,
+  getPrintContentBounds,
+  PRINT_EDGE_GUTTER,
+  PRINT_EDGE_URLS,
+  printEdgeUrlBand,
+  viewBoxWithPrintEdgeUrls,
+} from "./print";
 import { TRANSLATIONS } from "./i18n";
 import { useLab } from "./store";
 import { COLS, GRID, ROWS } from "./types";
+import { PrintModal } from "./ui/PrintModal";
 
 describe("print bounds calculation", () => {
   it("returns full canvas bounds when circuit is empty", () => {
@@ -86,6 +96,41 @@ describe("print bounds calculation", () => {
     const bounds = getPrintContentBounds(c, 2);
     expect(bounds.hasElements).toBe(false);
     expect(bounds.viewBox).toBe(`0 0 ${COLS * GRID} ${ROWS * GRID}`);
+  });
+});
+
+describe("print edge URL bands", () => {
+  it("repeats both site URLs so they can fill both page edges", () => {
+    expect(PRINT_EDGE_URLS).toEqual(["https://elab.byd.io", "https://e2u.github.io"]);
+    const band = printEdgeUrlBand(4);
+    expect(band.startsWith("https://elab.byd.io")).toBe(true);
+    expect(band).toContain("https://elab.byd.io**https://e2u.github.io");
+    expect(band).not.toMatch(/elab\.byd\.io\s/);
+    const first = band.indexOf("https://elab.byd.io");
+    const second = band.indexOf("https://e2u.github.io");
+    expect(second).toBeGreaterThan(first);
+    expect(band.split("https://elab.byd.io").length - 1).toBe(4);
+    expect(band.split("https://e2u.github.io").length - 1).toBe(4);
+  });
+
+  it("adds URL gutters after the auto-cropped viewBox without changing content height", () => {
+    const cropped = "220 330 440 260";
+    const next = viewBoxWithPrintEdgeUrls(cropped);
+    expect(next.contentX).toBe(220);
+    expect(next.contentY).toBe(330);
+    expect(next.contentW).toBe(440);
+    expect(next.contentH).toBe(260);
+    expect(next.gutter).toBe(PRINT_EDGE_GUTTER);
+    expect(next.viewBox).toBe(`${220 - PRINT_EDGE_GUTTER} 330 ${440 + PRINT_EDGE_GUTTER * 2} 260`);
+  });
+
+  it("renders repeating URLs on both edges of the cropped print SVG", () => {
+    const html = renderToStaticMarkup(createElement(PrintModal, { isOpen: true, onClose: () => {} }));
+    expect(html).toContain("print-edge-urls-svg");
+    expect(html).toContain("print-edge-clip-left");
+    expect(html).toContain("print-edge-clip-right");
+    expect(html).toContain("https://elab.byd.io");
+    expect(html).toContain("https://e2u.github.io");
   });
 });
 

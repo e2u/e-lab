@@ -400,8 +400,8 @@ function coilBox(w: number, h: number, label: string, hot: boolean, labL = "A1",
     const cy = (h * GRID) / 2;
     return (
         <>
-            <line x1={2} y1={cy} x2={cx - 17} y2={cy} stroke={ink} strokeWidth="2"/>
-            <line x1={cx + 17} y1={cy} x2={w * GRID - 2} y2={cy} stroke={ink} strokeWidth="2"/>
+            <line x1={0} y1={cy} x2={cx - 16} y2={cy} stroke={ink} strokeWidth="2"/>
+            <line x1={cx + 16} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2"/>
             <circle
                 cx={cx}
                 cy={cy}
@@ -1832,31 +1832,32 @@ function GlyphBody({
                     {/* Row 3 vertical divider */}
                     <line x1={cD} y1={yR3top} x2={cD} y2={H} stroke={ink} strokeWidth="1.2" />
 
+                    {/* Plain <text>: title-block copy rotates/flips with the stamp, unlike coil terminal labels. */}
                     {/* ---- ROW 1: Project Name | Project No | Rev | Sheet ---- */}
-                    <Txt x={padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">PROJECT NAME:</Txt>
-                    <Txt x={padL} y={yR1val} fill="#111111" fontSize="12" fontFamily={MONO} fontWeight="700">{projectName}</Txt>
+                    <text x={padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">PROJECT NAME:</text>
+                    <text x={padL} y={yR1val} fill="#111111" fontSize="12" fontFamily={MONO} fontWeight="700">{projectName}</text>
 
-                    <Txt x={cA + padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">PROJECT NO:</Txt>
-                    <Txt x={cA + padL} y={yR1val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="700">{projectNo}</Txt>
+                    <text x={cA + padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">PROJECT NO:</text>
+                    <text x={cA + padL} y={yR1val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="700">{projectNo}</text>
 
-                    <Txt x={cB + padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">REV:</Txt>
-                    <Txt x={cB + padL} y={yR1val} fill="#111111" fontSize="12" fontFamily={MONO} fontWeight="700">{rev}</Txt>
+                    <text x={cB + padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">REV:</text>
+                    <text x={cB + padL} y={yR1val} fill="#111111" fontSize="12" fontFamily={MONO} fontWeight="700">{rev}</text>
 
-                    <Txt x={cC + padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">SHEET:</Txt>
-                    <Txt x={cC + padL} y={yR1val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="700">{sheetNum} OF {sheetTotal}</Txt>
+                    <text x={cC + padL} y={yR1cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">SHEET:</text>
+                    <text x={cC + padL} y={yR1val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="700">{sheetNum} OF {sheetTotal}</text>
 
                     {/* ---- ROW 2: Description (fixed area, font scales to fit) ---- */}
-                    <Txt x={padL} y={yDescCap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">DESCRIPTION:</Txt>
+                    <text x={padL} y={yDescCap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">DESCRIPTION:</text>
                     {descLines.map((ln, i) => (
-                        <Txt key={i} x={padL} y={yDescFirst + i * descLead} fill="#111111" fontSize={descFont} fontFamily={MONO} fontWeight="600">{ln || " "}</Txt>
+                        <text key={i} x={padL} y={yDescFirst + i * descLead} fill="#111111" fontSize={descFont} fontFamily={MONO} fontWeight="600">{ln || " "}</text>
                     ))}
 
                     {/* ---- ROW 3: Designed By | Date ---- */}
-                    <Txt x={padL} y={yR3cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">DESIGNED BY:</Txt>
-                    <Txt x={padL} y={yR3val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="600">{designedBy}</Txt>
+                    <text x={padL} y={yR3cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">DESIGNED BY:</text>
+                    <text x={padL} y={yR3val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="600">{designedBy}</text>
 
-                    <Txt x={cD + padL} y={yR3cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">DATE:</Txt>
-                    <Txt x={cD + padL} y={yR3val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="600">{date}</Txt>
+                    <text x={cD + padL} y={yR3cap} fill="#4a5568" fontSize="8" fontFamily={MONO} fontWeight="700">DATE:</text>
+                    <text x={cD + padL} y={yR3val} fill="#111111" fontSize="11" fontFamily={MONO} fontWeight="600">{date}</text>
                 </g>
             </S>
         );

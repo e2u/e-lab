@@ -65,4 +65,27 @@ describe("title-block rendered markup (SSR)", () => {
     // each wrapped line adds its own <text> node
     expect(tc(long)).toBeGreaterThan(tc(short));
   });
+
+  it("keeps internal text locked to the stamp when the glyph is rotated", () => {
+    const c = emptyCircuit();
+    const { device } = addDevice(c, "title-block", "TB1", "body", 0, 0, {
+      projectName: "AC MOTOR DRIVE",
+      description: "MAIN CONTROL SCHEMATIC",
+    });
+    const v = variantDef(device.kind, "body");
+    const html = renderToStaticMarkup(
+      createElement(SymbolGlyph, {
+        device,
+        variant: "body",
+        w: v.w,
+        h: v.h,
+        rot: 90,
+      }),
+    );
+    expect(html).toContain("PROJECT NAME:");
+    expect(html).toContain("AC MOTOR DRIVE");
+    expect(html).not.toMatch(/rotate\(-90\)/);
+    expect(html).not.toMatch(/rotate\(-180\)/);
+    expect(html).not.toMatch(/rotate\(-270\)/);
+  });
 });

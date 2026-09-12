@@ -253,10 +253,10 @@ export function ContextMenu({
                     <button
                       type="button"
                       onClick={() =>
-                        run(() => useLab.getState().updateDevice(dev.id, { hideTag: !dev.params.hideTag }))
+                        run(() => useLab.getState().setSymbolHideTag(sym.id, !sym.hideTag))
                       }
                     >
-                      {dev.params.hideTag ? t("ctx.showDeviceTag") : t("ctx.hideDeviceTag")}
+                      {sym.hideTag ? t("ctx.showDeviceTag") : t("ctx.hideDeviceTag")}
                     </button>
                   )}
                 </>
@@ -331,6 +331,14 @@ export function ContextMenu({
             {nWires <= 1 && selected?.type === "wire" && (
               <button type="button" onClick={() => run(() => useLab.getState().addJunctionOnWire(selected.id, pos.world))}>
                 {t("ctx.addJunction")}
+              </button>
+            )}
+            {nWires <= 1 && selected?.type === "wire" && pos.world && (
+              <button
+                type="button"
+                onClick={() => run(() => useLab.getState().addWireLabelAt(selected.id, pos.world!))}
+              >
+                {t("ctx.addWireLabelHere")}
               </button>
             )}
             <button

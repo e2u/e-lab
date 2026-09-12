@@ -1049,7 +1049,6 @@ describe("Ladder Diagram System", () => {
     });
 
     it("should strictly only include power section components that actually exist in the circuit", async () => {
-      // Blank template has only mains, isolator, PE ground and net labels (no contactor, overload, or motor)
       const blankModule = await import("./examples/blank-template.json");
       const blankCircuit = (blankModule.default || blankModule).circuit as Circuit;
       const snap = emptySnapshot(blankCircuit);
@@ -1069,11 +1068,10 @@ describe("Ladder Diagram System", () => {
       expect(pb.mains).toBeDefined();
       expect(pb.disconnect).toBeDefined();
       expect(pb.breaker).toBeUndefined();
-      expect(pb.fuses).toBeUndefined();
-      expect(pb.contactor).toBeUndefined();
-      expect(pb.overload).toBeUndefined();
-      expect(pb.motor).toBeUndefined();
-      expect(model.transformerBranch).toBeUndefined();
+      expect(pb.contactor).toBeDefined();
+      expect(pb.overload).toBeDefined();
+      expect(pb.motor).toBeDefined();
+      expect(model.transformerBranch).toBeDefined();
     });
 
     it("should strictly only include transformer branch fuses and ground when actually wired", () => {

@@ -34,15 +34,17 @@ describe("Selection & Tag Isolation", () => {
     expect(useLab.getState().circuit.devices.find((d) => d.id === devA.id)?.tag).toBe("Ground");
   });
 
-  it("toggles hideTag on a device without changing the tag text", () => {
+  it("toggles hideTag on the selected symbol without changing the tag text", () => {
     const s = useLab.getState();
     s.setPlacing("lamp");
     s.placeAt(6, 6);
-    const dev = useLab.getState().circuit.devices.find((d) => d.kind === "lamp")!;
+    const circuit = useLab.getState().circuit;
+    const dev = circuit.devices.find((d) => d.kind === "lamp")!;
+    const sym = circuit.symbols.find((x) => x.deviceId === dev.id)!;
     const tag = dev.tag;
-    s.updateDevice(dev.id, { hideTag: true });
-    const updated = useLab.getState().circuit.devices.find((d) => d.id === dev.id)!;
-    expect(updated.params.hideTag).toBe(true);
-    expect(updated.tag).toBe(tag);
+    s.setSymbolHideTag(sym.id, true);
+    const next = useLab.getState().circuit;
+    expect(next.symbols.find((x) => x.id === sym.id)?.hideTag).toBe(true);
+    expect(next.devices.find((d) => d.id === dev.id)?.tag).toBe(tag);
   });
 });

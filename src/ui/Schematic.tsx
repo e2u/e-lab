@@ -6,6 +6,7 @@ import { ContextMenu } from "./ContextMenu";
 import { InteractionOverlay } from "./schematic/layers/InteractionOverlay";
 import { PaperBackground } from "./schematic/layers/PaperBackground";
 import { PortLayer } from "./schematic/layers/PortLayer";
+import { RelationLayer } from "./schematic/layers/RelationLayer";
 import { SymbolLayer } from "./schematic/layers/SymbolLayer";
 import { WireLayer } from "./schematic/layers/WireLayer";
 import { RulerLeft, RulerTop } from "./schematic/Ruler";
@@ -259,6 +260,11 @@ export function Schematic() {
             onPortPointerDown={onPortPointerDown}
             onPortPointerEnter={onPortPointerEnter}
             onPortPointerLeave={onPortPointerLeave}
+          />
+
+          <RelationLayer
+            circuit={circuit}
+            selectedSymbolId={selected?.type === "symbol" ? selected.id : null}
           />
 
           <InteractionOverlay

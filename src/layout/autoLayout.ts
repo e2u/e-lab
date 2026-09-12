@@ -12,6 +12,8 @@ export interface AutoLayoutOptions {
   controlStartY?: number;
   rungSpacingY?: number;
   useNetLabelsForPower?: boolean;
+  /** Place power devices but do not auto-route HV/power wires. */
+  skipPowerWiring?: boolean;
 }
 
 interface ClassifiedCircuit {
@@ -484,8 +486,23 @@ export function autoLayoutCircuit(
     result.symbols.push(oth);
   }
 
+  const powerSymbolIds = new Set(
+    [
+      ...classified.powerMains,
+      ...classified.powerBreakers,
+      ...classified.powerFuses,
+      ...classified.powerContactors,
+      ...classified.powerOverloads,
+      ...classified.powerMotors,
+      ...classified.powerGrounds,
+    ].map((s) => s.id),
+  );
+
   // 6. Regenerate Clean Orthogonal Wires with Manhattan T-Junctions
-  routeOrthogonalCleanWires(result, nets, circuit, returnBusY);
+  routeOrthogonalCleanWires(result, nets, circuit, returnBusY, {
+    skipPowerWiring: Boolean(options.skipPowerWiring),
+    powerSymbolIds,
+  });
 
   // Strictly align all symbols to integer grid units
   for (const s of result.symbols) {
@@ -556,14 +573,35 @@ function extractOriginalNets(circuit: Circuit): NetEndpoint[][] {
 /**
  * Routes orthogonal wires with standard T-junction placement.
  */
+function endpointIsPower(
+  result: Circuit,
+  p: NetEndpoint,
+  powerSymbolIds: Set<string>,
+): boolean {
+  if (powerSymbolIds.has(p.symbolId)) return true;
+  const sym = result.symbols.find((s) => s.id === p.symbolId);
+  if (!sym) return false;
+  const dev = result.devices.find((d) => d.id === sym.deviceId);
+  if (!dev) return false;
+  if (dev.kind === "transformer") {
+    const t = p.term.toUpperCase();
+    return t.startsWith("H") || t.startsWith("P");
+  }
+  return false;
+}
+
 function routeOrthogonalCleanWires(
   result: Circuit,
   nets: NetEndpoint[][],
   originalCircuit: Circuit,
   returnBusY: number,
+  opts: { skipPowerWiring: boolean; powerSymbolIds: Set<string> },
 ) {
   for (const net of nets) {
-    const activeEndpoints = net.filter((p) => result.symbols.some((s) => s.id === p.symbolId));
+    let activeEndpoints = net.filter((p) => result.symbols.some((s) => s.id === p.symbolId));
+    if (opts.skipPowerWiring) {
+      activeEndpoints = activeEndpoints.filter((p) => !endpointIsPower(result, p, opts.powerSymbolIds));
+    }
     if (activeEndpoints.length < 2) continue;
 
     // Direct 2-terminal connection

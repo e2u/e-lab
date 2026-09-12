@@ -1,5 +1,5 @@
 import { KINDS } from "../catalog";
-import { nodeKey, portDevice, findWireAtPoint } from "../geometry";
+import { nodeKey, portDevice, findWireAtPoint, terminalWorld } from "../geometry";
 import {
   GRID,
   type Circuit,
@@ -157,6 +157,7 @@ export function emptySnapshot(circuit: Circuit): SimSnapshot {
     if (na && nb) link(na, nb);
   }
 
+  linkColocatedTerminals(circuit, link);
   linkNetLabels(circuit, link);
 
   for (const d of circuit.devices) {
@@ -553,6 +554,34 @@ function addContactSymbolNodes(circuit: Circuit, uf: UnionFind): void {
     const v = KINDS[d.kind]?.variants[s.variant];
     if (!v) continue;
     for (const t of v.terminals) uf.add(nk(s.id, t.id));
+  }
+}
+
+/**
+ * Catalog aliases (isolator L1/"1", contactor L1/"1", …) occupy the same screw.
+ * Overlap auto-wires pick the first id at that point; saved drawings often use
+ * the numeric twin. Union them so a visible wire on either id actually conducts.
+ */
+function linkColocatedTerminals(circuit: Circuit, link: (a: string, b: string) => void): void {
+  for (const s of circuit.symbols) {
+    const d = circuit.devices.find((x) => x.id === s.deviceId);
+    if (!d) continue;
+    const v = KINDS[d.kind]?.variants[s.variant];
+    if (!v) continue;
+    const perSymbol = isPerSymbolContact(d.kind, s.variant);
+    const groups = new Map<string, string[]>();
+    for (const t of v.terminals) {
+      const world = terminalWorld(circuit, { symbolId: s.id, term: t.id });
+      if (!world) continue;
+      const key = `${Math.round(world.x)},${Math.round(world.y)}`;
+      const node = perSymbol ? nk(s.id, t.id) : nk(d.id, t.id);
+      const list = groups.get(key);
+      if (list) list.push(node);
+      else groups.set(key, [node]);
+    }
+    for (const nodes of groups.values()) {
+      for (let i = 1; i < nodes.length; i += 1) link(nodes[0], nodes[i]);
+    }
   }
 }
 
@@ -1009,6 +1038,7 @@ export function tick(
     if (na && nb) link(na, nb);
   }
 
+  linkColocatedTerminals(circuit, link);
   linkNetLabels(circuit, link);
 
   for (const d of circuit.devices) {

@@ -122,6 +122,14 @@ export function terminalWorld(
 
 export const STUB = GRID / 4;
 
+export function snapPxToGrid(v: number): number {
+  return Math.round(v / GRID) * GRID;
+}
+
+export function snapPointToGrid(p: { x: number; y: number }): { x: number; y: number } {
+  return { x: snapPxToGrid(p.x), y: snapPxToGrid(p.y) };
+}
+
 export function manhattan(
   a: { x: number; y: number },
   b: { x: number; y: number },
@@ -402,12 +410,13 @@ export function wireRoute(
     append(pts, b);
     return cleanPolyline(pts);
   }
-  if (!jog && (Math.abs(a.x - to.x) < 0.5 || Math.abs(a.y - to.y) < 0.5)) {
-    return [a, to];
+  const dest = snapPointToGrid(to);
+  if (!jog && (Math.abs(a.x - dest.x) < 0.5 || Math.abs(a.y - dest.y) < 0.5)) {
+    return [a, dest];
   }
-  const mid = oa.x !== 0 ? { x: to.x, y: a1.y } : { x: a1.x, y: to.y };
+  const mid = oa.x !== 0 ? { x: dest.x, y: a1.y } : { x: a1.x, y: dest.y };
   append(pts, mid);
-  append(pts, to);
+  append(pts, dest);
   return cleanPolyline(pts);
 }
 
@@ -999,6 +1008,81 @@ export function findPortAtPoint(
     }
   }
   return best ? best.port : null;
+}
+
+/** Half-grid: terminals this close after a snap-move are treated as overlapping. */
+export const TERMINAL_OVERLAP_PX = GRID * 0.35;
+
+function uniqueLocatedPorts(circuit: Circuit, symbolId: string): { port: PortRef; x: number; y: number }[] {
+  const sym = circuit.symbols.find((s) => s.id === symbolId);
+  if (!sym) return [];
+  const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+  if (!dev) return [];
+  const v = variantDef(dev.kind, sym.variant);
+  const wired = new Set<string>();
+  for (const w of circuit.wires) {
+    if (w.a.symbolId === symbolId) wired.add(w.a.term);
+    if (w.b.symbolId === symbolId) wired.add(w.b.term);
+  }
+  const byPos = new Map<string, { port: PortRef; x: number; y: number }[]>();
+  for (const t of v.terminals) {
+    const world = terminalWorld(circuit, { symbolId: sym.id, term: t.id });
+    if (!world) continue;
+    const key = `${Math.round(world.x)},${Math.round(world.y)}`;
+    const list = byPos.get(key);
+    const loc = { port: { symbolId: sym.id, term: t.id }, x: world.x, y: world.y };
+    if (list) list.push(loc);
+    else byPos.set(key, [loc]);
+  }
+  const out: { port: PortRef; x: number; y: number }[] = [];
+  for (const list of byPos.values()) {
+    out.push(list.find((p) => wired.has(p.port.term)) ?? list[0]);
+  }
+  return out;
+}
+
+/**
+ * Terminal pairs that occupy the same world point after moving `movedSymbolIds`.
+ * Same-symbol aliases are ignored. Existing wires are not filtered here.
+ */
+export function findOverlappingTerminalPairs(
+  circuit: Circuit,
+  movedSymbolIds: string[],
+  tolerancePx = TERMINAL_OVERLAP_PX,
+): { a: PortRef; b: PortRef }[] {
+  if (!movedSymbolIds.length) return [];
+  const moved = new Set(movedSymbolIds);
+  const movedPorts = movedSymbolIds.flatMap((id) => uniqueLocatedPorts(circuit, id));
+  const otherPorts = circuit.symbols
+    .filter((s) => !moved.has(s.id))
+    .flatMap((s) => uniqueLocatedPorts(circuit, s.id));
+
+  const pairs: { a: PortRef; b: PortRef }[] = [];
+  const seen = new Set<string>();
+  const addPair = (a: PortRef, b: PortRef) => {
+    if (a.symbolId === b.symbolId) return;
+    const ka = `${a.symbolId}:${a.term}`;
+    const kb = `${b.symbolId}:${b.term}`;
+    const key = ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    pairs.push({ a, b });
+  };
+
+  for (const p of movedPorts) {
+    for (const q of otherPorts) {
+      if (Math.hypot(p.x - q.x, p.y - q.y) <= tolerancePx) addPair(p.port, q.port);
+    }
+  }
+  for (let i = 0; i < movedPorts.length; i += 1) {
+    for (let j = i + 1; j < movedPorts.length; j += 1) {
+      const p = movedPorts[i];
+      const q = movedPorts[j];
+      if (p.port.symbolId === q.port.symbolId) continue;
+      if (Math.hypot(p.x - q.x, p.y - q.y) <= tolerancePx) addPair(p.port, q.port);
+    }
+  }
+  return pairs;
 }
 
 /** Pick the best grid coordinates (gx, gy) on a wire to insert a junction. */
@@ -1809,6 +1893,21 @@ export function wireLabelAnchors(
       const t = (dists[i] + d) / total;
       out.push({ ...offsetLabelPoint(mx, my, horizontal, offset), segLen: len, t });
     }
+  }
+  if (out.length === 0 && pts.length >= 2) {
+    const p = getPointAtProgress(pts, 0.5) ?? pts[0];
+    let horizontal = Math.abs(pts[0].y - pts[pts.length - 1].y) < 0.8;
+    let segLen = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      if (len >= segLen) {
+        segLen = len;
+        horizontal = Math.abs(a.y - b.y) < 0.8;
+      }
+    }
+    out.push({ ...offsetLabelPoint(p.x, p.y, horizontal, offset), segLen: Math.max(segLen, 1), t: 0.5 });
   }
   out.sort((p, q) => q.segLen - p.segLen);
   return out;

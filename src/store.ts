@@ -1,11 +1,11 @@
 import { create } from "zustand";
 import { catalogItem, KINDS, suggestNetLabelTag, variantDef } from "./catalog";
-import { addDevice, addJunction, addSymbol, deleteWireAndCleanJunctions, findJunctionAt, isJunctionSymbol, mergeWires, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
+import { addDevice, addJunction, addSymbol, deleteWireAndCleanJunctions, findJunctionAt, isHostVariant, isJunctionSymbol, mergeDuplicateTagGhosts, migrateDeviceHideTagToSymbols, mergeWires, pruneOrphanDevices, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
 import templateData from "./examples/blank-template.json";
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols, unionBounds } from "./groups";
 import { EXAMPLES } from "./examples";
-import { allWireRoutes, findWireAtPoint, getConnectedWireIds, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute, wireLabelPos } from "./geometry";
+import { allWireRoutes, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute, wireLabelPos } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   downloadJson,
@@ -159,6 +159,15 @@ function readShowWireLabels(): boolean {
   }
 }
 
+function readAutoLayoutSkipPowerWiring(): boolean {
+  if (typeof localStorage === "undefined") return false;
+  try {
+    return localStorage.getItem("elab.autoLayoutSkipPowerWiring") === "true";
+  } catch {
+    return false;
+  }
+}
+
 export interface Selection {
   type: "symbol" | "wire" | "wire-label";
   id: string;
@@ -198,6 +207,7 @@ export interface LabState {
   layoutMode: LayoutMode;
   showLadderMenu: boolean; // Controls whether to show ladder diagram menu
   showWireLabels: boolean; // Sheet option: render wire number labels on the schematic
+  autoLayoutSkipPowerWiring: boolean;
   hiddenWireLabels: Set<string>; // Wire IDs whose labels should be hidden
   isDirty: boolean;
   paletteOpen: boolean;
@@ -233,6 +243,7 @@ export interface LabState {
   hideWireLabelInstance: (wireId: string, t: number) => void;
   showWireLabelInstances: (wireId: string) => void;
   pinWireLabel: (wireId: string, fromT: number, toT: number) => void;
+  addWireLabelAt: (wireId: string, world: { x: number; y: number }) => void;
   showAllWireLabels: () => void;
   mergeSelectedWires: () => void;
   selectAll: () => void;
@@ -243,6 +254,7 @@ export interface LabState {
   nudgeSelected: (dx: number, dy: number) => void;
   alignSelected: (edge: "left" | "right" | "top" | "bottom" | "hcenter" | "vcenter" | "distribute-h" | "distribute-v") => void;
   autoLayout: (options?: AutoLayoutOptions) => void;
+  setAutoLayoutSkipPowerWiring: (skip: boolean) => void;
   snapSelected: () => void;
   duplicateSelected: () => void;
   copySelected: () => void;
@@ -258,6 +270,7 @@ export interface LabState {
     wireUpdates?: { id: string; jog: WireJog }[],
   ) => void;
   clickPort: (port: PortRef) => void;
+  connectOverlappingTerminals: (symbolIds: string[]) => void;
   addJunctionAndConnect: (gx: number, gy: number) => void;
   connectToWire: (wireId: string, world: { x: number; y: number }) => void;
   setWireJog: (id: string, jog: WireJog) => void;
@@ -316,6 +329,7 @@ export interface LabState {
   setDocName: (name: string) => void;
   setNotice: (notice: string | null) => void;
   setSymbolTagOffset: (id: string, offset?: { dx: number; dy: number } | null) => void;
+  setSymbolHideTag: (id: string, hide: boolean) => void;
   resetSymbolTagOffset: (id: string) => void;
   setWireLabelOffset: (id: string, offset?: { dx: number; dy: number } | null) => void;
   resetWireLabelOffset: (id: string) => void;
@@ -386,8 +400,14 @@ function lastDeviceOfKind(circuit: Circuit, kind: Circuit["devices"][0]["kind"],
     const dev = sym && circuit.devices.find((d) => d.id === sym.deviceId);
     if (dev && dev.kind === kind) return dev.id;
   }
-  const matches = circuit.devices.filter((d) => d.kind === kind);
-  return matches.length ? matches[matches.length - 1].id : null;
+  const matches = circuit.devices.filter(
+    (d) => d.kind === kind && circuit.symbols.some((s) => s.deviceId === d.id),
+  );
+  const hosts = matches.filter((d) =>
+    circuit.symbols.some((s) => s.deviceId === d.id && isHostVariant(s.variant)),
+  );
+  const pool = hosts.length ? hosts : matches;
+  return pool.length ? pool[pool.length - 1].id : null;
 }
 
 function mergeRuntime(circuit: Circuit, prev: SimSnapshot["runtime"]): SimSnapshot["runtime"] {
@@ -982,6 +1002,8 @@ function collectHvNetMeta(
 export function createBlankTemplateCircuit(): Circuit {
   const c = clone(templateData.circuit as unknown as Circuit);
   sanitizeCircuitIds(c);
+  mergeDuplicateTagGhosts(c);
+  migrateDeviceHideTagToSymbols(c);
   return c;
 }
 
@@ -992,6 +1014,8 @@ export function createBlankTemplateProcess(): ProcessVars {
 // Initialize from URL share hash, saved draft, or fallback to default template
 const boot = startupDoc(createBlankTemplateCircuit, t("doc.untitled"));
 sanitizeCircuitIds(boot.circuit);
+mergeDuplicateTagGhosts(boot.circuit);
+migrateDeviceHideTagToSymbols(boot.circuit);
 const sidebarBoot = readSidebarState();
 
 const initialLayoutMode = readLayoutMode();
@@ -1025,6 +1049,7 @@ export const useLab = create<LabState>((set, get) => ({
   layoutMode: initialLayoutMode,
   showLadderMenu: readShowLadderMenu(), // Controls whether to show ladder diagram menu
   showWireLabels: readShowWireLabels(), // Sheet option: render wire number labels
+  autoLayoutSkipPowerWiring: readAutoLayoutSkipPowerWiring(),
   hiddenWireLabels: new Set(),
   isDirty: false,
   paletteOpen: sidebarBoot.paletteOpen,
@@ -1370,6 +1395,29 @@ export const useLab = create<LabState>((set, get) => ({
     set({ circuit: next, isDirty: true });
   },
 
+  addWireLabelAt: (wireId, world) => {
+    const circuit = get().circuit;
+    const w = circuit.wires.find((x) => x.id === wireId);
+    if (!w) return;
+    const pts = allWireRoutes(circuit).get(wireId) ?? wireRoute(circuit, w.a, w.b, w.jog);
+    if (pts.length < 1) return;
+    const t = getClosestTOnPolyline(pts, world);
+    get().pushHistory();
+    const next = clone(circuit);
+    const target = next.wires.find((x) => x.id === wireId);
+    if (!target) return;
+    if (!(target.label ?? "").trim()) {
+      const ids = getConnectedWireIds(next, wireId);
+      const sib = next.wires.find((x) => ids.has(x.id) && (x.label ?? "").trim());
+      if (sib?.label) target.label = sib.label;
+    }
+    const marks = [...(target.labelMarks ?? [])];
+    if (!marks.some((m) => !m.hidden && labelMarkMatches(m.t, t))) {
+      marks.push({ t });
+      target.labelMarks = marks;
+    }
+    set({ circuit: next, isDirty: true });
+  },
   pinWireLabel: (wireId, fromT, toT) => {
     const { circuit } = get();
     const idx = circuit.wires.findIndex((x) => x.id === wireId);
@@ -1835,6 +1883,21 @@ export const useLab = create<LabState>((set, get) => ({
     set({ circuit: next, wiringFrom: null, isDirty: true });
   },
 
+  connectOverlappingTerminals: (symbolIds) => {
+    if (get().mode !== "edit") return;
+    if (!symbolIds.length) return;
+    const circuit = get().circuit;
+    const pairs = findOverlappingTerminalPairs(circuit, symbolIds);
+    const toAdd = pairs.filter((p) => !circuit.wires.some((w) => wireHasEnds(w, p.a, p.b)));
+    if (!toAdd.length) return;
+    const next = clone(circuit);
+    for (const p of toAdd) {
+      if (next.wires.some((w) => wireHasEnds(w, p.a, p.b))) continue;
+      next.wires.push({ id: uid("w"), a: p.a, b: p.b });
+    }
+    set({ circuit: next, isDirty: true });
+  },
+
   addJunctionAndConnect: (gx, gy) => {
     if (get().mode !== "edit") return;
     const from = get().wiringFrom;
@@ -2127,6 +2190,7 @@ export const useLab = create<LabState>((set, get) => ({
     const sym = next.symbols.find((s) => s.id === symbolId);
     if (!sym) return;
     sym.deviceId = deviceId;
+    pruneOrphanDevices(next);
     set({ circuit: next, isDirty: true });
   },
 
@@ -2283,6 +2347,9 @@ export const useLab = create<LabState>((set, get) => ({
       process: createBlankTemplateProcess(),
       isDirty: false,
     });
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => get().zoomFit());
+    }
   },
 
   newBoard: () => {
@@ -2320,6 +2387,8 @@ export const useLab = create<LabState>((set, get) => ({
 
   loadCircuit: (circuit, name, process) => {
     sanitizeCircuitIds(circuit);
+    mergeDuplicateTagGhosts(circuit);
+    migrateDeviceHideTagToSymbols(circuit);
     set({
       circuit,
       snapshot: emptySnapshot(circuit),
@@ -2340,6 +2409,20 @@ export const useLab = create<LabState>((set, get) => ({
   setDocName: (name) => set({ docName: name, isDirty: true }),
   setNotice: (notice) => set({ notice }),
 
+  setSymbolHideTag: (id, hide) => {
+    const circuit = get().circuit;
+    const current = circuit.symbols.find((s) => s.id === id);
+    if (!current) return;
+    if (Boolean(current.hideTag) === hide) return;
+    get().pushHistory();
+    const next = clone(circuit);
+    const sym = next.symbols.find((s) => s.id === id);
+    if (!sym) return;
+    if (hide) sym.hideTag = true;
+    else delete sym.hideTag;
+    set({ circuit: next, isDirty: true });
+    get().persistDraft();
+  },
   setSymbolTagOffset: (id, offset) => {
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === id);
@@ -2608,7 +2691,10 @@ export const useLab = create<LabState>((set, get) => ({
     const { circuit } = get();
     if (!circuit.symbols.length) return;
     get().pushHistory();
-    const next = autoLayoutCircuit(circuit, options);
+    const next = autoLayoutCircuit(circuit, {
+      ...options,
+      skipPowerWiring: options?.skipPowerWiring ?? get().autoLayoutSkipPowerWiring,
+    });
     
     // Auto-label wires after layout to ensure connected wires have same label
     const labeledNext = clone(next);
@@ -3123,6 +3209,14 @@ export const useLab = create<LabState>((set, get) => ({
     set({ showLadderMenu: show });
   },
 
+  setAutoLayoutSkipPowerWiring: (skip) => {
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("elab.autoLayoutSkipPowerWiring", String(skip));
+      }
+    } catch {}
+    set({ autoLayoutSkipPowerWiring: skip });
+  },
   setShowWireLabels: (show: boolean) => {
     try {
       if (typeof localStorage !== "undefined") {

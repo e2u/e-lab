@@ -145,6 +145,85 @@ export function pruneOrphanJunctions(circuit: Circuit): void {
   circuit.devices = circuit.devices.filter((d) => !dropDev.has(d.id) || circuit.symbols.some((s) => s.deviceId === d.id));
 }
 
+const HOST_VARIANTS = new Set(["coil", "body", "main", "wye", "delta", "body2", "body3"]);
+
+export function isHostVariant(variant: string): boolean {
+  return HOST_VARIANTS.has(variant);
+}
+
+export function pruneOrphanDevices(circuit: Circuit): void {
+  const used = new Set(circuit.symbols.map((s) => s.deviceId));
+  circuit.devices = circuit.devices.filter((d) => used.has(d.id));
+}
+
+/** Devices of `kind` that still have at least one symbol on the drawing. */
+export function devicesForBinding(circuit: Circuit, kind: DeviceKind): Device[] {
+  return circuit.devices
+    .filter((d) => d.kind === kind && circuit.symbols.some((s) => s.deviceId === d.id))
+    .sort((a, b) => a.tag.localeCompare(b.tag, undefined, { numeric: true }));
+}
+
+export function bindingDisplayTag(circuit: Circuit, device: Device, peers: Device[]): string {
+  const tag = device.tag.trim() || device.kind;
+  const collide = peers.filter((p) => p.tag === device.tag).length > 1;
+  if (!collide) return tag;
+  const variants = [...new Set(circuit.symbols.filter((s) => s.deviceId === device.id).map((s) => s.variant))];
+  return variants.length ? `${tag} (${variants.join(", ")})` : tag;
+}
+
+/** True when this symbol's outer tag should be omitted from print. */
+export function isSymbolTagPrintHidden(sym: SymbolInst, dev?: Device): boolean {
+  if (sym.hideTag !== undefined) return Boolean(sym.hideTag);
+  return Boolean(dev?.params.hideTag);
+}
+
+/**
+ * Old files stored hideTag on the device, which hid every coil/NO/NC copy.
+ * Copy that flag onto each symbol once, then drop the device-level value.
+ */
+export function migrateDeviceHideTagToSymbols(circuit: Circuit): void {
+  for (const d of circuit.devices) {
+    if (!d.params.hideTag) continue;
+    for (const s of circuit.symbols) {
+      if (s.deviceId === d.id && s.hideTag === undefined) s.hideTag = true;
+    }
+    delete d.params.hideTag;
+  }
+}
+
+/**
+ * If several devices share kind+tag and only one has a host (coil/body/main),
+ * fold attach-only ghosts onto that host so aux contacts actually follow it.
+ */
+export function mergeDuplicateTagGhosts(circuit: Circuit): void {
+  pruneOrphanDevices(circuit);
+  const groups = new Map<string, Device[]>();
+  for (const d of circuit.devices) {
+    const key = `${d.kind}\0${d.tag}`;
+    const list = groups.get(key) ?? [];
+    list.push(d);
+    groups.set(key, list);
+  }
+  const drop = new Set<string>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const hosts = group.filter((d) =>
+      circuit.symbols.some((s) => s.deviceId === d.id && isHostVariant(s.variant)),
+    );
+    if (hosts.length !== 1) continue;
+    const hostId = hosts[0].id;
+    for (const d of group) {
+      if (d.id === hostId) continue;
+      if (circuit.symbols.some((s) => s.deviceId === d.id && isHostVariant(s.variant))) continue;
+      for (const s of circuit.symbols) {
+        if (s.deviceId === d.id) s.deviceId = hostId;
+      }
+      drop.add(d.id);
+    }
+  }
+  if (drop.size) circuit.devices = circuit.devices.filter((d) => !drop.has(d.id));
+}
+
 /**
  * Deletes a wire without affecting other wires or causing them to shift.
  * Only cleans up orphan junctions (junctions with 0 remaining wires).

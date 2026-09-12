@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit, mergeWires, removeJunction } from "./circuitBuilder";
 import { GRID, type Circuit } from "./types";
-import { allWireRoutes, alignStackedWireLabels, areWiresConnected, cleanPolyline, dedupeWireLabels, deriveJogToMatchPolyline, findOptimalJunctionForWires, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
+import { allWireRoutes, alignStackedWireLabels, areWiresConnected, cleanPolyline, dedupeWireLabels, deriveJogToMatchPolyline, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
 import { useLab } from "./store";
 
 describe("wire routing stubs", () => {
@@ -54,6 +54,20 @@ describe("wire routing stubs", () => {
     const ys = new Set(pts.slice(1, -1).map((p) => Math.round(p.y)));
     expect(ys.has(Math.round(start.y + 40))).toBe(true);
     expect(pts[1].y).toBeCloseTo(start.y);
+  });
+
+  it("snaps a free wiring destination to the integer grid", () => {
+    const c = emptyCircuit();
+    const pb = addDevice(c, "pb-no", "PB1", "body", 4, 4);
+    const pts = wireRoute(c, { symbolId: pb.symbol.id, term: "2" }, { x: 10.4 * GRID, y: 8.7 * GRID });
+    const dest = pts[pts.length - 1];
+    expect(dest).toEqual(snapPointToGrid({ x: 10.4 * GRID, y: 8.7 * GRID }));
+    expect(dest.x).toBe(10 * GRID);
+    expect(dest.y).toBe(9 * GRID);
+    for (const p of pts.slice(2)) {
+      expect(p.x).toBe(Math.round(p.x / GRID) * GRID);
+      expect(p.y).toBe(Math.round(p.y / GRID) * GRID);
+    }
   });
 
   it("connects vertically or horizontally collinear terminals with a straight grid-aligned line without stub offsets", () => {
@@ -280,6 +294,33 @@ describe("wire crossovers", () => {
     expect(anchors[0].horizontal).toBe(false);
     expect(anchors[0].x).toBeCloseTo(100 + offset);
     expect(anchors[0].x - 100).toBeCloseTo(wireLabelRadius("2") + 1.1);
+  });
+
+  it("still anchors a label on a short hop between close devices", () => {
+    const pts = [
+      { x: 0, y: 40 },
+      { x: GRID * 0.5, y: 40 },
+    ];
+    const anchors = wireLabelAnchors(pts, 6);
+    expect(anchors).toHaveLength(1);
+    expect(anchors[0].t).toBeCloseTo(0.5);
+    expect(anchors[0].y).toBeCloseTo(46);
+  });
+
+  it("keeps 3/4/5 on short neighboring wires instead of dropping them", () => {
+    const mk = (id: string, tag: string, x: number) => ({
+      wireId: id,
+      tag,
+      anchors: [{ x, y: 40, horizontal: true, segLen: GRID * 0.5, t: 0.5 }],
+    });
+    const kept = pickVisibleWireLabels([
+      mk("w3", "3", 0),
+      mk("w4", "4", GRID * 0.8),
+      mk("w5", "5", GRID * 1.6),
+    ]);
+    expect(kept.get("w3")).toHaveLength(1);
+    expect(kept.get("w4")).toHaveLength(1);
+    expect(kept.get("w5")).toHaveLength(1);
   });
 
   it("places extra labels along a long run", () => {
@@ -689,6 +730,43 @@ describe("wire crossovers", () => {
 
     const none = findPortAtPoint(c, world.x + 50, world.y + 50, 10);
     expect(none).toBeNull();
+  });
+
+  it("finds overlapping terminals after a symbol is moved onto another port", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "pb-no", "PB1", "body", 0, 0);
+    const b = addDevice(c, "pb-no", "PB2", "body", 10, 0);
+    const a2 = terminalWorld(c, { symbolId: a.symbol.id, term: "2" })!;
+    const b1 = terminalWorld(c, { symbolId: b.symbol.id, term: "1" })!;
+    a.symbol.x += (b1.x - a2.x) / GRID;
+    a.symbol.y += (b1.y - a2.y) / GRID;
+    const pairs = findOverlappingTerminalPairs(c, [a.symbol.id]);
+    expect(pairs).toHaveLength(1);
+    expect(pairs[0].a).toEqual({ symbolId: a.symbol.id, term: "2" });
+    expect(pairs[0].b).toEqual({ symbolId: b.symbol.id, term: "1" });
+  });
+
+  it("does not pair terminals of the same symbol", () => {
+    const c = emptyCircuit();
+    const lamp = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const pairs = findOverlappingTerminalPairs(c, [lamp.symbol.id]);
+    expect(pairs).toEqual([]);
+  });
+
+  it("prefers an already-wired isolator alias when overlapping that screw", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const disc = addDevice(c, "isolator", "DISC1", "body", 8, 0);
+    const tag = addDevice(c, "net-label", "L1", "body", 20, 0);
+    addWire(c, g.symbol, "L1", disc.symbol, "1");
+    const disc1 = terminalWorld(c, { symbolId: disc.symbol.id, term: "1" })!;
+    const tag1 = terminalWorld(c, { symbolId: tag.symbol.id, term: "1" })!;
+    tag.symbol.x += (disc1.x - tag1.x) / GRID;
+    tag.symbol.y += (disc1.y - tag1.y) / GRID;
+    const pairs = findOverlappingTerminalPairs(c, [tag.symbol.id]);
+    expect(pairs).toHaveLength(1);
+    expect(pairs[0].a).toEqual({ symbolId: tag.symbol.id, term: "1" });
+    expect(pairs[0].b).toEqual({ symbolId: disc.symbol.id, term: "1" });
   });
 
   it("hits draggable wire segments for 2-point, 3-point, and multi-point wires", () => {

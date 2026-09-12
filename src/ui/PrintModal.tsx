@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { allWireRoutes, findWireCrossovers } from "../geometry";
 import { t } from "../i18n";
-import { DEFAULT_PRINT_OPTIONS, getPrintContentBounds, type PrintOptions } from "../print";
+import {
+  DEFAULT_PRINT_OPTIONS,
+  getPrintContentBounds,
+  printEdgeFontSize,
+  printEdgeUrlBandForHeight,
+  viewBoxWithPrintEdgeUrls,
+  type PrintOptions,
+} from "../print";
 import { useLab } from "../store";
 import { trackExportImage } from "../analytics";
 import { COLS, GRID, ROWS } from "../types";
@@ -12,6 +19,56 @@ import { WireLayer } from "./schematic/layers/WireLayer";
 interface PrintModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+function PrintEdgeUrlMarks({
+  contentX,
+  contentY,
+  contentW,
+  contentH,
+  gutter,
+}: {
+  contentX: number;
+  contentY: number;
+  contentW: number;
+  contentH: number;
+  gutter: number;
+}) {
+  const fontSize = printEdgeFontSize(contentH);
+  const band = printEdgeUrlBandForHeight(contentH, fontSize);
+  const leftCx = contentX - gutter / 2;
+  const rightCx = contentX + contentW + gutter / 2;
+  const midY = contentY + contentH / 2;
+  return (
+    <g className="print-edge-urls-svg" pointerEvents="none">
+      <g clipPath="url(#print-edge-clip-left)">
+        <text
+          className="print-edge-url-text"
+          x={leftCx}
+          y={midY}
+          fontSize={fontSize}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          transform={`rotate(-90 ${leftCx} ${midY})`}
+        >
+          {band}
+        </text>
+      </g>
+      <g clipPath="url(#print-edge-clip-right)">
+        <text
+          className="print-edge-url-text"
+          x={rightCx}
+          y={midY}
+          fontSize={fontSize}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          transform={`rotate(90 ${rightCx} ${midY})`}
+        >
+          {band}
+        </text>
+      </g>
+    </g>
+  );
 }
 
 export function PrintModal({ isOpen, onClose }: PrintModalProps) {
@@ -71,11 +128,17 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
     const gridColor = options.background === "paper" ? "rgba(42, 72, 110, 0.14)" : "rgba(0, 0, 0, 0.08)";
     const gridDotColor = options.background === "paper" ? "rgba(42, 72, 110, 0.22)" : "rgba(0, 0, 0, 0.16)";
     const patternId = forPrint ? "print-canvas-grid" : "preview-canvas-grid";
+    const edges = forPrint ? viewBoxWithPrintEdgeUrls(viewBox) : null;
+    const svgViewBox = edges?.viewBox ?? viewBox;
+    const bgX = edges ? edges.contentX - edges.gutter : vbX;
+    const bgY = edges ? edges.contentY : vbY;
+    const bgW = edges ? edges.contentW + edges.gutter * 2 : vbW;
+    const bgH = edges ? edges.contentH : vbH;
 
     return (
       <svg
         className={`print-svg ${options.colorMode === "monochrome" ? "print-monochrome" : ""}`}
-        viewBox={viewBox}
+        viewBox={svgViewBox}
         width="100%"
         height="100%"
         preserveAspectRatio="xMidYMid meet"
@@ -101,11 +164,21 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
               <circle cx={0} cy={0} r={0.9} fill={gridDotColor} />
             </pattern>
           )}
+          {edges && (
+            <>
+              <clipPath id="print-edge-clip-left">
+                <rect x={edges.contentX - edges.gutter} y={edges.contentY} width={edges.gutter} height={edges.contentH} />
+              </clipPath>
+              <clipPath id="print-edge-clip-right">
+                <rect x={edges.contentX + edges.contentW} y={edges.contentY} width={edges.gutter} height={edges.contentH} />
+              </clipPath>
+            </>
+          )}
         </defs>
 
         {/* Background Fill */}
         {options.background !== "transparent" && (
-          <rect x={vbX} y={vbY} width={vbW} height={vbH} fill={bgFill} />
+          <rect x={bgX} y={bgY} width={bgW} height={bgH} fill={bgFill} />
         )}
 
         {/* Grid Overlay */}
@@ -113,20 +186,7 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
           <rect x={vbX} y={vbY} width={vbW} height={vbH} fill={`url(#${patternId})`} />
         )}
 
-        {/* Wires & Crossovers */}
-        <WireLayer
-          circuit={circuit}
-          snapshot={snapshot}
-          selected={null}
-          routes={routes}
-          crossovers={crossovers}
-          showWireLabels={showWireLabels}
-          omitPrintHidden
-          onWireContextMenu={() => {}}
-          onWirePointerDown={() => {}}
-        />
-
-        {/* Components & Symbols */}
+        {/* Symbols first, then wires — same order as the editor so leads are not covered. */}
         <SymbolLayer
           circuit={circuit}
           snapshot={snapshot}
@@ -140,6 +200,20 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
           onSymbolPointerUp={() => {}}
           onSymbolPointerLeave={() => {}}
         />
+
+        <WireLayer
+          circuit={circuit}
+          snapshot={snapshot}
+          selected={null}
+          routes={routes}
+          crossovers={crossovers}
+          showWireLabels={showWireLabels}
+          omitPrintHidden
+          onWireContextMenu={() => {}}
+          onWirePointerDown={() => {}}
+        />
+
+        {edges && <PrintEdgeUrlMarks contentX={edges.contentX} contentY={edges.contentY} contentW={edges.contentW} contentH={edges.contentH} gutter={edges.gutter} />}
       </svg>
     );
   };

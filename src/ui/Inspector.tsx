@@ -1,4 +1,5 @@
 import { GROUP_COLORS, KINDS, LAMP_COLORS } from "../catalog";
+import { bindingDisplayTag, devicesForBinding } from "../circuitBuilder";
 import { selectionHasGroup, selectionIsGroup } from "../groups";
 import { areWiresConnected } from "../geometry";
 import { componentDisplayName, t, variantDisplayName } from "../i18n";
@@ -88,6 +89,7 @@ export function Inspector() {
   const meterHistory = useLab((s) => s.meterHistory);
   const process = useLab((s) => s.process);
   const showWireLabels = useLab((s) => s.showWireLabels);
+  const autoLayoutSkipPowerWiring = useLab((s) => s.autoLayoutSkipPowerWiring);
 
   const injected = [
     ...circuit.wires.filter((w) => w.broken).map((w) => ({ id: w.id, type: "wire" as const, label: t("inspector.broken") })),
@@ -151,6 +153,15 @@ export function Inspector() {
           <button className="btn outline" onClick={() => useLab.getState().autoLabelWires()}>
             {t("inspector.autoLabelWires")}
           </button>
+          <label className="chk" style={{ marginTop: "8px" }}>
+            <input
+              type="checkbox"
+              checked={autoLayoutSkipPowerWiring}
+              onChange={(e) => useLab.getState().setAutoLayoutSkipPowerWiring(e.target.checked)}
+            />
+            {t("inspector.autoLayoutSkipPower")}
+          </label>
+          <p className="hint">{t("inspector.autoLayoutSkipPowerHint")}</p>
         </div>
         {injected.length > 0 && (
           <>
@@ -374,7 +385,7 @@ export function Inspector() {
       </div>
     );
   }
-  const sameKind = circuit.devices.filter((d) => d.kind === dev.kind);
+  const sameKind = devicesForBinding(circuit, dev.kind);
   const machines = circuit.devices.filter(
     (d) => d.kind.startsWith("motor") || d.kind.startsWith("gen") || d.kind === "fan",
   );
@@ -651,10 +662,10 @@ export function Inspector() {
             <>
               <label className="chk">
                 <input
-                  key={`dev-hide-tag-${dev.id}`}
+                  key={`sym-hide-tag-${sym.id}`}
                   type="checkbox"
-                  checked={Boolean(dev.params.hideTag)}
-                  onChange={(e) => useLab.getState().updateDevice(dev.id, { hideTag: e.target.checked })}
+                  checked={Boolean(sym.hideTag)}
+                  onChange={(e) => useLab.getState().setSymbolHideTag(sym.id, e.target.checked)}
                 />
                 {t("inspector.hideDeviceTag")}
               </label>
@@ -711,7 +722,7 @@ export function Inspector() {
               <select value={dev.id} onChange={(e) => useLab.getState().rebind(sym.id, e.target.value)}>
                 {sameKind.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.tag}
+                    {bindingDisplayTag(circuit, d, sameKind)}
                   </option>
                 ))}
               </select>

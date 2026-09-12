@@ -85,6 +85,31 @@ describe("autoLayoutCircuit", () => {
     }
   });
 
+  it("can skip auto-routing high-voltage power wires", () => {
+    const rawCircuit = dolMotorDoc.circuit as any;
+    const withPower = autoLayoutCircuit(rawCircuit);
+    const withoutPower = autoLayoutCircuit(rawCircuit, { skipPowerWiring: true });
+
+    const isPowerDevice = (c: typeof withPower, s: (typeof withPower.symbols)[0]) => {
+      const d = c.devices.find((x) => x.id === s.deviceId);
+      if (!d) return false;
+      if (d.kind === "mains-3ph" || d.kind === "breaker-3p" || d.kind === "isolator" || d.kind === "motor-3ph") return true;
+      if (d.kind === "contactor" && s.variant === "main") return true;
+      if (d.kind === "overload" && (s.variant === "body" || s.variant === "main")) return true;
+      return false;
+    };
+    const touchesPower = (c: typeof withPower, w: (typeof withPower.wires)[0]) => {
+      const a = c.symbols.find((s) => s.id === w.a.symbolId);
+      const b = c.symbols.find((s) => s.id === w.b.symbolId);
+      return Boolean((a && isPowerDevice(c, a)) || (b && isPowerDevice(c, b)));
+    };
+
+    expect(withoutPower.symbols.some((s) => isPowerDevice(withoutPower, s))).toBe(true);
+    expect(withoutPower.wires.filter((w) => touchesPower(withoutPower, w))).toHaveLength(0);
+    expect(withPower.wires.some((w) => touchesPower(withPower, w))).toBe(true);
+    expect(withoutPower.wires.length).toBeLessThan(withPower.wires.length);
+  });
+
   it("handles DOL motor and basic lamp circuits smoothly", () => {
     const dolLayout = autoLayoutCircuit(dolMotorDoc.circuit as any);
     expect(dolLayout.symbols.length).toBeGreaterThan(0);

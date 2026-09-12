@@ -857,6 +857,27 @@ body.panel-resizing * {
   pointer-events: none;
 }
 
+.device-rel-layer {
+  pointer-events: none;
+}
+
+.device-rel-line {
+  fill: none;
+  stroke: rgba(217, 119, 6, 0.45);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.device-rel-arrow {
+  fill: rgba(217, 119, 6, 0.5);
+}
+
+@media print {
+  .device-rel-layer {
+    display: none !important;
+  }
+}
+
 .group-box {
   fill: none;
   stroke-width: 1.4;
@@ -877,9 +898,8 @@ body.panel-resizing * {
   opacity: 0.4;
 }
 
-/* Device tags marked hide-from-print stay visible in Edit/Run, faded. */
-.tag-hidden .sym-tag-bg,
-.tag-hidden .sym-tag {
+/* Only the draggable external tag fades / hides — not glyph-internal labels (coil CR, etc.). */
+.sym-tag-group.tag-hidden {
   opacity: 0.4;
 }
 
@@ -3235,8 +3255,7 @@ html, body {
   display: none;
 }
 
-.print-svg .tag-hidden .sym-tag-bg,
-.print-svg .tag-hidden .sym-tag {
+.print-svg .sym-tag-group.tag-hidden {
   display: none !important;
 }
 
@@ -3280,11 +3299,19 @@ html, body {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
     width: 100% !important;
-    height: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
     background: transparent !important;
     page-break-inside: avoid !important;
+  }
+
+  .print-edge-url-text {
+    fill: #222222 !important;
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.12em !important;
   }
 
   .print-page-header {
@@ -3309,7 +3336,7 @@ html, body {
 
   .print-page-body {
     width: 100% !important;
-    flex: 1 !important;
+    flex: 0 1 auto !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;

@@ -35,6 +35,51 @@ export const DEFAULT_PRINT_OPTIONS: PrintOptions = {
   orientation: "auto",
 };
 
+/** Forced onto both edges of the cropped print, repeating along the content height. */
+export const PRINT_EDGE_URLS = ["https://elab.byd.io", "https://e2u.github.io"] as const;
+
+/** SVG user units added left and right of the auto-cropped viewBox for the URL bands. */
+export const PRINT_EDGE_GUTTER = 12;
+
+const PRINT_EDGE_SEP = "**";
+const PRINT_EDGE_UNIT = PRINT_EDGE_URLS.join(PRINT_EDGE_SEP);
+
+export function printEdgeUrlBand(repeats = 16): string {
+  const n = Math.max(1, repeats);
+  return Array.from({ length: n }, () => PRINT_EDGE_UNIT).join(PRINT_EDGE_SEP);
+}
+
+export function printEdgeFontSize(contentH: number): number {
+  return Math.max(6, Math.min(9, contentH * 0.015));
+}
+
+export function printEdgeUrlBandForHeight(height: number, fontSize: number): string {
+  const approxChar = fontSize * 0.52;
+  const unitLen = (PRINT_EDGE_UNIT.length + PRINT_EDGE_SEP.length) * Math.max(approxChar, 1);
+  const repeats = Math.max(2, Math.ceil(height / unitLen) + 1);
+  return printEdgeUrlBand(repeats);
+}
+
+export function viewBoxWithPrintEdgeUrls(viewBox: string): {
+  contentX: number;
+  contentY: number;
+  contentW: number;
+  contentH: number;
+  gutter: number;
+  viewBox: string;
+} {
+  const [x, y, w, h] = viewBox.split(" ").map(Number);
+  const gutter = PRINT_EDGE_GUTTER;
+  return {
+    contentX: x,
+    contentY: y,
+    contentW: w,
+    contentH: h,
+    gutter,
+    viewBox: `${x - gutter} ${y} ${w + gutter * 2} ${h}`,
+  };
+}
+
 /**
  * Calculates the bounding box of active circuit elements (symbols, wires, terminals, jogs).
  * Excludes blank/empty areas of the diagram.

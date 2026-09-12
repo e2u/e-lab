@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { useLab } from "./store";
 import { emptyCircuit, addDevice, addWire, addJunction, addSymbol } from "./circuitBuilder";
 import { ex07OverloadAlarm } from "./examplesBuilder";
+import { GRID } from "./types";
+import { terminalWorld } from "./geometry";
+import { createRuntime, tick } from "./sim/engine";
 
 describe("autoLabelWires", () => {
   it("assigns unique sequential labels when wires are not connected", () => {
@@ -533,6 +536,18 @@ describe("wire label instances", () => {
     expect(useLab.getState().circuit.wires).toHaveLength(1);
   });
 
+  it("adds a visible wire number at a world point on the selected wire", () => {
+    const c = emptyCircuit();
+    const a = addJunction(c, 0, 4);
+    const b = addJunction(c, 10, 4);
+    const w = addWire(c, a.symbol, "1", b.symbol, "1");
+    w.label = "7";
+    useLab.setState({ circuit: c });
+    useLab.getState().addWireLabelAt(w.id, { x: 7 * GRID, y: 4 * GRID });
+    const marks = useLab.getState().circuit.wires[0].labelMarks ?? [];
+    expect(marks.some((m) => !m.hidden && m.t > 0.55 && m.t < 0.85)).toBe(true);
+  });
+
   it("pins a dragged copy along the same wire", () => {
     const c = emptyCircuit();
     const a = addDevice(c, "lamp", "LT1", "body", 0, 0).symbol;
@@ -544,5 +559,101 @@ describe("wire label instances", () => {
     const marks = useLab.getState().circuit.wires[0].labelMarks ?? [];
     expect(marks.some((m) => m.hidden && Math.abs(m.t - 0.5) < 0.04)).toBe(true);
     expect(marks.some((m) => !m.hidden && Math.abs(m.t - 0.8) < 0.04)).toBe(true);
+  });
+});
+
+describe("device binding ghosts", () => {
+  it("drops a device with no remaining symbols after rebind", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "relay", "CR1", "coil", 0, 0);
+    const ghost = addDevice(c, "relay", "CR1", "aux-no", 8, 0);
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().rebind(ghost.symbol.id, a.device.id);
+    const next = useLab.getState().circuit;
+    expect(next.devices.filter((d) => d.kind === "relay")).toHaveLength(1);
+    expect(next.symbols.filter((s) => s.deviceId === a.device.id)).toHaveLength(2);
+  });
+
+  it("merges attach-only duplicate tags onto the host device on load", () => {
+    const c = emptyCircuit();
+    const host = addDevice(c, "overload", "OL1", "body", 0, 0);
+    const ghost = addDevice(c, "overload", "OL1", "aux-nc", 8, 0);
+    useLab.getState().loadCircuit(c);
+    const next = useLab.getState().circuit;
+    expect(next.devices.filter((d) => d.kind === "overload")).toHaveLength(1);
+    expect(next.symbols.every((s) => s.deviceId === host.device.id)).toBe(true);
+    expect(next.symbols.some((s) => s.variant === "aux-nc")).toBe(true);
+    expect(ghost.device.id).not.toBe(host.device.id);
+  });
+});
+
+describe("connectOverlappingTerminals", () => {
+  it("adds a wire when a moved symbol's terminal lands on another terminal", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "pb-no", "PB1", "body", 0, 0);
+    const b = addDevice(c, "pb-no", "PB2", "body", 6, 0);
+    useLab.setState({ circuit: c, mode: "edit", isDirty: false });
+    useLab.getState().moveGroup([{ id: a.symbol.id, x: 2, y: 0 }]);
+    useLab.getState().connectOverlappingTerminals([a.symbol.id]);
+    const wires = useLab.getState().circuit.wires;
+    expect(wires).toHaveLength(1);
+    expect(wires[0].a).toEqual({ symbolId: a.symbol.id, term: "2" });
+    expect(wires[0].b).toEqual({ symbolId: b.symbol.id, term: "1" });
+  });
+
+  it("does not add a duplicate wire if those ports are already connected", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "pb-no", "PB1", "body", 2, 0);
+    const b = addDevice(c, "pb-no", "PB2", "body", 6, 0);
+    addWire(c, a.symbol, "2", b.symbol, "1");
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().connectOverlappingTerminals([a.symbol.id]);
+    expect(useLab.getState().circuit.wires).toHaveLength(1);
+  });
+
+  it("conducts when a lamp is auto-wired onto an isolator numeric/L1 alias", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const disc = addDevice(c, "isolator", "DISC1", "body", 8, 0);
+    const tap = addDevice(c, "net-label", "HOT", "body", 24, 0);
+    const hl = addDevice(c, "lamp", "LT1", "body", 30, 0);
+    addWire(c, g.symbol, "L1", disc.symbol, "1");
+    addWire(c, tap.symbol, "1", hl.symbol, "1");
+    addWire(c, hl.symbol, "2", g.symbol, "N");
+    const disc1 = terminalWorld(c, { symbolId: disc.symbol.id, term: "1" })!;
+    const tap1 = terminalWorld(c, { symbolId: tap.symbol.id, term: "1" })!;
+    tap.symbol.x += (disc1.x - tap1.x) / GRID;
+    tap.symbol.y += (disc1.y - tap1.y) / GRID;
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().connectOverlappingTerminals([tap.symbol.id]);
+    const next = useLab.getState().circuit;
+    const overlap = next.wires.find(
+      (w) =>
+        (w.a.symbolId === tap.symbol.id && w.b.symbolId === disc.symbol.id) ||
+        (w.b.symbolId === tap.symbol.id && w.a.symbolId === disc.symbol.id),
+    );
+    expect(overlap).toBeDefined();
+    const discTerm = overlap!.a.symbolId === disc.symbol.id ? overlap!.a.term : overlap!.b.term;
+    expect(discTerm).toBe("1");
+    const process = { temperature: 25, pressure: 1, level: 20, flow: 0, limitHit: false, proxHit: false, photoHit: false };
+    const snap = tick(next, createRuntime(next), { held: new Set(), process }, 50, 50);
+    expect(snap.runtime[hl.device.id].lit).toBe(true);
+    expect(snap.wires[overlap!.id].live).toBe(true);
+  });
+});
+
+describe("setSymbolHideTag", () => {
+  it("hides only the selected coil tag, not NO/NC of the same relay", () => {
+    const c = emptyCircuit();
+    const relay = addDevice(c, "relay", "CR1", "coil", 0, 0);
+    const noSym = addSymbol(c, relay.device.id, "aux-no", 10, 0);
+    const ncSym = addSymbol(c, relay.device.id, "aux-nc", 20, 0);
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().setSymbolHideTag(relay.symbol.id, true);
+    const next = useLab.getState().circuit;
+    expect(next.symbols.find((s) => s.id === relay.symbol.id)?.hideTag).toBe(true);
+    expect(next.symbols.find((s) => s.id === noSym.id)?.hideTag).toBeUndefined();
+    expect(next.symbols.find((s) => s.id === ncSym.id)?.hideTag).toBeUndefined();
+    expect(next.devices.find((d) => d.id === relay.device.id)?.params.hideTag).toBeUndefined();
   });
 });

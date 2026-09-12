@@ -48,7 +48,7 @@ export const InteractionOverlay = memo(function InteractionOverlay({
       {wiringFrom && cursor && (() => {
         const a = terminalWorld(circuit, wiringFrom);
         if (!a) return null;
-        let b = { x: cursor.x * GRID, y: cursor.y * GRID };
+        let b = { x: Math.round(cursor.x) * GRID, y: Math.round(cursor.y) * GRID };
         let snapped = false;
         const targetPort = findPortAtPoint(circuit, b.x, b.y, 16);
         if (targetPort && !portsEqual(wiringFrom, targetPort)) {

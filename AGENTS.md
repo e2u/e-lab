@@ -226,3 +226,17 @@ This shifts the label position to be more visually aligned with schematic conven
 
 ### Files Modified
 - `src/geometry.ts`: Updated `wireLabelPos()` to shift vertical wire labels left by half-grid
+
+---
+
+# E-Lab Project - Git Workflow Instructions
+
+When submitting changes via git, follow these rules:
+
+1. **Merge strategy**: Merge the current `feature/ladder` branch into `dev/main`, then push `dev/main` to the remote repository.
+
+2. **Do not publish feature branches**: Never push the `feature/ladder` branch itself to the remote repository. Keep it local only.
+
+3. **Commit message language**: Write all commit messages in English.
+
+4. **No collaborator information**: Do NOT include any collaborator information (such as names, usernames, or attribution) in commit messages.

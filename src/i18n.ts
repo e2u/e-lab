@@ -378,6 +378,12 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "example.20-automated-cell.title": "20# Automated Manufacturing Machine Cell",
     "example.transformer.title": "Transformer",
     "example.three-phase-motor.title": "Three Phase Motor Control",
+    "example.base-template.title": "Base Template",
+    "example.project-01.title": "Project 01",
+    "example.project-02.title": "Project 02",
+    "example.project-03.title": "Project 03",
+    "example.project-11.title": "Project 11",
+    "example.project-12.title": "Project 12",
 
     // Status bar
     "status.edit": "EDIT",
@@ -1294,6 +1300,12 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "example.20-automated-cell.title": "20# 全功能自動化多工位加工單元綜合控制",
     "example.transformer.title": "變壓器",
     "example.three-phase-motor.title": "三相馬達控制",
+    "example.base-template.title": "基礎範本",
+    "example.project-01.title": "Project 01",
+    "example.project-02.title": "Project 02",
+    "example.project-03.title": "Project 03",
+    "example.project-11.title": "Project 11",
+    "example.project-12.title": "Project 12",
 
     // Status bar
     "status.edit": "編輯",

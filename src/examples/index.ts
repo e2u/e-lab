@@ -25,6 +25,12 @@ const exampleImports: Record<string, ExampleImporter> = {
   "20-automated-cell": () => import("./20-automated-cell.json"),
   transformer: () => import("./transformer.json"),
   "three-phase-motor": () => import("./three-phase-motor.json"),
+  "base-template": () => import("./BaseTemplate.json"),
+  "project-01": () => import("./Project 01.json"),
+  "project-02": () => import("./Project 02.json"),
+  "project-03": () => import("./Project 03.json"),
+  "project-11": () => import("./Project 11.json"),
+  "project-12": () => import("./Project 12.json"),
 };
 
 export async function loadExampleJson(id: string): Promise<any> {

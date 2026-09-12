@@ -68,6 +68,23 @@ describe("20 Progressive Example Circuits", () => {
     }
   });
 
+  it("loads Base Template and Project examples from JSON", async () => {
+    const extraIds = [
+      "base-template",
+      "project-01",
+      "project-02",
+      "project-03",
+      "project-11",
+      "project-12",
+    ];
+    for (const id of extraIds) {
+      const doc = await loadExampleJson(id);
+      expect(doc, `Example ${id} must load via dynamic import`).not.toBeNull();
+      expect(doc.circuit).toBeDefined();
+      expect(isCircuit(doc.circuit)).toBe(true);
+    }
+  });
+
   it("should have bilingual title translations for all 20 examples", () => {
     for (const ex of ALL_20_EXAMPLES) {
       const enTitle = t(`example.${ex.id}.title`);

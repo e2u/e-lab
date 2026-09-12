@@ -6,6 +6,11 @@
       "blurb": "三相電源、主隔離、控制變壓器與 DOL 起動控制起步圖"
     },
     {
+      "id": "base-template",
+      "title": "Base Template",
+      "blurb": "三相電源、主隔離、控制變壓器與接觸器／過載起步圖。"
+    },
+    {
       "id": "01-basic-lamp",
       "title": "01# Basic Lamp Circuit",
       "blurb": "直流電源驅動常開按鈕與綠色指示燈基礎電路。"
@@ -104,6 +109,31 @@
       "id": "three-phase-motor",
       "title": "Three Phase Motor Control",
       "blurb": "三相電機基礎控制迴路。"
+    },
+    {
+      "id": "project-01",
+      "title": "Project 01",
+      "blurb": "單站啟停按鈕控制一台三相馬達。"
+    },
+    {
+      "id": "project-02",
+      "title": "Project 02",
+      "blurb": "雙站啟動、單站停止控制一台三相馬達。"
+    },
+    {
+      "id": "project-03",
+      "title": "Project 03",
+      "blurb": "單站啟停同時控制多台三相馬達。"
+    },
+    {
+      "id": "project-11",
+      "title": "Project 11",
+      "blurb": "兩台馬達連續循環運轉控制電路。"
+    },
+    {
+      "id": "project-12",
+      "title": "Project 12",
+      "blurb": "三台馬達連續循環運轉控制電路。"
     }
   ]
 }

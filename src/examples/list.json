@@ -126,6 +126,36 @@
       "blurb": "單站啟停同時控制多台三相馬達。"
     },
     {
+      "id": "project-05",
+      "title": "Project 05",
+      "blurb": "單相交流馬達手動控制，配備斷路器、開關、電壓表及鉗形電流表監測。"
+    },
+    {
+      "id": "project-06",
+      "title": "Project 06",
+      "blurb": "三相馬達直接起動 (DOL) 控制，包含隔離刀閘、斷路器、接觸器自鎖控制迴路。"
+    },
+    {
+      "id": "project-07",
+      "title": "Project 07",
+      "blurb": "三相馬達熱過載保護與聲光警報系統。"
+    },
+    {
+      "id": "project-08",
+      "title": "Project 08",
+      "blurb": "急停安全互鎖主繼電器迴路，觸發時切斷全系統並點亮紅燈警報。"
+    },
+    {
+      "id": "project-09",
+      "title": "Project 09",
+      "blurb": "手動/自動/關閉 (HOA) 選擇開關控制抽水泵與排污電磁閥。"
+    },
+    {
+      "id": "project-10",
+      "title": "Project 10",
+      "blurb": "雙地異地控制：雙按鈕串聯停止與並聯啟動三相馬達。"
+    },
+    {
       "id": "project-11",
       "title": "Project 11",
       "blurb": "兩台馬達連續循環運轉控制電路。"

@@ -55,6 +55,15 @@ export function useSchematicEvents({
     startY?: number;
     pushedHistory?: boolean;
   } | null>(null);
+  const drawingDrag = useRef<{
+    kind: DeviceKind;
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+    pushedHistory?: boolean;
+  } | null>(null);
+  const draggingRef = useRef<boolean>(false);
   const tagDrag = useRef<{
     id: string;
     originOffset: { dx: number; dy: number };
@@ -289,6 +298,57 @@ export function useSchematicEvents({
 
     if (e.button !== 0) return;
     if (placing) {
+      // Check if this is a drawing shape that supports two-click draw mode
+      const item = catalogItem(placing);
+      const isDrawingShape = item.kind.startsWith("drawing-");
+      
+      if (isDrawingShape && !draggingRef.current) {
+        // First click: start drawing, record start position
+        draggingRef.current = true;
+        const p = toGrid(e);
+        drawingDrag.current = {
+          kind: item.kind,
+          startX: p.x * GRID,
+          startY: p.y * GRID,
+          currentX: p.x * GRID,
+          currentY: p.y * GRID,
+        };
+        useLab.getState().pushHistory();
+        try {
+          svgRef.current?.setPointerCapture(e.pointerId);
+        } catch {}
+        return;
+      }
+      
+      if (draggingRef.current && drawingDrag.current) {
+        // Second click: complete the drawing
+        const lab = useLab.getState();
+        const world = toWorld(e);
+        
+        // Calculate dimensions based on drawing type
+        let w = Math.abs(world.x - drawingDrag.current.startX) / GRID;
+        let h = Math.abs(world.y - drawingDrag.current.startY) / GRID;
+        
+        // Ensure minimum size for visibility
+        if (w < 1) w = 2;
+        if (h < 1) h = 2;
+        
+        // For line, width represents length and height is thickness-related
+        // We'll store actual coordinates in params or create a custom solution
+        
+        const centerX = (drawingDrag.current.startX + world.x) / 2;
+        const centerY = (drawingDrag.current.startY + world.y) / 2;
+        const gx = Math.round(centerX / GRID);
+        const gy = Math.round(centerY / GRID);
+        
+        // Use placeAt which will create the symbol with correct dimensions
+        useLab.getState().placeAt(gx, gy);
+        draggingRef.current = false;
+        drawingDrag.current = null;
+        setCursor(null);
+        return;
+      }
+      
       e.stopPropagation();
       placeAtEvent(e);
       return;
@@ -529,6 +589,19 @@ export function useSchematicEvents({
       });
       return;
     }
+    // Handle drawing drag preview
+    if (drawingDrag.current && placing && mode === "edit" && !draggingRef.current) {
+      const item = catalogItem(placing);
+      const isDrawingShape = item.kind.startsWith("drawing-");
+      if (isDrawingShape) {
+        draggingRef.current = true;
+        drawingDrag.current.startX = p.x * GRID;
+        drawingDrag.current.startY = p.y * GRID;
+        drawingDrag.current.currentX = p.x * GRID;
+        drawingDrag.current.currentY = p.y * GRID;
+        return;
+      }
+    }
     if (tagDrag.current && mode === "edit") {
       if (
         !tagDrag.current.pushedHistory &&
@@ -675,6 +748,34 @@ export function useSchematicEvents({
       if (!moved) {
         useLab.getState().select(null);
       }
+      return;
+    }
+
+    // Handle drawing drag completion on second click
+    if (drawingDrag.current && placing && mode === "edit" && draggingRef.current) {
+      const lab = useLab.getState();
+      const world = { x: Math.round(p.x) * GRID, y: Math.round(p.y) * GRID };
+      
+      // Calculate dimensions based on drawing type
+      let w = Math.abs(world.x - drawingDrag.current.startX) / GRID;
+      let h = Math.abs(world.y - drawingDrag.current.startY) / GRID;
+      
+      // Ensure minimum size for visibility
+      if (w < 1) w = 2;
+      if (h < 1) h = 2;
+      
+      // Place the drawing shape at calculated position and size
+      const centerX = (drawingDrag.current.startX + world.x) / 2;
+      const centerY = (drawingDrag.current.startY + world.y) / 2;
+      const gx = Math.round(centerX / GRID);
+      const gy = Math.round(centerY / GRID);
+      
+      // For line, width represents length and height is thickness-related
+      // We'll store actual coordinates in params or create a custom solution
+      
+      useLab.getState().placeAt(gx, gy);
+      draggingRef.current = false;
+      drawingDrag.current = null;
       return;
     }
 

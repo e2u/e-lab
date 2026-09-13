@@ -394,33 +394,33 @@ export function wireRoute(
   const sa = stubLen(circuit, from);
   const a1 = { x: a.x + oa.x * sa, y: a.y + oa.y * sa };
   const pts: { x: number; y: number }[] = [];
-  append(pts, a);
-  append(pts, a1);
+  append(pts, snapPointToGrid(a));
+  append(pts, snapPointToGrid(a1));
   if (isPortRef(to)) {
     const b = terminalWorld(circuit, to);
     if (!b) return pts;
     const isSelf = from.symbolId === to.symbolId;
     if (!isSelf && !jog && (Math.abs(a.x - b.x) < 0.5 || Math.abs(a.y - b.y) < 0.5)) {
-      return [a, b];
+      return [snapPointToGrid(a), snapPointToGrid(b)];
     }
     const ob = terminalOutward(circuit, to);
     const sb = stubLen(circuit, to);
     const b1 = { x: b.x + ob.x * sb, y: b.y + ob.y * sb };
-    for (const p of betweenStubs(a1, b1, oa, ob, jog, isSelf).slice(1)) append(pts, p);
-    append(pts, b);
+    for (const p of betweenStubs(snapPointToGrid(a1), snapPointToGrid(b1), oa, ob, jog, isSelf).slice(1)) append(pts, p);
+    append(pts, snapPointToGrid(b));
     return cleanPolyline(pts);
   }
   const dest = snapPointToGrid(to);
   if (!jog && (Math.abs(a.x - dest.x) < 0.5 || Math.abs(a.y - dest.y) < 0.5)) {
-    return [a, dest];
+    return [snapPointToGrid(a), dest];
   }
   const mid = oa.x !== 0 ? { x: dest.x, y: a1.y } : { x: a1.x, y: dest.y };
-  append(pts, mid);
+  append(pts, snapPointToGrid(mid));
   append(pts, dest);
   return cleanPolyline(pts);
 }
 
-export const WIRE_LANE = 8;
+export const WIRE_LANE = GRID / 2;
 
 type Pt = { x: number; y: number };
 
@@ -787,9 +787,15 @@ export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
       const lanes = colorLanes(comp);
       const n = 1 + Math.max(0, ...lanes.values());
       if (n < 2) continue;
+      // Compute shifts that result in distinct snapped positions.
+      // Since all points will be snapped to GRID, we need shifts large enough
+      // to survive snapping. Use multiples of GRID to ensure distinct results.
+      const halfSpan = (n - 1) / 2;
       for (const o of comp) {
         const lane = lanes.get(`${o.id}:${o.i}`) ?? 0;
-        const d = (lane - (n - 1) / 2) * WIRE_LANE;
+        // Shift so that after snapping, wires are properly separated
+        // For n=2, shifts are ±GRID/2; for n=3, shifts are -GRID, 0, +GRID, etc.
+        const d = (lane - halfSpan) * GRID;
         if (Math.abs(d) > 0.5) shift.set(`${o.id}:${o.i}`, d);
       }
     }
@@ -800,7 +806,7 @@ export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
       out.set(id, pts);
       continue;
     }
-    const rebuilt: Pt[] = [{ x: pts[0].x, y: pts[0].y }];
+    const rebuilt: Pt[] = [{ ...snapPointToGrid(pts[0]) }];
     for (let i = 0; i < pts.length - 1; i += 1) {
       const A = pts[i];
       const B = pts[i + 1];
@@ -812,8 +818,8 @@ export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
       const axis = segmentAxis(A, B);
       const ox = axis === "x" ? d : 0;
       const oy = axis === "y" ? d : 0;
-      rebuilt.push({ x: A.x + ox, y: A.y + oy });
-      rebuilt.push({ x: B.x + ox, y: B.y + oy });
+      rebuilt.push(snapPointToGrid({ x: A.x + ox, y: A.y + oy }));
+      rebuilt.push(snapPointToGrid({ x: B.x + ox, y: B.y + oy }));
       rebuilt.push({ x: B.x, y: B.y });
     }
     out.set(id, cleanPolyline(rebuilt));

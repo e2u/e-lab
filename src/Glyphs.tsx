@@ -2900,6 +2900,143 @@ function GlyphBody({
             </S>
         );
     }
+    if (kind === "drawing-line") {
+        const color = device.params.color || ink;
+        const thickness = device.params.thickness ?? 2;
+        const style = device.params.style || "solid";
+        const dashMap: Record<string, string> = {"solid": "", "dashed": "5 4", "dotted": "2 3", "double": ""};
+        const dashArray = dashMap[style] || "";
+        const cx = (w * GRID) / 2;
+        const cy = (h * GRID) / 2;
+        
+        // For line drawing, we use a simple horizontal line that users can rotate
+        const lineWidth = Math.max(GRID, (w * GRID) - GRID);
+        
+        return (
+            <S w={w} h={h}>
+                <line 
+                    x1={(w * GRID - lineWidth) / 2} 
+                    y1={cy} 
+                    x2={(w * GRID + lineWidth) / 2} 
+                    y2={cy} 
+                    stroke={color} 
+                    strokeWidth={thickness}
+                    strokeDasharray={dashArray}
+                    strokeLinecap="round"
+                />
+            </S>
+        );
+    }
+    if (kind === "drawing-circle") {
+        const color = device.params.color || ink;
+        const thickness = device.params.thickness ?? 2;
+        const style = device.params.style || "solid";
+        const dashMap: Record<string, string> = {"solid": "", "dashed": "5 4", "dotted": "2 3", "double": ""};
+        const dashArray = dashMap[style] || "";
+        const cx = (w * GRID) / 2;
+        const cy = (h * GRID) / 2;
+        const r = Math.min(w, h) * GRID / 2 - 2;
+        
+        return (
+            <S w={w} h={h}>
+                <circle 
+                    cx={cx} 
+                    cy={cy} 
+                    r={r} 
+                    fill="none" 
+                    stroke={color} 
+                    strokeWidth={thickness}
+                    strokeDasharray={dashArray}
+                />
+            </S>
+        );
+    }
+    if (kind === "drawing-ellipse") {
+        const color = device.params.color || ink;
+        const thickness = device.params.thickness ?? 2;
+        const style = device.params.style || "solid";
+        const dashMap: Record<string, string> = {"solid": "", "dashed": "5 4", "dotted": "2 3", "double": ""};
+        const dashArray = dashMap[style] || "";
+        const cx = (w * GRID) / 2;
+        const cy = (h * GRID) / 2;
+        const rx = (w * GRID) / 2 - 2;
+        const ry = (h * GRID) / 2 - 2;
+        
+        return (
+            <S w={w} h={h}>
+                <ellipse 
+                    cx={cx} 
+                    cy={cy} 
+                    rx={rx} 
+                    ry={ry} 
+                    fill="none" 
+                    stroke={color} 
+                    strokeWidth={thickness}
+                    strokeDasharray={dashArray}
+                />
+            </S>
+        );
+    }
+    if (kind === "drawing-rectangle") {
+        const color = device.params.color || ink;
+        const thickness = device.params.thickness ?? 2;
+        const style = device.params.style || "solid";
+        const dashMap: Record<string, string> = {"solid": "", "dashed": "5 4", "dotted": "2 3", "double": ""};
+        const dashArray = dashMap[style] || "";
+        const pad = 1.5;
+        const x = pad;
+        const y = pad;
+        const rectW = (w * GRID) - pad * 2;
+        const rectH = (h * GRID) - pad * 2;
+        
+        return (
+            <S w={w} h={h}>
+                <rect 
+                    x={x} 
+                    y={y} 
+                    width={rectW} 
+                    height={rectH} 
+                    fill="none" 
+                    stroke={color} 
+                    strokeWidth={thickness}
+                    strokeDasharray={dashArray}
+                />
+            </S>
+        );
+    }
+    if (kind === "drawing-triangle") {
+        const color = device.params.color || ink;
+        const thickness = device.params.thickness ?? 2;
+        const style = device.params.style || "solid";
+        const dashMap: Record<string, string> = {"solid": "", "dashed": "5 4", "dotted": "2 3", "double": ""};
+        const dashArray = dashMap[style] || "";
+        const cx = (w * GRID) / 2;
+        const topY = 2;
+        const baseY = (h * GRID) - 2;
+        const halfBase = (w * GRID) / 2 - 2;
+        
+        // Triangle points: top center, bottom left, bottom right
+        const p1x = cx;
+        const p1y = topY;
+        const p2x = cx - halfBase;
+        const p2y = baseY;
+        const p3x = cx + halfBase;
+        const p3y = baseY;
+        
+        return (
+            <S w={w} h={h}>
+                <path 
+                    d={`M ${p1x} ${p1y} L ${p2x} ${p2y} L ${p3x} ${p3y} Z`}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={thickness}
+                    strokeDasharray={dashArray}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+            </S>
+        );
+    }
 
     void key;
     void closed;

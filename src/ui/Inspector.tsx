@@ -4,7 +4,7 @@ import { selectionHasGroup, selectionIsGroup } from "../groups";
 import { areWiresConnected } from "../geometry";
 import { componentDisplayName, t, variantDisplayName } from "../i18n";
 import { useLab } from "../store";
-import type { Circuit, DeviceKind } from "../types";
+import type { Circuit, DeviceKind, LineStyle } from "../types";
 import { MeterHistoryChart } from "./MeterHistoryChart";
 
 function NetLabelHint({
@@ -740,7 +740,57 @@ export function Inspector() {
           )}
         </>
       )}
-      {(dev.kind === "voltmeter" || dev.kind === "ammeter") && (
+          {/* Drawing shape controls */}
+          {(dev.kind.startsWith("drawing-")) && (
+            <>
+              <label>
+                <span>{t("inspector.color")}</span>
+                <input
+                  type="color"
+                  value={dev.params.color || "#1b1a16"}
+                  onChange={(e) => useLab.getState().updateDevice(dev.id, { color: e.target.value })}
+                />
+              </label>
+              <label>
+                <span>{t("inspector.thickness")} ({dev.params.thickness ?? 2}px)</span>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  step="0.5"
+                  value={dev.params.thickness ?? 2}
+                  onChange={(e) => useLab.getState().updateDevice(dev.id, { thickness: parseFloat(e.target.value) })}
+                />
+                <div style={{ display: "flex", gap: "4px", marginTop: "4px" }}>
+                  {[1, 2, 3, 4].map((thick) => (
+                    <button
+                      key={thick}
+                      type="button"
+                      className={`btn ${dev.params.thickness === thick ? "primary" : ""}`}
+                      style={{ flex: 1, padding: "3px 6px", fontSize: "11px" }}
+                      onClick={() => useLab.getState().updateDevice(dev.id, { thickness: thick })}
+                    >
+                      {thick}px
+                    </button>
+                  ))}
+                </div>
+              </label>
+              <label>
+                <span>{t("inspector.lineStyle")}</span>
+                <select
+                  value={dev.params.style || "solid"}
+                  onChange={(e) => useLab.getState().updateDevice(dev.id, { style: e.target.value as LineStyle })}
+                >
+                  <option value="solid">{t("inspector.solidLine")}</option>
+                  <option value="dashed">{t("inspector.dashedLine")}</option>
+                  <option value="dotted">{t("inspector.dottedLine")}</option>
+                  <option value="double">{t("inspector.doubleLine")}</option>
+                </select>
+              </label>
+            </>
+          )}
+          
+          {(dev.kind === "voltmeter" || dev.kind === "ammeter") && (
         <MeterHistoryChart
           deviceId={dev.id}
           tag={dev.tag}

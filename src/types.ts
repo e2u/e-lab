@@ -83,7 +83,12 @@ export type DeviceKind =
   | "net-label"
   | "title-block"
   | "comment"
-  | "junction";
+  | "junction"
+  | "drawing-line"
+  | "drawing-circle"
+  | "drawing-ellipse"
+  | "drawing-rectangle"
+  | "drawing-triangle";
 
 export type PotentialKind = "L1" | "L2" | "L3" | "N" | "PE" | "DC+" | "DC-" | "X1" | "X2";
 
@@ -98,6 +103,8 @@ export interface TerminalDef {
   x: number;
   y: number;
 }
+
+export type LineStyle = "solid" | "dashed" | "dotted" | "double";
 
 export interface DeviceParams {
   color?: string;
@@ -138,6 +145,9 @@ export interface DeviceParams {
   showLeaderLine?: boolean;
   width?: number;
   height?: number;
+  /** Drawing shape properties */
+  thickness?: number;
+  style?: LineStyle;
   /** Omit this comment from print. Still shown (translucent) in Edit/Run. */
   hideOnPrint?: boolean;
   /** Omit this device's tag from print. Still shown (translucent) in Edit/Run. */

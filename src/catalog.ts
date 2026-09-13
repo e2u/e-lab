@@ -869,6 +869,61 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: meterBody,
     },
   },
+  "drawing-line": {
+    prefix: "",
+    label: "自由繪圖 - 直線",
+    variants: {
+      body: {
+        w: 40,
+        h: 2,
+        terminals: [],
+      },
+    },
+  },
+  "drawing-circle": {
+    prefix: "",
+    label: "自由繪圖 - 圓形",
+    variants: {
+      body: {
+        w: 20,
+        h: 20,
+        terminals: [],
+      },
+    },
+  },
+  "drawing-ellipse": {
+    prefix: "",
+    label: "自由繪圖 - 橢圓形",
+    variants: {
+      body: {
+        w: 30,
+        h: 15,
+        terminals: [],
+      },
+    },
+  },
+  "drawing-rectangle": {
+    prefix: "",
+    label: "自由繪圖 - 矩形",
+    variants: {
+      body: {
+        w: 25,
+        h: 15,
+        terminals: [],
+      },
+    },
+  },
+  "drawing-triangle": {
+    prefix: "",
+    label: "自由繪圖 - 三角形",
+    variants: {
+      body: {
+        w: 20,
+        h: 18,
+        terminals: [],
+      },
+    },
+  },
 };
 
 export const CATALOG: CatalogItem[] = [
@@ -956,6 +1011,12 @@ export const CATALOG: CatalogItem[] = [
 
   { id: "title-block", kind: "title-block", variant: "body", group: "圖紙標註", label: "圖紙標題欄", labelEn: "Title Block", prefix: "TB", creates: "device" },
   { id: "comment", kind: "comment", variant: "body", group: "圖紙標註", label: "註釋文字框", labelEn: "Comment Box", prefix: "REM", creates: "device" },
+
+  { id: "drawing-line", kind: "drawing-line", variant: "body", group: "自由繪圖", label: "直線", labelEn: "Line", prefix: "", creates: "device" },
+  { id: "drawing-circle", kind: "drawing-circle", variant: "body", group: "自由繪圖", label: "圓形", labelEn: "Circle", prefix: "", creates: "device" },
+  { id: "drawing-ellipse", kind: "drawing-ellipse", variant: "body", group: "自由繪圖", label: "橢圓形", labelEn: "Ellipse", prefix: "", creates: "device" },
+  { id: "drawing-rectangle", kind: "drawing-rectangle", variant: "body", group: "自由繪圖", label: "矩形", labelEn: "Rectangle", prefix: "", creates: "device" },
+  { id: "drawing-triangle", kind: "drawing-triangle", variant: "body", group: "自由繪圖", label: "三角形", labelEn: "Triangle", prefix: "", creates: "device" },
 ];
 
 export const GROUPS = [
@@ -968,6 +1029,7 @@ export const GROUPS = [
   { id: "Timer_Counter", label: "計時與計數", labelEn: "Timers & Counters" },
   { id: "Lighting_Load", label: "指示與負載", labelEn: "Lighting / Load" },
   { id: "Motor_Generator", label: "電機", labelEn: "Motors" },
+  { id: "Drawing", label: "自由繪圖", labelEn: "Free Drawing" },
   { id: "Annotations", label: "圖紙標註", labelEn: "Annotations" },
 ] as const;
 

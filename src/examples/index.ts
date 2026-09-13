@@ -29,6 +29,13 @@ const exampleImports: Record<string, ExampleImporter> = {
   "project-01": () => import("./Project 01.json"),
   "project-02": () => import("./Project 02.json"),
   "project-03": () => import("./Project 03.json"),
+  "project-04": () => import("./Project 04.json"),
+  "project-05": () => import("./Project 05.json"),
+  "project-06": () => import("./Project 06.json"),
+  "project-07": () => import("./Project 07.json"),
+  "project-08": () => import("./Project 08.json"),
+  "project-09": () => import("./Project 09.json"),
+  "project-10": () => import("./Project 10.json"),
   "project-11": () => import("./Project 11.json"),
   "project-12": () => import("./Project 12.json"),
 };

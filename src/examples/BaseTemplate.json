@@ -45,12 +45,6 @@
         "params": {}
       },
       {
-        "id": "d_lj_36a37eea",
-        "kind": "relay",
-        "tag": "CR1",
-        "params": {}
-      },
-      {
         "id": "d_m0_840627c7",
         "kind": "fuse",
         "tag": "FU1",
@@ -67,12 +61,6 @@
         }
       },
       {
-        "id": "d_mq_df7e7128",
-        "kind": "ground",
-        "tag": "GND2",
-        "params": {}
-      },
-      {
         "id": "d_nq_5f48b498",
         "kind": "junction",
         "tag": "",
@@ -82,12 +70,6 @@
         "id": "d_nu_054a3984",
         "kind": "junction",
         "tag": "",
-        "params": {}
-      },
-      {
-        "id": "d_o1_558b8285",
-        "kind": "ground",
-        "tag": "GND3",
         "params": {}
       },
       {
@@ -183,16 +165,6 @@
         }
       },
       {
-        "id": "s_lk_97076ed9",
-        "deviceId": "d_lj_36a37eea",
-        "variant": "coil",
-        "x": 38,
-        "y": 21,
-        "rot": 0,
-        "flipX": false,
-        "flipY": false
-      },
-      {
         "id": "s_m1_13f53515",
         "deviceId": "d_m0_840627c7",
         "variant": "body",
@@ -215,20 +187,6 @@
         "rot": 0,
         "flipX": false,
         "flipY": false
-      },
-      {
-        "id": "s_mn_e2f3912b",
-        "deviceId": "d_lj_36a37eea",
-        "variant": "aux-no",
-        "x": 21,
-        "y": 23,
-        "rot": 0,
-        "flipX": false,
-        "flipY": false,
-        "tagOffset": {
-          "dx": 0.193,
-          "dy": -2.472
-        }
       },
       {
         "id": "s_nr_c38d5a73",
@@ -295,6 +253,26 @@
           "dx": 0.617,
           "dy": -6.704
         }
+      },
+      {
+        "id": "s_qc_5caa384e",
+        "deviceId": "d_o4_8f580b48",
+        "variant": "coil",
+        "x": 33,
+        "y": 21,
+        "rot": 0,
+        "flipX": false,
+        "flipY": false
+      },
+      {
+        "id": "s_qf_3e3046ae",
+        "deviceId": "d_o4_8f580b48",
+        "variant": "aux-no",
+        "x": 21,
+        "y": 24,
+        "rot": 0,
+        "flipX": false,
+        "flipY": false
       }
     ],
     "wires": [
@@ -318,17 +296,6 @@
         "b": {
           "symbolId": "s_lh_5abe49a9",
           "term": "1"
-        }
-      },
-      {
-        "id": "w_ll_149312f2",
-        "a": {
-          "symbolId": "s_lh_5abe49a9",
-          "term": "2"
-        },
-        "b": {
-          "symbolId": "s_lk_97076ed9",
-          "term": "A1"
         }
       },
       {
@@ -373,28 +340,6 @@
         "b": {
           "symbolId": "s_38_bf2442c5",
           "term": "1"
-        }
-      },
-      {
-        "id": "w_mo_068a72ef",
-        "a": {
-          "symbolId": "s_lh_5abe49a9",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_mn_e2f3912b",
-          "term": "1"
-        }
-      },
-      {
-        "id": "w_mp_3ba6a085",
-        "a": {
-          "symbolId": "s_lh_5abe49a9",
-          "term": "2"
-        },
-        "b": {
-          "symbolId": "s_mn_e2f3912b",
-          "term": "2"
         }
       },
       {
@@ -482,23 +427,6 @@
         "b": {
           "symbolId": "s_kr_8e51ae12",
           "term": "X1"
-        }
-      },
-      {
-        "id": "w_nz_9fcb3306",
-        "a": {
-          "symbolId": "s_kr_8e51ae12",
-          "term": "X2"
-        },
-        "b": {
-          "symbolId": "s_lk_97076ed9",
-          "term": "A2"
-        },
-        "jog": {
-          "axis": "x",
-          "pos": 968,
-          "x": 968,
-          "y": 396
         }
       },
       {
@@ -625,6 +553,50 @@
         "b": {
           "symbolId": "s_of_d9d7b3db",
           "term": "U"
+        }
+      },
+      {
+        "id": "w_qd_92fc3d91",
+        "a": {
+          "symbolId": "s_o2_c3b412a6",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_qc_5caa384e",
+          "term": "A2"
+        }
+      },
+      {
+        "id": "w_qe_dd15ff80",
+        "a": {
+          "symbolId": "s_lh_5abe49a9",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_qc_5caa384e",
+          "term": "A1"
+        }
+      },
+      {
+        "id": "w_qg_54d0efa2",
+        "a": {
+          "symbolId": "s_lh_5abe49a9",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_qf_3e3046ae",
+          "term": "13"
+        }
+      },
+      {
+        "id": "w_qh_4c4a48e7",
+        "a": {
+          "symbolId": "s_lh_5abe49a9",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_qf_3e3046ae",
+          "term": "14"
         }
       }
     ],

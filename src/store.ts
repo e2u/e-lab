@@ -5,7 +5,7 @@ import { loadExampleJson } from "./examples/index";
 import templateData from "./examples/blank-template.json";
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols, unionBounds } from "./groups";
 import { EXAMPLES } from "./examples";
-import { allWireRoutes, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute, wireLabelPos } from "./geometry";
+import { allWireRoutes, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   downloadJson,
@@ -22,7 +22,7 @@ import {
 import { defaultRuntime, emptySnapshot, tick } from "./sim/engine";
 import { buildLadderDiagram } from "./ladder/ladderLayout";
 import { autoLayoutCircuit, type AutoLayoutOptions } from "./layout/autoLayout";
-import { GRID, COLS, ROWS, type Circuit, type Device, type DeviceKind, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type Rot, type SimSnapshot, type Theme, type Wire, type WireJog } from "./types";
+import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type Rot, type SimSnapshot, type Theme, type Wire, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 import {
   trackCircuitPause,

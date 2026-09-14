@@ -598,7 +598,7 @@ function isSeriesPowerDevice(kind: string, variant: string): boolean {
 }
 
 /** Other-end terminals of the same contact pole (not aliases of `term`). */
-function poleMates(kind: string, variant: string, term: string, allowed: Set<string>): string[] {
+function poleMates(kind: DeviceKind, variant: string, term: string, allowed: Set<string>): string[] {
   const v = variantDef(kind, variant);
   if (!allowed.has(term)) return [];
   const terms = v.terminals.filter((t) => allowed.has(t.id));
@@ -650,7 +650,7 @@ function poleMates(kind: string, variant: string, term: string, allowed: Set<str
   return mates.map((t) => t.id);
 }
 
-function otherPoleTerms(kind: string, variant: string, term: string): string[] {
+function otherPoleTerms(kind: DeviceKind, variant: string, term: string): string[] {
   if (!isSeriesPowerDevice(kind, variant)) return [];
   const v = variantDef(kind, variant);
   return poleMates(kind, variant, term, new Set(hvBridgeTerminals(kind, variant, v.terminals.map((t) => t.id))));
@@ -700,7 +700,7 @@ function isControlSeriesDevice(kind: string, variant: string): boolean {
   }
 }
 
-function controlPoleTerms(kind: string, variant: string, term: string): string[] {
+function controlPoleTerms(kind: DeviceKind, variant: string, term: string): string[] {
   if (!isControlSeriesDevice(kind, variant)) return [];
   const v = variantDef(kind, variant);
   return poleMates(kind, variant, term, new Set(v.terminals.map((t) => t.id)));

@@ -268,10 +268,12 @@ describe("20 Progressive Example Circuits", () => {
     expect(snap).toBeDefined();
     expect(snap.faults.filter((f) => f.level === "error")).toEqual([]);
 
-    // Save JSON doc
+    // Save JSON doc if not exists
     const doc = makeDoc(circuit, "23-timer-ss-on-dual-motor");
     const jsonPath = path.resolve(__dirname, "examples", "23-timer-ss-on-dual-motor.json");
-    fs.writeFileSync(jsonPath, JSON.stringify(doc, null, 2), "utf-8");
+    if (!fs.existsSync(jsonPath)) {
+      fs.writeFileSync(jsonPath, JSON.stringify(doc, null, 2), "utf-8");
+    }
 
     // Full sequence test of ex23
     const startPb = circuit.devices.find((d) => d.tag === "PB_START")!;
@@ -342,10 +344,12 @@ describe("20 Progressive Example Circuits", () => {
     expect(snap).toBeDefined();
     expect(snap.faults.filter((f) => f.level === "error")).toEqual([]);
 
-    // Save JSON doc
+    // Save JSON doc if not exists
     const doc = makeDoc(circuit, "24-timer-ss-on-three-motor");
     const jsonPath = path.resolve(__dirname, "examples", "24-timer-ss-on-three-motor.json");
-    fs.writeFileSync(jsonPath, JSON.stringify(doc, null, 2), "utf-8");
+    if (!fs.existsSync(jsonPath)) {
+      fs.writeFileSync(jsonPath, JSON.stringify(doc, null, 2), "utf-8");
+    }
 
     // Full sequence test of ex24
     const startPb = circuit.devices.find((d) => d.tag === "PB_START")!;

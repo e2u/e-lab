@@ -5,8 +5,6 @@ import { emptySnapshot, tick } from "./sim/engine";
 import { variantDef } from "./catalog";
 import { loadExampleJson } from "./examples/index";
 import { t } from "./i18n";
-import fs from "node:fs";
-import path from "node:path";
 
 describe("20 Progressive Example Circuits", () => {
   it("should generate all 20 valid circuit models and verify simulations", () => {
@@ -132,12 +130,11 @@ describe("20 Progressive Example Circuits", () => {
     expect(snap).toBeDefined();
     expect(snap.faults.filter((f) => f.level === "error")).toEqual([]);
 
-    // Save JSON doc if missing
+    // Verify doc serialization and parsing
     const doc = makeDoc(circuit, "21-timer-ss-off-dual-motor");
-    const jsonPath = path.resolve(__dirname, "examples", "21-timer-ss-off-dual-motor.json");
-    if (!fs.existsSync(jsonPath)) {
-      fs.writeFileSync(jsonPath, JSON.stringify(doc, null, 2), "utf-8");
-    }
+    const parsed = parseDoc(doc);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.circuit.devices.length).toBe(circuit.devices.length);
   });
 
   it("builds and verifies 22-timer-ss-off-three-motor example JSON", () => {
@@ -181,12 +178,11 @@ describe("20 Progressive Example Circuits", () => {
     expect(snap).toBeDefined();
     expect(snap.faults.filter((f) => f.level === "error")).toEqual([]);
 
-    // Save JSON doc if missing
+    // Verify doc serialization and parsing
     const doc = makeDoc(circuit, "22-timer-ss-off-three-motor");
-    const jsonPath = path.resolve(__dirname, "examples", "22-timer-ss-off-three-motor.json");
-    if (!fs.existsSync(jsonPath)) {
-      fs.writeFileSync(jsonPath, JSON.stringify(doc, null, 2), "utf-8");
-    }
+    const parsed = parseDoc(doc);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.circuit.devices.length).toBe(circuit.devices.length);
 
     // Full sequence test of ex22
     const startPb = circuit.devices.find((d) => d.tag === "PB_START")!;
@@ -268,12 +264,11 @@ describe("20 Progressive Example Circuits", () => {
     expect(snap).toBeDefined();
     expect(snap.faults.filter((f) => f.level === "error")).toEqual([]);
 
-    // Save JSON doc if not exists
+    // Verify doc serialization and parsing
     const doc = makeDoc(circuit, "23-timer-ss-on-dual-motor");
-    const jsonPath = path.resolve(__dirname, "examples", "23-timer-ss-on-dual-motor.json");
-    if (!fs.existsSync(jsonPath)) {
-      fs.writeFileSync(jsonPath, JSON.stringify(doc, null, 2), "utf-8");
-    }
+    const parsed = parseDoc(doc);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.circuit.devices.length).toBe(circuit.devices.length);
 
     // Full sequence test of ex23
     const startPb = circuit.devices.find((d) => d.tag === "PB_START")!;
@@ -344,12 +339,11 @@ describe("20 Progressive Example Circuits", () => {
     expect(snap).toBeDefined();
     expect(snap.faults.filter((f) => f.level === "error")).toEqual([]);
 
-    // Save JSON doc if not exists
+    // Verify doc serialization and parsing
     const doc = makeDoc(circuit, "24-timer-ss-on-three-motor");
-    const jsonPath = path.resolve(__dirname, "examples", "24-timer-ss-on-three-motor.json");
-    if (!fs.existsSync(jsonPath)) {
-      fs.writeFileSync(jsonPath, JSON.stringify(doc, null, 2), "utf-8");
-    }
+    const parsed = parseDoc(doc);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.circuit.devices.length).toBe(circuit.devices.length);
 
     // Full sequence test of ex24
     const startPb = circuit.devices.find((d) => d.tag === "PB_START")!;

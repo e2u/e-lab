@@ -394,6 +394,8 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "example.project-12.title": "Project 12",
     "example.21-timer-ss-off-dual-motor.title": "21# Solid-State Dual Motor Alternating",
     "example.22-timer-ss-off-three-motor.title": "22# Solid-State Three Motor Alternating",
+    "example.23-timer-ss-on-dual-motor.title": "23# Solid-State Dual Motor Alternating (TON)",
+    "example.24-timer-ss-on-three-motor.title": "24# Solid-State Three Motor Alternating (TON)",
 
     // Status bar
     "status.edit": "EDIT",
@@ -1336,6 +1338,8 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "example.project-12.title": "Project 12",
     "example.21-timer-ss-off-dual-motor.title": "21# 雙電機固態斷電延時交替循環運轉",
     "example.22-timer-ss-off-three-motor.title": "22# 三電機固態斷電延時交替循環運轉",
+    "example.23-timer-ss-on-dual-motor.title": "23# 雙電機固態通電延時交替循環運轉",
+    "example.24-timer-ss-on-three-motor.title": "24# 三電機固態通電延時交替循環運轉",
 
     // Status bar
     "status.edit": "編輯",

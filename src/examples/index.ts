@@ -52,6 +52,8 @@ const exampleImports: Record<string, ExampleImporter> = {
   "project-12": () => import("./Project 12.json"),
   "21-timer-ss-off-dual-motor": () => import("./21-timer-ss-off-dual-motor.json"),
   "22-timer-ss-off-three-motor": () => import("./22-timer-ss-off-three-motor.json"),
+  "23-timer-ss-on-dual-motor": () => import("./23-timer-ss-on-dual-motor.json"),
+  "24-timer-ss-on-three-motor": () => import("./24-timer-ss-on-three-motor.json"),
 };
 
 export async function loadExampleJson(id: string): Promise<ExampleDoc | null> {

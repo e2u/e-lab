@@ -1758,4 +1758,146 @@ describe("sim engine", () => {
     const snap = run(c, [], 2);
     expect(snap.runtime[hl.device.id].lit).toBe(true);
   });
+
+  it("simulates 23-timer-ss-on-dual-motor alternating cycle", async () => {
+    const { ex23TimerSsOnDualMotor } = await import("../examplesBuilder");
+    const c = ex23TimerSsOnDualMotor();
+    const qs = c.devices.find((d) => d.tag === "DISC1")!;
+    const qf = c.devices.find((d) => d.tag === "CB1")!;
+    const pbStart = c.devices.find((d) => d.tag === "PB_START")!;
+    const pbStop = c.devices.find((d) => d.tag === "PB_STOP")!;
+    const crm = c.devices.find((d) => d.tag === "CRM")!;
+    const m1 = c.devices.find((d) => d.tag === "M1")!;
+    const m2 = c.devices.find((d) => d.tag === "M2")!;
+    const tr1 = c.devices.find((d) => d.tag === "TR1")!;
+    const tr2 = c.devices.find((d) => d.tag === "TR2")!;
+    const mtr1 = c.devices.find((d) => d.tag === "MTR1")!;
+    const mtr2 = c.devices.find((d) => d.tag === "MTR2")!;
+
+    tr1.params.delayMs = 200;
+    tr2.params.delayMs = 200;
+
+    let snap = run(c, [], 2);
+    snap.runtime[qs.id].on = true;
+    snap.runtime[qf.id].on = true;
+
+    // Press start button
+    snap = tick(c, snap.runtime, { held: new Set([pbStart.id]), process }, 50, 50);
+    expect(snap.runtime[crm.id].energized).toBe(true);
+
+    // Release start button - CRM self-holds, M1 & TR1 are running
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 100);
+    expect(snap.runtime[crm.id].energized).toBe(true);
+    expect(snap.runtime[m1.id].energized).toBe(true);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 150);
+    expect(snap.runtime[mtr1.id].energized).toBe(true);
+    expect(snap.runtime[m2.id].energized).toBe(false);
+    expect(snap.runtime[mtr2.id].energized).toBe(false);
+
+    // Advance 200ms -> TR1 times out, transitions to M2 & TR2
+    for (let i = 0; i < 5; i++) {
+      snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 200 + i * 50);
+    }
+    expect(snap.runtime[m1.id].energized).toBe(false);
+    expect(snap.runtime[m2.id].energized).toBe(true);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 450);
+    expect(snap.runtime[mtr1.id].energized).toBe(false);
+    expect(snap.runtime[mtr2.id].energized).toBe(true);
+
+    // Advance another 200ms -> TR2 times out, transitions back to M1 & TR1
+    for (let i = 0; i < 5; i++) {
+      snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 500 + i * 50);
+    }
+    expect(snap.runtime[m1.id].energized).toBe(true);
+    expect(snap.runtime[m2.id].energized).toBe(false);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 750);
+    expect(snap.runtime[mtr1.id].energized).toBe(true);
+    expect(snap.runtime[mtr2.id].energized).toBe(false);
+
+    // Stop system
+    snap = tick(c, snap.runtime, { held: new Set([pbStop.id]), process }, 50, 800);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 850);
+    expect(snap.runtime[crm.id].energized).toBe(false);
+    expect(snap.runtime[m1.id].energized).toBe(false);
+    expect(snap.runtime[m2.id].energized).toBe(false);
+  });
+
+  it("simulates 24-timer-ss-on-three-motor alternating cycle", async () => {
+    const { ex24TimerSsOnThreeMotor } = await import("../examplesBuilder");
+    const c = ex24TimerSsOnThreeMotor();
+    const qs = c.devices.find((d) => d.tag === "DISC1")!;
+    const qf = c.devices.find((d) => d.tag === "CB1")!;
+    const pbStart = c.devices.find((d) => d.tag === "PB_START")!;
+    const pbStop = c.devices.find((d) => d.tag === "PB_STOP")!;
+    const crm = c.devices.find((d) => d.tag === "CRM")!;
+    const m1 = c.devices.find((d) => d.tag === "M1")!;
+    const m2 = c.devices.find((d) => d.tag === "M2")!;
+    const m3 = c.devices.find((d) => d.tag === "M3")!;
+    const tr1 = c.devices.find((d) => d.tag === "TR1")!;
+    const tr2 = c.devices.find((d) => d.tag === "TR2")!;
+    const tr3 = c.devices.find((d) => d.tag === "TR3")!;
+    const mtr1 = c.devices.find((d) => d.tag === "MTR1")!;
+    const mtr2 = c.devices.find((d) => d.tag === "MTR2")!;
+    const mtr3 = c.devices.find((d) => d.tag === "MTR3")!;
+
+    tr1.params.delayMs = 200;
+    tr2.params.delayMs = 200;
+    tr3.params.delayMs = 200;
+
+    let snap = run(c, [], 2);
+    snap.runtime[qs.id].on = true;
+    snap.runtime[qf.id].on = true;
+
+    // Press start button
+    snap = tick(c, snap.runtime, { held: new Set([pbStart.id]), process }, 50, 50);
+    expect(snap.runtime[crm.id].energized).toBe(true);
+
+    // Release start button - CRM self-holds, M1 & TR1 are running
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 100);
+    expect(snap.runtime[crm.id].energized).toBe(true);
+    expect(snap.runtime[m1.id].energized).toBe(true);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 150);
+    expect(snap.runtime[mtr1.id].energized).toBe(true);
+    expect(snap.runtime[m2.id].energized).toBe(false);
+    expect(snap.runtime[m3.id].energized).toBe(false);
+
+    // Advance to t=350ms -> TR1 timed out at 250ms, M2 & TR2 & MTR2 are running
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 200);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 250);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 300);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 350);
+    expect(snap.runtime[m1.id].energized).toBe(false);
+    expect(snap.runtime[m2.id].energized).toBe(true);
+    expect(snap.runtime[mtr2.id].energized).toBe(true);
+    expect(snap.runtime[m3.id].energized).toBe(false);
+
+    // Advance to t=550ms -> TR2 timed out at 450ms, M3 & TR3 & MTR3 are running
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 400);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 450);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 500);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 550);
+    expect(snap.runtime[m1.id].energized).toBe(false);
+    expect(snap.runtime[m2.id].energized).toBe(false);
+    expect(snap.runtime[m3.id].energized).toBe(true);
+    expect(snap.runtime[mtr3.id].energized).toBe(true);
+
+    // Advance to t=800ms -> TR3 timed out at 650ms, M1 & TR1 & MTR1 are running (cycle 2)
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 600);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 650);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 700);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 750);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 800);
+    expect(snap.runtime[m1.id].energized).toBe(true);
+    expect(snap.runtime[mtr1.id].energized).toBe(true);
+    expect(snap.runtime[m2.id].energized).toBe(false);
+    expect(snap.runtime[m3.id].energized).toBe(false);
+
+    // Stop system
+    snap = tick(c, snap.runtime, { held: new Set([pbStop.id]), process }, 50, 850);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 900);
+    expect(snap.runtime[crm.id].energized).toBe(false);
+    expect(snap.runtime[m1.id].energized).toBe(false);
+    expect(snap.runtime[m2.id].energized).toBe(false);
+    expect(snap.runtime[m3.id].energized).toBe(false);
+  });
 });

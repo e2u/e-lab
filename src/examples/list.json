@@ -179,6 +179,16 @@
       "id": "22-timer-ss-off-three-motor",
       "title": "22# Solid-State Three Motor Alternating",
       "blurb": "三台 11-Pin 固態斷電延時繼電器 (Solid-State TOF) 控制三台電機自動輪流循環運行。"
+    },
+    {
+      "id": "23-timer-ss-on-dual-motor",
+      "title": "23# Solid-State Dual Motor Alternating (TON)",
+      "blurb": "兩台 8-Pin 固態通電延時繼電器 (Solid-State TON) 控制雙電機自動輪流交替運行。"
+    },
+    {
+      "id": "24-timer-ss-on-three-motor",
+      "title": "24# Solid-State Three Motor Alternating (TON)",
+      "blurb": "三台 8-Pin 固態通電延時繼電器 (Solid-State TON) 控制三台電機自動輪流循環運行。"
     }
   ]
 }

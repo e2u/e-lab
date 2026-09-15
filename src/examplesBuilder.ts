@@ -1695,6 +1695,348 @@ export function ex22TimerSsOffThreeMotor(): Circuit {
   return c;
 }
 
+/**
+ * 23# Solid-State Dual Motor Alternating (8-Pin ON-Delay)
+ */
+export function ex23TimerSsOnDualMotor(): Circuit {
+  const c = emptyCircuit();
+
+  // Title Block
+  addDevice(c, "title-block", "TB1", "body", 2, 2, {
+    projectName: "23",
+    projectNo: "23",
+    rev: "1.0",
+    sheetNum: "1",
+    sheetTotal: "1",
+    description: "Two Motor Alternating Control with 8-Pin Solid-State ON-Delay Timers",
+    designedBy: "DW",
+    date: "09/14/2026",
+    scale: 1,
+  });
+
+  // Power Supply: 480V 3-Phase Delta
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qs = addDevice(c, "isolator", "DISC1", "body", 12, 4);
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 18, 4);
+
+  // Motor 1 Power Branch (Y=4)
+  const km1 = addDevice(c, "contactor", "M1", "coil", 46, 31.5);
+  const km1Main = addSymbol(c, km1.device.id, "main", 26, 4);
+  const fr1 = addDevice(c, "overload", "OL1", "body", 34, 4);
+  const mtr1 = addDevice(c, "motor-3ph", "MTR1", "body", 42, 3.5, { power: 5.5 });
+
+  // Motor 2 Power Branch (Y=11)
+  const km2 = addDevice(c, "contactor", "M2", "coil", 46, 43.5);
+  const km2Main = addSymbol(c, km2.device.id, "main", 26, 11);
+  const fr2 = addDevice(c, "overload", "OL2", "body", 34, 11);
+  const mtr2 = addDevice(c, "motor-3ph", "MTR2", "body", 42, 10.5, { power: 5.5 });
+
+  // Control Transformer & Protection (Y=18)
+  const tc = addDevice(c, "transformer", "T1", "body", 8, 18, { ratio: "480/120" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 18);
+
+  // Master Control Relay CRM (Line Y=18)
+  const fr1Nc = addSymbol(c, fr1.device.id, "aux-nc", 14, 18);
+  const fr2Nc = addSymbol(c, fr2.device.id, "aux-nc", 20, 18);
+  const stop = addDevice(c, "pb-nc", "PB_STOP", "body", 26, 18);
+  const start = addDevice(c, "pb-no", "PB_START", "body", 32, 18);
+  const crm = addDevice(c, "relay", "CRM", "coil", 46, 17.5);
+  const crmNoSeal = addSymbol(c, crm.device.id, "aux-no", 32, 21.5);
+  const crmNcStop = addSymbol(c, crm.device.id, "aux-nc", 32, 25.5);
+  const hlStop = addDevice(c, "lamp", "LT_STOP", "body", 54, 25.5, { color: "red" });
+
+  // 8-Pin Solid-State ON-Delay Timers
+  const tr1 = addDevice(c, "timer-ss-on", "TR1", "coil", 46, 36.5, { delayMs: 5000 });
+  const tr2 = addDevice(c, "timer-ss-on", "TR2", "coil", 46, 48.5, { delayMs: 5000 });
+
+  // Motor 1 & TR1 Branch (Y=32)
+  const crmNoRun1 = addSymbol(c, crm.device.id, "aux-no", 18, 32);
+  const km2NcLock1 = addSymbol(c, km2.device.id, "aux-nc", 26, 32);
+  const hlM1 = addDevice(c, "lamp", "LT_M1", "body", 54, 31.5, { color: "green" });
+
+  // Motor 2 & TR2 Branch (Y=44)
+  const crmNoRun2 = addSymbol(c, crm.device.id, "aux-no2", 18, 44);
+  const tr1NoTrig = addSymbol(c, tr1.device.id, "delayed-no", 26, 44);
+  const km2NoSeal = addSymbol(c, km2.device.id, "aux-no", 26, 48);
+  const tr2NcDrop = addSymbol(c, tr2.device.id, "delayed-nc", 34, 44);
+  const hlM2 = addDevice(c, "lamp", "LT_M2", "body", 54, 43.5, { color: "yellow" });
+
+  // === Power Wiring ===
+  addWire(c, g.symbol, "L1", qs.symbol, "L1");
+  addWire(c, g.symbol, "L2", qs.symbol, "L2");
+  addWire(c, g.symbol, "L3", qs.symbol, "L3");
+
+  addWire(c, qs.symbol, "T1", qf.symbol, "L1");
+  addWire(c, qs.symbol, "T2", qf.symbol, "L2");
+  addWire(c, qs.symbol, "T3", qf.symbol, "L3");
+
+  // Motor 1 Branch
+  addWire(c, qf.symbol, "T1", km1Main, "L1");
+  addWire(c, qf.symbol, "T2", km1Main, "L2");
+  addWire(c, qf.symbol, "T3", km1Main, "L3");
+  addWire(c, km1Main, "T1", fr1.symbol, "L1");
+  addWire(c, km1Main, "T2", fr1.symbol, "L2");
+  addWire(c, km1Main, "T3", fr1.symbol, "L3");
+  addWire(c, fr1.symbol, "T1", mtr1.symbol, "U");
+  addWire(c, fr1.symbol, "T2", mtr1.symbol, "V");
+  addWire(c, fr1.symbol, "T3", mtr1.symbol, "W");
+
+  // Motor 2 Branch
+  addWire(c, qf.symbol, "T1", km2Main, "L1");
+  addWire(c, qf.symbol, "T2", km2Main, "L2");
+  addWire(c, qf.symbol, "T3", km2Main, "L3");
+  addWire(c, km2Main, "T1", fr2.symbol, "L1");
+  addWire(c, km2Main, "T2", fr2.symbol, "L2");
+  addWire(c, km2Main, "T3", fr2.symbol, "L3");
+  addWire(c, fr2.symbol, "T1", mtr2.symbol, "U");
+  addWire(c, fr2.symbol, "T2", mtr2.symbol, "V");
+  addWire(c, fr2.symbol, "T3", mtr2.symbol, "W");
+
+  // Grounding
+  addWire(c, g.symbol, "PE", pe.symbol, "1");
+  addWire(c, tc.symbol, "X2", pe.symbol, "1");
+
+  // Transformer Primary (L1 - L2)
+  addWire(c, qs.symbol, "T1", tc.symbol, "H1");
+  addWire(c, qs.symbol, "T2", tc.symbol, "H2");
+
+  // === Control Wiring ===
+  // Master Control Rung (Y=18)
+  addWire(c, tc.symbol, "X1", fr1Nc, "95");
+  addWire(c, fr1Nc, "96", fr2Nc, "95");
+  addWire(c, fr2Nc, "96", stop.symbol, "1");
+  addWire(c, stop.symbol, "2", start.symbol, "1");
+  addWire(c, stop.symbol, "2", crmNoSeal, "1");
+  addWire(c, start.symbol, "2", crm.symbol, "A1");
+  addWire(c, crmNoSeal, "2", crm.symbol, "A1");
+  addWire(c, crm.symbol, "A2", tc.symbol, "X2");
+
+  // Stopped Red Lamp (Y=25.5)
+  addWire(c, tc.symbol, "X1", crmNcStop, "3");
+  addWire(c, crmNcStop, "4", hlStop.symbol, "1");
+  addWire(c, hlStop.symbol, "2", tc.symbol, "X2");
+
+  // Motor 1 & TR1 Branch (Y=32)
+  addWire(c, tc.symbol, "X1", crmNoRun1, "1");
+  addWire(c, crmNoRun1, "2", km2NcLock1, "21");
+  addWire(c, km2NcLock1, "22", km1.symbol, "A1");
+  addWire(c, km2NcLock1, "22", tr1.symbol, "2");
+  addWire(c, km1.symbol, "A2", tc.symbol, "X2");
+  addWire(c, tr1.symbol, "7", tc.symbol, "X2");
+  addWire(c, km1.symbol, "A1", hlM1.symbol, "1");
+  addWire(c, hlM1.symbol, "2", tc.symbol, "X2");
+
+  // Motor 2 & TR2 Branch (Y=44)
+  addWire(c, tc.symbol, "X1", crmNoRun2, "5");
+  addWire(c, crmNoRun2, "6", tr1NoTrig, "1");
+  addWire(c, crmNoRun2, "6", km2NoSeal, "13");
+  addWire(c, tr1NoTrig, "3", tr2NcDrop, "1");
+  addWire(c, km2NoSeal, "14", tr2NcDrop, "1");
+  addWire(c, tr2NcDrop, "4", km2.symbol, "A1");
+  addWire(c, tr2NcDrop, "4", tr2.symbol, "2");
+  addWire(c, km2.symbol, "A2", tc.symbol, "X2");
+  addWire(c, tr2.symbol, "7", tc.symbol, "X2");
+  addWire(c, km2.symbol, "A1", hlM2.symbol, "1");
+  addWire(c, hlM2.symbol, "2", tc.symbol, "X2");
+
+  return c;
+}
+
+/**
+ * 24# Solid-State Three Motor Alternating (8-Pin ON-Delay)
+ */
+export function ex24TimerSsOnThreeMotor(): Circuit {
+  const c = emptyCircuit();
+
+  // Title Block
+  addDevice(c, "title-block", "TB1", "body", 2, 2, {
+    projectName: "24",
+    projectNo: "24",
+    rev: "1.0",
+    sheetNum: "1",
+    sheetTotal: "1",
+    description: "Three Motor Alternating Control with 8-Pin Solid-State ON-Delay Timers",
+    designedBy: "DW",
+    date: "09/14/2026",
+    scale: 1,
+  });
+
+  // Power Supply: 480V 3-Phase Delta
+  const g = addDevice(c, "mains-3ph", "PWR1", "delta", 4, 4, { supplyType: "delta", voltage: 480 });
+  const qs = addDevice(c, "isolator", "DISC1", "body", 12, 4);
+  const qf = addDevice(c, "breaker-3p", "CB1", "body", 18, 4);
+
+  // Motor 1 Power Branch (Y=4)
+  const km1 = addDevice(c, "contactor", "M1", "coil", 46, 37.5);
+  const km1Main = addSymbol(c, km1.device.id, "main", 26, 4);
+  const fr1 = addDevice(c, "overload", "OL1", "body", 34, 4);
+  const mtr1 = addDevice(c, "motor-3ph", "MTR1", "body", 42, 3.5, { power: 5.5 });
+
+  // Motor 2 Power Branch (Y=11)
+  const km2 = addDevice(c, "contactor", "M2", "coil", 46, 47.5);
+  const km2Main = addSymbol(c, km2.device.id, "main", 26, 11);
+  const fr2 = addDevice(c, "overload", "OL2", "body", 34, 11);
+  const mtr2 = addDevice(c, "motor-3ph", "MTR2", "body", 42, 10.5, { power: 5.5 });
+
+  // Motor 3 Power Branch (Y=18)
+  const km3 = addDevice(c, "contactor", "M3", "coil", 46, 57.5);
+  const km3Main = addSymbol(c, km3.device.id, "main", 26, 18);
+  const fr3 = addDevice(c, "overload", "OL3", "body", 34, 18);
+  const mtr3 = addDevice(c, "motor-3ph", "MTR3", "body", 42, 17.5, { power: 5.5 });
+
+  // Control Transformer & Protection (Y=25)
+  const tc = addDevice(c, "transformer", "T1", "body", 8, 25, { ratio: "480/120" });
+  const pe = addDevice(c, "ground", "GND1", "body", 4, 25);
+
+  // Master Control Relay CRM (Line Y=25)
+  const fr1Nc = addSymbol(c, fr1.device.id, "aux-nc", 14, 25);
+  const fr2Nc = addSymbol(c, fr2.device.id, "aux-nc", 18, 25);
+  const fr3Nc = addSymbol(c, fr3.device.id, "aux-nc", 22, 25);
+  const stop = addDevice(c, "pb-nc", "PB_STOP", "body", 26, 25);
+  const start = addDevice(c, "pb-no", "PB_START", "body", 32, 25);
+  const crm = addDevice(c, "relay", "CRM", "coil", 46, 24.5);
+  const crmNoSeal = addSymbol(c, crm.device.id, "aux-no", 32, 28.5);
+  const crmNcStop = addSymbol(c, crm.device.id, "aux-nc", 32, 32.5);
+  const hlStop = addDevice(c, "lamp", "LT_STOP", "body", 54, 32.5, { color: "red" });
+
+  // 8-Pin Solid-State ON-Delay Timers
+  const tr1 = addDevice(c, "timer-ss-on", "TR1", "coil", 46, 42.5, { delayMs: 5000 });
+  const tr2 = addDevice(c, "timer-ss-on", "TR2", "coil", 46, 52.5, { delayMs: 5000 });
+  const tr3 = addDevice(c, "timer-ss-on", "TR3", "coil", 46, 62.5, { delayMs: 5000 });
+
+  // Motor 1 & TR1 Branch (Y=38)
+  const crmNoRun1 = addSymbol(c, crm.device.id, "aux-no", 18, 38);
+  const km2NcLock1 = addSymbol(c, km2.device.id, "aux-nc", 24, 38);
+  const km3NcLock1 = addSymbol(c, km3.device.id, "aux-nc", 30, 38);
+  const tr1NcDrop1 = addSymbol(c, tr1.device.id, "delayed-nc", 36, 38);
+  const hlM1 = addDevice(c, "lamp", "LT_M1", "body", 54, 37.5, { color: "green" });
+
+  // Motor 2 & TR2 Branch (Y=48)
+  const crmNoRun2 = addSymbol(c, crm.device.id, "aux-no2", 18, 48);
+  const tr1NoTrig2 = addSymbol(c, tr1.device.id, "delayed-no", 24, 48);
+  const km2NoSeal2 = addSymbol(c, km2.device.id, "aux-no", 24, 52);
+  const tr2NcDrop2 = addSymbol(c, tr2.device.id, "delayed-nc", 32, 48);
+  const km3NcLock2 = addSymbol(c, km3.device.id, "aux-nc2", 38, 48);
+  const hlM2 = addDevice(c, "lamp", "LT_M2", "body", 54, 47.5, { color: "yellow" });
+
+  // Motor 3 & TR3 Branch (Y=58)
+  const crmNoRun3 = addSymbol(c, crm.device.id, "aux-no", 18, 58);
+  const tr2NoTrig3 = addSymbol(c, tr2.device.id, "delayed-no", 24, 58);
+  const km3NoSeal3 = addSymbol(c, km3.device.id, "aux-no", 24, 62);
+  const tr3NcDrop3 = addSymbol(c, tr3.device.id, "delayed-nc", 32, 58);
+  const km1NcLock3 = addSymbol(c, km1.device.id, "aux-nc", 38, 58);
+  const hlM3 = addDevice(c, "lamp", "LT_M3", "body", 54, 57.5, { color: "blue" });
+
+  // === Power Wiring ===
+  addWire(c, g.symbol, "L1", qs.symbol, "L1");
+  addWire(c, g.symbol, "L2", qs.symbol, "L2");
+  addWire(c, g.symbol, "L3", qs.symbol, "L3");
+
+  addWire(c, qs.symbol, "T1", qf.symbol, "L1");
+  addWire(c, qs.symbol, "T2", qf.symbol, "L2");
+  addWire(c, qs.symbol, "T3", qf.symbol, "L3");
+
+  // Motor 1 Branch
+  addWire(c, qf.symbol, "T1", km1Main, "L1");
+  addWire(c, qf.symbol, "T2", km1Main, "L2");
+  addWire(c, qf.symbol, "T3", km1Main, "L3");
+  addWire(c, km1Main, "T1", fr1.symbol, "L1");
+  addWire(c, km1Main, "T2", fr1.symbol, "L2");
+  addWire(c, km1Main, "T3", fr1.symbol, "L3");
+  addWire(c, fr1.symbol, "T1", mtr1.symbol, "U");
+  addWire(c, fr1.symbol, "T2", mtr1.symbol, "V");
+  addWire(c, fr1.symbol, "T3", mtr1.symbol, "W");
+
+  // Motor 2 Branch
+  addWire(c, qf.symbol, "T1", km2Main, "L1");
+  addWire(c, qf.symbol, "T2", km2Main, "L2");
+  addWire(c, qf.symbol, "T3", km2Main, "L3");
+  addWire(c, km2Main, "T1", fr2.symbol, "L1");
+  addWire(c, km2Main, "T2", fr2.symbol, "L2");
+  addWire(c, km2Main, "T3", fr2.symbol, "L3");
+  addWire(c, fr2.symbol, "T1", mtr2.symbol, "U");
+  addWire(c, fr2.symbol, "T2", mtr2.symbol, "V");
+  addWire(c, fr2.symbol, "T3", mtr2.symbol, "W");
+
+  // Motor 3 Branch
+  addWire(c, qf.symbol, "T1", km3Main, "L1");
+  addWire(c, qf.symbol, "T2", km3Main, "L2");
+  addWire(c, qf.symbol, "T3", km3Main, "L3");
+  addWire(c, km3Main, "T1", fr3.symbol, "L1");
+  addWire(c, km3Main, "T2", fr3.symbol, "L2");
+  addWire(c, km3Main, "T3", fr3.symbol, "L3");
+  addWire(c, fr3.symbol, "T1", mtr3.symbol, "U");
+  addWire(c, fr3.symbol, "T2", mtr3.symbol, "V");
+  addWire(c, fr3.symbol, "T3", mtr3.symbol, "W");
+
+  // Grounding
+  addWire(c, g.symbol, "PE", pe.symbol, "1");
+  addWire(c, tc.symbol, "X2", pe.symbol, "1");
+
+  // Transformer Primary (L1 - L2)
+  addWire(c, qs.symbol, "T1", tc.symbol, "H1");
+  addWire(c, qs.symbol, "T2", tc.symbol, "H2");
+
+  // === Control Wiring ===
+  // Master Control Rung (Y=25)
+  addWire(c, tc.symbol, "X1", fr1Nc, "95");
+  addWire(c, fr1Nc, "96", fr2Nc, "95");
+  addWire(c, fr2Nc, "96", fr3Nc, "95");
+  addWire(c, fr3Nc, "96", stop.symbol, "1");
+  addWire(c, stop.symbol, "2", start.symbol, "1");
+  addWire(c, stop.symbol, "2", crmNoSeal, "1");
+  addWire(c, start.symbol, "2", crm.symbol, "A1");
+  addWire(c, crmNoSeal, "2", crm.symbol, "A1");
+  addWire(c, crm.symbol, "A2", tc.symbol, "X2");
+
+  // Stopped Red Lamp (Y=32.5)
+  addWire(c, tc.symbol, "X1", crmNcStop, "3");
+  addWire(c, crmNcStop, "4", hlStop.symbol, "1");
+  addWire(c, hlStop.symbol, "2", tc.symbol, "X2");
+
+  // Motor 1 & TR1 Branch (Y=38)
+  addWire(c, tc.symbol, "X1", crmNoRun1, "1");
+  addWire(c, crmNoRun1, "2", km2NcLock1, "21");
+  addWire(c, km2NcLock1, "22", km3NcLock1, "21");
+  addWire(c, km3NcLock1, "22", tr1NcDrop1, "1");
+  addWire(c, tr1NcDrop1, "4", km1.symbol, "A1");
+  addWire(c, tr1NcDrop1, "4", tr1.symbol, "2");
+  addWire(c, km1.symbol, "A2", tc.symbol, "X2");
+  addWire(c, tr1.symbol, "7", tc.symbol, "X2");
+  addWire(c, km1.symbol, "A1", hlM1.symbol, "1");
+  addWire(c, hlM1.symbol, "2", tc.symbol, "X2");
+
+  // Motor 2 & TR2 Branch (Y=48)
+  addWire(c, tc.symbol, "X1", crmNoRun2, "5");
+  addWire(c, crmNoRun2, "6", tr1NoTrig2, "1");
+  addWire(c, crmNoRun2, "6", km2NoSeal2, "13");
+  addWire(c, tr1NoTrig2, "3", tr2NcDrop2, "1");
+  addWire(c, km2NoSeal2, "14", tr2NcDrop2, "1");
+  addWire(c, tr2NcDrop2, "4", km3NcLock2, "31");
+  addWire(c, km3NcLock2, "32", km2.symbol, "A1");
+  addWire(c, km3NcLock2, "32", tr2.symbol, "2");
+  addWire(c, km2.symbol, "A2", tc.symbol, "X2");
+  addWire(c, tr2.symbol, "7", tc.symbol, "X2");
+  addWire(c, km2.symbol, "A1", hlM2.symbol, "1");
+  addWire(c, hlM2.symbol, "2", tc.symbol, "X2");
+
+  // Motor 3 & TR3 Branch (Y=58)
+  addWire(c, tc.symbol, "X1", crmNoRun3, "1");
+  addWire(c, crmNoRun3, "2", tr2NoTrig3, "1");
+  addWire(c, crmNoRun3, "2", km3NoSeal3, "13");
+  addWire(c, tr2NoTrig3, "3", tr3NcDrop3, "1");
+  addWire(c, km3NoSeal3, "14", tr3NcDrop3, "1");
+  addWire(c, tr3NcDrop3, "4", km1NcLock3, "21");
+  addWire(c, km1NcLock3, "22", km3.symbol, "A1");
+  addWire(c, km1NcLock3, "22", tr3.symbol, "2");
+  addWire(c, km3.symbol, "A2", tc.symbol, "X2");
+  addWire(c, tr3.symbol, "7", tc.symbol, "X2");
+  addWire(c, km3.symbol, "A1", hlM3.symbol, "1");
+  addWire(c, hlM3.symbol, "2", tc.symbol, "X2");
+
+  return c;
+}
+
 export const ALL_20_EXAMPLES = [
   { id: "01-basic-lamp", title: "01# Basic Lamp Circuit", blurb: "直流電源驅動常開按鈕與綠色指示燈基礎電路。", build: ex01BasicLamp },
   { id: "02-start-stop-lamp", title: "02# Start-Stop Dual Indicators", blurb: "啟動/停止雙按鈕與紅綠雙色狀態指示電路。", build: ex02StartStopLamp },

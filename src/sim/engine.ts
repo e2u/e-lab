@@ -876,12 +876,10 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
     case "timer-ss-on":
       if (rt.done) out.push(["1", "3"], ["8", "6"]);
       else out.push(["1", "4"], ["8", "5"]);
-      if (rt.energized) out.push(["1", "3"]);
       break;
     case "timer-ss-off":
       if (rt.done) out.push(["1", "3"], ["11", "9"]);
       else out.push(["1", "4"], ["11", "8"]);
-      if (rt.energized) out.push(["1", "3"]);
       break;
     case "counter":
       if (rt.done) out.push(["1", "2"]);

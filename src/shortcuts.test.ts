@@ -3,7 +3,7 @@ import { useLab } from "./store";
 import { handleGlobalKeyDown, executeCommand, getRegisteredCommands } from "./keyboard";
 import { cleanPolyline, wireRoute } from "./geometry";
 
-function fireKey(key: string, code: string, options: { metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean; target?: any } = {}) {
+function fireKey(key: string, code: string, options: { metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean; target?: EventTarget | null } = {}) {
   const evt = {
     key,
     code,

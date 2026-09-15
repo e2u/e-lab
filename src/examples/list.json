@@ -169,6 +169,16 @@
       "id": "project-12",
       "title": "Project 12",
       "blurb": "三台馬達連續循環運轉控制電路。"
+    },
+    {
+      "id": "21-timer-ss-off-dual-motor",
+      "title": "21# Solid-State Dual Motor Alternating",
+      "blurb": "兩台 11-Pin 固態斷電延時繼電器 (Solid-State TOF) 控制雙電機自動輪流交替運行。"
+    },
+    {
+      "id": "22-timer-ss-off-three-motor",
+      "title": "22# Solid-State Three Motor Alternating",
+      "blurb": "三台 11-Pin 固態斷電延時繼電器 (Solid-State TOF) 控制三台電機自動輪流循環運行。"
     }
   ]
 }

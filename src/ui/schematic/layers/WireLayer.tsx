@@ -1,5 +1,5 @@
 import { memo, useMemo, type MouseEvent, type PointerEvent } from "react";
-import { alignStackedWireLabels, dedupeWireLabels, getConnectedWireIds, hopArcD, labelMarkMatches, makeWireLabelKey, pickVisibleWireLabels, polylinePathD, terminalWorld, WIRE_LABEL_SEPARATION, wireLabelAnchorAtT, wireLabelAnchors, wireLabelOffset, wireLabelRadius, type WireCrossover } from "../../../geometry";
+import { alignStackedWireLabels, dedupeWireLabels, getConnectedWireIds, hopArcD, labelMarkMatches, makeWireLabelKey, pickVisibleWireLabels, polylinePathD, terminalWorld, WIRE_LABEL_SEPARATION, wireLabelAnchorAtT, wireLabelAnchors, wireLabelOffset, wireLabelRadius, type WireCrossover, type WireLabelAnchor } from "../../../geometry";
 import { printHiddenSymbolIds, wireIsPrintHidden } from "../../../groups";
 import { PHASE_COLOR } from "../../../sim/engine";
 import type { Selection } from "../../../store";
@@ -70,8 +70,8 @@ export const WireLayer = memo(function WireLayer({
     return map;
   }, [crossovers]);
 
-  const labelsByWire = useMemo(() => {
-    if (showWireLabels === false) return new Map();
+  const labelsByWire = useMemo((): Map<string, WireLabelAnchor[]> => {
+    if (showWireLabels === false) return new Map<string, WireLabelAnchor[]>();
     const deviceById = new Map(circuit.devices.map((d) => [d.id, d]));
     const avoid: { x: number; y: number }[] = [];
     for (const sym of circuit.symbols) {
@@ -299,15 +299,15 @@ export const WireLayer = memo(function WireLayer({
                 className={`wire-label-group${hideOnPrint ? " group-print-hidden" : ""}`}
                 onPointerDown={(e) => {
                   e.stopPropagation();
-                  onWireLabelPointerDown?.(e as any, w.id, anchor.t);
+                  onWireLabelPointerDown?.(e, w.id, anchor.t);
                 }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
-                  onWireLabelDoubleClick?.(e as any, w.id, anchor.t);
+                  onWireLabelDoubleClick?.(e, w.id, anchor.t);
                 }}
                 onContextMenu={(e) => {
                   e.stopPropagation();
-                  onWireLabelContextMenu?.(e as any, w.id, anchor.t);
+                  onWireLabelContextMenu?.(e, w.id, anchor.t);
                 }}
               >
                 <circle

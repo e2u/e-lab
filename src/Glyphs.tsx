@@ -2177,16 +2177,99 @@ function GlyphBody({
         );
     }
 
-    if (kind === "timer-on" || kind === "timer-off") {
+    if (kind === "timer-on" || kind === "timer-off" || kind === "timer-ss-on" || kind === "timer-ss-off") {
         if (variant === "coil") {
+            if (kind === "timer-ss-on") {
+                return (
+                    <S w={w} h={h}>
+                        {coilBox(w, h, device.tag, hot, "2", "7")}
+                    </S>
+                );
+            }
+            if (kind === "timer-ss-off") {
+                const cx = (w * GRID) / 2;
+                const topY = 1 * GRID;
+                const trigY = 3 * GRID;
+                const isPowerOn = hot;
+                const isTriggered = Boolean(rt?.energizedAlt);
+                return (
+                    <S w={w} h={h}>
+                        {/* Power Supply Coil Circuit (Terminals 2 - 10) */}
+                        <line x1={0} y1={topY} x2={cx - 16} y2={topY} stroke={ink} strokeWidth="2" />
+                        <line x1={cx + 16} y1={topY} x2={w * GRID} y2={topY} stroke={ink} strokeWidth="2" />
+                        <circle
+                            cx={cx}
+                            cy={topY}
+                            r="15"
+                            fill={isPowerOn ? "#f0d27a" : "#efe6d0"}
+                            stroke={ink}
+                            strokeWidth="2"
+                        />
+                        <Txt x={8} y={topY - 8} className="term-lab">
+                            2
+                        </Txt>
+                        <Txt x={w * GRID - 8} y={topY - 8} textAnchor="end" className="term-lab">
+                            10
+                        </Txt>
+                        <Txt x={cx} y={topY} textAnchor="middle" dominantBaseline="central" className="sym-tag">
+                            {device.tag}
+                        </Txt>
+
+                        {/* Mode indicator */}
+                        <rect
+                            x={cx - 24}
+                            y={2 * GRID - 5}
+                            width={48}
+                            height={11}
+                            rx="2"
+                            fill="#e2dbcb"
+                            stroke={ink}
+                            strokeWidth="0.8"
+                        />
+                        <Txt x={cx} y={2 * GRID} textAnchor="middle" dominantBaseline="central" className="term-lab" fontSize="7.5" fontWeight="bold">
+                            OFF-DELAY
+                        </Txt>
+
+                        {/* Control / Trigger Circuit (Terminals 5 - 6) */}
+                        <line x1={0} y1={trigY} x2={cx - 16} y2={trigY} stroke={ink} strokeWidth="2" />
+                        <line x1={cx + 16} y1={trigY} x2={w * GRID} y2={trigY} stroke={ink} strokeWidth="2" />
+                        <rect
+                            x={cx - 16}
+                            y={trigY - 6.5}
+                            width={32}
+                            height={13}
+                            rx="2"
+                            fill={isTriggered ? "#86efac" : "#e2dbcb"}
+                            stroke={ink}
+                            strokeWidth="1.2"
+                        />
+                        <Txt x={cx} y={trigY} textAnchor="middle" dominantBaseline="central" className="term-lab" fontSize="8.5" fontWeight="bold">
+                            START
+                        </Txt>
+                        <Txt x={8} y={trigY - 6} className="term-lab">
+                            5
+                        </Txt>
+                        <Txt x={w * GRID - 8} y={trigY - 6} textAnchor="end" className="term-lab">
+                            6
+                        </Txt>
+                    </S>
+                );
+            }
             return (
                 <S w={w} h={h}>
                     {coilBox(w, h, device.tag, hot)}
                 </S>
             );
         }
-        const delayed = variant === "delayed-nc" || variant === "delayed-no";
-        const nc = variant === "delayed-nc" || variant === "inst-nc";
+        const delayed =
+            variant === "delayed-nc" ||
+            variant === "delayed-no" ||
+            variant === "delayed-nc2" ||
+            variant === "delayed-no2";
+        const nc =
+            variant === "delayed-nc" ||
+            variant === "delayed-nc2" ||
+            variant === "inst-nc";
 
         if (!delayed) {
             // Instantaneous auxiliary contacts: same style as relay NO / NC
@@ -2198,12 +2281,13 @@ function GlyphBody({
             );
         }
 
+        const isOffDelay = kind === "timer-off" || kind === "timer-ss-off";
         const conducting = nc
-            ? !Boolean(rt?.done)
+            ? !rt?.done
             : Boolean(rt?.done);
         return (
             <S w={w} h={h}>
-                {timedContact(w, conducting, true, kind === "timer-off")}
+                {timedContact(w, conducting, true, isOffDelay)}
             </S>
         );
     }
@@ -2583,7 +2667,7 @@ function GlyphBody({
         );
     }
     if (kind === "starter-rev-combo") {
-        const fwd = hot && !Boolean(rt?.energizedAlt);
+        const fwd = hot && !rt?.energizedAlt;
         const rev = Boolean(rt?.energizedAlt) && !hot;
         const gap = 0.4 * GRID;
         const barH = 0.5 * GRID;

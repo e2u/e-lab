@@ -32,7 +32,9 @@ let sessionStartTime = Date.now();
 let isInitialized = false;
 
 // Safe event logger
-export function trackEvent(eventName: string, params: Record<string, any> = {}): void {
+type AnalyticsParamValue = string | number | boolean | undefined;
+
+export function trackEvent(eventName: string, params: Record<string, AnalyticsParamValue> = {}): void {
   try {
     const analytics = getFirebaseAnalytics();
     const enrichedParams = {
@@ -114,7 +116,15 @@ export function initAnalyticsTracking(): void {
   });
 }
 
-async function tryRecordSessionInFirestore(info: Record<string, any>) {
+async function tryRecordSessionInFirestore(info: {
+  visitorId: string;
+  sessionId: string;
+  referrer: string;
+  screenRes: string;
+  language: string;
+  userAgent: string;
+  url: string;
+}) {
   try {
     const db = getFirebaseDb();
     if (!db) return;

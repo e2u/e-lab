@@ -52,12 +52,14 @@ export function isContactClosed(
       }
       return rt?.energized ?? false;
     case "timer-on":
-      if (variant === "aux-no" || variant === "no") return rt?.done ?? false;
-      if (variant === "aux-nc" || variant === "nc") return !(rt?.done ?? false);
+    case "timer-ss-on":
+      if (variant === "aux-no" || variant === "no" || variant === "delayed-no" || variant === "delayed-no2") return rt?.done ?? false;
+      if (variant === "aux-nc" || variant === "nc" || variant === "delayed-nc" || variant === "delayed-nc2") return !(rt?.done ?? false);
       return rt?.done ?? false;
     case "timer-off":
-      if (variant === "aux-no" || variant === "no") return !(rt?.done ?? false);
-      if (variant === "aux-nc" || variant === "nc") return rt?.done ?? false;
+    case "timer-ss-off":
+      if (variant === "aux-no" || variant === "no" || variant === "delayed-no" || variant === "delayed-no2") return !(rt?.done ?? false);
+      if (variant === "aux-nc" || variant === "nc" || variant === "delayed-nc" || variant === "delayed-nc2") return rt?.done ?? false;
       return rt?.done ?? false;
     case "counter":
       if (variant === "aux-no" || variant === "no") return rt?.done ?? false;
@@ -71,12 +73,12 @@ export function isContactClosed(
     case "prox-no":
       return Boolean(process.proxHit);
     case "prox-nc":
-      return !Boolean(process.proxHit);
+      return !process.proxHit;
     case "photo":
     case "photo-no":
       return Boolean(process.photoHit);
     case "photo-nc":
-      return !Boolean(process.photoHit);
+      return !process.photoHit;
     case "temp-no":
       return (process.temperature ?? 25) >= (device.params.setpoint ?? 50);
     case "temp-nc":
@@ -179,7 +181,9 @@ function getContactType(kind: DeviceKind, variant?: string): LadderContactType {
       return "toggle";
     case "timer-on":
     case "timer-off":
-      if (variant === "aux-nc" || variant === "nc") return "timer-nc";
+    case "timer-ss-on":
+    case "timer-ss-off":
+      if (variant === "aux-nc" || variant === "nc" || variant === "delayed-nc" || variant === "delayed-nc2") return "timer-nc";
       return "timer-no";
     case "contactor":
     case "relay":
@@ -195,8 +199,10 @@ function getContactType(kind: DeviceKind, variant?: string): LadderContactType {
 function getCoilType(kind: DeviceKind): LadderCoilType {
   switch (kind) {
     case "timer-on":
+    case "timer-ss-on":
       return "timer-on";
     case "timer-off":
+    case "timer-ss-off":
       return "timer-off";
     case "counter":
       return "counter";
@@ -347,6 +353,8 @@ export function buildLadderDiagram(
       dev.kind === "relay" ||
       dev.kind === "timer-on" ||
       dev.kind === "timer-off" ||
+      dev.kind === "timer-ss-on" ||
+      dev.kind === "timer-ss-off" ||
       dev.kind === "counter" ||
       dev.kind === "lamp" ||
       dev.kind === "alarm" ||
@@ -624,7 +632,13 @@ export function buildLadderDiagram(
           termB: "8",
         });
       }
-    } else if (dev.kind === "timer-on" || dev.kind === "timer-off" || dev.kind === "counter") {
+    } else if (
+      dev.kind === "timer-on" ||
+      dev.kind === "timer-off" ||
+      dev.kind === "timer-ss-on" ||
+      dev.kind === "timer-ss-off" ||
+      dev.kind === "counter"
+    ) {
       if (sym.variant === "delayed-nc") {
         contactUnits.push({
           id: sym.id,
@@ -633,10 +647,10 @@ export function buildLadderDiagram(
           device: dev,
           symbol: sym,
           variant: "delayed-nc",
-          address: "15-16",
+          address: dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off" ? "1-4" : "15-16",
           contactType: "timer-nc",
-          termA: "15",
-          termB: "16",
+          termA: dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off" ? "1" : "15",
+          termB: dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off" ? "4" : "16",
         });
       } else if (sym.variant === "delayed-no") {
         contactUnits.push({
@@ -646,10 +660,36 @@ export function buildLadderDiagram(
           device: dev,
           symbol: sym,
           variant: "delayed-no",
-          address: "15-18",
+          address: dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off" ? "1-3" : "15-18",
           contactType: "timer-no",
-          termA: "15",
-          termB: "18",
+          termA: dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off" ? "1" : "15",
+          termB: dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off" ? "3" : "18",
+        });
+      } else if (sym.variant === "delayed-nc2") {
+        contactUnits.push({
+          id: sym.id,
+          deviceId: dev.id,
+          symbolId: sym.id,
+          device: dev,
+          symbol: sym,
+          variant: "delayed-nc2",
+          address: dev.kind === "timer-ss-off" ? "11-8" : "8-5",
+          contactType: "timer-nc",
+          termA: dev.kind === "timer-ss-off" ? "11" : "8",
+          termB: dev.kind === "timer-ss-off" ? "8" : "5",
+        });
+      } else if (sym.variant === "delayed-no2") {
+        contactUnits.push({
+          id: sym.id,
+          deviceId: dev.id,
+          symbolId: sym.id,
+          device: dev,
+          symbol: sym,
+          variant: "delayed-no2",
+          address: dev.kind === "timer-ss-off" ? "11-9" : "8-6",
+          contactType: "timer-no",
+          termA: dev.kind === "timer-ss-off" ? "11" : "8",
+          termB: dev.kind === "timer-ss-off" ? "9" : "6",
         });
       } else if (sym.variant === "inst-nc") {
         contactUnits.push({
@@ -904,10 +944,20 @@ export function buildLadderDiagram(
       variant === "aux-no2" ||
       variant === "delayed-nc" ||
       variant === "delayed-no" ||
+      variant === "delayed-nc2" ||
+      variant === "delayed-no2" ||
       variant === "inst-nc" ||
       variant === "inst-no"
     ) {
-      return kind === "overload" || kind === "contactor" || kind === "relay" || kind === "timer-on" || kind === "timer-off";
+      return (
+        kind === "overload" ||
+        kind === "contactor" ||
+        kind === "relay" ||
+        kind === "timer-on" ||
+        kind === "timer-off" ||
+        kind === "timer-ss-on" ||
+        kind === "timer-ss-off"
+      );
     }
     return false;
   };
@@ -1156,7 +1206,7 @@ export function buildLadderDiagram(
   };
 
   // Helper to convert DiscoveredContact to LadderRungItem with safe address handling
-  const contactToElem = (c: DiscoveredContact): LadderRungItem => ({
+  const contactToElem = (c: DiscoveredContact): { type: "contact"; element: LadderContactElement } => ({
     type: "contact",
     element: makeContactElement(c.device, c.symbol, c.variant, c.address || "1-2", c.contactType),
   });
@@ -1177,11 +1227,7 @@ export function buildLadderDiagram(
       case "float":
       case "foot-no":
       case "prox":
-      case "prox-no":
-      case "prox-nc":
       case "photo":
-      case "photo-no":
-      case "photo-nc":
         return "13-14";
       case "nc":
       case "timer-nc":
@@ -1435,7 +1481,9 @@ export function buildLadderDiagram(
     c.device.kind !== "breaker-1p" &&
     c.device.kind !== "relay" &&
     c.device.kind !== "timer-on" &&
-    c.device.kind !== "timer-off",
+    c.device.kind !== "timer-off" &&
+    c.device.kind !== "timer-ss-on" &&
+    c.device.kind !== "timer-ss-off",
   );
   if (remainingContacts.length > 0) {
     let auxIdx = 1;

@@ -1,9 +1,7 @@
-import type { Circuit, Device, PortRef, SymbolInst, Wire } from "../types";
+import type { Circuit, Device, SymbolInst } from "../types";
 import { GRID } from "../types";
-import { uid } from "../ids";
 import { addJunction, addWire } from "../circuitBuilder";
 import { terminalWorld } from "../geometry";
-import { variantDef } from "../catalog";
 
 export interface AutoLayoutOptions {
   powerStartX?: number;
@@ -103,17 +101,14 @@ export function autoLayoutCircuit(
     const dev = getDev(s);
     if (!dev) continue;
 
-    const symClone: SymbolInst = {
-      ...s,
-      tagOffset: undefined,
-      jog: undefined,
-    } as any;
+    const { tagOffset: _tagOffset, ...rest } = s;
+    const symClone: SymbolInst = rest;
 
     const k = dev.kind;
     const v = s.variant || "body";
 
     // Power Mains
-    if (k === "mains-3ph" || k === "mains-1ph") {
+    if (k === "mains-3ph" || (k as string) === "mains-1ph") {
       classified.powerMains.push(symClone);
     }
     // Power Breakers & Isolators
@@ -133,7 +128,16 @@ export function autoLayoutCircuit(
       classified.powerContactors.push(symClone);
     }
     // Contactor coils
-    else if ((k === "contactor" || k === "relay" || k === "timer-on" || k === "timer-off" || k === "counter") && (v === "coil" || !v || v === "body")) {
+    else if (
+      (k === "contactor" ||
+        k === "relay" ||
+        k === "timer-on" ||
+        k === "timer-off" ||
+        k === "timer-ss-on" ||
+        k === "timer-ss-off" ||
+        k === "counter") &&
+      (v === "coil" || !v || v === "body")
+    ) {
       classified.controlCoils.push(symClone);
     }
     // Auxiliary NO contacts (e.g. 13-14, 43-44)
@@ -161,7 +165,7 @@ export function autoLayoutCircuit(
       }
     }
     // Motors
-    else if (k === "motor-3ph" || k === "motor-1ph" || k === "motor-dc" || k === "heater-3ph") {
+    else if (k === "motor-3ph" || k === "motor-1ph" || k === "motor-dc" || (k as string) === "heater-3ph") {
       classified.powerMotors.push(symClone);
     }
     // Grounds
@@ -267,8 +271,8 @@ export function autoLayoutCircuit(
   }
 
   // 4. Lay out Transformer / Control Power Source
-  let transX = 16;
-  let transY = 12;
+  const transX = 16;
+  const transY = 12;
   if (classified.transformer) {
     classified.transformer.x = transX;
     classified.transformer.y = transY;
@@ -353,7 +357,6 @@ export function autoLayoutCircuit(
       ilock.y = currentRungY;
       ilock.rot = 0;
       result.symbols.push(ilock);
-      rungX += 6;
     }
 
     // Output Coil (KM1 A1-A2)
@@ -391,7 +394,6 @@ export function autoLayoutCircuit(
       ilock.y = currentRungY;
       ilock.rot = 0;
       result.symbols.push(ilock);
-      rX += 6;
     }
 
     coil.x = 50;
@@ -593,7 +595,7 @@ function endpointIsPower(
 function routeOrthogonalCleanWires(
   result: Circuit,
   nets: NetEndpoint[][],
-  originalCircuit: Circuit,
+  _originalCircuit: Circuit,
   returnBusY: number,
   opts: { skipPowerWiring: boolean; powerSymbolIds: Set<string> },
 ) {
@@ -634,7 +636,6 @@ function routeOrthogonalCleanWires(
     if (isReturnNet) {
       // Create a clean horizontal Return Bus at returnBusY
       const minX = Math.min(...points.map((pt) => pt.x));
-      const maxX = Math.max(...points.map((pt) => pt.x));
 
       // Connect all points vertically to the return bus line with T-junctions
       const busJunctions: { jSym: SymbolInst; x: number }[] = [];

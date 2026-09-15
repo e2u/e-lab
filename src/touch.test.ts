@@ -257,19 +257,19 @@ describe("touch & mobile adaptation", () => {
 
     // 1. Drag junction downwards (+Y direction)
     s.moveGroup([{ id: junctionSym.id, x: initialPos.x, y: initialPos.y + 4 }]);
-    let symAfterY = useLab.getState().circuit.symbols.find((sym) => sym.id === junctionSym.id)!;
+    const symAfterY = useLab.getState().circuit.symbols.find((sym) => sym.id === junctionSym.id)!;
     expect(symAfterY.y).toBe(initialPos.y + 4);
     expect(symAfterY.x).toBe(initialPos.x);
 
     // 2. Drag junction to the right (+X direction)
     s.moveGroup([{ id: junctionSym.id, x: initialPos.x + 3, y: initialPos.y + 4 }]);
-    let symAfterX = useLab.getState().circuit.symbols.find((sym) => sym.id === junctionSym.id)!;
+    const symAfterX = useLab.getState().circuit.symbols.find((sym) => sym.id === junctionSym.id)!;
     expect(symAfterX.x).toBe(initialPos.x + 3);
     expect(symAfterX.y).toBe(initialPos.y + 4);
 
     // 3. Drag junction diagonally (-X, -Y direction)
     s.moveGroup([{ id: junctionSym.id, x: initialPos.x - 2, y: initialPos.y - 2 }]);
-    let symAfterDiag = useLab.getState().circuit.symbols.find((sym) => sym.id === junctionSym.id)!;
+    const symAfterDiag = useLab.getState().circuit.symbols.find((sym) => sym.id === junctionSym.id)!;
     expect(symAfterDiag.x).toBe(initialPos.x - 2);
     expect(symAfterDiag.y).toBe(initialPos.y - 2);
 

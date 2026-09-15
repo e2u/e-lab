@@ -498,7 +498,7 @@ export function LadderContactGlyph({
   // 8. Timing Switch (Timer Delay Contacts with Umbrella Arrow)
   const renderTimerContact = () => {
     const isNo = contactType === "timer-no";
-    const isTimingClosed = device.kind === "timer-on"; // On-Delay: Timing Closed
+    const isTimingClosed = device.kind === "timer-on" || device.kind === "timer-ss-on"; // On-Delay: Timing Closed
     const isActuated = isClosed;
     const bridgeY = isClosed ? y - 3.5 : (isNo ? y - 9 : y - 3.5);
     const activeColor = isClosed && isRungLive ? "#10b981" : isClosed ? "#3b82f6" : barColor;
@@ -850,8 +850,8 @@ export function LadderCoilGlyph({
     orange: { letter: "O", color: "#ea580c", contrastText: "#ffffff" },
   };
 
-  let lampLetter = "G";
-  let lampColor = "#22c55e";
+  let lampLetter: string;
+  let lampColor: string;
 
   if (rawColor && LAMP_MAP[rawColor]) {
     lampLetter = LAMP_MAP[rawColor].letter;

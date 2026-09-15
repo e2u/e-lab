@@ -123,6 +123,8 @@ export function getSymbolTagPlacement(
     "relay",
     "timer-on",
     "timer-off",
+    "timer-ss-on",
+    "timer-ss-off",
     "counter",
     "lamp",
     "fan",

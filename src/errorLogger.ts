@@ -132,9 +132,9 @@ export function initErrorLogging(): void {
 
   // C. Intercept console.error to catch runtime logged issues
   const originalConsoleError = console.error;
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     // Call original console.error so developer tools display normally
-    originalConsoleError.apply(console, args);
+    originalConsoleError(...args);
 
     try {
       const msg = args

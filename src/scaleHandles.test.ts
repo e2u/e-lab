@@ -128,7 +128,7 @@ describe("Symbol Scale & Control Handles", () => {
 
   it("handles isolator terminal positions, aliases and bounds correctly", () => {
     const c = emptyCircuit();
-    const { device, symbol } = addDevice(c, "isolator", "QS1", "body", 10, 10);
+    const { symbol } = addDevice(c, "isolator", "QS1", "body", 10, 10);
     // Base size 4x6
     const b = symbolBounds(c, symbol);
     expect(b).toEqual({ x: 10, y: 10, w: 4, h: 6 });
@@ -166,7 +166,7 @@ describe("Symbol Scale & Control Handles", () => {
 
   it("handles breaker-1p bounds and terminal coordinates properly", () => {
     const c = emptyCircuit();
-    const { device, symbol } = addDevice(c, "breaker-1p", "CB1", "body", 5, 5);
+    const { symbol } = addDevice(c, "breaker-1p", "CB1", "body", 5, 5);
     const b = symbolBounds(c, symbol);
     expect(b).toEqual({ x: 5, y: 5, w: 2, h: 4 });
 
@@ -178,7 +178,7 @@ describe("Symbol Scale & Control Handles", () => {
 
   it("handles overload relay bounds, terminals and aux contacts properly", () => {
     const c = emptyCircuit();
-    const { device, symbol } = addDevice(c, "overload", "OL1", "body", 5, 5);
+    const { symbol } = addDevice(c, "overload", "OL1", "body", 5, 5);
     const b = symbolBounds(c, symbol);
     expect(b).toEqual({ x: 5, y: 5, w: 6, h: 4 });
 

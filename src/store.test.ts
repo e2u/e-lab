@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { useLab } from "./store";
 import { emptyCircuit, addDevice, addWire, addJunction, addSymbol } from "./circuitBuilder";
@@ -157,15 +158,14 @@ describe("autoLabelWires", () => {
     // Verify that the 10-dual-station.json file now has sequential wire numbers
     // since we're no longer reserving numeric terminal labels like "13", "14"
     
-    const fs = require('fs');
     const filePath = '/Volumes/r1/10-dual-station.json';
     
-    if (!fs.existsSync(filePath)) {
+    if (!existsSync(filePath)) {
       console.log('File not found:', filePath);
       return;
     }
     
-    const content = fs.readFileSync(filePath, 'utf8');
+    const content = readFileSync(filePath, 'utf8');
     const data = JSON.parse(content);
     
     useLab.setState({ circuit: data.circuit });

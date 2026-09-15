@@ -85,6 +85,87 @@ const timerVariants: KindMeta["variants"] = {
   },
 };
 
+const timerSsOnVariants: KindMeta["variants"] = {
+  coil: {
+    w: 4,
+    h: 2,
+    terminals: [t("2", 0, 1, "2"), t("7", 4, 1, "7")],
+  },
+  "delayed-nc": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("1", 0, 1, "1"), t("4", CONTACT_W, 1, "4")],
+  },
+  "delayed-no": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("1", 0, 1, "1"), t("3", CONTACT_W, 1, "3")],
+  },
+  "delayed-nc2": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("8", 0, 1, "8"), t("5", CONTACT_W, 1, "5")],
+  },
+  "delayed-no2": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("8", 0, 1, "8"), t("6", CONTACT_W, 1, "6")],
+  },
+  "inst-nc": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("1", 0, 1, "1"), t("4", CONTACT_W, 1, "4")],
+  },
+  "inst-no": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("1", 0, 1, "1"), t("3", CONTACT_W, 1, "3")],
+  },
+};
+
+const timerSsOffVariants: KindMeta["variants"] = {
+  coil: {
+    w: 6,
+    h: 4,
+    terminals: [
+      t("2", 0, 1, "2"),
+      t("10", 6, 1, "10"),
+      t("5", 0, 3, "5"),
+      t("6", 6, 3, "6"),
+    ],
+  },
+  "delayed-nc": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("1", 0, 1, "1"), t("4", CONTACT_W, 1, "4")],
+  },
+  "delayed-no": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("1", 0, 1, "1"), t("3", CONTACT_W, 1, "3")],
+  },
+  "delayed-nc2": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("11", 0, 1, "11"), t("8", CONTACT_W, 1, "8")],
+  },
+  "delayed-no2": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("11", 0, 1, "11"), t("9", CONTACT_W, 1, "9")],
+  },
+  "inst-nc": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("1", 0, 1, "1"), t("4", CONTACT_W, 1, "4")],
+  },
+  "inst-no": {
+    w: CONTACT_W,
+    h: 2,
+    terminals: [t("1", 0, 1, "1"), t("3", CONTACT_W, 1, "3")],
+  },
+};
+
 const twoTermVert: VariantDef = {
   w: 2,
   h: 4,
@@ -132,19 +213,6 @@ const isolatorBody: VariantDef = {
     t("2", 4, 1, "T1"),
     t("4", 4, 3, "T2"),
     t("6", 4, 5, "T3"),
-  ],
-};
-
-const pole3: VariantDef = {
-  w: 6,
-  h: 6,
-  terminals: [
-    t("L1", 0, 1),
-    t("L2", 0, 3),
-    t("L3", 0, 5),
-    t("T1", 6, 1),
-    t("T2", 6, 3),
-    t("T3", 6, 5),
   ],
 };
 
@@ -649,6 +717,16 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "斷電延時",
     variants: timerVariants,
   },
+  "timer-ss-on": {
+    prefix: "TR",
+    label: "固態通電延時",
+    variants: timerSsOnVariants,
+  },
+  "timer-ss-off": {
+    prefix: "TR",
+    label: "固態斷電延時",
+    variants: timerSsOffVariants,
+  },
   counter: {
     prefix: "CTR",
     label: "計數器",
@@ -939,6 +1017,19 @@ export const CATALOG: CatalogItem[] = [
   { id: "timer-off-no", kind: "timer-off", variant: "delayed-no", group: "計時與計數", label: "常開延時斷開 NO 15-18", labelEn: "TOF NO (Timed Open) 15-18", prefix: "TR", creates: "attach", defaultRot: 0 },
   { id: "timer-off-inst-nc", kind: "timer-off", variant: "inst-nc", group: "計時與計數", label: "斷電延時瞬時常閉 NC 21-22", labelEn: "TOF Inst NC 21-22", prefix: "TR", creates: "attach", defaultRot: 0 },
   { id: "timer-off-inst-no", kind: "timer-off", variant: "inst-no", group: "計時與計數", label: "斷電延時瞬時常開 NO 21-24", labelEn: "TOF Inst NO 21-24", prefix: "TR", creates: "attach", defaultRot: 0 },
+
+  { id: "timer-ss-on", kind: "timer-ss-on", variant: "coil", group: "計時與計數", label: "固態通電延時線圈 (8-Pin)", labelEn: "Solid-State ON Timer Coil (8-Pin)", prefix: "TR", creates: "device" },
+  { id: "timer-ss-on-no", kind: "timer-ss-on", variant: "delayed-no", group: "計時與計數", label: "固態通電延時常開 1-3", labelEn: "SS TON NO 1-3", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-ss-on-nc", kind: "timer-ss-on", variant: "delayed-nc", group: "計時與計數", label: "固態通電延時常閉 1-4", labelEn: "SS TON NC 1-4", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-ss-on-no2", kind: "timer-ss-on", variant: "delayed-no2", group: "計時與計數", label: "固態通電延時常開 8-6", labelEn: "SS TON NO 8-6", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-ss-on-nc2", kind: "timer-ss-on", variant: "delayed-nc2", group: "計時與計數", label: "固態通電延時常閉 8-5", labelEn: "SS TON NC 8-5", prefix: "TR", creates: "attach", defaultRot: 0 },
+
+  { id: "timer-ss-off", kind: "timer-ss-off", variant: "coil", group: "計時與計數", label: "固態斷電延時線圈 (11-Pin)", labelEn: "Solid-State OFF Timer Coil (11-Pin)", prefix: "TR", creates: "device" },
+  { id: "timer-ss-off-no", kind: "timer-ss-off", variant: "delayed-no", group: "計時與計數", label: "固態斷電延時常開 1-3", labelEn: "SS TOF NO 1-3", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-ss-off-nc", kind: "timer-ss-off", variant: "delayed-nc", group: "計時與計數", label: "固態斷電延時常閉 1-4", labelEn: "SS TOF NC 1-4", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-ss-off-no2", kind: "timer-ss-off", variant: "delayed-no2", group: "計時與計數", label: "固態斷電延時常開 11-9", labelEn: "SS TOF NO 11-9", prefix: "TR", creates: "attach", defaultRot: 0 },
+  { id: "timer-ss-off-nc2", kind: "timer-ss-off", variant: "delayed-nc2", group: "計時與計數", label: "固態斷電延時常閉 11-8", labelEn: "SS TOF NC 11-8", prefix: "TR", creates: "attach", defaultRot: 0 },
+
   { id: "counter", kind: "counter", variant: "body", group: "計時與計數", label: "計數器", labelEn: "Counter", prefix: "CTR", creates: "device" },
 
   { id: "lamp", kind: "lamp", variant: "body", group: "指示與負載", label: "指示燈", labelEn: "Pilot lamp", prefix: "LT", creates: "device" },

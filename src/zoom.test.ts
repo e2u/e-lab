@@ -117,10 +117,11 @@ describe("canvas width and zoom features", () => {
       scrollTo: () => {},
     };
 
-    const originalDocument = (globalThis as any).document;
-    (globalThis as any).document = {
+    const host = globalThis as typeof globalThis & { document?: unknown };
+    const originalDocument = host.document;
+    host.document = {
       querySelector: (sel: string) => (sel === ".paper-wrap" ? fakeElement : null),
-    };
+    } as unknown as Document;
 
     try {
       useLab.getState().zoomFit();
@@ -128,9 +129,9 @@ describe("canvas width and zoom features", () => {
       expect(useLab.getState().zoom).toBeLessThanOrEqual(1.5);
     } finally {
       if (originalDocument) {
-        (globalThis as any).document = originalDocument;
+        host.document = originalDocument;
       } else {
-        delete (globalThis as any).document;
+        delete (host as { document?: unknown }).document;
       }
     }
   });

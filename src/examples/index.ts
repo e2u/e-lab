@@ -1,5 +1,15 @@
+import type { Circuit } from "../types";
+
 // Dynamic imports for all example JSON files (works in both dev and GitHub Pages)
-type ExampleImporter = () => Promise<any>;
+export interface ExampleDoc {
+  circuit?: Circuit | null;
+  title?: string;
+  name?: string;
+  version?: number;
+  [key: string]: unknown;
+}
+
+type ExampleImporter = () => Promise<unknown>;
 
 const exampleImports: Record<string, ExampleImporter> = {
   none: () => Promise.resolve({ circuit: null }),
@@ -26,6 +36,8 @@ const exampleImports: Record<string, ExampleImporter> = {
   transformer: () => import("./transformer.json"),
   "three-phase-motor": () => import("./three-phase-motor.json"),
   "base-template": () => import("./BaseTemplate.json"),
+  "blank-template": () => import("./blank-template.json"),
+  "simple-fuse-test": () => import("./simple-fuse-test.json"),
   "project-01": () => import("./Project 01.json"),
   "project-02": () => import("./Project 02.json"),
   "project-03": () => import("./Project 03.json"),
@@ -38,9 +50,11 @@ const exampleImports: Record<string, ExampleImporter> = {
   "project-10": () => import("./Project 10.json"),
   "project-11": () => import("./Project 11.json"),
   "project-12": () => import("./Project 12.json"),
+  "21-timer-ss-off-dual-motor": () => import("./21-timer-ss-off-dual-motor.json"),
+  "22-timer-ss-off-three-motor": () => import("./22-timer-ss-off-three-motor.json"),
 };
 
-export async function loadExampleJson(id: string): Promise<any> {
+export async function loadExampleJson(id: string): Promise<ExampleDoc | null> {
   // Special case: none means blank template, no JSON needed
   if (id === "none") return { circuit: null };
 
@@ -48,9 +62,9 @@ export async function loadExampleJson(id: string): Promise<any> {
     const importer = exampleImports[id];
     if (!importer) return null;
 
-    const module = await importer();
+    const module = (await importer()) as { default?: ExampleDoc } & ExampleDoc;
     // Handle ES module export formats
-    return module.default || module;
+    return (module.default || module) as ExampleDoc;
   } catch (e) {
     console.error(`Failed to load example ${id}:`, e);
     return null;

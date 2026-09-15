@@ -114,7 +114,10 @@ export function Schematic() {
   }
 
   const geomKey = useMemo(() => circuitRouteKey(circuit), [circuit]);
+  // geomKey already encodes the circuit fields that affect routing.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid recompute on unrelated circuit identity changes
   const routes = useMemo(() => allWireRoutes(circuit), [geomKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- geomKey is the geometry fingerprint
   const crossovers = useMemo(() => findWireCrossovers(circuit, routes), [geomKey, routes]);
 
   const highlightedWireIds = useMemo(() => {

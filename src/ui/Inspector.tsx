@@ -692,7 +692,7 @@ export function Inspector() {
               </select>
             </label>
           )}
-          {(dev.kind === "timer-on" || dev.kind === "timer-off") && (
+          {(dev.kind === "timer-on" || dev.kind === "timer-off" || dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off") && (
             <div
               style={{
                 marginTop: "6px",
@@ -705,15 +705,15 @@ export function Inspector() {
                 color: "#166534",
               }}
             >
-              {dev.kind === "timer-on" && sym.variant === "delayed-nc" && t("inspector.hintTonNc")}
-              {dev.kind === "timer-on" && sym.variant === "delayed-no" && t("inspector.hintTonNo")}
-              {dev.kind === "timer-on" && sym.variant === "inst-nc" && t("inspector.hintTonInstNc")}
-              {dev.kind === "timer-on" && sym.variant === "inst-no" && t("inspector.hintTonInstNo")}
-              {dev.kind === "timer-off" && sym.variant === "delayed-no" && t("inspector.hintTofNo")}
-              {dev.kind === "timer-off" && sym.variant === "delayed-nc" && t("inspector.hintTofNc")}
-              {dev.kind === "timer-off" && sym.variant === "inst-nc" && t("inspector.hintTofInstNc")}
-              {dev.kind === "timer-off" && sym.variant === "inst-no" && t("inspector.hintTofInstNo")}
-              {sym.variant === "coil" && t(dev.kind === "timer-on" ? "inspector.hintTonCoil" : "inspector.hintTofCoil")}
+              {(dev.kind === "timer-on" || dev.kind === "timer-ss-on") && (sym.variant === "delayed-nc" || sym.variant === "delayed-nc2") && t("inspector.hintTonNc")}
+              {(dev.kind === "timer-on" || dev.kind === "timer-ss-on") && (sym.variant === "delayed-no" || sym.variant === "delayed-no2") && t("inspector.hintTonNo")}
+              {(dev.kind === "timer-on" || dev.kind === "timer-ss-on") && sym.variant === "inst-nc" && t("inspector.hintTonInstNc")}
+              {(dev.kind === "timer-on" || dev.kind === "timer-ss-on") && sym.variant === "inst-no" && t("inspector.hintTonInstNo")}
+              {(dev.kind === "timer-off" || dev.kind === "timer-ss-off") && (sym.variant === "delayed-no" || sym.variant === "delayed-no2") && t("inspector.hintTofNo")}
+              {(dev.kind === "timer-off" || dev.kind === "timer-ss-off") && (sym.variant === "delayed-nc" || sym.variant === "delayed-nc2") && t("inspector.hintTofNc")}
+              {(dev.kind === "timer-off" || dev.kind === "timer-ss-off") && sym.variant === "inst-nc" && t("inspector.hintTofInstNc")}
+              {(dev.kind === "timer-off" || dev.kind === "timer-ss-off") && sym.variant === "inst-no" && t("inspector.hintTofInstNo")}
+              {sym.variant === "coil" && (dev.kind === "timer-ss-off" ? t("inspector.hintSsTofCoil") : t((dev.kind === "timer-on" || dev.kind === "timer-ss-on") ? "inspector.hintTonCoil" : "inspector.hintTofCoil"))}
             </div>
           )}
           {dev.kind !== "net-label" && sameKind.length > 1 && (
@@ -889,7 +889,7 @@ export function Inspector() {
           />
         </label>
       )}
-      {(dev.kind === "timer-on" || dev.kind === "timer-off") && (
+      {(dev.kind === "timer-on" || dev.kind === "timer-off" || dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off") && (
         <label>
           {t("inspector.delayMs")}
           <input

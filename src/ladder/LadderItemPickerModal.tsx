@@ -34,8 +34,6 @@ export function LadderItemPickerModal({
   onClose,
   onSubmit,
 }: LadderItemPickerModalProps) {
-  if (!isOpen) return null;
-
   const [contactMode, setContactMode] = useState<"new" | "existing">("new");
   const [selectedContactDevId, setSelectedContactDevId] = useState<string>("");
   const [selectedContactVariant, setSelectedContactVariant] = useState<string>("aux-no");
@@ -46,6 +44,8 @@ export function LadderItemPickerModal({
   const [newCoilKind, setNewCoilKind] = useState<DeviceKind>("lamp");
   const [newCoilColor, setNewCoilColor] = useState<string>("green");
   const [newCoilDelay, setNewCoilDelay] = useState<number>(5);
+
+  if (!isOpen) return null;
 
   // Existing devices eligible for auxiliary contacts
   const contactEligibleDevices = circuit.devices.filter(

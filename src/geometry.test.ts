@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit, mergeWires, removeJunction } from "./circuitBuilder";
 import { GRID, type Circuit } from "./types";
-import { allWireRoutes, alignStackedWireLabels, areWiresConnected, cleanPolyline, dedupeWireLabels, deriveJogToMatchPolyline, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
+import { allWireRoutes, alignStackedWireLabels, areWiresConnected, cleanPolyline, dedupeWireLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
 import { useLab } from "./store";
 
 describe("wire routing stubs", () => {

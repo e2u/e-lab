@@ -5,7 +5,7 @@ SHELL := /bin/bash
 NODE_VERSION := $(shell node --version 2>/dev/null || echo "not installed")
 YARN_VERSION := $(shell yarn --version 2>/dev/null || echo "not installed")
 
-.PHONY: help install dev build preview test deploy clean
+.PHONY: help install dev build preview test lint deploy clean
 
 help:
 	@echo "E-LAB Project - Available commands:"
@@ -15,6 +15,7 @@ help:
 	@echo "  make build     Build production version"
 	@echo "  make preview   Preview production build locally"
 	@echo "  make test      Run tests"
+	@echo "  make lint      Run ESLint static analysis"
 	@echo "  make deploy    Deploy to GitHub Pages"
 	@echo "  make clean     Clean build artifacts"
 
@@ -42,6 +43,10 @@ preview:
 test:
 	@echo "Running tests..."
 	@yarn test
+
+lint:
+	@echo "Running ESLint static analysis..."
+	@yarn lint
 
 deploy: build
 	@echo "Deployment to GitHub Pages is automated via GitHub Actions."

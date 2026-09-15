@@ -412,6 +412,439 @@ describe("sim engine", () => {
     expect(snap.runtime[motor.id].energized).toBe(true);
   });
 
+  it("operates 8-Pin solid-state ON-delay timer with 2-7 coil and 1-3/1-4, 8-6/8-5 contacts", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const kt = addDevice(c, "timer-ss-on", "TR1", "coil", 6, 0, { delayMs: 200 });
+    const no1 = addSymbol(c, kt.device.id, "delayed-no", 10, 0);
+    const nc1 = addSymbol(c, kt.device.id, "delayed-nc", 10, 4);
+    const no2 = addSymbol(c, kt.device.id, "delayed-no2", 10, 8);
+    const nc2 = addSymbol(c, kt.device.id, "delayed-nc2", 10, 12);
+    const lampNo1 = addDevice(c, "lamp", "LT_NO1", "body", 16, 0);
+    const lampNc1 = addDevice(c, "lamp", "LT_NC1", "body", 16, 4);
+    const lampNo2 = addDevice(c, "lamp", "LT_NO2", "body", 16, 8);
+    const lampNc2 = addDevice(c, "lamp", "LT_NC2", "body", 16, 12);
+
+    // Power coil on Pin 2 and Pin 7
+    addWire(c, g.symbol, "L1", kt.symbol, "2");
+    addWire(c, kt.symbol, "7", g.symbol, "N");
+
+    // Connect contacts to lamps
+    addWire(c, g.symbol, "L1", no1, "1");
+    addWire(c, no1, "3", lampNo1.symbol, "1");
+    addWire(c, lampNo1.symbol, "2", g.symbol, "N");
+
+    addWire(c, g.symbol, "L1", nc1, "1");
+    addWire(c, nc1, "4", lampNc1.symbol, "1");
+    addWire(c, lampNc1.symbol, "2", g.symbol, "N");
+
+    addWire(c, g.symbol, "L1", no2, "8");
+    addWire(c, no2, "6", lampNo2.symbol, "1");
+    addWire(c, lampNo2.symbol, "2", g.symbol, "N");
+
+    addWire(c, g.symbol, "L1", nc2, "8");
+    addWire(c, nc2, "5", lampNc2.symbol, "1");
+    addWire(c, lampNc2.symbol, "2", g.symbol, "N");
+
+    // Before timeout (100ms < 200ms)
+    const early = run(c, [], 2, 50);
+    expect(early.runtime[kt.device.id].energized).toBe(true);
+    expect(early.runtime[kt.device.id].done).toBe(false);
+    expect(early.runtime[lampNo1.device.id].lit).toBe(false);
+    expect(early.runtime[lampNc1.device.id].lit).toBe(true);
+    expect(early.runtime[lampNo2.device.id].lit).toBe(false);
+    expect(early.runtime[lampNc2.device.id].lit).toBe(true);
+
+    // After timeout (300ms > 200ms)
+    const late = run(c, [], 6, 50);
+    expect(late.runtime[kt.device.id].done).toBe(true);
+    expect(late.runtime[lampNo1.device.id].lit).toBe(true);
+    expect(late.runtime[lampNc1.device.id].lit).toBe(false);
+    expect(late.runtime[lampNo2.device.id].lit).toBe(true);
+    expect(late.runtime[lampNc2.device.id].lit).toBe(false);
+  });
+
+  it("operates 11-Pin solid-state OFF-delay timer with 2-10 power and 5-6 trigger switch", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const kt = addDevice(c, "timer-ss-off", "TR1", "coil", 6, 0, { delayMs: 200 });
+    const pb = addDevice(c, "pb-no", "TRIG_PB", "body", 6, 6);
+    const no1 = addSymbol(c, kt.device.id, "delayed-no", 10, 0);
+    const nc1 = addSymbol(c, kt.device.id, "delayed-nc", 10, 4);
+    const no2 = addSymbol(c, kt.device.id, "delayed-no2", 10, 8);
+    const lampNo = addDevice(c, "lamp", "LT_NO", "body", 16, 0);
+    const lampNc = addDevice(c, "lamp", "LT_NC", "body", 16, 4);
+    const lampNo2 = addDevice(c, "lamp", "LT_NO2", "body", 16, 8);
+
+    // Continuous power on Pin 2 and Pin 10
+    addWire(c, g.symbol, "L1", kt.symbol, "2");
+    addWire(c, kt.symbol, "10", g.symbol, "N");
+
+    // Control switch connected across Pin 5 and Pin 6
+    addWire(c, kt.symbol, "5", pb.symbol, "1");
+    addWire(c, pb.symbol, "2", kt.symbol, "6");
+
+    // Connect contacts to lamps
+    addWire(c, g.symbol, "L1", no1, "1");
+    addWire(c, no1, "3", lampNo.symbol, "1");
+    addWire(c, lampNo.symbol, "2", g.symbol, "N");
+
+    addWire(c, g.symbol, "L1", nc1, "1");
+    addWire(c, nc1, "4", lampNc.symbol, "1");
+    addWire(c, lampNc.symbol, "2", g.symbol, "N");
+
+    addWire(c, g.symbol, "L1", no2, "11");
+    addWire(c, no2, "9", lampNo2.symbol, "1");
+    addWire(c, lampNo2.symbol, "2", g.symbol, "N");
+
+    const rt = createRuntime(c);
+    // 1. Initial State: Power on 2-10, Trigger 5-6 open -> contacts are not actuated
+    let snap = tick(c, rt, { held: new Set(), process }, 50, 50);
+    expect(snap.runtime[kt.device.id].energized).toBe(true);
+    expect(snap.runtime[kt.device.id].done).toBe(false);
+    expect(snap.runtime[lampNo.device.id].lit).toBe(false);
+    expect(snap.runtime[lampNc.device.id].lit).toBe(true);
+
+    // 2. Trigger closed (PB held): Contacts actuate immediately
+    snap = tick(c, snap.runtime, { held: new Set([pb.device.id]), process }, 50, 100);
+    snap = tick(c, snap.runtime, { held: new Set([pb.device.id]), process }, 50, 150);
+    expect(snap.runtime[kt.device.id].energizedAlt).toBe(true);
+    expect(snap.runtime[kt.device.id].done).toBe(true);
+    expect(snap.runtime[lampNo.device.id].lit).toBe(true);
+    expect(snap.runtime[lampNc.device.id].lit).toBe(false);
+    expect(snap.runtime[lampNo2.device.id].lit).toBe(true);
+
+    // 3. Trigger released (PB unheld): Countdown starts (200ms delay)
+    // Step 1: 50ms elapsed, remaining 150ms -> contacts still actuated
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 200);
+    expect(snap.runtime[kt.device.id].energizedAlt).toBe(false);
+    expect(snap.runtime[kt.device.id].done).toBe(true);
+    expect(snap.runtime[lampNo.device.id].lit).toBe(true);
+
+    // Step 2: 100ms elapsed, remaining 100ms -> contacts still actuated
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 250);
+    expect(snap.runtime[kt.device.id].done).toBe(true);
+    expect(snap.runtime[lampNo.device.id].lit).toBe(true);
+
+    // Step 3 & 4: 200ms elapsed -> timeout -> contacts reset to normal
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 300);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 350);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 400);
+    expect(snap.runtime[kt.device.id].done).toBe(false);
+    expect(snap.runtime[lampNo.device.id].lit).toBe(false);
+    expect(snap.runtime[lampNc.device.id].lit).toBe(true);
+    expect(snap.runtime[lampNo2.device.id].lit).toBe(false);
+  });
+
+  it("operates dual-motor alternating cycle using two 11-Pin solid-state OFF-delay timers", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    // Control Master Relay (CRM)
+    const pbStart = addDevice(c, "pb-no", "PB_START", "body", 4, 0);
+    const crm = addDevice(c, "relay", "CRM", "coil", 10, 0);
+    const crmNo = addSymbol(c, crm.device.id, "aux-no", 4, 4);
+    const crmNoRun1 = addSymbol(c, crm.device.id, "aux-no", 4, 8);
+    const crmNoRun2 = addSymbol(c, crm.device.id, "aux-no", 4, 12);
+    const crmNoTrig1 = addSymbol(c, crm.device.id, "aux-no", 4, 16);
+
+    // CRM seal-in
+    addWire(c, g.symbol, "L1", pbStart.symbol, "1");
+    addWire(c, g.symbol, "L1", crmNo, "1");
+    addWire(c, pbStart.symbol, "2", crm.symbol, "A1");
+    addWire(c, crmNo, "2", crm.symbol, "A1");
+    addWire(c, crm.symbol, "A2", g.symbol, "N");
+
+    // Sequence Arming Relay (CRS): energized when M1 starts, seals in under CRM
+    const crs = addDevice(c, "relay", "CRS", "coil", 10, 28);
+    const crsNoSeal = addSymbol(c, crs.device.id, "aux-no", 4, 28);
+    const crsNoTrig2 = addSymbol(c, crs.device.id, "aux-no", 4, 32);
+
+    // Two 11-Pin Solid State OFF-delay timers: TR1 and TR2 (delay = 200ms)
+    const tr1 = addDevice(c, "timer-ss-off", "TR1", "coil", 10, 20, { delayMs: 200 });
+    const tr2 = addDevice(c, "timer-ss-off", "TR2", "coil", 10, 24, { delayMs: 200 });
+
+    // Continuous power on pins 2-10 for both timers
+    addWire(c, g.symbol, "L1", tr1.symbol, "2");
+    addWire(c, tr1.symbol, "10", g.symbol, "N");
+    addWire(c, g.symbol, "L1", tr2.symbol, "2");
+    addWire(c, tr2.symbol, "10", g.symbol, "N");
+
+    // Contactors for Motor 1 (M1) and Motor 2 (M2)
+    const m1 = addDevice(c, "contactor", "M1", "coil", 16, 8);
+    const m2 = addDevice(c, "contactor", "M2", "coil", 16, 12);
+    const m1Nc = addSymbol(c, m1.device.id, "aux-nc", 16, 16);
+    const m2Nc = addSymbol(c, m2.device.id, "aux-nc", 16, 20);
+    const m1NoArm = addSymbol(c, m1.device.id, "aux-no", 4, 24);
+
+    // CRS coil wiring: powered through CRM, initiated by M1 NO, sealed by CRS NO
+    addWire(c, g.symbol, "L1", m1NoArm, "13");
+    addWire(c, g.symbol, "L1", crsNoSeal, "1");
+    addWire(c, m1NoArm, "14", crs.symbol, "A1");
+    addWire(c, crsNoSeal, "2", crs.symbol, "A1");
+    addWire(c, crs.symbol, "A2", g.symbol, "N");
+
+    // TR1 delayed NO 1-3 drives M1
+    const tr1No = addSymbol(c, tr1.device.id, "delayed-no", 10, 8);
+    addWire(c, g.symbol, "L1", crmNoRun1, "1");
+    addWire(c, crmNoRun1, "2", tr1No, "1");
+    addWire(c, tr1No, "3", m1.symbol, "A1");
+    addWire(c, m1.symbol, "A2", g.symbol, "N");
+
+    // TR2 delayed NO 1-3 drives M2
+    const tr2No = addSymbol(c, tr2.device.id, "delayed-no", 10, 12);
+    addWire(c, g.symbol, "L1", crmNoRun2, "1");
+    addWire(c, crmNoRun2, "2", tr2No, "1");
+    addWire(c, tr2No, "3", m2.symbol, "A1");
+    addWire(c, m2.symbol, "A2", g.symbol, "N");
+
+    // TR1 trigger (5-6): through CRM NO, TR2 NC (11-8), and M1 NC (21-22)
+    const tr2Nc = addSymbol(c, tr2.device.id, "delayed-nc2", 10, 16);
+    addWire(c, tr1.symbol, "5", crmNoTrig1, "1");
+    addWire(c, crmNoTrig1, "2", tr2Nc, "11");
+    addWire(c, tr2Nc, "8", m1Nc, "21");
+    addWire(c, m1Nc, "22", tr1.symbol, "6");
+
+    // TR2 trigger (5-6): through CRS NO (armed), TR1 NC (11-8), and M2 NC (21-22)
+    const tr1Nc = addSymbol(c, tr1.device.id, "delayed-nc2", 10, 32);
+    addWire(c, tr2.symbol, "5", crsNoTrig2, "1");
+    addWire(c, crsNoTrig2, "2", tr1Nc, "11");
+    addWire(c, tr1Nc, "8", m2Nc, "21");
+    addWire(c, m2Nc, "22", tr2.symbol, "6");
+
+    const rt = createRuntime(c);
+    // Initially stopped: CRM is off, both motors off
+    let snap = tick(c, rt, { held: new Set(), process }, 50, 50);
+    expect(snap.runtime[m1.device.id].energized).toBe(false);
+    expect(snap.runtime[m2.device.id].energized).toBe(false);
+
+    // Press START -> CRM seals in, TR1 triggers -> M1 starts in the next tick
+    snap = tick(c, snap.runtime, { held: new Set([pbStart.device.id]), process }, 50, 100);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 150);
+    expect(snap.runtime[crm.device.id].energized).toBe(true);
+    expect(snap.runtime[tr1.device.id].done).toBe(true);
+
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 200);
+    expect(snap.runtime[m1.device.id].energized).toBe(true);
+    expect(snap.runtime[m2.device.id].energized).toBe(false);
+
+    // M1 runs during TR1 delay countdown (200ms), CRS seals in
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 250);
+    expect(snap.runtime[crs.device.id].energized).toBe(true);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 300);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 350);
+    expect(snap.runtime[m1.device.id].energized).toBe(true);
+    expect(snap.runtime[m2.device.id].energized).toBe(false);
+
+    // TR1 expires (done=false) -> M1 stops, TR2 triggers -> M2 starts in the next tick
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 400);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 450);
+    expect(snap.runtime[m1.device.id].energized).toBe(false);
+    expect(snap.runtime[tr2.device.id].done).toBe(true);
+
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 500);
+    expect(snap.runtime[m1.device.id].energized).toBe(false);
+    expect(snap.runtime[m2.device.id].energized).toBe(true);
+
+    // M2 runs during TR2 delay countdown (200ms)
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 550);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 600);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 650);
+    expect(snap.runtime[m2.device.id].energized).toBe(true);
+
+    // TR2 expires -> M2 stops, TR1 re-triggers -> M1 starts again!
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 700);
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 750);
+    expect(snap.runtime[m2.device.id].energized).toBe(false);
+    expect(snap.runtime[tr1.device.id].done).toBe(true);
+
+    snap = tick(c, snap.runtime, { held: new Set(), process }, 50, 800);
+    expect(snap.runtime[m1.device.id].energized).toBe(true);
+    expect(snap.runtime[m2.device.id].energized).toBe(false);
+  });
+
+  it("operates three-motor alternating cycle using three 11-Pin solid-state OFF-delay timers", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+
+    // Master Control Relay (CRM)
+    const pbStart = addDevice(c, "pb-no", "PB_START", "body", 4, 0);
+    const crm = addDevice(c, "relay", "CRM", "coil", 10, 0);
+    const crmNo = addSymbol(c, crm.device.id, "aux-no", 4, 4);
+    const crmNoRun1 = addSymbol(c, crm.device.id, "aux-no", 4, 8);
+    const crmNoRun2 = addSymbol(c, crm.device.id, "aux-no", 4, 12);
+    const crmNoRun3 = addSymbol(c, crm.device.id, "aux-no", 4, 16);
+    const crmNoCR1 = addSymbol(c, crm.device.id, "aux-no", 4, 20);
+    const crmNoCR2 = addSymbol(c, crm.device.id, "aux-no", 4, 24);
+    const crmNoCR3 = addSymbol(c, crm.device.id, "aux-no", 4, 28);
+    const crmNoTrigStart = addSymbol(c, crm.device.id, "aux-no", 4, 32);
+
+    // CRM seal-in
+    addWire(c, g.symbol, "L1", pbStart.symbol, "1");
+    addWire(c, g.symbol, "L1", crmNo, "1");
+    addWire(c, pbStart.symbol, "2", crm.symbol, "A1");
+    addWire(c, crmNo, "2", crm.symbol, "A1");
+    addWire(c, crm.symbol, "A2", g.symbol, "N");
+
+    // Three Stage Memory Relays: CR1, CR2, CR3
+    const cr1 = addDevice(c, "relay", "CR1", "coil", 16, 20);
+    const cr2 = addDevice(c, "relay", "CR2", "coil", 16, 24);
+    const cr3 = addDevice(c, "relay", "CR3", "coil", 16, 28);
+
+    // Three 11-Pin Solid State OFF-delay timers: TR1, TR2, TR3 (delay = 200ms)
+    const tr1 = addDevice(c, "timer-ss-off", "TR1", "coil", 10, 40, { delayMs: 200 });
+    const tr2 = addDevice(c, "timer-ss-off", "TR2", "coil", 10, 44, { delayMs: 200 });
+    const tr3 = addDevice(c, "timer-ss-off", "TR3", "coil", 10, 48, { delayMs: 200 });
+
+    // Continuous power on pins 2-10 for all three timers
+    addWire(c, g.symbol, "L1", tr1.symbol, "2");
+    addWire(c, tr1.symbol, "10", g.symbol, "N");
+    addWire(c, g.symbol, "L1", tr2.symbol, "2");
+    addWire(c, tr2.symbol, "10", g.symbol, "N");
+    addWire(c, g.symbol, "L1", tr3.symbol, "2");
+    addWire(c, tr3.symbol, "10", g.symbol, "N");
+
+    // Contactors for Motor 1 (M1), Motor 2 (M2), Motor 3 (M3)
+    const m1 = addDevice(c, "contactor", "M1", "coil", 16, 8);
+    const m2 = addDevice(c, "contactor", "M2", "coil", 16, 12);
+    const m3 = addDevice(c, "contactor", "M3", "coil", 16, 16);
+
+    const m1NoArm = addSymbol(c, m1.device.id, "aux-no", 8, 20);
+    const m1NcDrop3 = addSymbol(c, m1.device.id, "aux-nc", 12, 28);
+    const m1NcTrig = addSymbol(c, m1.device.id, "aux-nc2", 16, 32);
+
+    const m2NoArm = addSymbol(c, m2.device.id, "aux-no", 8, 24);
+    const m2NcDrop1 = addSymbol(c, m2.device.id, "aux-nc", 12, 20);
+    const m2NcTrig = addSymbol(c, m2.device.id, "aux-nc2", 16, 36);
+
+    const m3NoArm = addSymbol(c, m3.device.id, "aux-no", 8, 28);
+    const m3NcDrop2 = addSymbol(c, m3.device.id, "aux-nc", 12, 24);
+    const m3NcTrig = addSymbol(c, m3.device.id, "aux-nc2", 16, 40);
+
+    // CR1 Rung: powered under CRM, picked up by M1 NO, sealed by CR1 NO, dropped by M2 NC
+    const cr1NoSeal = addSymbol(c, cr1.device.id, "aux-no", 8, 21);
+    addWire(c, g.symbol, "L1", crmNoCR1, "1");
+    addWire(c, crmNoCR1, "2", m1NoArm, "13");
+    addWire(c, crmNoCR1, "2", cr1NoSeal, "1");
+    addWire(c, m1NoArm, "14", m2NcDrop1, "21");
+    addWire(c, cr1NoSeal, "2", m2NcDrop1, "21");
+    addWire(c, m2NcDrop1, "22", cr1.symbol, "A1");
+    addWire(c, cr1.symbol, "A2", g.symbol, "N");
+
+    // CR2 Rung: powered under CRM, picked up by M2 NO, sealed by CR2 NO, dropped by M3 NC
+    const cr2NoSeal = addSymbol(c, cr2.device.id, "aux-no", 8, 25);
+    addWire(c, g.symbol, "L1", crmNoCR2, "1");
+    addWire(c, crmNoCR2, "2", m2NoArm, "13");
+    addWire(c, crmNoCR2, "2", cr2NoSeal, "1");
+    addWire(c, m2NoArm, "14", m3NcDrop2, "21");
+    addWire(c, cr2NoSeal, "2", m3NcDrop2, "21");
+    addWire(c, m3NcDrop2, "22", cr2.symbol, "A1");
+    addWire(c, cr2.symbol, "A2", g.symbol, "N");
+
+    // CR3 Rung: powered under CRM, picked up by M3 NO, sealed by CR3 NO, dropped by M1 NC
+    const cr3NoSeal = addSymbol(c, cr3.device.id, "aux-no", 8, 29);
+    addWire(c, g.symbol, "L1", crmNoCR3, "1");
+    addWire(c, crmNoCR3, "2", m3NoArm, "13");
+    addWire(c, crmNoCR3, "2", cr3NoSeal, "1");
+    addWire(c, m3NoArm, "14", m1NcDrop3, "21");
+    addWire(c, cr3NoSeal, "2", m1NcDrop3, "21");
+    addWire(c, m1NcDrop3, "22", cr3.symbol, "A1");
+    addWire(c, cr3.symbol, "A2", g.symbol, "N");
+
+    // TR1 delayed NO 1-3 drives M1
+    const tr1No = addSymbol(c, tr1.device.id, "delayed-no", 10, 8);
+    addWire(c, g.symbol, "L1", crmNoRun1, "1");
+    addWire(c, crmNoRun1, "2", tr1No, "1");
+    addWire(c, tr1No, "3", m1.symbol, "A1");
+    addWire(c, m1.symbol, "A2", g.symbol, "N");
+
+    // TR2 delayed NO 1-3 drives M2
+    const tr2No = addSymbol(c, tr2.device.id, "delayed-no", 10, 12);
+    addWire(c, g.symbol, "L1", crmNoRun2, "1");
+    addWire(c, crmNoRun2, "2", tr2No, "1");
+    addWire(c, tr2No, "3", m2.symbol, "A1");
+    addWire(c, m2.symbol, "A2", g.symbol, "N");
+
+    // TR3 delayed NO 1-3 drives M3
+    const tr3No = addSymbol(c, tr3.device.id, "delayed-no", 10, 16);
+    addWire(c, g.symbol, "L1", crmNoRun3, "1");
+    addWire(c, crmNoRun3, "2", tr3No, "1");
+    addWire(c, tr3No, "3", m3.symbol, "A1");
+    addWire(c, m3.symbol, "A2", g.symbol, "N");
+
+    // TR1 Trigger Loop (5-6):
+    // Initial start: CRM NO in series with CR1 NC (3-4) in series with CR2 NC (3-4) in series with CR3 NC (3-4)
+    // Repeat: CR3 NO2 (5-6) in series with TR3 delayed NC (11-8)
+    // Both go through M1 NC (31-32)
+    const cr1NcInit = addSymbol(c, cr1.device.id, "aux-nc", 6, 32);
+    const cr2NcInit = addSymbol(c, cr2.device.id, "aux-nc", 8, 32);
+    const cr3NcInit = addSymbol(c, cr3.device.id, "aux-nc", 10, 32);
+
+    const cr3NoRepeat = addSymbol(c, cr3.device.id, "aux-no2", 6, 33);
+    const tr3NcRepeat = addSymbol(c, tr3.device.id, "delayed-nc2", 8, 33);
+
+    addWire(c, tr1.symbol, "5", crmNoTrigStart, "1");
+    addWire(c, crmNoTrigStart, "2", cr1NcInit, "3");
+    addWire(c, cr1NcInit, "4", cr2NcInit, "3");
+    addWire(c, cr2NcInit, "4", cr3NcInit, "3");
+    addWire(c, cr3NcInit, "4", m1NcTrig, "31");
+
+    addWire(c, crmNoTrigStart, "2", cr3NoRepeat, "5");
+    addWire(c, cr3NoRepeat, "6", tr3NcRepeat, "11");
+    addWire(c, tr3NcRepeat, "8", m1NcTrig, "31");
+
+    addWire(c, m1NcTrig, "32", tr1.symbol, "6");
+
+    // TR2 Trigger Loop (5-6): CR1 NO2 (5-6) in series with TR1 delayed NC (11-8) in series with M2 NC (31-32)
+    const cr1NoTrig = addSymbol(c, cr1.device.id, "aux-no2", 6, 36);
+    const tr1NcTrig = addSymbol(c, tr1.device.id, "delayed-nc2", 8, 36);
+    addWire(c, tr2.symbol, "5", cr1NoTrig, "5");
+    addWire(c, cr1NoTrig, "6", tr1NcTrig, "11");
+    addWire(c, tr1NcTrig, "8", m2NcTrig, "31");
+    addWire(c, m2NcTrig, "32", tr2.symbol, "6");
+
+    // TR3 Trigger Loop (5-6): CR2 NO2 (5-6) in series with TR2 delayed NC (11-8) in series with M3 NC (31-32)
+    const cr2NoTrig = addSymbol(c, cr2.device.id, "aux-no2", 6, 40);
+    const tr2NcTrig = addSymbol(c, tr2.device.id, "delayed-nc2", 8, 40);
+    addWire(c, tr3.symbol, "5", cr2NoTrig, "5");
+    addWire(c, cr2NoTrig, "6", tr2NcTrig, "11");
+    addWire(c, tr2NcTrig, "8", m3NcTrig, "31");
+    addWire(c, m3NcTrig, "32", tr3.symbol, "6");
+
+    // Run simulation loop from start and verify sequence
+    const rt = createRuntime(c);
+    let snap = tick(c, rt, { held: new Set(), process }, 50, 0);
+    const events: string[] = [];
+    let prevM = "";
+    for (let t = 50; t <= 2500; t += 50) {
+      const held = t >= 50 && t <= 150 ? new Set([pbStart.device.id]) : new Set<string>();
+      snap = tick(c, snap.runtime, { held, process }, 50, t);
+      const activeM = snap.runtime[m1.device.id]?.energized ? "M1" : snap.runtime[m2.device.id]?.energized ? "M2" : snap.runtime[m3.device.id]?.energized ? "M3" : "NONE";
+      if (activeM !== prevM) {
+        events.push(`t=${t}ms: ${activeM}`);
+        prevM = activeM;
+      }
+    }
+    expect(events).toEqual([
+      "t=50ms: NONE",
+      "t=150ms: M1",
+      "t=400ms: NONE",
+      "t=450ms: M2",
+      "t=700ms: NONE",
+      "t=750ms: M3",
+      "t=1000ms: NONE",
+      "t=1050ms: M1",
+      "t=1300ms: NONE",
+      "t=1350ms: M2",
+      "t=1600ms: NONE",
+      "t=1650ms: M3",
+      "t=1900ms: NONE",
+      "t=1950ms: M1",
+      "t=2200ms: NONE",
+      "t=2250ms: M2",
+      "t=2500ms: NONE",
+    ]);
+  });
+
   it("uses delayed NC 15-16 before a TON times out", () => {
     const c = emptyCircuit();
     const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);

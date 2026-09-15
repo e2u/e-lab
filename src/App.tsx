@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { EXAMPLES, type Example } from "./examples";
 import { useLab } from "./store";
+import type { Lang } from "./types";
 import { formatFaultMessage, t, tOr } from "./i18n";
 import { Bench, ProcessRack } from "./ui/Bench";
 import { FilesMenu } from "./ui/FilesMenu";
@@ -20,13 +21,19 @@ import { ENABLE_AUTO_LAYOUT } from "./features";
 
 
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
-const loadExamplesFromImports = async (): Promise<Example[]> => {
+type ExampleOption = Pick<Example, "id" | "title"> & { blurb?: string };
+
+const loadExamplesFromImports = async (): Promise<ExampleOption[]> => {
   try {
-    const listData: any = await import("./examples/list.json");
-    if (listData && listData.examples && Array.isArray(listData.examples)) {
-      return listData.examples;
+    const listData = (await import("./examples/list.json")) as {
+      examples?: ExampleOption[];
+      default?: { examples?: ExampleOption[] };
+    };
+    const examples = listData.examples ?? listData.default?.examples;
+    if (Array.isArray(examples)) {
+      return examples;
     }
-  } catch (e) {
+  } catch {
     console.log("Failed to load examples from imports, using default examples");
   }
   // Fallback to default examples
@@ -56,7 +63,7 @@ export function App() {
   const printOpen = useLab((s) => s.printOpen);
   const tutorialOpen = useLab((s) => s.tutorialOpen);
   const tutorialVersion = useLab((s) => s.tutorialVersion);
-  const [examples, setExamples] = useState<Example[]>(EXAMPLES);
+  const [examples, setExamples] = useState<ExampleOption[]>(EXAMPLES);
   const [selectedExample, setSelectedExample] = useState<string>("none");
   const [discardModalOpen, setDiscardModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'new' | 'example'; exampleId?: string } | null>(null);
@@ -557,7 +564,7 @@ export function App() {
                   title={t("lib.language")}
                   className="lang-select"
                   onChange={(e) => {
-                    useLab.getState().setLang(e.target.value as any);
+                    useLab.getState().setLang(e.target.value as Lang);
                     e.target.blur();
                   }}
                 >

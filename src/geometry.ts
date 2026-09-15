@@ -1,5 +1,5 @@
-import { variantDef } from "./catalog";
-import { GRID, type Circuit, type PortRef, type Rot, type SymbolInst, type Wire, type WireJog } from "./types";
+import { variantDef, type VariantDef } from "./catalog";
+import { GRID, type Circuit, type PortRef, type Rot, type SymbolInst, type TerminalDef, type Wire, type WireJog } from "./types";
 
 export function rotatePoint(
   x: number,
@@ -61,7 +61,7 @@ export function applyFlip(
 }
 
 function lookupTerminal(v: VariantDef, kind: string, termId: string): TerminalDef | undefined {
-  let term = v.terminals.find((t) => t.id === termId);
+  let term = v.terminals.find((t: TerminalDef) => t.id === termId);
   if (!term && (kind === "breaker-3p" || kind === "isolator" || kind === "overload" || kind === "contactor")) {
     const aliasMap: Record<string, string> =
       kind === "isolator"
@@ -94,7 +94,7 @@ function lookupTerminal(v: VariantDef, kind: string, termId: string): TerminalDe
             T1: "2",
           };
     const mapped = aliasMap[termId];
-    if (mapped) term = v.terminals.find((t) => t.id === mapped);
+    if (mapped) term = v.terminals.find((t: TerminalDef) => t.id === mapped);
   }
   return term;
 }
@@ -174,11 +174,11 @@ export function terminalOutward(
   const dt = p.y;
   const db = v.h * s - p.y;
   const nearest = Math.min(dl, dr, dt, db);
-  let local = { x: 0, y: 1 };
-  if (nearest === dl) local = { x: -1, y: 0 };
-  else if (nearest === dr) local = { x: 1, y: 0 };
-  else if (nearest === dt) local = { x: 0, y: -1 };
-  else local = { x: 0, y: 1 };
+  const local =
+    nearest === dl ? { x: -1, y: 0 } :
+    nearest === dr ? { x: 1, y: 0 } :
+    nearest === dt ? { x: 0, y: -1 } :
+    { x: 0, y: 1 };
   return rotateDir(local.x, local.y, sym.rot);
 }
 
@@ -210,14 +210,7 @@ function betweenStubs(
     const oaActive = Boolean(oa && (oa.x !== 0 || oa.y !== 0));
     const obActive = Boolean(ob && (ob.x !== 0 || ob.y !== 0));
 
-    let exitH = true;
-    if (oaActive) {
-      exitH = oa!.x !== 0;
-    } else if (obActive) {
-      exitH = ob!.y !== 0;
-    } else {
-      exitH = jog?.axis !== "y";
-    }
+    const exitH = oaActive ? oa!.x !== 0 : obActive ? ob!.y !== 0 : jog?.axis !== "y";
 
     if (exitH) {
       const turnAy = oa && oa.y !== 0 ? Math.round((a1.y + oa.y * GRID) / GRID) * GRID : a1.y;

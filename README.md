@@ -21,10 +21,10 @@
 ## 📖 Introduction / 簡介
 
 ### English
-**e-lab** is an interactive, browser-based electrical and industrial automation circuit simulation laboratory. Place components, route orthogonal wires, switch among **Edit**, **Wiring**, and **Run**, number wires by electrical net, annotate the sheet, and simulate industrial control circuits in the browser—including 3-phase supplies, control transformers, contactors, relays, timers, push buttons, sensors, overload protection, motors, and meters.
+**e-lab** is an interactive, browser-based electrical and industrial automation circuit simulation laboratory. Place components, route orthogonal wires, switch among **Edit**, **Wiring**, and **Run**, number wires by electrical net, annotate the sheet, and simulate industrial control circuits in the browser—including 3-phase supplies, control transformers, contactors, relays, electromechanical & solid-state timers, push buttons, sensors, overload protection, motors, and meters.
 
 ### 中文
-**e-lab** 是一個基於 Web 的電子電氣與工控電路模擬實驗室。使用者可以在瀏覽器中放置電氣元件、繪製正交接線，在**編輯 / 配線 / 運行**模式之間切換，按電氣網絡自動編號導線、加上圖紙備註，並即時模擬三相電源、控制變壓器、接觸器、中間繼電器、時間繼電器、按鈕開關、感測器、熱過載保護、馬達動力迴路與測量儀表等工控電路。
+**e-lab** 是一個基於 Web 的電子電氣與工控電路模擬實驗室。使用者可以在瀏覽器中放置電氣元件、繪製正交接線，在**編輯 / 配線 / 運行**模式之間切換，按電氣網絡自動編號導線、加上圖紙備註，並即時模擬三相電源、控制變壓器、接觸器、中間繼電器、時間繼電器（氣動式與固態電子式）、按鈕開關、感測器、熱過載保護、馬達動力迴路與測量儀表等工控電路。
 
 ---
 
@@ -35,6 +35,8 @@
   - 基於並查集與拓撲圖的電氣節點求解器，即時計算電位分佈、自鎖、互鎖與設備動態狀態。
   - Supports 3-phase Wye (Y) and Delta (Δ) power supplies, multi-PE grounding, and short-circuit strobe warnings.
   - 支援三相 Y 形與 Δ 形電源切換、多點 PE 接地共存與短路頻閃警報。
+  - Accurate simulation of electromechanical and solid-state timer relays (8-pin On-Delay and 11-pin Off-Delay with control trigger).
+  - 精確模擬電磁／氣動式與固態時間繼電器（8 引腳通電延時與具備 Start 觸發控制端子之 11 引腳斷電延時）。
   - Each auxiliary / timer contact pole is electrically independent, so parallel copies of the same device contact do not short.
   - 同一裝置的輔助／延時觸點按符號獨立成極，並聯多份相同觸點不會誤判短路。
 
@@ -54,9 +56,9 @@
   - Full color-coding standards support (US NEC & IEC standards: L1/L2/L3, Neutral, PE, DC+/DC-).
   - 完整支援美規 NEC 與歐規 IEC 導線色標標準與線路標籤標註。
 
-- **📚 20+ Built-in Industrial Automation Examples / 20+ 套內建工控經典電路**
-  - Comprehensive teaching & industrial template library: Motor Direct-on-Line (DOL) Starter, Forward/Reverse Interlocking, Star-Delta (Y-Δ) Reduced Voltage Starter, On/Off-Delay Timers, Limit Switch Auto-Reciprocating, Liquid Level Automatic Pump, ATS Dual-Power Transfer, and Automated Manufacturing Cell.
-  - 涵蓋豐富的教學與工程範例：三相馬達直接起動、正反轉電氣互鎖、星三角降壓起動、通電/斷電延時控制、行程開關自動往返、水箱液位泵控、雙電源自動切換（ATS）及自動化加工單元。
+- **📚 22+ Built-in Industrial Automation Examples / 22+ 套內建工控經典電路**
+  - Comprehensive teaching & industrial template library: Motor Direct-on-Line (DOL) Starter, Forward/Reverse Interlocking, Star-Delta (Y-Δ) Reduced Voltage Starter, On/Off-Delay & Solid-State Timers (Dual & Three Motor Alternating Cycles), Limit Switch Auto-Reciprocating, Liquid Level Automatic Pump, ATS Dual-Power Transfer, and Automated Manufacturing Cell.
+  - 涵蓋豐富的教學與工程範例：三相馬達直接起動、正反轉電氣互鎖、星三角降壓起動、通電/斷電與固態時間繼電器控制（雙電機與三電機輪流循環）、行程開關自動往返、水箱液位泵控、雙電源自動切換（ATS）及自動化加工單元。
 
 - **📱 Full Responsive & Touch Gestures / 全平台響應式與觸控手勢**
   - Seamless desktop, tablet, and mobile support with collapsible drawers and floating action bars.

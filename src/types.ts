@@ -61,6 +61,8 @@ export type DeviceKind =
   | "relay"
   | "timer-on"
   | "timer-off"
+  | "timer-ss-on"
+  | "timer-ss-off"
   | "counter"
   | "lamp"
   | "alarm"

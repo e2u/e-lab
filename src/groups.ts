@@ -548,15 +548,8 @@ export function rotateSelection(
         const scx = sym.x + sizeBefore.w / 2;
         const scy = sym.y + sizeBefore.h / 2;
 
-        let scxNew = cx;
-        let scyNew = cy;
-        if (dir === 1) {
-          scxNew = cx - (scy - cy);
-          scyNew = cy + (scx - cx);
-        } else {
-          scxNew = cx + (scy - cy);
-          scyNew = cy - (scx - cx);
-        }
+        const scxNew = dir === 1 ? cx - (scy - cy) : cx + (scy - cy);
+        const scyNew = dir === 1 ? cy + (scx - cx) : cy - (scx - cx);
 
         const newRot = isJunction ? sym.rot : (((sym.rot + step) % 360) as Rot);
         const symTemp = { ...sym, rot: newRot };

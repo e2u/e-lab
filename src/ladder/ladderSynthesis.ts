@@ -7,14 +7,14 @@ import { uid } from "../ids";
 function findNextControlColumn(circuit: Circuit): { x: number; y: number } {
   // Look for existing control components (contacts, push buttons, coils, relays, lamps)
   const controlKinds = new Set<DeviceKind>([
-    "contactor", "relay", "timer-on", "timer-off", "lamp",
+    "contactor", "relay", "timer-on", "timer-off", "timer-ss-on", "timer-ss-off", "lamp",
     "pb-no", "pb-nc", "estop", "toggle", "limit-no", "limit-nc",
     "temp-no", "temp-nc", "pressure-no", "pressure-nc", "float",
     "solenoid", "heater", "alarm", "horn", "fan"
   ]);
 
   let maxX = 22;
-  let startY = 16;
+  const startY = 16;
 
   for (const s of circuit.symbols) {
     const dev = circuit.devices.find((d) => d.id === s.deviceId);
@@ -203,7 +203,7 @@ export function synthesizeAddRung(
     const sym: SymbolInst = {
       id: symId,
       deviceId: devId,
-      variant: kind === "contactor" || kind === "relay" || kind === "timer-on" || kind === "timer-off" ? "coil" : "body",
+      variant: kind === "contactor" || kind === "relay" || kind === "timer-on" || kind === "timer-off" || kind === "timer-ss-on" || kind === "timer-ss-off" ? "coil" : "body",
       x: col.x,
       y: col.y + 6,
       rot: 0,

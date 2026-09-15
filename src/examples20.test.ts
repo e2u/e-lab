@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ALL_20_EXAMPLES } from "./examplesBuilder";
+import { ALL_20_EXAMPLES, ex21TimerSsOffDualMotor, ex22TimerSsOffThreeMotor } from "./examplesBuilder";
 import { isCircuit, makeDoc, parseDoc } from "./persist";
 import { emptySnapshot, tick } from "./sim/engine";
 import { variantDef } from "./catalog";
 import { loadExampleJson } from "./examples/index";
 import { t } from "./i18n";
+import fs from "node:fs";
+import path from "node:path";
 
 describe("20 Progressive Example Circuits", () => {
   it("should generate all 20 valid circuit models and verify simulations", () => {
@@ -63,8 +65,8 @@ describe("20 Progressive Example Circuits", () => {
     for (const ex of ALL_20_EXAMPLES) {
       const doc = await loadExampleJson(ex.id);
       expect(doc, `Example ${ex.id} must load via dynamic import`).not.toBeNull();
-      expect(doc.circuit).toBeDefined();
-      expect(isCircuit(doc.circuit)).toBe(true);
+      expect(doc?.circuit).toBeDefined();
+      expect(isCircuit(doc?.circuit)).toBe(true);
     }
   });
 
@@ -76,12 +78,146 @@ describe("20 Progressive Example Circuits", () => {
       "project-03",
       "project-11",
       "project-12",
+      "21-timer-ss-off-dual-motor",
+      "22-timer-ss-off-three-motor",
     ];
     for (const id of extraIds) {
       const doc = await loadExampleJson(id);
       expect(doc, `Example ${id} must load via dynamic import`).not.toBeNull();
-      expect(doc.circuit).toBeDefined();
-      expect(isCircuit(doc.circuit)).toBe(true);
+      expect(doc?.circuit).toBeDefined();
+      expect(isCircuit(doc?.circuit)).toBe(true);
+    }
+  });
+
+  it("builds and verifies 21-timer-ss-off-dual-motor example JSON", () => {
+    const circuit = ex21TimerSsOffDualMotor();
+    expect(isCircuit(circuit)).toBe(true);
+    expect(circuit.devices.length).toBeGreaterThan(0);
+    expect(circuit.symbols.length).toBeGreaterThan(0);
+    expect(circuit.wires.length).toBeGreaterThan(0);
+
+    // Verify all terminals in wires exist in catalog
+    for (const wire of circuit.wires) {
+      const symA = circuit.symbols.find((s) => s.id === wire.a.symbolId);
+      const symB = circuit.symbols.find((s) => s.id === wire.b.symbolId);
+      expect(symA, `Symbol ${wire.a.symbolId} in wire ${wire.id} must exist`).toBeDefined();
+      expect(symB, `Symbol ${wire.b.symbolId} in wire ${wire.id} must exist`).toBeDefined();
+
+      const devA = circuit.devices.find((d) => d.id === symA!.deviceId);
+      const devB = circuit.devices.find((d) => d.id === symB!.deviceId);
+      expect(devA).toBeDefined();
+      expect(devB).toBeDefined();
+
+      const vDefA = variantDef(devA!.kind, symA!.variant);
+      const vDefB = variantDef(devB!.kind, symB!.variant);
+      const hasTermA = vDefA.terminals.some((t) => t.id === wire.a.term);
+      const hasTermB = vDefB.terminals.some((t) => t.id === wire.b.term);
+      expect(hasTermA, `Terminal ${wire.a.term} in ${devA!.kind}:${symA!.variant} must exist`).toBe(true);
+      expect(hasTermB, `Terminal ${wire.b.term} in ${devB!.kind}:${symB!.variant} must exist`).toBe(true);
+    }
+
+    // Verify simulation runs without faults/errors and wires have assigned phase kinds
+    const initialSnap = emptySnapshot(circuit);
+    const coloredWires = Object.values(initialSnap.wires).filter((w) => w.kind !== null);
+    expect(coloredWires.length).toBeGreaterThan(0);
+    const snap = tick(
+      circuit,
+      initialSnap.runtime,
+      { held: new Set(), process: { temperature: 25, pressure: 0, level: 0, flow: 1, limitHit: false, proxHit: false, photoHit: false } },
+      50,
+      0
+    );
+    expect(snap).toBeDefined();
+    expect(snap.faults.filter((f) => f.level === "error")).toEqual([]);
+
+    // Save JSON doc
+    const doc = makeDoc(circuit, "21-timer-ss-off-dual-motor");
+    const jsonPath = path.resolve(__dirname, "examples", "21-timer-ss-off-dual-motor.json");
+    fs.writeFileSync(jsonPath, JSON.stringify(doc, null, 2), "utf-8");
+  });
+
+  it("builds and verifies 22-timer-ss-off-three-motor example JSON", () => {
+    const circuit = ex22TimerSsOffThreeMotor();
+    expect(isCircuit(circuit)).toBe(true);
+    expect(circuit.devices.length).toBeGreaterThan(0);
+    expect(circuit.symbols.length).toBeGreaterThan(0);
+    expect(circuit.wires.length).toBeGreaterThan(0);
+
+    // Verify all terminals in wires exist in catalog
+    for (const wire of circuit.wires) {
+      const symA = circuit.symbols.find((s) => s.id === wire.a.symbolId);
+      const symB = circuit.symbols.find((s) => s.id === wire.b.symbolId);
+      expect(symA, `Symbol ${wire.a.symbolId} in wire ${wire.id} must exist`).toBeDefined();
+      expect(symB, `Symbol ${wire.b.symbolId} in wire ${wire.id} must exist`).toBeDefined();
+
+      const devA = circuit.devices.find((d) => d.id === symA!.deviceId);
+      const devB = circuit.devices.find((d) => d.id === symB!.deviceId);
+      expect(devA).toBeDefined();
+      expect(devB).toBeDefined();
+
+      const vDefA = variantDef(devA!.kind, symA!.variant);
+      const vDefB = variantDef(devB!.kind, symB!.variant);
+      const hasTermA = vDefA.terminals.some((t) => t.id === wire.a.term);
+      const hasTermB = vDefB.terminals.some((t) => t.id === wire.b.term);
+      expect(hasTermA, `Terminal ${wire.a.term} in ${devA!.kind}:${symA!.variant} must exist`).toBe(true);
+      expect(hasTermB, `Terminal ${wire.b.term} in ${devB!.kind}:${symB!.variant} must exist`).toBe(true);
+    }
+
+    // Verify simulation runs without faults/errors and wires have assigned phase kinds
+    const initialSnap = emptySnapshot(circuit);
+    const coloredWires = Object.values(initialSnap.wires).filter((w) => w.kind !== null);
+    expect(coloredWires.length).toBeGreaterThan(0);
+    const snap = tick(
+      circuit,
+      initialSnap.runtime,
+      { held: new Set(), process: { temperature: 25, pressure: 0, level: 0, flow: 1, limitHit: false, proxHit: false, photoHit: false } },
+      50,
+      0
+    );
+    expect(snap).toBeDefined();
+    expect(snap.faults.filter((f) => f.level === "error")).toEqual([]);
+
+    // Save JSON doc
+    const doc = makeDoc(circuit, "22-timer-ss-off-three-motor");
+    const jsonPath = path.resolve(__dirname, "examples", "22-timer-ss-off-three-motor.json");
+    fs.writeFileSync(jsonPath, JSON.stringify(doc, null, 2), "utf-8");
+
+    // Full sequence test of ex22
+    const startPb = circuit.devices.find((d) => d.tag === "PB_START")!;
+    const disc1 = circuit.devices.find((d) => d.tag === "DISC1")!;
+    const cb1 = circuit.devices.find((d) => d.tag === "CB1")!;
+    const m1 = circuit.devices.find((d) => d.tag === "M1")!;
+    const m2 = circuit.devices.find((d) => d.tag === "M2")!;
+    const m3 = circuit.devices.find((d) => d.tag === "M3")!;
+
+    let currentSnap = initialSnap;
+    // Close isolator and breaker
+    currentSnap.runtime[disc1.id].on = true;
+    currentSnap.runtime[cb1.id].tripped = false;
+
+    // Press start and simulate 18 seconds
+    for (let t = 0; t <= 18000; t += 100) {
+      const held = t <= 200 ? new Set([startPb.id]) : new Set<string>();
+      currentSnap = tick(circuit, currentSnap.runtime, { held, process: { temperature: 25, pressure: 0, level: 0, flow: 1, limitHit: false, proxHit: false, photoHit: false } }, 100, t);
+
+      // Verify each stage runs exclusively
+      if (t >= 1000 && t <= 4800) {
+        expect(currentSnap.runtime[m1.id]?.energized, `t=${t} M1 should run`).toBe(true);
+        expect(currentSnap.runtime[m2.id]?.energized, `t=${t} M2 should not run`).toBe(false);
+        expect(currentSnap.runtime[m3.id]?.energized, `t=${t} M3 should not run`).toBe(false);
+      } else if (t >= 6000 && t <= 9800) {
+        expect(currentSnap.runtime[m1.id]?.energized, `t=${t} M1 should not run`).toBe(false);
+        expect(currentSnap.runtime[m2.id]?.energized, `t=${t} M2 should run`).toBe(true);
+        expect(currentSnap.runtime[m3.id]?.energized, `t=${t} M3 should not run`).toBe(false);
+      } else if (t >= 11000 && t <= 14800) {
+        expect(currentSnap.runtime[m1.id]?.energized, `t=${t} M1 should not run`).toBe(false);
+        expect(currentSnap.runtime[m2.id]?.energized, `t=${t} M2 should not run`).toBe(false);
+        expect(currentSnap.runtime[m3.id]?.energized, `t=${t} M3 should run`).toBe(true);
+      } else if (t >= 16000 && t <= 18000) {
+        expect(currentSnap.runtime[m1.id]?.energized, `t=${t} M1 should run (cycle 2)`).toBe(true);
+        expect(currentSnap.runtime[m2.id]?.energized, `t=${t} M2 should not run (cycle 2)`).toBe(false);
+        expect(currentSnap.runtime[m3.id]?.energized, `t=${t} M3 should not run (cycle 2)`).toBe(false);
+      }
     }
   });
 

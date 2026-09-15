@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { autoLayoutCircuit } from "./autoLayout";
 import { addDevice, addSymbol, addWire, emptyCircuit } from "../circuitBuilder";
 import { useLab } from "../store";
-import { GRID } from "../types";
+import type { Circuit } from "../types";
 import overloadAlarmDoc from "../examples/07-overload-alarm.json";
 import dolMotorDoc from "../examples/06-motor-3ph-dol.json";
 import basicLampDoc from "../examples/01-basic-lamp.json";
 
 describe("autoLayoutCircuit", () => {
   it("correctly separates power circuit and control circuit in 07-overload-alarm", () => {
-    const rawCircuit = overloadAlarmDoc.circuit as any;
+    const rawCircuit = overloadAlarmDoc.circuit as Circuit;
     const layout = autoLayoutCircuit(rawCircuit);
 
     expect(layout.symbols.length).toBeGreaterThan(0);
@@ -86,7 +86,7 @@ describe("autoLayoutCircuit", () => {
   });
 
   it("can skip auto-routing high-voltage power wires", () => {
-    const rawCircuit = dolMotorDoc.circuit as any;
+    const rawCircuit = dolMotorDoc.circuit as Circuit;
     const withPower = autoLayoutCircuit(rawCircuit);
     const withoutPower = autoLayoutCircuit(rawCircuit, { skipPowerWiring: true });
 
@@ -111,11 +111,11 @@ describe("autoLayoutCircuit", () => {
   });
 
   it("handles DOL motor and basic lamp circuits smoothly", () => {
-    const dolLayout = autoLayoutCircuit(dolMotorDoc.circuit as any);
+    const dolLayout = autoLayoutCircuit(dolMotorDoc.circuit as Circuit);
     expect(dolLayout.symbols.length).toBeGreaterThan(0);
     expect(dolLayout.wires.length).toBeGreaterThan(0);
 
-    const lampLayout = autoLayoutCircuit(basicLampDoc.circuit as any);
+    const lampLayout = autoLayoutCircuit(basicLampDoc.circuit as Circuit);
     expect(lampLayout.symbols.length).toBeGreaterThan(0);
     expect(lampLayout.wires.length).toBeGreaterThan(0);
   });
@@ -135,9 +135,9 @@ describe("autoLayoutCircuit", () => {
     const km2AuxNc = addSymbol(c, km2Main.device.id, "aux-nc", 0, 0);
     const km1Coil = addSymbol(c, km1Main.device.id, "coil", 0, 0);
 
-    const sbRev = addDevice(c, "pb-no", "PB3", "body", 0, 0);
-    const km2AuxNo = addSymbol(c, km2Main.device.id, "aux-no", 0, 0);
-    const km1AuxNc = addSymbol(c, km1Main.device.id, "aux-nc", 0, 0);
+    addDevice(c, "pb-no", "PB3", "body", 0, 0);
+    addSymbol(c, km2Main.device.id, "aux-no", 0, 0);
+    addSymbol(c, km1Main.device.id, "aux-nc", 0, 0);
     const km2Coil = addSymbol(c, km2Main.device.id, "coil", 0, 0);
 
     // Power wiring
@@ -190,7 +190,7 @@ describe("autoLayoutCircuit", () => {
   });
 
   it("ensures orthogonal wiring and clean return bus without diagonal lines", () => {
-    const rawCircuit = overloadAlarmDoc.circuit as any;
+    const rawCircuit = overloadAlarmDoc.circuit as Circuit;
     const layout = autoLayoutCircuit(rawCircuit);
 
     // Verify all symbols have integer coordinates

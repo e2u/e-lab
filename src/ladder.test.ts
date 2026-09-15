@@ -1160,7 +1160,7 @@ describe("Ladder Diagram System", () => {
     });
 
     it("matches a dual-motor schematic: CR1 start/stop, KA2 NC/NO branches, no coil-aux short", () => {
-      const flatten = (rung: { items: { type: string; element?: { kind: string; label: string; address?: string; deviceId: string }; group?: { branches: { contacts: { kind: string; label: string; address?: string; deviceId: string }[] }[] } }[] }) =>
+      const flatten = (rung: { items: { type: string; element?: { kind: string; label: string; address?: string; deviceId: string; contactType?: string }; group?: { branches: { contacts: { kind: string; label: string; address?: string; deviceId: string; contactType?: string }[] }[] } }[] }) =>
         rung.items.flatMap((it) =>
           it.type === "contact" && it.element
             ? [it.element]

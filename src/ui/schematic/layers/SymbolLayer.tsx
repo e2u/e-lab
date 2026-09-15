@@ -51,7 +51,7 @@ export function hasGlyphTag(kind: string, variant: string): boolean {
     return true;
   }
   if (
-    (kind === "timer-on" || kind === "timer-off") &&
+    (kind === "timer-on" || kind === "timer-off" || kind === "timer-ss-on" || kind === "timer-ss-off") &&
     variant === "coil"
   ) {
     return true;
@@ -221,8 +221,15 @@ export const SymbolLayer = memo(function SymbolLayer({
             {/* Symbol tag - rendered separately, unrotated */}
             {(() => {
               const glyphHasTag = hasGlyphTag(dev.kind, sym.variant);
-              const isTimerKind = dev.kind === "timer-on" || dev.kind === "timer-off";
-              const isTimerActive = isTimerKind && Boolean(rt && (rt.energized || (dev.kind === "timer-off" && rt.elapsedMs > 0)));
+              const isTimerKind =
+                dev.kind === "timer-on" ||
+                dev.kind === "timer-off" ||
+                dev.kind === "timer-ss-on" ||
+                dev.kind === "timer-ss-off";
+              const isOffDelay = dev.kind === "timer-off" || dev.kind === "timer-ss-off";
+              const isTimerActive =
+                isTimerKind &&
+                Boolean(rt && (rt.energized || (isOffDelay && rt.elapsedMs > 0)));
 
               let delayText = "";
               let isDone = false;
@@ -231,7 +238,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                 const elapsedMs = rt.elapsedMs ?? 0;
                 isDone = Boolean(rt.done);
 
-                if (dev.kind === "timer-on") {
+                if (dev.kind === "timer-on" || dev.kind === "timer-ss-on") {
                   if (!isDone) {
                     const remMs = Math.max(0, delayMs - elapsedMs);
                     const remStr = (remMs / 1000).toFixed(1) + "s";
@@ -241,8 +248,8 @@ export const SymbolLayer = memo(function SymbolLayer({
                     delayText = `${(delayMs / 1000).toFixed(1)}s`;
                   }
                 } else {
-                  // timer-off
-                  if (rt.energized) {
+                  // timer-off or timer-ss-off
+                  if (rt.energized && (!isOffDelay || dev.kind === "timer-off" || rt.energizedAlt)) {
                     delayText = `${(delayMs / 1000).toFixed(1)}s`;
                   } else {
                     const remMs = Math.max(0, elapsedMs);
@@ -402,9 +409,9 @@ export const SymbolLayer = memo(function SymbolLayer({
         const cx = sym.x * GRID + cw / 2;
         const cy = sym.y * GRID + ch / 2;
 
-        let tx: number | null = null;
-        let ty: number | null = null;
-        let targetSelected = false;
+        let tx: number;
+        let ty: number;
+        let targetSelected: boolean;
         if (dev.params?.targetGroupId) {
           const g = (circuit.groups ?? []).find((x) => x.id === dev.params.targetGroupId);
           if (!g) return null;

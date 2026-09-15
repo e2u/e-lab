@@ -224,7 +224,7 @@ export function emptySnapshot(circuit: Circuit): SimSnapshot {
     }
     const directA = directTerminalPotential(circuit, w.a);
     const directB = directTerminalPotential(circuit, w.b);
-    let kind: PotentialKind | null = null;
+    let kind: PotentialKind | null;
     if (directA === "PE" || directB === "PE") {
       kind = "PE";
     } else if (directA) {
@@ -497,10 +497,20 @@ function isPerSymbolContact(kind: DeviceKind, variant: string): boolean {
     variant === "aux-no2" ||
     variant === "delayed-nc" ||
     variant === "delayed-no" ||
+    variant === "delayed-nc2" ||
+    variant === "delayed-no2" ||
     variant === "inst-nc" ||
     variant === "inst-no"
   ) {
-    return kind === "overload" || kind === "contactor" || kind === "relay" || kind === "timer-on" || kind === "timer-off";
+    return (
+      kind === "overload" ||
+      kind === "contactor" ||
+      kind === "relay" ||
+      kind === "timer-on" ||
+      kind === "timer-off" ||
+      kind === "timer-ss-on" ||
+      kind === "timer-ss-off"
+    );
   }
   return false;
 }
@@ -541,6 +551,22 @@ function contactBridges(device: Device, variant: string, rt: DeviceRuntime): [st
       if (variant === "delayed-nc") return rt.done ? [] : [["15", "16"]];
       if (variant === "inst-no") return rt.energized ? [["21", "24"]] : [];
       if (variant === "inst-nc") return rt.energized ? [] : [["21", "22"]];
+      return [];
+    case "timer-ss-on":
+      if (variant === "delayed-no") return rt.done ? [["1", "3"]] : [];
+      if (variant === "delayed-nc") return rt.done ? [] : [["1", "4"]];
+      if (variant === "delayed-no2") return rt.done ? [["8", "6"]] : [];
+      if (variant === "delayed-nc2") return rt.done ? [] : [["8", "5"]];
+      if (variant === "inst-no") return rt.energized ? [["1", "3"]] : [];
+      if (variant === "inst-nc") return rt.energized ? [] : [["1", "4"]];
+      return [];
+    case "timer-ss-off":
+      if (variant === "delayed-no") return rt.done ? [["1", "3"]] : [];
+      if (variant === "delayed-nc") return rt.done ? [] : [["1", "4"]];
+      if (variant === "delayed-no2") return rt.done ? [["11", "9"]] : [];
+      if (variant === "delayed-nc2") return rt.done ? [] : [["11", "8"]];
+      if (variant === "inst-no") return rt.energized ? [["1", "3"]] : [];
+      if (variant === "inst-nc") return rt.energized ? [] : [["1", "4"]];
       return [];
     default:
       return [];
@@ -784,7 +810,7 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
     case "breaker-1p":
       if (on) out.push(["1", "2"]);
       break;
-    case "fuse":
+    case "fuse": {
       // Single pole fuse (body) or multi-pole fuses (body2, body3)
       const isOn = on && !trip;
       if (!isOn) break;
@@ -797,6 +823,7 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
         out.push(["1", "2"], ["3", "4"], ["5", "6"]);
       }
       break;
+    }
     case "breaker-3p":
       if (on) {
         out.push(["L3", "T3"], ["L2", "T2"], ["L1", "T1"]);
@@ -846,6 +873,16 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
       if (rt.energized) out.push(["21", "24"]);
       else out.push(["21", "22"]);
       break;
+    case "timer-ss-on":
+      if (rt.done) out.push(["1", "3"], ["8", "6"]);
+      else out.push(["1", "4"], ["8", "5"]);
+      if (rt.energized) out.push(["1", "3"]);
+      break;
+    case "timer-ss-off":
+      if (rt.done) out.push(["1", "3"], ["11", "9"]);
+      else out.push(["1", "4"], ["11", "8"]);
+      if (rt.energized) out.push(["1", "3"]);
+      break;
     case "counter":
       if (rt.done) out.push(["1", "2"]);
       break;
@@ -892,6 +929,10 @@ function coilTerms(kind: DeviceKind): [string, string][] {
     case "starter-fwd":
     case "starter-rev":
       return [["A1", "A2"]];
+    case "timer-ss-on":
+      return [["2", "7"]];
+    case "timer-ss-off":
+      return [["2", "10"]];
     case "starter-rev-combo":
       return [
         ["A1F", "A2F"],
@@ -1352,7 +1393,7 @@ export function tick(
     const delay = d.params.delayMs ?? 2000;
     const preset = d.params.preset ?? 5;
 
-    if (d.kind === "timer-on") {
+    if (d.kind === "timer-on" || d.kind === "timer-ss-on") {
       if (rt.energized) {
         rt.elapsedMs = Math.min(delay, rt.elapsedMs + dtMs);
         rt.done = rt.elapsedMs >= delay;
@@ -1372,6 +1413,31 @@ export function tick(
           rt.elapsedMs = 0;
           rt.done = false;
         }
+      }
+    }
+
+    if (d.kind === "timer-ss-off") {
+      if (rt.energized) {
+        const trig5 = nk(d.id, "5");
+        const trig6 = nk(d.id, "6");
+        const triggered =
+          uf.find(trig5) === uf.find(trig6) ||
+          hasVoltageBetween(nodePots(stamp, uf, trig5), nodePots(stamp, uf, trig6));
+        rt.energizedAlt = triggered;
+        if (triggered) {
+          rt.elapsedMs = delay;
+          rt.done = true;
+        } else if (rt.done) {
+          rt.elapsedMs -= dtMs;
+          if (rt.elapsedMs <= 0) {
+            rt.elapsedMs = 0;
+            rt.done = false;
+          }
+        }
+      } else {
+        rt.elapsedMs = 0;
+        rt.done = false;
+        rt.energizedAlt = false;
       }
     }
 
@@ -1522,8 +1588,6 @@ export function tick(
       }
 
       if (clampedWire && !clampedWire.broken) {
-        const a = portDevice(circuit, clampedWire.a);
-        const b = portDevice(circuit, clampedWire.b);
         const na = portNk(circuit, clampedWire.a);
         const nb = portNk(circuit, clampedWire.b);
         if (na && nb) {
@@ -1617,7 +1681,7 @@ export function tick(
     const b = portDevice(circuit, w.b);
     const directA = directTerminalPotential(circuit, w.a);
     const directB = directTerminalPotential(circuit, w.b);
-    let pKind: PotentialKind | null = null;
+    let pKind: PotentialKind | null;
     if (directA === "PE" || directB === "PE") {
       pKind = "PE";
     } else if (directA) {

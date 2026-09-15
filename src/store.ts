@@ -657,7 +657,14 @@ function otherPoleTerms(kind: DeviceKind, variant: string, term: string): string
 }
 
 function isControlSeriesDevice(kind: string, variant: string): boolean {
-  if (kind === "contactor" || kind === "relay" || kind === "timer-on" || kind === "timer-off") {
+  if (
+    kind === "contactor" ||
+    kind === "relay" ||
+    kind === "timer-on" ||
+    kind === "timer-off" ||
+    kind === "timer-ss-on" ||
+    kind === "timer-ss-off"
+  ) {
     return variant.startsWith("aux") || variant.startsWith("delayed") || variant.startsWith("inst");
   }
   if (kind === "overload") return variant.startsWith("aux");
@@ -712,16 +719,21 @@ function isControlSourceTerminal(kind: string, term: string): boolean {
   return false;
 }
 
-function isCoilA1(kind: string, variant: string, term: string): boolean {
-  if (term !== "A1") return false;
-  return (
-    kind === "contactor" ||
-    kind === "relay" ||
-    kind === "timer-on" ||
-    kind === "timer-off" ||
-    kind === "counter" ||
-    kind.startsWith("starter")
-  );
+function isCoilA1(kind: string, _variant: string, term: string): boolean {
+  if (term === "A1") {
+    return (
+      kind === "contactor" ||
+      kind === "relay" ||
+      kind === "timer-on" ||
+      kind === "timer-off" ||
+      kind === "counter" ||
+      kind.startsWith("starter")
+    );
+  }
+  if (term === "2") {
+    return kind === "timer-ss-on" || kind === "timer-ss-off";
+  }
+  return false;
 }
 
 /**
@@ -1487,9 +1499,9 @@ export const useLab = create<LabState>((set, get) => ({
     const gx = Math.round(x);
     const gy = Math.round(y);
     if (item.creates === "attach") {
-      let host = lastDeviceOfKind(next, item.kind, selected?.type === "symbol" ? selected.id : null);
+      const host = lastDeviceOfKind(next, item.kind, selected?.type === "symbol" ? selected.id : null);
       if (!host) {
-        const created = addDevice(
+        addDevice(
           next,
           item.kind,
           nextTag(next.devices.map((d) => d.tag), item.prefix),
@@ -1501,7 +1513,6 @@ export const useLab = create<LabState>((set, get) => ({
           flipXToUse,
           flipYToUse,
         );
-        host = created.device.id;
       } else {
         addSymbol(next, host, item.variant, gx, gy, rotToUse, flipXToUse, flipYToUse);
       }
@@ -1524,7 +1535,7 @@ export const useLab = create<LabState>((set, get) => ({
     const defaultParams: DeviceParams =
       item.kind === "lamp"
         ? { color: "green" }
-        : item.kind === "timer-on" || item.kind === "timer-off"
+        : item.kind === "timer-on" || item.kind === "timer-off" || item.kind === "timer-ss-on" || item.kind === "timer-ss-off"
           ? { delayMs: 2000 }
           : item.kind === "counter"
             ? { preset: 5 }
@@ -3423,11 +3434,7 @@ export const useLab = create<LabState>((set, get) => ({
         if (a && b) {
           // Use the topmost-leftmost point as the sorting anchor
           // Sort by y (top to bottom), then by x (left to right)
-          let top = a, bottom = b;
-          if (b.y < a.y || (b.y === a.y && b.x < a.x)) {
-            top = b;
-            bottom = a;
-          }
+          const top = b.y < a.y || (b.y === a.y && b.x < a.x) ? b : a;
           componentBounds.set(root, { leftX: top.x, topY: top.y });
         } else {
           // Fallback: use min x and y of wire route
@@ -3601,7 +3608,7 @@ export const useLab = create<LabState>((set, get) => ({
       
       // Check if this specific wire is a transformer internal jumper
       // If so, don't assign a label even if the component has one
-      let isTransformerJumper = transformerInternalJumperWireIds.has(w.id);
+      const isTransformerJumper = transformerInternalJumperWireIds.has(w.id);
       
       if (isTransformerJumper) {
         w.label = "";

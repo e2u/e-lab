@@ -107,7 +107,7 @@ export const SymbolLayer = memo(function SymbolLayer({
           <g key={sym.id} className={wrapClass}>
             {/* Symbol body - preserve rotation */}
             <g
-              className="sym-g"
+              className={`sym-g${sym.hideTerminals ? " hide-terminals" : ""}`}
               transform={glyphTransform(sym, boxW, boxH)}
               onContextMenu={(e) => onSymbolContextMenu(e, sym.id)}
               onPointerDown={(e) => onSymbolPointerDown(e, sym, dev)}
@@ -211,6 +211,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                 flipX={sym.flipX}
                 flipY={sym.flipY}
                 rot={sym.rot}
+                hideTerminals={sym.hideTerminals}
               />
               {dev.params.welded && (
                 <text x={4} y={-6} className="weld-tag" transform={textUnflipTransform(4, -6, sym.flipX, sym.flipY)}>

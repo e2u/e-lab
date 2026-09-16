@@ -74,6 +74,19 @@ describe("20 Progressive Example Circuits", () => {
       "project-01",
       "project-02",
       "project-03",
+      "project-04",
+      "project-05",
+      "project-05-on-delay",
+      "project-05-off-delay",
+      "Project 05-On-Delay",
+      "Project 05-Off-Delay",
+      "project-06",
+      "project-06-single-timer",
+      "Project 06-Single-Timer",
+      "project-07",
+      "project-08",
+      "project-09",
+      "project-10",
       "project-11",
       "project-12",
       "21-timer-ss-off-dual-motor",
@@ -86,6 +99,24 @@ describe("20 Progressive Example Circuits", () => {
       expect(doc, `Example ${id} must load via dynamic import`).not.toBeNull();
       expect(doc?.circuit).toBeDefined();
       expect(isCircuit(doc?.circuit)).toBe(true);
+    }
+  });
+
+  it("verifies project-05-off-delay and project-05-on-delay load the correct timer circuits", async () => {
+    const offDelayDoc = await loadExampleJson("project-05-off-delay");
+    expect(offDelayDoc?.circuit?.devices.some((d) => d.kind === "timer-ss-off")).toBe(true);
+
+    const onDelayDoc = await loadExampleJson("project-05-on-delay");
+    expect(onDelayDoc?.circuit?.devices.some((d) => d.kind === "timer-on")).toBe(true);
+  });
+
+  it("verifies every example in list.json can be loaded via loadExampleJson", async () => {
+    const listData = await import("./examples/list.json");
+    for (const item of listData.examples) {
+      if (item.id === "none") continue;
+      const doc = await loadExampleJson(item.id);
+      expect(doc, `Example ${item.id} from list.json must load`).not.toBeNull();
+      expect(doc?.circuit, `Example ${item.id} must have a circuit`).toBeDefined();
     }
   });
 

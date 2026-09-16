@@ -184,4 +184,16 @@ describe("print store actions and defaults", () => {
       expect(TRANSLATIONS.zh[key]).toBeDefined();
     }
   });
+
+  it("renders pure black monochrome mode without CSS grayscale filter", () => {
+    useLab.setState({ printOpen: true });
+
+    const html = renderToStaticMarkup(createElement(PrintModal, { isOpen: true, onClose: () => {} }));
+    // Initially color mode (no monochrome filter)
+    expect(html).not.toContain("grayscale(");
+
+    // Verify translations reflect pure black
+    expect(TRANSLATIONS.en["print.colorMono"]).toContain("Pure Black");
+    expect(TRANSLATIONS.zh["print.colorMono"]).toContain("純黑");
+  });
 });

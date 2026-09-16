@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useLab } from "./store";
+import { TRANSLATIONS } from "./i18n";
 
 describe("Selection & Tag Isolation", () => {
   beforeEach(() => {
@@ -46,5 +47,41 @@ describe("Selection & Tag Isolation", () => {
     const next = useLab.getState().circuit;
     expect(next.symbols.find((x) => x.id === sym.id)?.hideTag).toBe(true);
     expect(next.devices.find((d) => d.id === dev.id)?.tag).toBe(tag);
+  });
+
+  it("toggles hideTerminals on the selected symbol and preserves other symbol properties", () => {
+    const s = useLab.getState();
+    s.setPlacing("ka-coil");
+    s.placeAt(8, 8);
+    const circuit = useLab.getState().circuit;
+    const dev = circuit.devices.find((d) => d.kind === "relay")!;
+    const sym = circuit.symbols.find((x) => x.deviceId === dev.id)!;
+
+    expect(sym.hideTerminals).toBeUndefined();
+
+    // Toggle on
+    s.setSymbolHideTerminals(sym.id, true);
+    let currentSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id);
+    expect(currentSym?.hideTerminals).toBe(true);
+
+    // Toggle off
+    s.setSymbolHideTerminals(sym.id, false);
+    currentSym = useLab.getState().circuit.symbols.find((x) => x.id === sym.id);
+    expect(currentSym?.hideTerminals).toBeUndefined();
+  });
+
+  it("provides complete translations for hideTerminals inspector and context menu keys", () => {
+    const keys = [
+      "inspector.hideTerminals",
+      "inspector.hideTerminalsHint",
+      "ctx.hideTerminals",
+      "ctx.showTerminals",
+    ];
+    for (const key of keys) {
+      expect(TRANSLATIONS.en[key], `en missing ${key}`).toBeDefined();
+      expect(TRANSLATIONS.en[key].length).toBeGreaterThan(0);
+      expect(TRANSLATIONS.zh[key], `zh missing ${key}`).toBeDefined();
+      expect(TRANSLATIONS.zh[key].length).toBeGreaterThan(0);
+    }
   });
 });

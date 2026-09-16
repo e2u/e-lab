@@ -135,6 +135,33 @@ describe("catalog labels", () => {
     }
   });
 
+  it("resolves every palette subgroup heading and ensures every item has a valid subgroupId", () => {
+    const allSubgroupIds = new Set<string>();
+    for (const g of GROUPS) {
+      if (g.subgroups) {
+        for (const sub of g.subgroups) {
+          allSubgroupIds.add(sub.id);
+          expect(sub.groupId).toBe(g.id);
+          for (const lang of ["en", "zh"] as const) {
+            setLang(lang);
+            const key = `lib.subgroup.${sub.id}`;
+            const name = tOr(key, lang === "en" ? sub.labelEn : sub.label);
+            expect(name, `${lang} subgroup ${sub.id}`).not.toMatch(/^lib\./);
+            expect(TRANSLATIONS[lang][key], `${lang} missing ${key}`).toBeDefined();
+            if (lang === "en") {
+              expect(name, `en subgroup ${sub.id}`).not.toMatch(CJK);
+            }
+          }
+        }
+      }
+    }
+
+    for (const item of CATALOG) {
+      expect(item.subgroupId, `Item ${item.id} should have a subgroupId`).toBeDefined();
+      expect(allSubgroupIds.has(item.subgroupId!), `Item ${item.id} subgroupId ${item.subgroupId} should exist in GROUPS`).toBe(true);
+    }
+  });
+
   it("shows English timer inspector hints when language is English", () => {
     setLang("en");
     for (const key of [

@@ -173,6 +173,8 @@ export interface SymbolInst {
   tagOffset?: TagOffset;
   /** Hide this symbol's tag on print only. Independent of other symbols on the same device. */
   hideTag?: boolean;
+  /** Hide this symbol's terminal numbers/labels on the schematic. */
+  hideTerminals?: boolean;
 }
 
 export interface PortRef {
@@ -289,11 +291,26 @@ export interface SimSnapshot {
 export type Mode = "edit" | "run";
 export type EditSubMode = "editing" | "wiring";
 
+export interface CatalogSubgroup {
+  id: string;
+  groupId: string;
+  label: string;
+  labelEn: string;
+}
+
+export interface CatalogGroup {
+  id: string;
+  label: string;
+  labelEn: string;
+  subgroups?: readonly CatalogSubgroup[];
+}
+
 export interface CatalogItem {
   id: string;
   kind: DeviceKind;
   variant: string;
   group: string;
+  subgroupId?: string;
   label: string;
   labelEn: string;
   prefix: string;

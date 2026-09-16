@@ -72,4 +72,15 @@ describe("Theme Switcher (Dark / Light Theme)", () => {
     expect(useLab.getState().printOpen).toBe(false);
     expect(useLab.getState().theme).toBe("light");
   });
+
+  it("should maintain light theme attribute when palette is open", () => {
+    const lab = useLab.getState();
+    lab.setTheme("light");
+    lab.setPaletteOpen(true);
+    expect(lab.theme).toBe("light");
+    expect(lab.paletteOpen).toBe(true);
+    if (typeof document !== "undefined") {
+      expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    }
+  });
 });

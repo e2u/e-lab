@@ -250,14 +250,24 @@ export function ContextMenu({
                     </button>
                   )}
                   {dev.kind !== "junction" && dev.kind !== "title-block" && dev.kind !== "net-label" && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        run(() => useLab.getState().setSymbolHideTag(sym.id, !sym.hideTag))
-                      }
-                    >
-                      {sym.hideTag ? t("ctx.showDeviceTag") : t("ctx.hideDeviceTag")}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          run(() => useLab.getState().setSymbolHideTag(sym.id, !sym.hideTag))
+                        }
+                      >
+                        {sym.hideTag ? t("ctx.showDeviceTag") : t("ctx.hideDeviceTag")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          run(() => useLab.getState().setSymbolHideTerminals(sym.id, !sym.hideTerminals))
+                        }
+                      >
+                        {sym.hideTerminals ? t("ctx.showTerminals") : t("ctx.hideTerminals")}
+                      </button>
+                    </>
                   )}
                 </>
               );

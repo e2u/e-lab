@@ -672,6 +672,20 @@ export function Inspector() {
               <p className="hint">{t("inspector.hideDeviceTagHint")}</p>
             </>
           )}
+          {dev.kind !== "net-label" && (
+            <>
+              <label className="chk">
+                <input
+                  key={`sym-hide-terminals-${sym.id}`}
+                  type="checkbox"
+                  checked={Boolean(sym.hideTerminals)}
+                  onChange={(e) => useLab.getState().setSymbolHideTerminals(sym.id, e.target.checked)}
+                />
+                {t("inspector.hideTerminals")}
+              </label>
+              <p className="hint">{t("inspector.hideTerminalsHint")}</p>
+            </>
+          )}
           {dev.kind === "net-label" ? (
             <NetLabelHint circuit={circuit} deviceId={dev.id} tag={dev.tag} />
           ) : (

@@ -296,11 +296,42 @@ export function App() {
                   )}
                 </>
               )}
-              <button className={`btn ${mode === "run" ? "active" : ""}`} onClick={() => useLab.getState().setMode("run")}>
-                {t("toolbar.run")}
+              <button
+                type="button"
+                className={`btn ${mode === "run" && running ? "active" : ""}`}
+                onClick={() => {
+                  if (mode !== "run") {
+                    useLab.getState().setMode("run");
+                  } else {
+                    useLab.getState().setRunning(true);
+                  }
+                }}
+                title={t("toolbar.run")}
+              >
+                ▶ {t("toolbar.run")}
               </button>
-              <button className="btn" onClick={() => useLab.getState().resetSim()}>
-                {t("toolbar.reset")}
+              <button
+                type="button"
+                className={`btn ${mode === "run" && !running ? "active" : ""}`}
+                onClick={() => {
+                  if (mode !== "run") {
+                    useLab.getState().setMode("run");
+                    useLab.getState().setRunning(false);
+                  } else {
+                    useLab.getState().setRunning(false);
+                  }
+                }}
+                title={t("toolbar.pause")}
+              >
+                ⏸ {t("toolbar.pause")}
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => useLab.getState().resetSim()}
+                title={t("toolbar.reset")}
+              >
+                ↺ {t("toolbar.reset")}
               </button>
             </div>
             <div className="mobile-header-actions">
@@ -402,6 +433,7 @@ export function App() {
                     type="button"
                     className={`seg-btn ${mode === "edit" ? "active" : ""}`}
                     onClick={() => useLab.getState().setMode("edit")}
+                    title={t("toolbar.edit")}
                   >
                     <span className="seg-icon">✏️</span>
                     <span>{t("toolbar.edit")}</span>
@@ -409,11 +441,34 @@ export function App() {
                 )}
                 <button
                   type="button"
-                  className={`seg-btn ${mode === "run" ? "active" : ""}`}
-                  onClick={() => useLab.getState().setMode("run")}
+                  className={`seg-btn ${mode === "run" && running ? "active" : ""}`}
+                  onClick={() => {
+                    if (mode !== "run") {
+                      useLab.getState().setMode("run");
+                    } else {
+                      useLab.getState().setRunning(true);
+                    }
+                  }}
+                  title={t("toolbar.run")}
                 >
                   <span className="seg-icon">▶</span>
                   <span>{t("toolbar.run")}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`seg-btn ${mode === "run" && !running ? "active" : ""}`}
+                  onClick={() => {
+                    if (mode !== "run") {
+                      useLab.getState().setMode("run");
+                      useLab.getState().setRunning(false);
+                    } else {
+                      useLab.getState().setRunning(false);
+                    }
+                  }}
+                  title={t("toolbar.pause")}
+                >
+                  <span className="seg-icon">⏸</span>
+                  <span>{t("toolbar.pause")}</span>
                 </button>
                 <button
                   type="button"

@@ -42,8 +42,16 @@ const exampleImports: Record<string, ExampleImporter> = {
   "project-02": () => import("./Project 02.json"),
   "project-03": () => import("./Project 03.json"),
   "project-04": () => import("./Project 04.json"),
-  "project-05": () => import("./Project 05.json"),
+  "project-05": () => import("./Project 05-On-Delay.json"),
+  "project-05-off-delay": () => import("./Project 05-On-Delay.json"),
+  "project-05-on-delay": () => import("./Project 05-Off-Delay.json"),
+  "Project 05": () => import("./Project 05-On-Delay.json"),
+  "Project 05-Off-Delay": () => import("./Project 05-On-Delay.json"),
+  "Project 05-On-Delay": () => import("./Project 05-Off-Delay.json"),
   "project-06": () => import("./Project 06.json"),
+  "project-06-single-timer": () => import("./Project 06-Single-Timer.json"),
+  "Project 06": () => import("./Project 06.json"),
+  "Project 06-Single-Timer": () => import("./Project 06-Single-Timer.json"),
   "project-07": () => import("./Project 07.json"),
   "project-08": () => import("./Project 08.json"),
   "project-09": () => import("./Project 09.json"),
@@ -61,7 +69,12 @@ export async function loadExampleJson(id: string): Promise<ExampleDoc | null> {
   if (id === "none") return { circuit: null };
 
   try {
-    const importer = exampleImports[id];
+    const normalizedKey = id.trim();
+    const importer =
+      exampleImports[normalizedKey] ||
+      exampleImports[normalizedKey.toLowerCase()] ||
+      exampleImports[normalizedKey.replace(/\s+/g, "-").toLowerCase()] ||
+      exampleImports[normalizedKey.replace(/-/g, " ")];
     if (!importer) return null;
 
     const module = (await importer()) as { default?: ExampleDoc } & ExampleDoc;

@@ -125,8 +125,18 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
           ? "#efe6d0"
           : "none";
 
-    const gridColor = options.background === "paper" ? "rgba(42, 72, 110, 0.14)" : "rgba(0, 0, 0, 0.08)";
-    const gridDotColor = options.background === "paper" ? "rgba(42, 72, 110, 0.22)" : "rgba(0, 0, 0, 0.16)";
+    const gridColor =
+      options.colorMode === "monochrome"
+        ? "#000000"
+        : options.background === "paper"
+          ? "rgba(42, 72, 110, 0.14)"
+          : "rgba(0, 0, 0, 0.08)";
+    const gridDotColor =
+      options.colorMode === "monochrome"
+        ? "#000000"
+        : options.background === "paper"
+          ? "rgba(42, 72, 110, 0.22)"
+          : "rgba(0, 0, 0, 0.16)";
     const patternId = forPrint ? "print-canvas-grid" : "preview-canvas-grid";
     const edges = forPrint ? viewBoxWithPrintEdgeUrls(viewBox) : null;
     const svgViewBox = edges?.viewBox ?? viewBox;
@@ -144,9 +154,6 @@ export function PrintModal({ isOpen, onClose }: PrintModalProps) {
         preserveAspectRatio="xMidYMid meet"
         style={{
           backgroundColor: bgFill,
-          ...(options.colorMode === "monochrome"
-            ? { filter: "grayscale(100%) contrast(140%)" }
-            : {}),
         }}
       >
         <defs>

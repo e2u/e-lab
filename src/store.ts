@@ -225,6 +225,8 @@ export interface LabState {
   setEditSubMode: (subMode: EditSubMode) => void;
   toggleEditSubMode: () => void;
   setRunning: (running: boolean) => void;
+  pauseSim: () => void;
+  resumeSim: () => void;
   step: () => void;
   resetSim: () => void;
   setProcess: (patch: Partial<ProcessVars>) => void;
@@ -330,6 +332,7 @@ export interface LabState {
   setNotice: (notice: string | null) => void;
   setSymbolTagOffset: (id: string, offset?: { dx: number; dy: number } | null) => void;
   setSymbolHideTag: (id: string, hide: boolean) => void;
+  setSymbolHideTerminals: (id: string, hide: boolean) => void;
   resetSymbolTagOffset: (id: string) => void;
   setWireLabelOffset: (id: string, offset?: { dx: number; dy: number } | null) => void;
   resetWireLabelOffset: (id: string) => void;
@@ -1103,13 +1106,17 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   setMode: (mode) => {
-    const { circuit } = get();
+    const { circuit, mode: curMode } = get();
     if (mode === "run") {
       trackCircuitRun({
         symbolCount: circuit.symbols.length,
         wireCount: circuit.wires.length,
         deviceCount: circuit.devices.length,
       });
+      if (curMode === "run") {
+        set({ running: true });
+        return;
+      }
     }
     set({
       mode,
@@ -1134,7 +1141,11 @@ export const useLab = create<LabState>((set, get) => ({
   },
   setRunning: (running) => {
     if (running) {
-      const { circuit } = get();
+      const { circuit, mode } = get();
+      if (mode !== "run") {
+        get().setMode("run");
+        return;
+      }
       trackCircuitRun({
         symbolCount: circuit.symbols.length,
         wireCount: circuit.wires.length,
@@ -1144,6 +1155,12 @@ export const useLab = create<LabState>((set, get) => ({
       trackCircuitPause();
     }
     set({ running });
+  },
+  pauseSim: () => {
+    get().setRunning(false);
+  },
+  resumeSim: () => {
+    get().setRunning(true);
   },
   step: () => {
     trackCircuitStep();
@@ -2431,6 +2448,20 @@ export const useLab = create<LabState>((set, get) => ({
     if (!sym) return;
     if (hide) sym.hideTag = true;
     else delete sym.hideTag;
+    set({ circuit: next, isDirty: true });
+    get().persistDraft();
+  },
+  setSymbolHideTerminals: (id, hide) => {
+    const circuit = get().circuit;
+    const current = circuit.symbols.find((s) => s.id === id);
+    if (!current) return;
+    if (Boolean(current.hideTerminals) === hide) return;
+    get().pushHistory();
+    const next = clone(circuit);
+    const sym = next.symbols.find((s) => s.id === id);
+    if (!sym) return;
+    if (hide) sym.hideTerminals = true;
+    else delete sym.hideTerminals;
     set({ circuit: next, isDirty: true });
     get().persistDraft();
   },

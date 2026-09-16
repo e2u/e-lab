@@ -33,10 +33,13 @@ function TermDot({
     );
 }
 
-const FlipCtx = createContext({fx: 1, fy: 1, rot: 0});
+const FlipCtx = createContext({fx: 1, fy: 1, rot: 0, hideTerminals: false});
 
-function Txt({x = 0, y = 0, transform, textAnchor, ...rest}: SVGProps<SVGTextElement>) {
-    const {fx, fy, rot} = useContext(FlipCtx);
+function Txt({x = 0, y = 0, transform, textAnchor, className, ...rest}: SVGProps<SVGTextElement>) {
+    const {fx, fy, rot, hideTerminals} = useContext(FlipCtx);
+    if (hideTerminals && className?.includes("term-lab")) {
+        return null;
+    }
     const nx = Number(x);
     const ny = Number(y);
     const unflip =
@@ -49,7 +52,7 @@ function Txt({x = 0, y = 0, transform, textAnchor, ...rest}: SVGProps<SVGTextEle
         isWorldFlippedH && textAnchor !== "middle"
             ? (textAnchor === "end" ? "start" : "end")
             : textAnchor;
-    return <text x={x} y={y} transform={t} textAnchor={effectiveAnchor} {...rest} />;
+    return <text x={x} y={y} transform={t} textAnchor={effectiveAnchor} className={className} {...rest} />;
 }
 
 function UnflipGroup({cx = 0, cy = 0, transform, children, ...rest}: SVGProps<SVGGElement> & { cx?: number; cy?: number }) {
@@ -997,6 +1000,7 @@ export function SymbolGlyph({
                                 flipX,
                                 flipY,
                                 rot,
+                                hideTerminals,
                             }: {
     device: Device;
     variant: string;
@@ -1007,9 +1011,10 @@ export function SymbolGlyph({
     flipX?: boolean;
     flipY?: boolean;
     rot?: number;
+    hideTerminals?: boolean;
 }) {
     return (
-        <FlipCtx.Provider value={{fx: flipX ? -1 : 1, fy: flipY ? -1 : 1, rot: rot ?? 0}}>
+        <FlipCtx.Provider value={{fx: flipX ? -1 : 1, fy: flipY ? -1 : 1, rot: rot ?? 0, hideTerminals: Boolean(hideTerminals)}}>
             <GlyphBody
                 device={device}
                 variant={variant}
@@ -1322,7 +1327,8 @@ function GlyphBody({
         );
     }
     if (kind === "fuse") {
-        const live = Boolean(rt?.on && !rt?.tripped);
+        const tripped = Boolean(rt?.tripped);
+        const stroke = tripped ? "#c4391d" : (hot ? "#c45a12" : ink);
         
         // Determine number of poles based on variant
         const numPoles = variant === "body2" ? 2 : variant === "body3" ? 3 : 1;
@@ -1333,18 +1339,18 @@ function GlyphBody({
             const cy = (h * GRID) / 2;
             return (
                 <S w={w} h={h}>
-                    <line x1={cx} y1={0} x2={cx} y2={h * GRID} stroke={ink} strokeWidth="2"/>
+                    <line x1={cx} y1={0} x2={cx} y2={h * GRID} stroke={stroke} strokeWidth="2"/>
                     <rect
                         x={cx - 9}
                         y={h * GRID * 0.28}
                         width="18"
                         height={h * GRID * 0.44}
                         rx="2"
-                        fill={live ? "#cfe8c4" : "#e8c4c4"}
-                        stroke={ink}
+                        fill="#efe6d0"
+                        stroke={stroke}
                         strokeWidth="2"
                     />
-                    <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="term-lab">
+                    <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="fuse-body-lab">
                         FU
                     </Txt>
                 </S>
@@ -1361,7 +1367,7 @@ function GlyphBody({
                     {polesData.map((p, i) => (
                         <g key={`fuse-pole-${i}`}>
                             {/* Input terminal */}
-                            <line x1={p.cx} y1={0} x2={p.cx} y2={h * GRID * 0.28} stroke={ink} strokeWidth="2"/>
+                            <line x1={p.cx} y1={0} x2={p.cx} y2={h * GRID * 0.28} stroke={stroke} strokeWidth="2"/>
                             {/* Fuse element - same height as 1P fuse */}
                             <rect
                                 x={p.cx - 9}
@@ -1369,12 +1375,12 @@ function GlyphBody({
                                 width="18"
                                 height={h * GRID * 0.44}
                                 rx="2"
-                                fill={live ? "#cfe8c4" : "#e8c4c4"}
-                                stroke={ink}
+                                fill="#efe6d0"
+                                stroke={stroke}
                                 strokeWidth="2"
                             />
                             {/* Output terminal */}
-                            <line x1={p.cx} y1={h * GRID * 0.72} x2={p.cx} y2={h * GRID} stroke={ink} strokeWidth="2"/>
+                            <line x1={p.cx} y1={h * GRID * 0.72} x2={p.cx} y2={h * GRID} stroke={stroke} strokeWidth="2"/>
                         </g>
                     ))}
                 </S>
@@ -2217,10 +2223,10 @@ function GlyphBody({
 
                         {/* Mode indicator */}
                         <rect
-                            x={cx - 24}
-                            y={2 * GRID - 5}
-                            width={48}
-                            height={11}
+                            x={cx - 29}
+                            y={2 * GRID - 6}
+                            width={58}
+                            height={12}
                             rx="2"
                             fill="#e2dbcb"
                             stroke={ink}
@@ -2231,20 +2237,20 @@ function GlyphBody({
                         </Txt>
 
                         {/* Control / Trigger Circuit (Terminals 5 - 6) */}
-                        <line x1={0} y1={trigY} x2={cx - 16} y2={trigY} stroke={ink} strokeWidth="2" />
-                        <line x1={cx + 16} y1={trigY} x2={w * GRID} y2={trigY} stroke={ink} strokeWidth="2" />
+                        <line x1={0} y1={trigY} x2={cx - 26} y2={trigY} stroke={ink} strokeWidth="2" />
+                        <line x1={cx + 26} y1={trigY} x2={w * GRID} y2={trigY} stroke={ink} strokeWidth="2" />
                         <rect
-                            x={cx - 16}
-                            y={trigY - 6.5}
-                            width={32}
-                            height={13}
+                            x={cx - 26}
+                            y={trigY - 7}
+                            width={52}
+                            height={14}
                             rx="2"
                             fill={isTriggered ? "#86efac" : "#e2dbcb"}
                             stroke={ink}
                             strokeWidth="1.2"
                         />
-                        <Txt x={cx} y={trigY} textAnchor="middle" dominantBaseline="central" className="term-lab" fontSize="8.5" fontWeight="bold">
-                            START
+                        <Txt x={cx} y={trigY} textAnchor="middle" dominantBaseline="central" className="term-lab" fontSize="7.5" fontWeight="bold">
+                            TRIGGER
                         </Txt>
                         <Txt x={8} y={trigY - 6} className="term-lab">
                             5

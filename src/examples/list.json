@@ -131,14 +131,24 @@
       "blurb": "雙站啟動、單站停止控制一台三相馬達。"
     },
     {
-      "id": "project-05",
-      "title": "Project 05",
-      "blurb": "單相交流馬達手動控制，配備斷路器、開關、電壓表及鉗形電流表監測。"
+      "id": "project-05-off-delay",
+      "title": "Project 05 - Off-Delay Timer",
+      "blurb": "多站啟停按鈕控制一台三相馬達，配備斷電延時繼電器實現停機後冷卻風扇延時散熱。"
+    },
+    {
+      "id": "project-05-on-delay",
+      "title": "Project 05 - On-Delay Timer",
+      "blurb": "單相交流馬達手動控制，配備通電延時繼電器實現啟動後延時運行。"
     },
     {
       "id": "project-06",
       "title": "Project 06",
       "blurb": "三相馬達直接起動 (DOL) 控制，包含隔離刀閘、斷路器、接觸器自鎖控制迴路。"
+    },
+    {
+      "id": "project-06-single-timer",
+      "title": "Project 06 - Single Timer",
+      "blurb": "單站啟停按鈕與單通電延時繼電器控制多台馬達順序運轉。"
     },
     {
       "id": "project-07",

@@ -671,20 +671,341 @@ body.panel-resizing * {
   text-transform: uppercase;
 }
 
+/* --- Palette Hierarchical Search & Accordion --- */
+.palette-search-wrap {
+  margin: 6px 0 8px;
+}
+
+.palette-search-box {
+  display: flex;
+  align-items: center;
+  background: #181e13;
+  border: 1px solid #3d4634;
+  border-radius: 4px;
+  padding: 3px 8px;
+  gap: 6px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.palette-search-box:focus-within {
+  border-color: var(--stripe, #e6c11e);
+  box-shadow: 0 0 4px rgba(230, 193, 30, 0.25);
+}
+
+.palette-search-icon {
+  font-size: 11px;
+  opacity: 0.7;
+  user-select: none;
+}
+
+.palette-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #ece6d2;
+  font-family: inherit;
+  font-size: 11.5px;
+  outline: none;
+  min-width: 0;
+}
+
+.palette-search-input::placeholder {
+  color: #76806a;
+}
+
+.palette-search-clear {
+  background: transparent;
+  border: none;
+  color: #9aa18d;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.palette-search-clear:hover {
+  color: var(--stripe, #e6c11e);
+}
+
+.palette-category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed #2d3625;
+}
+
+.category-pill {
+  background: #1e2518;
+  border: 1px solid #36402d;
+  color: #a8b09b;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 10.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  user-select: none;
+}
+
+.category-pill:hover {
+  background: #2b3523;
+  border-color: #4f5d43;
+  color: #e4dec8;
+}
+
+.category-pill.active {
+  background: #39462e;
+  border-color: var(--stripe, #e6c11e);
+  color: var(--stripe, #e6c11e);
+  font-weight: 600;
+}
+
+.palette-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.palette-toggle-all-btn {
+  background: transparent;
+  border: none;
+  color: #8c967d;
+  font-size: 10.5px;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color 0.12s;
+}
+
+.palette-toggle-all-btn:hover {
+  color: var(--stripe, #e6c11e);
+}
+
+.palette-search-count {
+  color: #e6c11e;
+  font-family: "Red Hat Mono", monospace;
+  font-size: 10.5px;
+}
+
+.palette-content-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.palette-group-card {
+  background: rgba(30, 38, 24, 0.5);
+  border: 1px solid #2d3724;
+  border-radius: 4px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.palette-group-card:hover {
+  border-color: #3f4d33;
+}
+
+.palette-group-header {
+  width: 100%;
+  text-align: left;
+  background: #242e1d;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--stripe, #e6c11e);
+  padding: 6px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: Teko, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background 0.12s;
+  user-select: none;
+}
+
+.palette-group-card:not(.collapsed) .palette-group-header {
+  border-bottom-color: #2d3724;
+}
+
+.palette-group-header:hover {
+  background: #2d3a24;
+}
+
+.palette-group-chevron {
+  font-size: 11px;
+  width: 12px;
+  color: #8c967d;
+  flex-shrink: 0;
+}
+
+.palette-group-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-count-badge {
+  background: #181f13;
+  border: 1px solid #37422c;
+  color: #9aa18d;
+  font-family: "Red Hat Mono", monospace;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.palette-group-body {
+  padding: 4px 6px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.palette-subgroup-card {
+  background: rgba(22, 28, 18, 0.45);
+  border: 1px solid #283220;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.palette-subgroup-card.single-subgroup {
+  background: transparent;
+  border: none;
+  margin-top: 0;
+}
+
+.palette-subgroup-header {
+  width: 100%;
+  text-align: left;
+  background: #1d2518;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: #d1cbb8;
+  padding: 4px 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  transition: background 0.12s, color 0.12s;
+  user-select: none;
+}
+
+.palette-subgroup-card:not(.collapsed) .palette-subgroup-header {
+  border-bottom-color: #283220;
+}
+
+.palette-subgroup-header:hover {
+  background: #273220;
+  color: #f1ebd7;
+}
+
+.palette-subgroup-chevron {
+  font-size: 9.5px;
+  width: 10px;
+  color: #7b856e;
+  flex-shrink: 0;
+}
+
+.palette-subgroup-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-subgroup-count {
+  font-family: "Red Hat Mono", monospace;
+  font-size: 9.5px;
+  color: #7b856e;
+  flex-shrink: 0;
+}
+
+.palette-items-grid {
+  padding: 3px 0 1px;
+}
+
+.palette-subgroup-card:not(.single-subgroup) .palette-items-grid {
+  padding: 4px 4px 2px;
+}
+
+.palette-empty-state {
+  text-align: center;
+  padding: 24px 12px;
+  color: #8c967d;
+  font-size: 12px;
+  background: rgba(24, 30, 20, 0.5);
+  border: 1px dashed #3a4530;
+  border-radius: 4px;
+}
+
+.palette-clear-btn {
+  margin-top: 8px;
+  background: #2b3523;
+  border: 1px solid #48563c;
+  color: var(--stripe, #e6c11e);
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.palette-clear-btn:hover {
+  background: #37442d;
+}
+
+.palette-footer-hint {
+  margin-top: 10px;
+}
+
 .cat-item {
   width: 100%;
   text-align: left;
   background: #2a3223;
   border: 1px solid #3d4634;
   color: #ece6d2;
-  padding: 6px 8px;
-  margin: 0 0 4px;
+  padding: 5px 8px;
+  margin: 0 0 3px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   white-space: nowrap;
+  border-radius: 2px;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.cat-item:hover {
+  background: #353f2c;
+  border-color: #4f5c43;
+}
+
+.cat-item-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.cat-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
 }
 
 .cat-item span {
@@ -693,14 +1014,14 @@ body.panel-resizing * {
   white-space: nowrap;
 }
 
-.cat-item small {
+.cat-item small, .cat-item-sub {
   color: #9aa18d;
   font-family: "Red Hat Mono", monospace;
   font-size: 10px;
   white-space: nowrap;
   flex-shrink: 0;
 }
-.cat-item.selected { outline: 1px solid var(--stripe); }
+.cat-item.selected { outline: 1px solid var(--stripe); background: #3c4832; }
 
 .paper-wrap {
   grid-area: schematic;
@@ -997,6 +1318,16 @@ body.panel-resizing * {
 }
 
 .term-lab {
+  font-family: "Red Hat Mono", monospace;
+  font-size: 9px;
+  fill: #5a5648;
+}
+
+.sym-g.hide-terminals .term-lab {
+  display: none;
+}
+
+.fuse-body-lab {
   font-family: "Red Hat Mono", monospace;
   font-size: 9px;
   fill: #5a5648;
@@ -3260,6 +3591,163 @@ html, body {
 }
 
 /* ============================================================
+   PRINT SVG AND PURE BLACK MONOCHROME PRINT STYLES
+   ============================================================ */
+
+/* Always hide interactive hit areas, handles, glows, and animations in print SVG */
+.print-svg .wire-hit,
+.print-svg .sym-hit,
+.print-svg .wire-glow,
+.print-svg .wire-selection,
+.print-svg .resize-handles,
+.print-svg .sym-short-flash,
+.print-svg .electron,
+.print-svg animateMotion {
+  display: none !important;
+}
+
+.print-svg.print-monochrome,
+.print-monochrome {
+  color: #000000 !important;
+}
+
+/* All text elements in monochrome: 100% solid pure black, no stroke, full opacity */
+.print-svg.print-monochrome text,
+.print-svg.print-monochrome tspan,
+.print-svg.print-monochrome .term-lab,
+.print-svg.print-monochrome .sym-tag,
+.print-svg.print-monochrome .sym-tag-delay-text,
+.print-svg.print-monochrome .wire-label,
+.print-svg.print-monochrome .print-edge-url-text,
+.print-svg.print-monochrome .print-header-meta,
+.print-svg.print-monochrome .fuse-body-lab,
+.print-svg.print-monochrome .group-label text {
+  fill: #000000 !important;
+  stroke: none !important;
+  color: #000000 !important;
+  opacity: 1 !important;
+}
+
+/* Wires: maintain natural wire stroke width (2.2px), pure black color */
+.print-svg.print-monochrome .wire,
+.print-svg.print-monochrome .wire-path,
+.print-svg.print-monochrome .wire-crossover,
+.print-svg.print-monochrome .break-x line,
+.print-svg.print-monochrome .group-box {
+  stroke: #000000 !important;
+  color: #000000 !important;
+  opacity: 1 !important;
+}
+
+/* Terminal dots, wire dots, wire label circles */
+.print-svg.print-monochrome .wire-dot,
+.print-svg.print-monochrome .port circle[fill] {
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.print-svg.print-monochrome .term-dot {
+  stroke: #000000 !important;
+}
+
+.print-svg.print-monochrome .wire-label-hit {
+  fill: transparent !important;
+  stroke: #000000 !important;
+}
+
+/* Component glyph strokes: only override elements that already have visible strokes */
+.print-svg.print-monochrome .sym-g line,
+.print-svg.print-monochrome .sym-g polyline {
+  stroke: #000000 !important;
+  color: #000000 !important;
+}
+
+.print-svg.print-monochrome .sym-g path[stroke]:not([stroke="none"]):not([stroke="transparent"]),
+.print-svg.print-monochrome .sym-g rect[stroke]:not([stroke="none"]):not([stroke="transparent"]),
+.print-svg.print-monochrome .sym-g circle[stroke]:not([stroke="none"]):not([stroke="transparent"]),
+.print-svg.print-monochrome .sym-g polygon[stroke]:not([stroke="none"]):not([stroke="transparent"]) {
+  stroke: #000000 !important;
+}
+
+/* Maintain transparent / none strokes */
+.print-svg.print-monochrome [stroke="transparent"],
+.print-svg.print-monochrome [stroke="none"] {
+  stroke: transparent !important;
+}
+
+/* Tag & badge backgrounds: pure white with black border, remove all colored background fills */
+.print-svg.print-monochrome .sym-tag-bg,
+.print-svg.print-monochrome .sym-tag-delay-bg,
+.print-svg.print-monochrome .group-label rect {
+  fill: #ffffff !important;
+  stroke: #000000 !important;
+}
+
+/* Remove colored background fills for all shapes in monochrome print -> pure white (or transparent if none) */
+.print-svg.print-monochrome rect {
+  fill: #ffffff !important;
+}
+
+.print-svg.print-monochrome rect[fill="none"],
+.print-svg.print-monochrome rect[fill="transparent"] {
+  fill: transparent !important;
+}
+
+.print-svg.print-monochrome circle {
+  fill: #ffffff !important;
+}
+
+.print-svg.print-monochrome circle[fill="none"],
+.print-svg.print-monochrome circle[fill="transparent"] {
+  fill: transparent !important;
+}
+
+.print-svg.print-monochrome polygon {
+  fill: #ffffff !important;
+}
+
+.print-svg.print-monochrome polygon[fill="none"],
+.print-svg.print-monochrome polygon[fill="transparent"] {
+  fill: transparent !important;
+}
+
+.print-svg.print-monochrome path {
+  fill: #ffffff !important;
+}
+
+.print-svg.print-monochrome path:not([fill]),
+.print-svg.print-monochrome path[fill="none"],
+.print-svg.print-monochrome path[fill="transparent"] {
+  fill: transparent !important;
+}
+
+/* Solid dark fills, terminal dots & markers -> pure black */
+.print-svg.print-monochrome path[fill="#2a2924"],
+.print-svg.print-monochrome path[fill="#333"],
+.print-svg.print-monochrome path[fill="#000"],
+.print-svg.print-monochrome path[fill="#000000"],
+.print-svg.print-monochrome path[fill="#1e241a"],
+.print-svg.print-monochrome path[fill="#141a0f"],
+.print-svg.print-monochrome path[fill="currentColor"],
+.print-svg.print-monochrome circle[fill="#2a2924"],
+.print-svg.print-monochrome circle[fill="#333"],
+.print-svg.print-monochrome circle[fill="#000"],
+.print-svg.print-monochrome circle[fill="#000000"],
+.print-svg.print-monochrome circle[fill="#1a202c"],
+.print-svg.print-monochrome circle[fill="#1e241a"],
+.print-svg.print-monochrome circle[fill="currentColor"],
+.print-svg.print-monochrome polygon[fill="#2a2924"],
+.print-svg.print-monochrome polygon[fill="#333"],
+.print-svg.print-monochrome polygon[fill="#000"],
+.print-svg.print-monochrome polygon[fill="#000000"],
+.print-svg.print-monochrome polygon[fill="currentColor"],
+.print-svg.print-monochrome .wire-dot,
+.print-svg.print-monochrome .port circle[fill],
+.print-svg.print-monochrome .term-dot {
+  fill: #000000 !important;
+}
+
+/* ============================================================
    PRINT MEDIA STYLES (@media print)
    ============================================================ */
 
@@ -3308,7 +3796,7 @@ html, body {
   }
 
   .print-edge-url-text {
-    fill: #222222 !important;
+    fill: #000000 !important;
     font-family: Helvetica, Arial, sans-serif !important;
     font-weight: 400 !important;
     letter-spacing: 0.12em !important;
@@ -3331,7 +3819,7 @@ html, body {
   .print-header-meta {
     font-size: 9pt !important;
     font-weight: normal !important;
-    color: #555555 !important;
+    color: #000000 !important;
   }
 
   .print-page-body {
@@ -3348,10 +3836,6 @@ html, body {
     width: 100% !important;
     height: auto !important;
     display: block !important;
-  }
-
-  .print-monochrome {
-    filter: grayscale(100%) contrast(150%) !important;
   }
 }
 
@@ -4188,6 +4672,134 @@ html, body {
 }
 
 /* Catalog Palette Items */
+[data-theme="light"] .palette-search-box {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+[data-theme="light"] .palette-search-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+[data-theme="light"] .palette-search-icon {
+  color: #64748b;
+}
+
+[data-theme="light"] .palette-search-input {
+  color: #0f172a;
+}
+
+[data-theme="light"] .palette-search-input::placeholder {
+  color: #94a3b8;
+}
+
+[data-theme="light"] .palette-search-clear {
+  color: #64748b;
+}
+
+[data-theme="light"] .palette-search-clear:hover {
+  color: #2563eb;
+}
+
+[data-theme="light"] .palette-category-pills {
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .category-pill {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
+[data-theme="light"] .category-pill:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+[data-theme="light"] .category-pill.active {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+[data-theme="light"] .palette-toggle-all-btn {
+  color: #64748b;
+}
+
+[data-theme="light"] .palette-toggle-all-btn:hover {
+  color: #2563eb;
+}
+
+[data-theme="light"] .palette-search-count {
+  color: #2563eb;
+}
+
+[data-theme="light"] .palette-group-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .palette-group-card:hover {
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .palette-group-header {
+  background: #f8fafc;
+  color: #1d4ed8;
+}
+
+[data-theme="light"] .palette-group-card:not(.collapsed) .palette-group-header {
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .palette-group-header:hover {
+  background: #f1f5f9;
+}
+
+[data-theme="light"] .palette-group-chevron {
+  color: #64748b;
+}
+
+[data-theme="light"] .palette-count-badge {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+}
+
+[data-theme="light"] .palette-subgroup-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .palette-subgroup-card.single-subgroup {
+  background: transparent;
+  border: none;
+}
+
+[data-theme="light"] .palette-subgroup-header {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+[data-theme="light"] .palette-subgroup-card:not(.collapsed) .palette-subgroup-header {
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .palette-subgroup-header:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme="light"] .palette-subgroup-chevron {
+  color: #64748b;
+}
+
+[data-theme="light"] .palette-subgroup-count {
+  color: #64748b;
+}
+
 [data-theme="light"] .cat-header {
   background: #f8fafc;
   color: #334155;
@@ -4199,7 +4811,7 @@ html, body {
 }
 
 [data-theme="light"] .cat-item {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   color: #1e293b;
 }
@@ -4216,8 +4828,25 @@ html, body {
   color: #1d4ed8;
 }
 
-[data-theme="light"] .cat-item small {
+[data-theme="light"] .cat-item small,
+[data-theme="light"] .cat-item-sub {
   color: #64748b;
+}
+
+[data-theme="light"] .palette-empty-state {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  color: #64748b;
+}
+
+[data-theme="light"] .palette-clear-btn {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+}
+
+[data-theme="light"] .palette-clear-btn:hover {
+  background: #dbeafe;
 }
 
 /* Inspector & Bench & Process in Right Sidebar */

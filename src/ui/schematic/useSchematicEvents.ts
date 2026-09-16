@@ -100,6 +100,13 @@ export function useSchematicEvents({
   const marqueeRef = useRef<{ x0: number; y0: number; x1: number; y1: number; shift: boolean } | null>(null);
   const [marqueeView, setMarqueeView] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [wireCursor, setWireCursor] = useState<"ew-resize" | "ns-resize" | "grab" | null>(null);
+  const [hoveredSymbolId, setHoveredSymbolId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mode !== "run") {
+      setHoveredSymbolId(null);
+    }
+  }, [mode]);
 
   // Multi-touch tracking for pinch-to-zoom and two-finger pan
   const pointersRef = useRef<Map<number, { clientX: number; clientY: number }>>(new Map());
@@ -1105,14 +1112,25 @@ export function useSchematicEvents({
     openMenu(e);
   };
 
+  const onSymbolPointerEnter = (_e: PointerEvent<SVGElement>, sym: SymbolInst, _dev: Device) => {
+    if (mode === "run") {
+      setHoveredSymbolId(sym.id);
+    }
+  };
+
   const onSymbolPointerUp = (dev: Device) => {
     cancelLongPress();
     interact(dev.kind, dev.id, false);
   };
 
-  const onSymbolPointerLeave = (dev: Device) => {
+  const onSymbolPointerLeave = (dev: Device, sym?: SymbolInst) => {
     cancelLongPress();
     interact(dev.kind, dev.id, false);
+    if (mode === "run") {
+      if (!sym || hoveredSymbolId === sym.id) {
+        setHoveredSymbolId(null);
+      }
+    }
   };
 
   const onPortPointerDown = (e: PointerEvent<SVGCircleElement>, port: PortRef) => {
@@ -1276,6 +1294,9 @@ export function useSchematicEvents({
 
   const onSvgLeave = () => {
     setRulerPos(null);
+    if (mode === "run") {
+      setHoveredSymbolId(null);
+    }
   };
 
   return {
@@ -1286,6 +1307,7 @@ export function useSchematicEvents({
     setMenu,
     marqueeView,
     wireCursor,
+    hoveredSymbolId,
     labelDragPreview,
     onPaperDown,
     onSvgMove,
@@ -1300,6 +1322,7 @@ export function useSchematicEvents({
     onWireLabelContextMenu,
     onSymbolContextMenu,
     onSymbolPointerDown,
+    onSymbolPointerEnter,
     onSymbolDoubleClick,
     onTagPointerDown,
     onTagDoubleClick,

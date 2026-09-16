@@ -140,6 +140,7 @@ export function Schematic() {
     setMenu,
     marqueeView,
     wireCursor,
+    hoveredSymbolId,
     labelDragPreview,
     onPaperDown,
     onSvgMove,
@@ -154,6 +155,7 @@ export function Schematic() {
     onWireLabelContextMenu,
     onSymbolContextMenu,
     onSymbolPointerDown,
+    onSymbolPointerEnter,
     onSymbolDoubleClick,
     onTagPointerDown,
     onTagDoubleClick,
@@ -223,9 +225,11 @@ export function Schematic() {
             selectedIds={selectedIds}
             selectedNetTag={selectedNetTag}
             highlightedWireIds={highlightedWireIds}
+            hoveredSymbolId={mode === "run" ? hoveredSymbolId : null}
             held={held}
             onSymbolContextMenu={onSymbolContextMenu}
             onSymbolPointerDown={onSymbolPointerDown}
+            onSymbolPointerEnter={onSymbolPointerEnter}
             onSymbolDoubleClick={onSymbolDoubleClick}
             onTagPointerDown={onTagPointerDown}
             onTagDoubleClick={onTagDoubleClick}
@@ -267,7 +271,11 @@ export function Schematic() {
 
           <RelationLayer
             circuit={circuit}
-            selectedSymbolId={selected?.type === "symbol" ? selected.id : null}
+            selectedSymbolId={
+              mode === "run"
+                ? hoveredSymbolId
+                : (selected?.type === "symbol" ? selected.id : null)
+            }
           />
 
           <InteractionOverlay

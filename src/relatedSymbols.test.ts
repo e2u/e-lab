@@ -1,11 +1,16 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { addDevice, addSymbol, emptyCircuit } from "./circuitBuilder";
+import { emptySnapshot } from "./sim/engine";
 import { GRID } from "./types";
 import {
   associationSpokes,
   relatedSymbols,
   spokeFromTo,
 } from "./relatedSymbols";
+import { RelationLayer } from "./ui/schematic/layers/RelationLayer";
+import { SymbolLayer } from "./ui/schematic/layers/SymbolLayer";
 
 describe("relatedSymbols", () => {
   it("includes other symbols of the same device", () => {
@@ -77,5 +82,36 @@ describe("associationSpokes", () => {
       expect(s.from.x).toBeGreaterThanOrEqual(coilBox.x);
       expect(s.from.x).toBeLessThanOrEqual(coilBox.x + coilBox.w + 8);
     }
+  });
+
+  it("renders RelationLayer spokes and SymbolLayer hover outlines in Run mode", () => {
+    const c = emptyCircuit();
+    const relay = addDevice(c, "relay", "CR1", "coil", 0, 0);
+    addSymbol(c, relay.device.id, "aux-no", 12, 0);
+
+    // When hoveredSymbolId is passed to RelationLayer, it renders spokes
+    const relHtml = renderToStaticMarkup(
+      createElement(RelationLayer, { circuit: c, selectedSymbolId: relay.symbol.id }),
+    );
+    expect(relHtml).toContain("device-rel-layer");
+    expect(relHtml).toContain("device-rel-line");
+
+    // SymbolLayer with hoveredSymbolId renders amber dashed outline for hovered and related symbols
+    const symHtml = renderToStaticMarkup(
+      createElement(SymbolLayer, {
+        circuit: c,
+        snapshot: emptySnapshot(c),
+        selected: null,
+        selectedIds: [],
+        selectedNetTag: "",
+        hoveredSymbolId: relay.symbol.id,
+        held: [],
+        onSymbolContextMenu: () => {},
+        onSymbolPointerDown: () => {},
+        onSymbolPointerUp: () => {},
+        onSymbolPointerLeave: () => {},
+      }),
+    );
+    expect(symHtml).toContain('stroke="#d97706"');
   });
 });

@@ -3,7 +3,7 @@ import { variantDef } from "../../../catalog";
 import { glyphTransform, isJunction, terminalWorld, textUnflipTransform } from "../../../geometry";
 import { isSymbolTagPrintHidden } from "../../../circuitBuilder";
 import { printHiddenSymbolIds, unionBounds } from "../../../groups";
-import { devicesAreRelated } from "../../../relatedSymbols";
+import { devicesAreRelated, relatedSymbols } from "../../../relatedSymbols";
 import { SymbolGlyph } from "../../../Glyphs";
 import { getSymbolTagPlacement } from "../../../tagPlacement";
 import { t } from "../../../i18n";
@@ -17,11 +17,13 @@ interface SymbolLayerProps {
   selectedIds: string[];
   selectedNetTag: string;
   highlightedWireIds?: Set<string>;
+  hoveredSymbolId?: string | null;
   held: string[];
   onSymbolContextMenu: (e: MouseEvent<SVGElement>, symId: string) => void;
   onSymbolPointerDown: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onSymbolPointerUp: (dev: Device) => void;
-  onSymbolPointerLeave: (dev: Device) => void;
+  onSymbolPointerLeave: (dev: Device, sym?: SymbolInst) => void;
+  onSymbolPointerEnter?: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onSymbolDoubleClick?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onTagPointerDown?: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onTagDoubleClick?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
@@ -66,9 +68,11 @@ export const SymbolLayer = memo(function SymbolLayer({
   selectedIds,
   selectedNetTag,
   highlightedWireIds,
+  hoveredSymbolId = null,
   held,
   onSymbolContextMenu,
   onSymbolPointerDown,
+  onSymbolPointerEnter,
   onSymbolPointerUp,
   onSymbolPointerLeave,
   onSymbolDoubleClick,
@@ -78,8 +82,9 @@ export const SymbolLayer = memo(function SymbolLayer({
   onResizeHandlePointerDown,
   omitPrintHidden = false,
 }: SymbolLayerProps) {
-  const selectedSym = selected?.type === "symbol" ? circuit.symbols.find((s) => s.id === selected.id) : null;
-  const selectedDev = selectedSym ? circuit.devices.find((d) => d.id === selectedSym.deviceId) : null;
+  const activeRelSymId = hoveredSymbolId || (selected?.type === "symbol" ? selected.id : null);
+  const activeRelSym = activeRelSymId ? circuit.symbols.find((s) => s.id === activeRelSymId) : null;
+  const activeRelDev = activeRelSym ? circuit.devices.find((d) => d.id === activeRelSym.deviceId) : null;
   const printHiddenIds = printHiddenSymbolIds(circuit);
 
   return (
@@ -95,13 +100,16 @@ export const SymbolLayer = memo(function SymbolLayer({
         const boxH = v.h * scale;
         const rt = snapshot.runtime[dev.id];
         const sel = selectedIds.includes(sym.id);
+        const isHovered = Boolean(hoveredSymbolId && hoveredSymbolId === sym.id);
         const netMatch =
           !sel &&
           Boolean(selectedNetTag) &&
           dev.kind === "net-label" &&
           dev.tag.trim() === selectedNetTag;
-        const isSameDevice = Boolean(selectedDev && devicesAreRelated(selectedDev, dev, sym));
-        const isRelatedSymbol = !sel && isSameDevice;
+        const isSameDevice = Boolean(activeRelDev && devicesAreRelated(activeRelDev, dev, sym));
+        const hasRel = isHovered ? relatedSymbols(circuit, sym.id).length > 0 : false;
+        const isRelatedSymbol = !sel && !isHovered && isSameDevice;
+        const showRelOutline = isRelatedSymbol || (isHovered && hasRel);
         const wrapClass = hideOnPrint ? "group-print-hidden" : undefined;
         return (
           <g key={sym.id} className={wrapClass}>
@@ -111,8 +119,9 @@ export const SymbolLayer = memo(function SymbolLayer({
               transform={glyphTransform(sym, boxW, boxH)}
               onContextMenu={(e) => onSymbolContextMenu(e, sym.id)}
               onPointerDown={(e) => onSymbolPointerDown(e, sym, dev)}
+              onPointerEnter={(e) => onSymbolPointerEnter?.(e, sym, dev)}
               onPointerUp={() => onSymbolPointerUp(dev)}
-              onPointerLeave={() => onSymbolPointerLeave(dev)}
+              onPointerLeave={() => onSymbolPointerLeave(dev, sym)}
               onDoubleClick={(e) => onSymbolDoubleClick?.(e, sym, dev)}
             >
               {dev.kind === "junction" ? (
@@ -143,14 +152,14 @@ export const SymbolLayer = memo(function SymbolLayer({
                     height={boxH * GRID}
                     fill="transparent"
                   />
-                  {(sel || netMatch || isRelatedSymbol) && (
+                  {(sel || netMatch || showRelOutline) && (
                     <rect
                       x={-4}
                       y={-4}
                       width={boxW * GRID + 8}
                       height={boxH * GRID + 8}
                       fill="none"
-                      stroke={sel ? "#2ca02c" : isRelatedSymbol ? "#d97706" : "#3b7de0"}
+                      stroke={sel ? "#2ca02c" : showRelOutline ? "#d97706" : "#3b7de0"}
                       strokeDasharray="4 3"
                       pointerEvents="none"
                     />

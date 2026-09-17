@@ -279,4 +279,31 @@ describe("catalog labels", () => {
       }),
     ).toBe("短路：L1 與 L2 接到同一點");
   });
+
+  it("ensures 100% symmetry between English and Chinese translation keys", () => {
+    const enKeys = Object.keys(TRANSLATIONS.en).sort();
+    const zhKeys = Object.keys(TRANSLATIONS.zh).sort();
+
+    const missingInZh = enKeys.filter((k) => !(k in TRANSLATIONS.zh));
+    const missingInEn = zhKeys.filter((k) => !(k in TRANSLATIONS.en));
+
+    expect(missingInZh, `Keys missing in zh: ${missingInZh.join(", ")}`).toEqual([]);
+    expect(missingInEn, `Keys missing in en: ${missingInEn.join(", ")}`).toEqual([]);
+  });
+
+  it("ensures all groups and subgroups have valid translations in both languages", () => {
+    for (const g of GROUPS) {
+      const gKey = `lib.group.${g.id}`;
+      expect(TRANSLATIONS.en[gKey], `en missing group ${gKey}`).toBeDefined();
+      expect(TRANSLATIONS.zh[gKey], `zh missing group ${gKey}`).toBeDefined();
+
+      if (g.subgroups) {
+        for (const sub of g.subgroups) {
+          const subKey = `lib.subgroup.${sub.id}`;
+          expect(TRANSLATIONS.en[subKey], `en missing subgroup ${subKey}`).toBeDefined();
+          expect(TRANSLATIONS.zh[subKey], `zh missing subgroup ${subKey}`).toBeDefined();
+        }
+      }
+    }
+  });
 });

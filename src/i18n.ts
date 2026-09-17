@@ -613,6 +613,11 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     // Library panel
     "lib.title": "Component Library",
     "lib.searchPlaceholder": "Search components...",
+    "lib.clearSearch": "Clear Search",
+    "lib.allCategories": "All Categories",
+    "lib.expandAll": "Expand All",
+    "lib.collapseAll": "Collapse All",
+    "lib.noMatches": "No matching components found",
     "lib.controls": "Controls",
     "lib.simulation": "Simulation",
     "lib.processVars": "Process Variables",
@@ -862,6 +867,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     // Confirmation messages (Chinese)
     "msg.confirmDiscardTitle": "未保存的更改",
     "msg.confirmDiscardMessage": "您有未保存的更改。您想做什麼？",
+    "msg.confirmDiscard": "當前圖紙內容將會遺失，是否繼續？",
     "msg.saveAndContinue": "保存並繼續",
     "msg.discardChanges": "放棄更改",
     "msg.cancel": "取消",
@@ -1138,6 +1144,8 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "inspector.autoLayoutSkipPower": "不佈動力迴路導線",
     "inspector.autoLayoutSkipPowerHint": "自動排版仍會擺放電源、接觸器、過載器與馬達，但不會自動拉高壓動力線。",
     "inspector.hint.editMode": "點擊元件後按 R 旋轉，H 左右鏡像，V 上下鏡像。Shift + 點擊或拖動方框可多選；⌘G 編組，⇧⌘G 打散。Delete 刪除，⌘Z 復原。",
+    "inspector.hint.dragMove": "提示：編輯模式下，按住 Shift 拖曳可框選；按 R 旋轉，H/V 鏡像，Delete 刪除。",
+    "inspector.netLabel": "網絡標籤",
     "inspector.netLabelHint": "相同標籤的端子視為導通，無需拉長線。空白標籤不連通；大小寫需一致。",
     "inspector.alreadyConnected": "已連通 {count} 個「{tag}」",
     "inspector.noOtherLabels": "圖上尚未有其他「{tag}」",
@@ -1289,6 +1297,13 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "runtime.resetSimulation": "重置模擬",
     "runtime.circuitNormal": "電路正常",
     "runtime.faultInjection": "故障注入中",
+    "runtime.energized": "通電中",
+    "runtime.deenergized": "已斷電",
+    "runtime.tripped": "已跳脫",
+    "runtime.lit": "發光中",
+    "runtime.done": "完成",
+    "runtime.starDeltaStar": "星形",
+    "runtime.starDeltaDelta": "角形",
 
     // Messages/Notices
     "msg.groupCreated": "已編成一組（{count}）",
@@ -1298,6 +1313,8 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "msg.deletedSave": "已刪除存檔",
     "msg.exported": "已匯出 JSON",
     "msg.imported": "已匯入圖紙",
+    "msg.fileFormatError": "檔案格式錯誤：不是有效的 e-lab 電路圖",
+    "msg.unnamedDiagram": "未命名圖紙",
     
     // Notice messages for actions
     "notice.loadSave": "已載入 '{name}'",
@@ -1591,6 +1608,11 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     // Library panel
     "lib.title": "元件庫",
     "lib.searchPlaceholder": "搜尋元件...",
+    "lib.clearSearch": "清除搜尋",
+    "lib.allCategories": "全部分類",
+    "lib.expandAll": "全部展開",
+    "lib.collapseAll": "全部折疊",
+    "lib.noMatches": "未找到相符的元件",
     "lib.controls": "控制元件",
     "lib.simulation": "模擬控制",
     "lib.processVars": "過程變數",

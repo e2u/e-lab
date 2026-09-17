@@ -22,6 +22,11 @@ describe("Palette Component Hierarchy & Rendering", () => {
     expect(htmlZh).toContain("通電延時 (TON)");
     expect(htmlZh).toContain("固態通電延時 (8-Pin)");
     expect(htmlZh).toContain("固態斷電延時 (11-Pin)");
+    expect(htmlZh).toContain("全部折疊");
+    expect(htmlZh).toContain("全部分類");
+    expect(htmlZh).not.toContain("lib.collapseAll");
+    expect(htmlZh).not.toContain("lib.expandAll");
+    expect(htmlZh).not.toContain("lib.allCategories");
 
     setLang("en");
     useLab.getState().setLang("en");
@@ -32,6 +37,11 @@ describe("Palette Component Hierarchy & Rendering", () => {
     expect(htmlEn).toContain("Thermal Overload");
     expect(htmlEn).toContain("Solid-State ON-Delay (8-Pin)");
     expect(htmlEn).toContain("Solid-State OFF-Delay (11-Pin)");
+    expect(htmlEn).toContain("Collapse All");
+    expect(htmlEn).toContain("All Categories");
+    expect(htmlEn).not.toContain("lib.collapseAll");
+    expect(htmlEn).not.toContain("lib.expandAll");
+    expect(htmlEn).not.toContain("lib.allCategories");
   });
 
   it("has proper category structure for every group", () => {

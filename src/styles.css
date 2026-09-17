@@ -3639,14 +3639,25 @@ html, body {
   opacity: 1 !important;
 }
 
-/* Terminal dots, wire dots, wire label circles */
+/* Terminal dots: hollow white circle with solid black stroke in monochrome print */
+.print-svg.print-monochrome .term-dot {
+  fill: #ffffff !important;
+  stroke: #000000 !important;
+  stroke-width: 1.8px !important;
+}
+
+/* Junction points & wire dots: solid black dot in monochrome print */
+.print-svg.print-monochrome .junction-dot .junction-outer {
+  display: none !important;
+}
+
+.print-svg.print-monochrome .junction-dot .junction-inner,
+.print-svg.print-monochrome .junction-dot circle,
+.print-svg.print-monochrome .multi-wire-term-dot,
+.print-svg .multi-wire-term-dot,
 .print-svg.print-monochrome .wire-dot,
 .print-svg.print-monochrome .port circle[fill] {
   fill: #000000 !important;
-  stroke: #000000 !important;
-}
-
-.print-svg.print-monochrome .term-dot {
   stroke: #000000 !important;
 }
 
@@ -3742,9 +3753,18 @@ html, body {
 .print-svg.print-monochrome polygon[fill="#000000"],
 .print-svg.print-monochrome polygon[fill="currentColor"],
 .print-svg.print-monochrome .wire-dot,
-.print-svg.print-monochrome .port circle[fill],
-.print-svg.print-monochrome .term-dot {
+.print-svg.print-monochrome .junction-dot circle,
+.print-svg.print-monochrome .junction-dot .junction-inner,
+.print-svg.print-monochrome .multi-wire-term-dot,
+.print-svg .multi-wire-term-dot,
+.print-svg.print-monochrome .port circle[fill] {
   fill: #000000 !important;
+}
+
+.print-svg.print-monochrome .term-dot {
+  fill: #ffffff !important;
+  stroke: #000000 !important;
+  stroke-width: 1.8px !important;
 }
 
 /* ============================================================

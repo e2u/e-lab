@@ -2,7 +2,7 @@ import { memo, type MouseEvent, type PointerEvent } from "react";
 import { variantDef } from "../../../catalog";
 import { glyphTransform, isJunction, terminalWorld, textUnflipTransform } from "../../../geometry";
 import { isSymbolTagPrintHidden } from "../../../circuitBuilder";
-import { printHiddenSymbolIds, unionBounds } from "../../../groups";
+import { printHiddenSymbolIds, unionBounds, wireIsPrintHidden } from "../../../groups";
 import { devicesAreRelated, relatedSymbols } from "../../../relatedSymbols";
 import { SymbolGlyph } from "../../../Glyphs";
 import { getSymbolTagPlacement } from "../../../tagPlacement";
@@ -381,32 +381,70 @@ export const SymbolLayer = memo(function SymbolLayer({
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
         const hot = Boolean(dev && snapshot.runtime[dev.id]?.energized);
         const isConnectedJunction = highlightedWireIds ? connectedWires.some((w) => highlightedWireIds.has(w.id)) : false;
+        const isPrint = omitPrintHidden;
         const rOuter = hot || sel || isConnectedJunction ? 6 : 5;
-        const rInner = hot || sel || isConnectedJunction ? 2.5 : 2;
+        const rInner = isPrint ? 3.5 : (hot || sel || isConnectedJunction ? 2.5 : 2);
         const greenColor = "#16a34a";
         const strokeColor = hot || isConnectedJunction ? "#e6c11e" : sel ? "#3b82f6" : greenColor;
         const fillColor = hot || isConnectedJunction ? "rgba(230, 193, 30, 0.25)" : sel ? "rgba(59, 130, 246, 0.2)" : "rgba(22, 163, 74, 0.2)";
         const dotColor = hot || isConnectedJunction ? "#e6c11e" : sel ? "#3b82f6" : greenColor;
         return (
-          <g key={`jdot-${sym.id}`} pointerEvents="none">
+          <g key={`jdot-${sym.id}`} pointerEvents="none" className="junction-dot">
+            {!isPrint && (
+              <circle
+                className="junction-outer"
+                cx={p.x}
+                cy={p.y}
+                r={rOuter}
+                fill={fillColor}
+                stroke={strokeColor}
+                strokeWidth="1.5"
+                strokeDasharray="2.5 2"
+              />
+            )}
             <circle
-              cx={p.x}
-              cy={p.y}
-              r={rOuter}
-              fill={fillColor}
-              stroke={strokeColor}
-              strokeWidth="1.5"
-              strokeDasharray="2.5 2"
-            />
-            <circle
+              className="junction-inner"
               cx={p.x}
               cy={p.y}
               r={rInner}
-              fill={dotColor}
+              fill={isPrint ? "#000000" : dotColor}
             />
           </g>
         );
       })}
+
+      {/* Multi-wire terminals in print mode: solid black dot when 2 or more wires connect */}
+      {omitPrintHidden &&
+        circuit.symbols.map((sym) => {
+          const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+          if (!dev || dev.kind === "junction") return null;
+          const hideOnPrint = printHiddenIds.has(sym.id);
+          if (hideOnPrint) return null;
+          const v = variantDef(dev.kind, sym.variant);
+          return v.terminals.map((t) => {
+            const connectedWires = circuit.wires.filter(
+              (w) =>
+                !wireIsPrintHidden(w, printHiddenIds) &&
+                ((w.a.symbolId === sym.id && w.a.term === t.id) || (w.b.symbolId === sym.id && w.b.term === t.id)),
+            );
+            if (connectedWires.length < 2) return null;
+            const p = terminalWorld(circuit, { symbolId: sym.id, term: t.id });
+            if (!p) return null;
+            return (
+              <circle
+                key={`multi-term-${sym.id}-${t.id}`}
+                className="multi-wire-term-dot"
+                cx={p.x}
+                cy={p.y}
+                r={3.5}
+                fill="#000000"
+                stroke="#000000"
+                strokeWidth={1}
+                pointerEvents="none"
+              />
+            );
+          });
+        })}
 
       {/* Comment leader lines */}
       {circuit.symbols.map((sym) => {

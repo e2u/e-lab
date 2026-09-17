@@ -195,12 +195,6 @@
         "kind": "junction",
         "tag": "",
         "params": {}
-      },
-      {
-        "id": "d_1lc_d76641f4",
-        "kind": "junction",
-        "tag": "",
-        "params": {}
       }
     ],
     "symbols": [
@@ -583,7 +577,7 @@
         "id": "s_1l1_ccea8687",
         "deviceId": "d_tf_15e3e579",
         "variant": "aux-no",
-        "x": 19,
+        "x": 25,
         "y": 33,
         "rot": 0,
         "flipX": false,
@@ -595,14 +589,6 @@
         "variant": "body",
         "x": 5,
         "y": 27,
-        "rot": 0
-      },
-      {
-        "id": "s_1ld_a803c61a",
-        "deviceId": "d_1lc_d76641f4",
-        "variant": "body",
-        "x": 5,
-        "y": 34,
         "rot": 0
       }
     ],
@@ -1271,22 +1257,10 @@
         }
       },
       {
-        "id": "w_1lb_dbb654cd",
+        "id": "w_1mz_0c717c85",
         "a": {
           "symbolId": "s_xw_c4468465",
           "term": "15"
-        },
-        "b": {
-          "symbolId": "s_1ld_a803c61a",
-          "term": "1"
-        },
-        "broken": false
-      },
-      {
-        "id": "w_1le_8c316474",
-        "a": {
-          "symbolId": "s_1ld_a803c61a",
-          "term": "1"
         },
         "b": {
           "symbolId": "s_1l8_bbe04cd6",
@@ -1295,14 +1269,19 @@
         "broken": false
       },
       {
-        "id": "w_1lf_741ef500",
+        "id": "w_1n0_624a5c3a",
         "a": {
           "symbolId": "s_1l1_ccea8687",
           "term": "1"
         },
         "b": {
-          "symbolId": "s_1ld_a803c61a",
-          "term": "1"
+          "symbolId": "s_tv_8307119c",
+          "term": "2"
+        },
+        "jog": {
+          "axis": "x",
+          "pos": 506,
+          "x": 506
         }
       }
     ],

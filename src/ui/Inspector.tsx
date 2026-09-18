@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { GROUP_COLORS, KINDS, LAMP_COLORS } from "../catalog";
+import { clampPinCount, isNamedNetKind, NET_TERMINAL_MAX_PINS, NET_TERMINAL_MIN_PINS } from "../namedNets";
 import { bindingDisplayTag, devicesForBinding } from "../circuitBuilder";
 import { selectionHasGroup, selectionIsGroup } from "../groups";
 import { areWiresConnected } from "../geometry";
@@ -17,11 +19,11 @@ function NetLabelHint({
   tag: string;
 }) {
   const key = tag.trim();
-  const peers = circuit.devices.filter((d) => d.kind === "net-label" && d.id !== deviceId && d.tag.trim() === key);
+  const peers = circuit.devices.filter((d) => isNamedNetKind(d.kind) && d.id !== deviceId && d.tag.trim() === key);
   const names = [
     ...new Set(
       circuit.devices
-        .filter((d) => d.kind === "net-label" && d.id !== deviceId && d.tag.trim())
+        .filter((d) => isNamedNetKind(d.kind) && d.id !== deviceId && d.tag.trim())
         .map((d) => d.tag.trim()),
     ),
   ].sort();
@@ -56,6 +58,62 @@ function NetLabelHint({
         </label>
       )}
     </>
+  );
+}
+
+function NetTerminalPinCount({ deviceId, pinCount }: { deviceId: string; pinCount: number }) {
+  const [text, setText] = useState(String(pinCount));
+  useEffect(() => {
+    setText(String(pinCount));
+  }, [pinCount]);
+  const commit = (raw: number) => useLab.getState().setNetTerminalPinCount(deviceId, raw);
+  const presets = [2, 3, 4, 6, 8, 12];
+  return (
+    <div style={{ marginTop: "8px" }}>
+      <label>
+        {t("inspector.pinCount")}
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <button
+            type="button"
+            className="btn outline"
+            disabled={pinCount <= NET_TERMINAL_MIN_PINS}
+            onClick={() => commit(pinCount - 1)}
+          >
+            −
+          </button>
+          <input
+            type="number"
+            min={NET_TERMINAL_MIN_PINS}
+            max={NET_TERMINAL_MAX_PINS}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onBlur={() => commit(Number(text))}
+          />
+          <button
+            type="button"
+            className="btn outline"
+            disabled={pinCount >= NET_TERMINAL_MAX_PINS}
+            onClick={() => commit(pinCount + 1)}
+          >
+            +
+          </button>
+        </div>
+      </label>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "6px" }}>
+        {presets.map((n) => (
+          <button
+            key={n}
+            type="button"
+            className="btn outline"
+            onClick={() => commit(n)}
+            style={{ opacity: n === pinCount ? 1 : 0.7 }}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <p className="hint">{t("inspector.pinCountHint")}</p>
+    </div>
   );
 }
 
@@ -651,14 +709,14 @@ export function Inspector() {
       ) : (
         <>
           <label>
-            {dev.kind === "net-label" ? t("inspector.netLabel") : t("inspector.tag")}
+            {isNamedNetKind(dev.kind) ? t("inspector.netLabel") : t("inspector.tag")}
             <input
               key={`dev-tag-${dev.id}`}
               value={dev.tag}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { tag: e.target.value })}
             />
           </label>
-          {dev.kind !== "net-label" && (
+          {!isNamedNetKind(dev.kind) && (
             <>
               <label className="chk">
                 <input
@@ -686,7 +744,7 @@ export function Inspector() {
               <p className="hint">{t("inspector.hideTerminalsHint")}</p>
             </>
           )}
-          {dev.kind === "net-label" ? (
+          {isNamedNetKind(dev.kind) ? (
             <NetLabelHint circuit={circuit} deviceId={dev.id} tag={dev.tag} />
           ) : (
             <div className="hint">{t("inspector.variant")}: {sym.variant} · {dev.kind}</div>
@@ -893,7 +951,7 @@ export function Inspector() {
           </select>
         </label>
       )}
-      {dev.kind === "net-label" && (
+      {isNamedNetKind(dev.kind) && (
         <label>
           {t("inspector.color")}
           <input
@@ -902,6 +960,9 @@ export function Inspector() {
             onChange={(e) => useLab.getState().updateDevice(dev.id, { color: e.target.value })}
           />
         </label>
+      )}
+      {dev.kind === "net-terminal" && (
+        <NetTerminalPinCount deviceId={dev.id} pinCount={clampPinCount(dev.params.pinCount)} />
       )}
       {(dev.kind === "timer-on" || dev.kind === "timer-off" || dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off") && (
         <label>

@@ -1,6 +1,7 @@
 import { memo, type MouseEvent, type PointerEvent } from "react";
-import { variantDef } from "../../../catalog";
-import { glyphTransform, isJunction, terminalWorld, textUnflipTransform } from "../../../geometry";
+import { resolvedVariant } from "../../../catalog";
+import { isNamedNetKind } from "../../../namedNets";
+import { glyphTransform, isJunction, symbolBounds, terminalWorld, textUnflipTransform } from "../../../geometry";
 import { isSymbolTagPrintHidden } from "../../../circuitBuilder";
 import { printHiddenSymbolIds, unionBounds, wireIsPrintHidden } from "../../../groups";
 import { devicesAreRelated, relatedSymbols } from "../../../relatedSymbols";
@@ -45,6 +46,7 @@ export function hasGlyphTag(kind: string, variant: string): boolean {
     kind === "mains-3ph" ||
     kind === "dc-supply" ||
     kind === "net-label" ||
+    kind === "net-terminal" ||
     kind === "title-block" ||
     kind === "comment" ||
     kind === "counter" ||
@@ -94,8 +96,8 @@ export const SymbolLayer = memo(function SymbolLayer({
         if (!dev) return null;
         const hideOnPrint = printHiddenIds.has(sym.id);
         if (omitPrintHidden && hideOnPrint) return null;
-        const v = variantDef(dev.kind, sym.variant);
-        const scale = dev.params?.scale ?? 1;
+        const v = resolvedVariant(dev.kind, sym.variant, dev.params);
+        const scale = dev.kind === "net-terminal" ? 1 : (dev.params?.scale ?? 1);
         const boxW = v.w * scale;
         const boxH = v.h * scale;
         const rt = snapshot.runtime[dev.id];
@@ -104,7 +106,7 @@ export const SymbolLayer = memo(function SymbolLayer({
         const netMatch =
           !sel &&
           Boolean(selectedNetTag) &&
-          dev.kind === "net-label" &&
+          isNamedNetKind(dev.kind) &&
           dev.tag.trim() === selectedNetTag;
         const isSameDevice = Boolean(activeRelDev && devicesAreRelated(activeRelDev, dev, sym));
         const hasRel = isHovered ? relatedSymbols(circuit, sym.id).length > 0 : false;
@@ -164,7 +166,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                       pointerEvents="none"
                     />
                   )}
-                  {sel && (
+                  {sel && dev.kind !== "net-terminal" && (
                     <g className="resize-handles">
                       {([
                         { corner: "tl" as const, cx: -4, cy: -4 },
@@ -420,7 +422,7 @@ export const SymbolLayer = memo(function SymbolLayer({
           if (!dev || dev.kind === "junction") return null;
           const hideOnPrint = printHiddenIds.has(sym.id);
           if (hideOnPrint) return null;
-          const v = variantDef(dev.kind, sym.variant);
+          const v = resolvedVariant(dev.kind, sym.variant, dev.params);
           return v.terminals.map((t) => {
             const connectedWires = circuit.wires.filter(
               (w) =>
@@ -451,7 +453,7 @@ export const SymbolLayer = memo(function SymbolLayer({
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
         if (!dev || dev.kind !== "comment" || dev.params?.showLeaderLine === false) return null;
 
-        const v = variantDef(dev.kind, sym.variant);
+        const v = resolvedVariant(dev.kind, sym.variant, dev.params);
         const cw = ((dev.params?.width ?? v.w) * GRID);
         const ch = ((dev.params?.height ?? v.h) * GRID);
         const cx = sym.x * GRID + cw / 2;
@@ -473,9 +475,10 @@ export const SymbolLayer = memo(function SymbolLayer({
           if (!targetDev) return null;
           const targetSym = circuit.symbols.find((s) => s.deviceId === targetDev.id);
           if (!targetSym) return null;
-          const tv = variantDef(targetDev.kind, targetSym.variant);
-          tx = targetSym.x * GRID + (tv.w * GRID) / 2;
-          ty = targetSym.y * GRID + (tv.h * GRID) / 2;
+          const box = symbolBounds(circuit, targetSym);
+          if (!box) return null;
+          tx = (box.x + box.w / 2) * GRID;
+          ty = (box.y + box.h / 2) * GRID;
           targetSelected = selectedIds.includes(targetSym.id);
         } else {
           return null;

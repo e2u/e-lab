@@ -1,3 +1,4 @@
+import { resolvedVariant } from "../catalog";
 import type { Circuit, Device, SymbolInst } from "../types";
 import { GRID } from "../types";
 import { addJunction, addWire } from "../circuitBuilder";
@@ -479,6 +480,11 @@ export function autoLayoutCircuit(
       oth.y = otherY;
       oth.rot = 0;
       otherY += 4;
+    } else if (dev?.kind === "net-terminal") {
+      oth.x = rungStartX;
+      oth.y = otherY;
+      oth.rot = 0;
+      otherY += resolvedVariant(dev.kind, oth.variant, dev.params).h + 1;
     } else {
       oth.x = rungStartX;
       oth.y = otherY;

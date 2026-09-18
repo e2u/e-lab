@@ -1,4 +1,5 @@
-import { variantDef, type VariantDef } from "./catalog";
+import { resolvedVariant, type VariantDef } from "./catalog";
+import { isNamedNetKind, namedNetKey } from "./namedNets";
 import { GRID, type Circuit, type PortRef, type Rot, type SymbolInst, type TerminalDef, type Wire, type WireJog } from "./types";
 
 export function rotatePoint(
@@ -28,8 +29,8 @@ export function symbolSize(
   w: number;
   h: number;
 } {
-  const v = variantDef(kind, sym.variant);
-  const s = params?.scale ?? 1;
+  const v = resolvedVariant(kind, sym.variant, params);
+  const s = kind === "net-terminal" ? 1 : (params?.scale ?? 1);
   const bw = v.w * s;
   const bh = v.h * s;
   if (sym.rot === 90 || sym.rot === 270) return { w: bh, h: bw };
@@ -107,10 +108,10 @@ export function terminalWorld(
   if (!sym) return null;
   const dev = circuit.devices.find((d) => d.id === sym.deviceId);
   if (!dev) return null;
-  const v = variantDef(dev.kind, sym.variant);
+  const v = resolvedVariant(dev.kind, sym.variant, dev.params);
   const term = lookupTerminal(v, dev.kind, ref.term);
   if (!term) return null;
-  const s = dev.params?.scale ?? 1;
+  const s = dev.kind === "net-terminal" ? 1 : (dev.params?.scale ?? 1);
   const termX = term.x * s;
   const termY = term.y * s;
   const vw = v.w * s;
@@ -161,10 +162,10 @@ export function terminalOutward(
   if (!sym) return { x: 0, y: 0 };
   const dev = circuit.devices.find((d) => d.id === sym.deviceId);
   if (!dev) return { x: 0, y: 0 };
-  if (dev.kind === "junction" || dev.kind === "net-label") {
+  if (dev.kind === "junction" || isNamedNetKind(dev.kind)) {
     return { x: 0, y: 0 };
   }
-  const v = variantDef(dev.kind, sym.variant);
+  const v = resolvedVariant(dev.kind, sym.variant, dev.params);
   const term = lookupTerminal(v, dev.kind, ref.term);
   if (!term) return { x: 0, y: 0 };
   const s = dev.params?.scale ?? 1;
@@ -370,7 +371,7 @@ export function portKind(circuit: Circuit, ref: PortRef): string | null {
 
 function stubLen(circuit: Circuit, ref: PortRef): number {
   const kind = portKind(circuit, ref);
-  if (kind === "junction" || kind === "net-label") return 0;
+  if (kind === "junction" || (kind !== null && isNamedNetKind(kind))) return 0;
   return STUB;
 }
 
@@ -468,7 +469,7 @@ function skipDeviceStub(circuit: Circuit, w: { a: PortRef; b: PortRef }, pts: Pt
   if (i !== 0 && i !== pts.length - 2) return false;
   const ref = i === 0 ? w.a : w.b;
   const kind = portKind(circuit, ref);
-  if (kind === "junction" || kind === "net-label") return false;
+  if (kind === "junction" || (kind !== null && isNamedNetKind(kind))) return false;
   const len = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
   return len <= STUB + 2;
 }
@@ -990,7 +991,7 @@ export function findPortAtPoint(
   for (const sym of circuit.symbols) {
     const dev = circuit.devices.find((d) => d.id === sym.deviceId);
     if (!dev) continue;
-    const v = variantDef(dev.kind, sym.variant);
+    const v = resolvedVariant(dev.kind, sym.variant, dev.params);
     for (const t of v.terminals) {
       const world = terminalWorld(circuit, { symbolId: sym.id, term: t.id });
       if (!world) continue;
@@ -1011,7 +1012,7 @@ function uniqueLocatedPorts(circuit: Circuit, symbolId: string): { port: PortRef
   if (!sym) return [];
   const dev = circuit.devices.find((d) => d.id === sym.deviceId);
   if (!dev) return [];
-  const v = variantDef(dev.kind, sym.variant);
+  const v = resolvedVariant(dev.kind, sym.variant, dev.params);
   const wired = new Set<string>();
   for (const w of circuit.wires) {
     if (w.a.symbolId === symbolId) wired.add(w.a.term);
@@ -1316,6 +1317,47 @@ export function findOptimalJunctionForWires(
   return { x: Math.round(bestMid.x / GRID), y: Math.round(bestMid.y / GRID) };
 }
 
+/** Graph keys for one port: junction / named net / strip bus / physical pin. */
+export function nodeKeysForPort(circuit: Circuit, ref: PortRef): string[] {
+  if (isJunction(ref.symbolId, circuit)) {
+    return [`junction:${ref.symbolId}`];
+  }
+  const sym = circuit.symbols.find((s) => s.id === ref.symbolId);
+  const dev = sym && circuit.devices.find((d) => d.id === sym.deviceId);
+  if (!dev) return [`port:${ref.symbolId}:${ref.term}`];
+  if (dev.kind === "net-label") {
+    const k = namedNetKey(dev.tag);
+    if (k) return [`net:${k}`];
+    return [`port:${ref.symbolId}:1`];
+  }
+  if (dev.kind === "net-terminal") {
+    const keys = [`bus:${dev.id}`];
+    const k = namedNetKey(dev.tag);
+    if (k) keys.push(`net:${k}`);
+    return keys;
+  }
+  return [`port:${ref.symbolId}:${ref.term}`];
+}
+
+export function buildNetGraph(circuit: Circuit): {
+  wireToNodes: Map<string, string[]>;
+  nodeToWires: Map<string, string[]>;
+} {
+  const nodeToWires = new Map<string, string[]>();
+  const wireToNodes = new Map<string, string[]>();
+  for (const w of circuit.wires) {
+    const keys = [...nodeKeysForPort(circuit, w.a), ...nodeKeysForPort(circuit, w.b)];
+    const unique = [...new Set(keys)];
+    wireToNodes.set(w.id, unique);
+    for (const key of unique) {
+      const list = nodeToWires.get(key);
+      if (list) list.push(w.id);
+      else nodeToWires.set(key, [w.id]);
+    }
+  }
+  return { wireToNodes, nodeToWires };
+}
+
 /**
  * Find all wire IDs that belong to the same contiguous connected electrical net/branch
  * as the given wire(s).
@@ -1325,34 +1367,7 @@ export function getConnectedWireIds(circuit: Circuit, startWireIds: string[] | s
   const initialValid = seeds.filter((id) => circuit.wires.some((w) => w.id === id));
   if (initialValid.length === 0) return new Set();
 
-  const getNodeKey = (ref: PortRef): string => {
-    if (isJunction(ref.symbolId, circuit)) {
-      return `junction:${ref.symbolId}`;
-    }
-    const sym = circuit.symbols.find((s) => s.id === ref.symbolId);
-    const dev = sym && circuit.devices.find((d) => d.id === sym.deviceId);
-    if (dev?.kind === "net-label") {
-      const tag = dev.tag.trim();
-      if (tag) return `net:${tag}`;
-    }
-    return `port:${ref.symbolId}:${ref.term}`;
-  };
-
-  const nodeToWires = new Map<string, string[]>();
-  const wireToNodes = new Map<string, [string, string]>();
-
-  for (const w of circuit.wires) {
-    const na = getNodeKey(w.a);
-    const nb = getNodeKey(w.b);
-    wireToNodes.set(w.id, [na, nb]);
-
-    if (!nodeToWires.has(na)) nodeToWires.set(na, []);
-    nodeToWires.get(na)!.push(w.id);
-
-    if (!nodeToWires.has(nb)) nodeToWires.set(nb, []);
-    nodeToWires.get(nb)!.push(w.id);
-  }
-
+  const { nodeToWires, wireToNodes } = buildNetGraph(circuit);
   const visitedWires = new Set<string>(initialValid);
   const queue = [...initialValid];
 
@@ -1363,12 +1378,11 @@ export function getConnectedWireIds(circuit: Circuit, startWireIds: string[] | s
 
     for (const nodeKey of nodes) {
       const neighborWireIds = nodeToWires.get(nodeKey);
-      if (neighborWireIds) {
-        for (const nWireId of neighborWireIds) {
-          if (!visitedWires.has(nWireId)) {
-            visitedWires.add(nWireId);
-            queue.push(nWireId);
-          }
+      if (!neighborWireIds) continue;
+      for (const nWireId of neighborWireIds) {
+        if (!visitedWires.has(nWireId)) {
+          visitedWires.add(nWireId);
+          queue.push(nWireId);
         }
       }
     }

@@ -70,6 +70,14 @@ describe("Selection & Tag Isolation", () => {
     expect(currentSym?.hideTerminals).toBeUndefined();
   });
 
+  it("provides complete translations for pin count keys", () => {
+    const keys = ["inspector.pinCount", "inspector.pinCountHint", "notice.pinsDroppedWires", "comp.netTerminal"];
+    for (const key of keys) {
+      expect(TRANSLATIONS.en[key], `en missing ${key}`).toBeDefined();
+      expect(TRANSLATIONS.zh[key], `zh missing ${key}`).toBeDefined();
+    }
+  });
+
   it("provides complete translations for hideTerminals inspector and context menu keys", () => {
     const keys = [
       "inspector.hideTerminals",

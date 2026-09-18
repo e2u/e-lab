@@ -53,6 +53,7 @@ describe("tagPlacement", () => {
     expect(hasGlyphTag("counter", "body")).toBe(true);
     expect(hasGlyphTag("starter-dol", "body")).toBe(true);
     expect(hasGlyphTag("net-label", "body")).toBe(true);
+    expect(hasGlyphTag("net-terminal", "body")).toBe(true);
     expect(hasGlyphTag("comment", "body")).toBe(true);
     expect(hasGlyphTag("junction", "body")).toBe(true);
 

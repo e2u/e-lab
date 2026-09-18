@@ -1,4 +1,5 @@
-import { variantDef } from "../catalog";
+import { resolvedVariant } from "../catalog";
+import { isNamedNetKind, namedNetKey } from "../namedNets";
 import type { Circuit, Device, DeviceKind, ProcessVars, SimSnapshot, SymbolInst } from "../types";
 import type {
   LadderBranch,
@@ -972,7 +973,7 @@ export function buildLadderDiagram(
   for (const s of allSymbols) {
     const d = symToDev.get(s.id);
     if (!d) continue;
-    const def = variantDef(d.kind, s.variant);
+    const def = resolvedVariant(d.kind, s.variant, d.params);
     const perSymbol = isPerSymbolLadderContact(d.kind, s.variant);
     for (const term of def.terminals) {
       addNode(`${s.id}:${term.id}`);
@@ -1040,18 +1041,24 @@ export function buildLadderDiagram(
     }
   }
 
-  // Connect Net Labels with matching tags
+  // Named-net jump (case-sensitive trim) plus internal strip bus
   const netLabelGroups = new Map<string, string[]>();
   for (const s of allSymbols) {
     const d = symToDev.get(s.id);
-    if (d?.kind === "net-label") {
-      const tagNorm = (d.tag || "").trim().toLowerCase();
-      if (tagNorm) {
-        const list = netLabelGroups.get(tagNorm) || [];
-        list.push(`${s.id}:1`);
-        list.push(`${d.id}:1`);
-        netLabelGroups.set(tagNorm, list);
+    if (!d || !isNamedNetKind(d.kind)) continue;
+    if (d.kind === "net-terminal") {
+      const ids = resolvedVariant(d.kind, s.variant, d.params).terminals.map((t) => t.id);
+      for (let i = 1; i < ids.length; i += 1) {
+        unionNode(`${d.id}:${ids[0]}`, `${d.id}:${ids[i]}`);
+        unionNode(`${s.id}:${ids[0]}`, `${s.id}:${ids[i]}`);
       }
+    }
+    const tag = namedNetKey(d.tag);
+    if (tag) {
+      const list = netLabelGroups.get(tag) || [];
+      list.push(`${s.id}:1`);
+      list.push(`${d.id}:1`);
+      netLabelGroups.set(tag, list);
     }
   }
   

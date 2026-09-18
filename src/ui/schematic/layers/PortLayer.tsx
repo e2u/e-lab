@@ -1,5 +1,5 @@
 import { memo, type PointerEvent } from "react";
-import { variantDef } from "../../../catalog";
+import { resolvedVariant } from "../../../catalog";
 import { terminalWorld } from "../../../geometry";
 import { printHiddenSymbolIds } from "../../../groups";
 import type { Circuit, EditSubMode, Mode, PortRef } from "../../../types";
@@ -36,7 +36,7 @@ export const PortLayer = memo(function PortLayer({
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
         if (!dev || dev.kind === "junction") return null;
         const hideOnPrint = printHiddenIds.has(sym.id);
-        const v = variantDef(dev.kind, sym.variant);
+        const v = resolvedVariant(dev.kind, sym.variant, dev.params);
         return v.terminals.map((t) => {
           const world = terminalWorld(circuit, { symbolId: sym.id, term: t.id });
           if (!world) return null;

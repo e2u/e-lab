@@ -1,5 +1,6 @@
 import { memo, type MouseEvent, type PointerEvent } from "react";
-import { catalogItem, suggestNetLabelTag, variantDef } from "../../../catalog";
+import { catalogItem, resolvedVariant, suggestNetLabelTag } from "../../../catalog";
+import { isNamedNetKind } from "../../../namedNets";
 import { t } from "../../../i18n";
 import { findPortAtPoint, glyphTransform, nearestOnPolyline, portsEqual, snapOnSegment, terminalWorld, wireRoute } from "../../../geometry";
 import { normalizeRect } from "../../../groups";
@@ -94,11 +95,10 @@ export const InteractionOverlay = memo(function InteractionOverlay({
 
       {placing && cursor && (() => {
         const item = catalogItem(placing);
-        const v = variantDef(item.kind, item.variant);
         const ghost: Device = {
           id: "ghost",
           kind: item.kind,
-          tag: item.kind === "net-label"
+          tag: isNamedNetKind(item.kind)
             ? suggestNetLabelTag(circuit, selected?.type === "symbol" ? selected.id : null)
             : item.prefix,
           params:
@@ -125,9 +125,10 @@ export const InteractionOverlay = memo(function InteractionOverlay({
                       width: 6,
                       height: 3,
                     }
-                : {},
+                : { ...item.defaultParams },
         };
-        const scale = ghost.params?.scale ?? 1;
+        const v = resolvedVariant(item.kind, item.variant, ghost.params);
+        const scale = item.kind === "net-terminal" ? 1 : (ghost.params?.scale ?? 1);
         const boxW = v.w * scale;
         const boxH = v.h * scale;
         const gx = Math.round(cursor.x);

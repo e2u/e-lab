@@ -89,8 +89,9 @@ function toBase64Url(bytes: Uint8Array): string {
 }
 
 function fromBase64Url(s: string): Uint8Array {
-  const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
-  const b64 = s.replace(/-/g, "+").replace(/_/g, "/") + pad;
+  const cleaned = s.replace(/[–—−]/g, "-").replace(/\s+/g, "");
+  const pad = cleaned.length % 4 === 0 ? "" : "=".repeat(4 - (cleaned.length % 4));
+  const b64 = cleaned.replace(/-/g, "+").replace(/_/g, "/") + pad;
   const bin = atob(b64);
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
@@ -102,11 +103,27 @@ export function encodeShare(doc: LabDoc): string {
   return `j1.${toBase64Url(bytes)}`;
 }
 
-export function decodeShare(payload: string): LabDoc | null {
-  const text = payload.trim();
-  if (!text.startsWith("j1.")) return null;
+function normalizeSharePayload(payload: string): string {
+  let text = payload.trim().replace(/\s+/g, "");
   try {
-    const json = new TextDecoder().decode(fromBase64Url(text.slice(3)));
+    text = decodeURIComponent(text);
+  } catch {
+    /* already decoded, or truncated % sequence */
+  }
+  // Safari / mail clients sometimes turn ASCII '-' into unicode dashes.
+  text = text.replace(/[–—−]/g, "-");
+  // URLSearchParams / form encoding turns '+' into space; restore for standard base64.
+  text = text.replace(/ /g, "+");
+  return text;
+}
+
+export function decodeShare(payload: string): LabDoc | null {
+  let text = normalizeSharePayload(payload);
+  if (text.startsWith("c=")) text = text.slice(2);
+  const data = text.startsWith("j1.") ? text.slice(3) : text;
+  if (!data) return null;
+  try {
+    const json = new TextDecoder().decode(fromBase64Url(data));
     return parseDoc(JSON.parse(json));
   } catch {
     return null;
@@ -117,15 +134,61 @@ export function hashFromDoc(doc: LabDoc): string {
   return `#c=${encodeShare(doc)}`;
 }
 
-export function docFromHash(hash: string): LabDoc | null {
-  const raw = hash.startsWith("#") ? hash.slice(1) : hash;
-  const params = new URLSearchParams(raw);
-  const c = params.get("c");
-  if (!c) {
-    if (raw.startsWith("c=")) return decodeShare(decodeURIComponent(raw.slice(2)));
-    return null;
+/** Pull the fragment from href so Firefox's `location.hash` decoding cannot hide it. */
+export function fragmentFromLocation(
+  href = typeof window !== "undefined" ? window.location.href : "",
+  hash = typeof window !== "undefined" ? window.location.hash : "",
+): string {
+  const hashIdx = href.indexOf("#");
+  if (hashIdx >= 0) return href.slice(hashIdx);
+  const enc = href.search(/%23/i);
+  if (enc >= 0) {
+    const rest = href.slice(enc + 3);
+    try {
+      return `#${decodeURIComponent(rest)}`;
+    } catch {
+      return `#${rest}`;
+    }
   }
-  return decodeShare(c);
+  return hash || "";
+}
+
+export function extractSharePayload(hash: string): string | null {
+  let raw = hash.startsWith("#") ? hash.slice(1) : hash;
+  raw = raw.trim();
+  if (!raw) return null;
+  try {
+    raw = decodeURIComponent(raw);
+  } catch {
+    /* keep raw */
+  }
+  raw = raw.replace(/[–—−]/g, "-");
+
+  if (raw.startsWith("c=")) return raw.slice(2);
+  if (raw.startsWith("j1.")) return raw;
+
+  const amp = raw.match(/(?:^|&)c=([^&]*)/);
+  if (amp) return amp[1];
+
+  // Firefox `URLSearchParams` treats '+' as space; still try it last.
+  try {
+    const c = new URLSearchParams(raw).get("c");
+    if (c) return c;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+export function hasShareFragment(hash: string): boolean {
+  const payload = extractSharePayload(hash);
+  return Boolean(payload && (payload.startsWith("j1.") || payload.length > 8));
+}
+
+export function docFromHash(hash: string): LabDoc | null {
+  const payload = extractSharePayload(hash);
+  if (!payload) return null;
+  return decodeShare(payload) ?? decodeShare(`j1.${payload}`);
 }
 
 export function listSaves(): SavedLab[] {
@@ -184,15 +247,21 @@ export function downloadJson(doc: LabDoc, filename: string): void {
 export function startupDoc(
   fallback: () => Circuit,
   fallbackName: string,
-): { circuit: Circuit; name: string; process?: ProcessVars } {
+): { circuit: Circuit; name: string; process?: ProcessVars; shareFailed?: boolean } {
   if (typeof window !== "undefined") {
-    const shared = docFromHash(window.location.hash);
-    if (shared) {
-      return {
-        circuit: shared.circuit,
-        name: shared.name ?? tOr("msg.unnamedDiagram", "Untitled Diagram"),
-        process: shared.process,
-      };
+    const fragment = fragmentFromLocation();
+    if (hasShareFragment(fragment)) {
+      const shared = docFromHash(fragment);
+      if (shared) {
+        return {
+          circuit: shared.circuit,
+          name: shared.name ?? tOr("msg.unnamedDiagram", "Untitled Diagram"),
+          process: shared.process,
+        };
+      }
+      // A share hash was present but unreadable. Do not silently load a local draft —
+      // that looks like "the link did not restore the drawing".
+      return { circuit: fallback(), name: fallbackName, shareFailed: true };
     }
     const draft = readDraft();
     if (draft) {

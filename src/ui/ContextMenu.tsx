@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { t } from "../i18n";
 import { selectionHasGroup, selectionIsGroup } from "../groups";
 import { areWiresConnected } from "../geometry";
+import { clampPinCount, isNamedNetKind, NET_TERMINAL_MAX_PINS, NET_TERMINAL_MIN_PINS } from "../namedNets";
 import { useLab } from "../store";
 import { GRID } from "../types";
 import { ENABLE_AUTO_LAYOUT } from "../features";
@@ -249,26 +250,47 @@ export function ContextMenu({
                       💬 {t("inspector.addComment")}
                     </button>
                   )}
-                  {dev.kind !== "junction" && dev.kind !== "title-block" && dev.kind !== "net-label" && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          run(() => useLab.getState().setSymbolHideTag(sym.id, !sym.hideTag))
-                        }
-                      >
-                        {sym.hideTag ? t("ctx.showDeviceTag") : t("ctx.hideDeviceTag")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          run(() => useLab.getState().setSymbolHideTerminals(sym.id, !sym.hideTerminals))
-                        }
-                      >
-                        {sym.hideTerminals ? t("ctx.showTerminals") : t("ctx.hideTerminals")}
-                      </button>
-                    </>
+                  {dev.kind !== "junction" && dev.kind !== "title-block" && !isNamedNetKind(dev.kind) && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        run(() => useLab.getState().setSymbolHideTag(sym.id, !sym.hideTag))
+                      }
+                    >
+                      {sym.hideTag ? t("ctx.showDeviceTag") : t("ctx.hideDeviceTag")}
+                    </button>
                   )}
+                  {dev.kind !== "junction" && dev.kind !== "title-block" && dev.kind !== "net-label" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        run(() => useLab.getState().setSymbolHideTerminals(sym.id, !sym.hideTerminals))
+                      }
+                    >
+                      {sym.hideTerminals ? t("ctx.showTerminals") : t("ctx.hideTerminals")}
+                    </button>
+                  )}
+                  {dev.kind === "net-terminal" && (() => {
+                    const n = clampPinCount(dev.params.pinCount);
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          disabled={n <= NET_TERMINAL_MIN_PINS}
+                          onClick={() => run(() => useLab.getState().setNetTerminalPinCount(dev.id, n - 1))}
+                        >
+                          − {t("inspector.pinCount")}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={n >= NET_TERMINAL_MAX_PINS}
+                          onClick={() => run(() => useLab.getState().setNetTerminalPinCount(dev.id, n + 1))}
+                        >
+                          + {t("inspector.pinCount")}
+                        </button>
+                      </>
+                    );
+                  })()}
                 </>
               );
             })()}

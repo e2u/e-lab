@@ -1,5 +1,6 @@
-import { KINDS } from "../catalog";
+import { KINDS, resolvedVariant } from "../catalog";
 import { nodeKey, portDevice, findWireAtPoint, terminalWorld } from "../geometry";
+import { isNamedNetKind, namedNetKeyOf } from "../namedNets";
 import {
   GRID,
   type Circuit,
@@ -28,6 +29,15 @@ export const PHASE_COLOR: Record<PotentialKind, string> = {
   X2: "#7dd3fc", // Light blue (transformer secondary -)
 };
 
+export function netLabelFill(tag: string, color?: string): string {
+  if (color) return color;
+  const phase = matchNetLabelPhase(tag);
+  if (phase) return PHASE_COLOR[phase];
+  const exact = tag.trim();
+  if (exact === "A1" || exact === "A2") return "#3a6ea5";
+  return "#efe6d0";
+}
+
 export function matchNetLabelPhase(tag: string): PotentialKind | null {
   const t = tag.trim().toUpperCase();
   if (!t) return null;
@@ -52,7 +62,7 @@ export function directTerminalPotential(circuit: Circuit, port: PortRef): Potent
   if (port.term === "PE" || port.term === "GND" || port.term === "EARTH" || port.term === "G" || port.term === "E") {
     return "PE";
   }
-  if (dev.kind === "net-label") return matchNetLabelPhase(dev.tag);
+  if (isNamedNetKind(dev.kind)) return matchNetLabelPhase(dev.tag);
   if (dev.kind === "mains-3ph") {
     if (port.term === "L1") return "L1";
     if (port.term === "L2") return "L2";
@@ -145,9 +155,7 @@ export function emptySnapshot(circuit: Circuit): SimSnapshot {
   const link = (x: string, y: string) => {
     uf.union(x, y);
   };
-  for (const d of circuit.devices) {
-    for (const term of allTerminals(d.kind)) uf.add(nk(d.id, term));
-  }
+  seedElectricalNodes(circuit, uf);
   addContactSymbolNodes(circuit, uf);
 
   for (const w of circuit.wires) {
@@ -158,7 +166,7 @@ export function emptySnapshot(circuit: Circuit): SimSnapshot {
   }
 
   linkColocatedTerminals(circuit, link);
-  linkNetLabels(circuit, link);
+  linkNamedNets(circuit, link);
 
   for (const d of circuit.devices) {
     const rt = runtime[d.id];
@@ -259,12 +267,30 @@ function allTerminals(kind: DeviceKind): string[] {
   return [...names];
 }
 
-/** Same-tag net labels are one electrical node. Empty tags stay isolated. */
-function linkNetLabels(circuit: Circuit, link: (a: string, b: string) => void): void {
+function seedElectricalNodes(circuit: Circuit, uf: UnionFind): void {
+  for (const d of circuit.devices) {
+    for (const term of allTerminals(d.kind)) uf.add(nk(d.id, term));
+  }
+  for (const s of circuit.symbols) {
+    const d = circuit.devices.find((x) => x.id === s.deviceId);
+    if (!d || d.kind !== "net-terminal") continue;
+    for (const t of resolvedVariant(d.kind, s.variant, d.params).terminals) {
+      uf.add(nk(d.id, t.id));
+    }
+  }
+}
+
+/** Same-tag named nets are one electrical node. Empty tags stay isolated. */
+function linkNamedNets(circuit: Circuit, link: (a: string, b: string) => void): void {
+  for (const s of circuit.symbols) {
+    const d = circuit.devices.find((x) => x.id === s.deviceId);
+    if (!d || d.kind !== "net-terminal") continue;
+    const ids = resolvedVariant(d.kind, s.variant, d.params).terminals.map((t) => t.id);
+    for (let i = 1; i < ids.length; i += 1) link(nk(d.id, ids[0]), nk(d.id, ids[i]));
+  }
   const groups = new Map<string, string[]>();
   for (const d of circuit.devices) {
-    if (d.kind !== "net-label") continue;
-    const tag = d.tag.trim();
+    const tag = namedNetKeyOf(d);
     if (!tag) continue;
     const list = groups.get(tag) ?? [];
     list.push(nk(d.id, "1"));
@@ -577,7 +603,7 @@ function addContactSymbolNodes(circuit: Circuit, uf: UnionFind): void {
   for (const s of circuit.symbols) {
     const d = circuit.devices.find((x) => x.id === s.deviceId);
     if (!d || !isPerSymbolContact(d.kind, s.variant)) continue;
-    const v = KINDS[d.kind]?.variants[s.variant];
+    const v = resolvedVariant(d.kind, s.variant, d.params);
     if (!v) continue;
     for (const t of v.terminals) uf.add(nk(s.id, t.id));
   }
@@ -592,7 +618,7 @@ function linkColocatedTerminals(circuit: Circuit, link: (a: string, b: string) =
   for (const s of circuit.symbols) {
     const d = circuit.devices.find((x) => x.id === s.deviceId);
     if (!d) continue;
-    const v = KINDS[d.kind]?.variants[s.variant];
+    const v = resolvedVariant(d.kind, s.variant, d.params);
     if (!v) continue;
     const perSymbol = isPerSymbolContact(d.kind, s.variant);
     const groups = new Map<string, string[]>();
@@ -1065,9 +1091,7 @@ export function tick(
     adj.set(x, ax);
     adj.set(y, ay);
   };
-  for (const d of circuit.devices) {
-    for (const term of allTerminals(d.kind)) uf.add(nk(d.id, term));
-  }
+  seedElectricalNodes(circuit, uf);
   addContactSymbolNodes(circuit, uf);
 
   for (const w of circuit.wires) {
@@ -1078,7 +1102,7 @@ export function tick(
   }
 
   linkColocatedTerminals(circuit, link);
-  linkNetLabels(circuit, link);
+  linkNamedNets(circuit, link);
 
   for (const d of circuit.devices) {
     const rt = runtime[d.id];
@@ -1266,7 +1290,7 @@ export function tick(
       rt.lit = rt.energized;
     }
 
-    if (d.kind === "net-label" || d.kind === "junction" || d.kind === "ground") {
+    if (isNamedNetKind(d.kind) || d.kind === "junction" || d.kind === "ground") {
       rt.energized = Boolean(pot(d.id, "1"));
     }
 
@@ -1536,10 +1560,22 @@ export function tick(
           break;
         }
       }
+      if (!isShort && d.kind === "net-terminal") {
+        for (const s of circuit.symbols) {
+          if (s.deviceId !== d.id) continue;
+          for (const t of resolvedVariant(d.kind, s.variant, d.params).terminals) {
+            if (shortRoots.has(uf.find(nk(d.id, t.id)))) {
+              isShort = true;
+              break;
+            }
+          }
+          if (isShort) break;
+        }
+      }
       if (!isShort) {
         for (const s of circuit.symbols) {
           if (s.deviceId !== d.id || !isPerSymbolContact(d.kind, s.variant)) continue;
-          const v = KINDS[d.kind]?.variants[s.variant];
+          const v = resolvedVariant(d.kind, s.variant, d.params);
           if (!v) continue;
           for (const t of v.terminals) {
             if (shortRoots.has(uf.find(nk(s.id, t.id)))) {
@@ -1578,7 +1614,7 @@ export function tick(
       if (!clampedWire) {
         const sym = circuit.symbols.find((s) => s.deviceId === d.id);
         if (sym) {
-          const v = KINDS[d.kind]?.variants[sym.variant] ?? { w: 4, h: 4 };
+          const v = resolvedVariant(d.kind, sym.variant, d.params);
           const cx = (sym.x + v.w / 2) * GRID;
           const cy = (sym.y + v.h / 2) * GRID;
           clampedWire = findWireAtPoint(circuit, cx, cy, Math.max(v.w, v.h) * GRID);

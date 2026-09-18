@@ -1,10 +1,23 @@
 import {createContext, useContext, type SVGProps} from "react";
 import type {Device, DeviceRuntime} from "./types";
 import {GRID} from "./types";
-import {variantDef} from "./catalog.ts";
-import {PHASE_COLOR} from "./sim/engine";
+import {resolvedVariant} from "./catalog.ts";
+import {netLabelFill, PHASE_COLOR} from "./sim/engine";
 
 const ink = "#1b1a16";
+
+/** Dark ink on light plates, white on phase-colored plates. Inline fill beats CSS. */
+function inkOnFill(fill: string): string {
+    const hex = fill.trim().replace("#", "");
+    const full = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
+    if (full.length !== 6) return ink;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    if ([r, g, b].some((n) => Number.isNaN(n))) return ink;
+    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    return lum > 0.55 ? ink : "#ffffff";
+}
 
 /** Device connection pads. Print CSS fills these solid black. */
 function TermDot({
@@ -1043,7 +1056,7 @@ function GlyphBody({
     pressed?: boolean;
 }) {
     const kind = device.kind;
-    const v = variantDef(kind, variant);
+    const v = resolvedVariant(kind, variant, device.params);
     const bw = kind === "comment" && device.params?.width ? device.params.width : (v ? v.w : scaledW);
     const bh = kind === "comment" && device.params?.height ? device.params.height : (v ? v.h : scaledH);
     const w = bw;
@@ -1976,24 +1989,7 @@ function GlyphBody({
         const boxW = w * GRID - boxX - 1;
         const boxH = 22;
         const boxY = cy - boxH / 2;
-        
-        // Determine background color based on label or custom color
-        let bgFill = "#efe6d0"; // default
-        if (label === "L1") bgFill = PHASE_COLOR.L1;
-        else if (label === "L2") bgFill = PHASE_COLOR.L2;
-        else if (label === "L3") bgFill = PHASE_COLOR.L3;
-        else if (label === "N" || label === "Neutral") bgFill = PHASE_COLOR.N;
-        else if (label === "G" || label === "Ground" || label === "PE" || label === "GND" || label === "EARTH" || label === "E") bgFill = PHASE_COLOR.PE;
-        else if (label === "X1") bgFill = PHASE_COLOR.X1;
-        else if (label === "X2") bgFill = PHASE_COLOR.X2;
-        else if (label === "DC+" || label === "+24V" || label === "+12V" || label === "VCC" || label === "V+") bgFill = PHASE_COLOR["DC+"];
-        else if (label === "DC-" || label === "0V" || label === "-24V" || label === "COM" || label === "V-") bgFill = PHASE_COLOR["DC-"];
-        else if (label === "A1" || label === "A2") bgFill = "#3a6ea5";
-        // Use custom color from params if set
-        if (device.params.color) {
-            bgFill = device.params.color;
-        }
-        
+        const bgFill = netLabelFill(device.tag, device.params.color);
         return (
             <S w={w} h={h}>
                 <line x1={0} y1={cy} x2={boxX} y2={cy} stroke={ink} strokeWidth="2"/>
@@ -2008,8 +2004,65 @@ function GlyphBody({
                     y={cy}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    className="sym-tag"
-                    fill="#ffffff"
+                    className="glyph-net-name"
+                    fill={inkOnFill(bgFill)}
+                >
+                    {label}
+                </Txt>
+            </S>
+        );
+    }
+    if (kind === "net-terminal") {
+        const label = device.tag.trim() || "?";
+        const bgFill = netLabelFill(device.tag, device.params.color);
+        const pins = v.terminals;
+        const bodyW = w * GRID;
+        const busL = 8;
+        const busR = bodyW - 8;
+        const plateX = 12;
+        const plateY = 3;
+        const plateW = bodyW - 24;
+        const plateH = h * GRID - 6;
+        const ys = [...new Set(pins.map((p) => p.y * GRID))];
+        const firstY = ys[0] ?? GRID;
+        const lastY = ys[ys.length - 1] ?? GRID;
+        return (
+            <S w={w} h={h}>
+                <rect
+                    x={plateX}
+                    y={plateY}
+                    width={plateW}
+                    height={plateH}
+                    rx={3}
+                    fill={bgFill}
+                    stroke={ink}
+                    strokeWidth="1.6"
+                />
+                <line x1={busL} y1={firstY} x2={busL} y2={lastY} stroke={ink} strokeWidth="2" />
+                <line x1={busR} y1={firstY} x2={busR} y2={lastY} stroke={ink} strokeWidth="2" />
+                {pins.map((pin) => {
+                    const py = pin.y * GRID;
+                    const left = pin.x === 0;
+                    const edge = left ? 0 : bodyW;
+                    const bus = left ? busL : busR;
+                    const labX = left ? 20 : bodyW - 20;
+                    return (
+                        <g key={pin.id}>
+                            <line x1={edge} y1={py} x2={bus} y2={py} stroke={ink} strokeWidth="2" />
+                            <TermDot cx={edge} cy={py} />
+                            <Txt x={labX} y={py} textAnchor="middle" dominantBaseline="central" className="term-lab">
+                                {pin.label}
+                            </Txt>
+                        </g>
+                    );
+                })}
+                <Txt
+                    x={bodyW / 2}
+                    y={h * GRID / 2}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    className="glyph-net-name"
+                    fill={inkOnFill(bgFill)}
                 >
                     {label}
                 </Txt>

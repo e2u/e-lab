@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { addDevice } from "./circuitBuilder";
 import { lampJog } from "./examples";
-import { decodeShare, encodeShare, makeDoc, parseDoc } from "./persist";
+import {
+  decodeShare,
+  docFromHash,
+  encodeShare,
+  fragmentFromLocation,
+  makeDoc,
+  parseDoc,
+} from "./persist";
 import { createBlankTemplateCircuit, createBlankTemplateProcess, useLab } from "./store";
 import templateData from "./examples/blank-template.json";
 
@@ -67,10 +74,48 @@ describe("persist", () => {
     expect(savedSyms.every((s) => s.hideTag === true)).toBe(true);
   });
 
+  it("round-trips net-terminal pinCount", () => {
+    const circuit = createBlankTemplateCircuit();
+    const strip = addDevice(circuit, "net-terminal", "L1", "body", 4, 4, { pinCount: 8 });
+    const back = decodeShare(encodeShare(makeDoc(circuit, "lab")));
+    const saved = back?.circuit.devices.find((d) => d.id === strip.device.id);
+    expect(saved?.params.pinCount).toBe(8);
+  });
+
+  it("loads out-of-range pinCount without throwing", () => {
+    const circuit = createBlankTemplateCircuit();
+    addDevice(circuit, "net-terminal", "L1", "body", 4, 4, { pinCount: 0 });
+    const back = parseDoc(makeDoc(circuit, "lab"));
+    expect(back).not.toBeNull();
+    expect(back?.circuit.devices.some((d) => d.kind === "net-terminal")).toBe(true);
+  });
+
   it("rejects junk", () => {
     expect(parseDoc(null)).toBeNull();
     expect(parseDoc({ version: 1 })).toBeNull();
     expect(decodeShare("nope")).toBeNull();
+  });
+
+  it("restores share hashes Firefox / Safari may rewrite", () => {
+    const circuit = lampJog();
+    const doc = makeDoc(circuit, "指示燈點動");
+    const payload = encodeShare(doc);
+
+    expect(docFromHash(`#c=${payload}`)?.name).toBe("指示燈點動");
+    expect(docFromHash(`#c%3D${payload}`)?.name).toBe("指示燈點動");
+    expect(docFromHash(payload)?.name).toBe("指示燈點動");
+
+    const hrefEncoded = `https://elab.example/%23c=${payload}`;
+    expect(docFromHash(fragmentFromLocation(hrefEncoded, ""))?.name).toBe("指示燈點動");
+
+    const hrefEq = `https://elab.example/%23c%3D${payload}`;
+    expect(docFromHash(fragmentFromLocation(hrefEq, ""))?.name).toBe("指示燈點動");
+
+    const dashed = payload.replace(/-/g, "–");
+    expect(decodeShare(dashed)?.name).toBe("指示燈點動");
+
+    const wrapped = `#c=${payload.slice(0, 24)}\n${payload.slice(24)}`;
+    expect(docFromHash(wrapped)?.name).toBe("指示燈點動");
   });
 
   it("loads blank template when creating a new diagram", () => {

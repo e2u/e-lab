@@ -1353,6 +1353,16 @@ body.panel-resizing * {
   fill: #333;
   text-shadow: 0 0 4px var(--paper), 0 0 8px var(--paper);
 }
+
+/* Glyph-internal net names. Do not use .sym-tag here: WebKit paints SVG
+   text-shadow as a second copy, and nested <svg> + transform puts that copy
+   far below the symbol (Safari-only ghost label). */
+.glyph-net-name {
+  font-family: "Red Hat Mono", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
 .wire-label-bg {
   fill: var(--paper);
 }

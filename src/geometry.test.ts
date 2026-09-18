@@ -915,6 +915,43 @@ describe("wire merge and optimal junction point", () => {
     expect(connWithNets.has(wNetB.id)).toBe(true);
   });
 
+  it("connects wires across same-named net terminals including mixed flags", () => {
+    const c = emptyCircuit();
+    const l1 = addDevice(c, "lamp", "LT1", "body", 0, 0);
+    const l2 = addDevice(c, "lamp", "LT2", "body", 20, 0);
+    const stripA = addDevice(c, "net-terminal", "BUS", "body", 6, 0, { pinCount: 4 });
+    const stripB = addDevice(c, "net-terminal", "BUS", "body", 14, 0, { pinCount: 4 });
+    const wA = addWire(c, l1.symbol, "1", stripA.symbol, "3");
+    const wB = addWire(c, stripB.symbol, "1", l2.symbol, "1");
+    const conn = getConnectedWireIds(c, wA.id);
+    expect(conn.has(wB.id)).toBe(true);
+
+    const flag = addDevice(c, "net-label", "HOT", "body", 0, 10);
+    const strip = addDevice(c, "net-terminal", "HOT", "body", 10, 10, { pinCount: 4 });
+    const l3 = addDevice(c, "lamp", "LT3", "body", 0, 16);
+    const l4 = addDevice(c, "lamp", "LT4", "body", 16, 16);
+    const wFlag = addWire(c, l3.symbol, "1", flag.symbol, "1");
+    const wStrip = addWire(c, strip.symbol, "2", l4.symbol, "1");
+    expect(getConnectedWireIds(c, wFlag.id).has(wStrip.id)).toBe(true);
+
+    const emptyA = addDevice(c, "net-terminal", "", "body", 0, 24, { pinCount: 4 });
+    const emptyB = addDevice(c, "net-terminal", "", "body", 10, 24, { pinCount: 4 });
+    const l5 = addDevice(c, "lamp", "LT5", "body", 0, 30);
+    const l6 = addDevice(c, "lamp", "LT6", "body", 10, 30);
+    const wEmpty1 = addWire(c, l5.symbol, "1", emptyA.symbol, "1");
+    const wEmpty2 = addWire(c, emptyA.symbol, "2", l5.symbol, "2");
+    const wOther = addWire(c, l6.symbol, "1", emptyB.symbol, "1");
+    expect(getConnectedWireIds(c, wEmpty1.id).has(wEmpty2.id)).toBe(true);
+    expect(getConnectedWireIds(c, wEmpty1.id).has(wOther.id)).toBe(false);
+
+    const p8 = addDevice(c, "net-terminal", "X", "body", 30, 0, { pinCount: 8 });
+    const worldL = terminalWorld(c, { symbolId: p8.symbol.id, term: "15" });
+    const worldR = terminalWorld(c, { symbolId: p8.symbol.id, term: "16" });
+    expect(worldL).not.toBeNull();
+    expect(worldR).not.toBeNull();
+    expect(worldR!.x).toBeGreaterThan(worldL!.x);
+  });
+
   it("routes around the component when connecting different terminals of the same symbol (self-loopback)", () => {
     const c = emptyCircuit();
     const btn = addDevice(c, "pb-no", "PB_START", "body", 4, 4);

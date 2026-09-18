@@ -1,8 +1,10 @@
+import { isNamedNetKind, netTerminalDef, NET_TERMINAL_DEFAULT_PINS } from "./namedNets";
 import type {
   CatalogGroup,
   CatalogItem,
   Circuit,
   DeviceKind,
+  DeviceParams,
   TerminalDef,
 } from "./types";
 
@@ -890,6 +892,13 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       },
     },
   },
+  "net-terminal": {
+    prefix: "L1",
+    label: "網絡端子",
+    variants: {
+      body: netTerminalDef(NET_TERMINAL_DEFAULT_PINS),
+    },
+  },
   ground: {
     prefix: "GND",
     label: "接地",
@@ -966,6 +975,7 @@ export const CATALOG: CatalogItem[] = [
   { id: "fr-no", kind: "overload", variant: "aux-no", group: "電源與保護", subgroupId: "Overload_Relays", label: "熱過載常開 97-98", labelEn: "Overload Aux NO 97-98", prefix: "OL", creates: "attach", defaultRot: 0 },
 
   { id: "net-label", kind: "net-label", variant: "body", group: "接線", subgroupId: "Terminals", label: "標籤端子", labelEn: "Net label", prefix: "L1", creates: "device" },
+  { id: "net-terminal", kind: "net-terminal", variant: "body", group: "接線", subgroupId: "Terminals", label: "網絡端子", labelEn: "Net terminal", prefix: "L1", creates: "device", defaultParams: { pinCount: 4 } },
   { id: "ground", kind: "ground", variant: "body", group: "接線", subgroupId: "Terminals", label: "接地", labelEn: "Ground", prefix: "GND", creates: "device" },
 
   { id: "pb-no", kind: "pb-no", variant: "body", group: "開關", subgroupId: "Pushbuttons", label: "常開按鈕", labelEn: "PB NO", prefix: "PB", creates: "device" },
@@ -1152,6 +1162,16 @@ export function variantDef(kind: DeviceKind, variant: string): VariantDef {
   return v;
 }
 
+/** Size/terminals for a placed device. Net Terminal pin count rides `params`. */
+export function resolvedVariant(
+  kind: DeviceKind,
+  variant: string,
+  params?: DeviceParams,
+): VariantDef {
+  if (kind === "net-terminal") return netTerminalDef(params?.pinCount);
+  return variantDef(kind, variant);
+}
+
 export function catalogItem(id: string): CatalogItem {
   const item = CATALOG.find((c) => c.id === id);
   if (!item) throw new Error(`Unknown catalog item ${id}`);
@@ -1172,16 +1192,16 @@ export const GROUP_COLORS = [
   "#64748b",
 ] as const;
 
-/** Reuse the selected / last net-label name so consecutive drops stay on the same net. */
+/** Reuse the selected / last named-net name so consecutive drops stay on the same net. */
 export function suggestNetLabelTag(circuit: Circuit, selectedSymbolId?: string | null): string {
   if (selectedSymbolId) {
     const sym = circuit.symbols.find((s) => s.id === selectedSymbolId);
     const d = sym && circuit.devices.find((x) => x.id === sym.deviceId);
-    if (d?.kind === "net-label" && d.tag.trim()) return d.tag;
+    if (d && isNamedNetKind(d.kind) && d.tag.trim()) return d.tag;
   }
   for (let i = circuit.devices.length - 1; i >= 0; i -= 1) {
     const d = circuit.devices[i];
-    if (d.kind === "net-label" && d.tag.trim()) return d.tag;
+    if (isNamedNetKind(d.kind) && d.tag.trim()) return d.tag;
   }
   return "L1";
 }

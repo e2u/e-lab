@@ -110,7 +110,7 @@ export function Schematic() {
   if (selected?.type === "symbol") {
     const s = circuit.symbols.find((x) => x.id === selected.id);
     const d = s && circuit.devices.find((x) => x.id === s.deviceId);
-    if (d?.kind === "net-label") selectedNetTag = d.tag.trim();
+    if (d && (d.kind === "net-label" || d.kind === "net-terminal")) selectedNetTag = d.tag.trim();
   }
 
   const geomKey = useMemo(() => circuitRouteKey(circuit), [circuit]);

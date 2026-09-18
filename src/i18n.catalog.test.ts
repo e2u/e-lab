@@ -76,6 +76,7 @@ describe("catalog labels", () => {
     expect(catalogCompKey("selector-2")).toBe("comp.selector2");
     expect(catalogCompKey("selector-3")).toBe("comp.selector3");
     expect(catalogCompKey("net-label")).toBe("comp.netLabel");
+    expect(catalogCompKey("net-terminal")).toBe("comp.netTerminal");
     expect(catalogCompKey("km-coil")).toBe("comp.contactorCoil");
   });
 

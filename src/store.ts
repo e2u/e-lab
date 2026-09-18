@@ -1,14 +1,18 @@
 import { create } from "zustand";
-import { catalogItem, KINDS, suggestNetLabelTag, variantDef } from "./catalog";
+import { catalogItem, KINDS, resolvedVariant, suggestNetLabelTag, variantDef } from "./catalog";
+import { clampPinCount, isNamedNetKind, netTerminalKeepIds } from "./namedNets";
 import { addDevice, addJunction, addSymbol, deleteWireAndCleanJunctions, findJunctionAt, isHostVariant, isJunctionSymbol, mergeDuplicateTagGhosts, migrateDeviceHideTagToSymbols, mergeWires, pruneOrphanDevices, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
 import templateData from "./examples/blank-template.json";
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols, unionBounds } from "./groups";
 import { EXAMPLES } from "./examples";
-import { allWireRoutes, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { allWireRoutes, buildNetGraph, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, labelMarkMatches, nearestOnPolyline, nodeKeysForPort, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
+  docFromHash,
   downloadJson,
+  extractSharePayload,
+  fragmentFromLocation,
   hashFromDoc,
   listSaves,
   makeDoc,
@@ -370,6 +374,7 @@ export interface LabState {
   toggleShowLadderMenu: () => void;
   setShowWireLabels: (show: boolean) => void;
   autoLabelWires: () => void;
+  setNetTerminalPinCount: (deviceId: string, n: number) => void;
   setZoom: (zoom: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
@@ -528,6 +533,9 @@ function collectHvWireIds(circuit: Circuit, wires: Wire[]): Set<string> {
     }
   }
 
+  const graph = buildNetGraph(circuit);
+  const wireById = new Map(wires.map((w) => [w.id, w]));
+
   while (queue.length) {
     const port = queue.shift()!;
     for (const w of wiresByPort.get(portKey(port)) ?? []) {
@@ -536,11 +544,21 @@ function collectHvWireIds(circuit: Circuit, wires: Wire[]): Set<string> {
       enqueue(w.b);
     }
 
+    for (const key of nodeKeysForPort(circuit, port)) {
+      for (const wireId of graph.nodeToWires.get(key) ?? []) {
+        const w = wireById.get(wireId);
+        if (!w) continue;
+        hvWireIds.add(w.id);
+        enqueue(w.a);
+        enqueue(w.b);
+      }
+    }
+
     const sym = symbolById.get(port.symbolId);
     if (!sym) continue;
     const dev = deviceById.get(sym.deviceId);
     if (!dev) continue;
-    const v = variantDef(dev.kind, sym.variant);
+    const v = resolvedVariant(dev.kind, sym.variant, dev.params);
     for (const term of hvBridgeTerminals(dev.kind, sym.variant, v.terminals.map((t) => t.id))) {
       enqueue({ symbolId: sym.id, term });
     }
@@ -1035,6 +1053,412 @@ const sidebarBoot = readSidebarState();
 
 const initialLayoutMode = readLayoutMode();
 
+export function applyWireLabels(circuit: Circuit): Circuit {
+  const next = circuit;
+    const wires = next.wires;
+    
+    const n = wires.length;
+    if (n === 0) return next;
+
+    // First pass: identify special nets and reserve their labels
+    const reservedLabels = new Map<string, string>(); // wireId -> reserved label
+    
+    for (const dev of next.devices) {
+      if (dev.kind === "mains-3ph") {
+        // Find L1, L2, L3, N connections - these are reserved
+        for (const sym of next.symbols) {
+          if (sym.deviceId === dev.id) {
+            const v = variantDef(dev.kind, sym.variant);
+            for (const term of ["L1", "L2", "L3", "N"]) {
+              const t = v.terminals.find(t => t.id === term);
+              if (t) {
+                for (const w of wires) {
+                  if ((w.a.symbolId === sym.id && w.a.term === term) ||
+                      (w.b.symbolId === sym.id && w.b.term === term)) {
+                    switch(term) {
+                      case "L1": reservedLabels.set(w.id, "90"); break;
+                      case "L2": reservedLabels.set(w.id, "91"); break;
+                      case "L3": reservedLabels.set(w.id, "92"); break;
+                      case "N": reservedLabels.set(w.id, "93"); break;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else if (dev.kind === "ground") {
+        // PE/Ground is reserved as 0
+        for (const sym of next.symbols) {
+          if (sym.deviceId === dev.id) {
+            const v = variantDef(dev.kind, sym.variant);
+            // Find ground terminal (usually "1" or "PE")
+            const gndTerm = v.terminals.find(t => t.id === "1" || t.id === "PE");
+            if (gndTerm) {
+              for (const w of wires) {
+                if ((w.a.symbolId === sym.id && w.a.term === gndTerm.id) ||
+                    (w.b.symbolId === sym.id && w.b.term === gndTerm.id)) {
+                  reservedLabels.set(w.id, "0");
+                }
+              }
+            }
+          }
+        }
+      } else if (dev.kind === "transformer") {
+        // Transformer output: X1 is control circuit hot (reserved 1), X2 is return/ground (reserved 2)
+        // Note: H1/H2/H3/H4 are high-voltage input and should NOT be reserved
+        for (const sym of next.symbols) {
+          if (sym.deviceId === dev.id) {
+            const v = variantDef(dev.kind, sym.variant);
+            // Check for X1 terminal (control circuit input) - reserved as 1
+            const x1Term = v.terminals.find(t => t.id === "X1");
+            if (x1Term) {
+              for (const w of wires) {
+                if ((w.a.symbolId === sym.id && w.a.term === x1Term.id) ||
+                    (w.b.symbolId === sym.id && w.b.term === x1Term.id)) {
+                  reservedLabels.set(w.id, "1");
+                }
+              }
+            }
+            // Check for X2 terminal (return/ground line) - reserved as 2
+            const x2Term = v.terminals.find(t => t.id === "X2");
+            if (x2Term) {
+              for (const w of wires) {
+                if ((w.a.symbolId === sym.id && w.a.term === x2Term.id) ||
+                    (w.b.symbolId === sym.id && w.b.term === x2Term.id)) {
+                  reservedLabels.set(w.id, "2");
+                }
+              }
+            }
+          }
+        }
+      } else if (dev.kind === "dc-supply") {
+        // Find wires connected to + and -
+        for (const sym of next.symbols) {
+          if (sym.deviceId === dev.id) {
+            const v = variantDef(dev.kind, sym.variant);
+            const posTerm = v.terminals.find(t => t.id === "+" || t.id === "POS" || t.id === "1");
+            const negTerm = v.terminals.find(t => t.id === "-" || t.id === "NEG" || t.id === "0V" || t.id === "2");
+            
+            if (posTerm) {
+              for (const w of wires) {
+                if ((w.a.symbolId === sym.id && w.a.term === posTerm.id) ||
+                    (w.b.symbolId === sym.id && w.b.term === posTerm.id)) {
+                  reservedLabels.set(w.id, "1");
+                }
+              }
+            }
+            if (negTerm) {
+              for (const w of wires) {
+                if ((w.a.symbolId === sym.id && w.a.term === negTerm.id) ||
+                    (w.b.symbolId === sym.id && w.b.term === negTerm.id)) {
+                  reservedLabels.set(w.id, "2");
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Only reserve specific terminal labels that should NOT be used as wire numbers:
+    // - Power phase labels: L1, L2, L3
+    // - Neutral: N
+    // - Ground/Protective Earth: G, PE
+    // - Transformer secondary: X1, X2
+    // These are fixed standards that must not conflict with wire numbering
+    const reservedTerminalLabels = new Set(["L1", "L2", "L3", "N", "G", "PE", "X1", "X2"]);
+    
+    const reservedTags = new Set<string>();
+    next.devices.forEach(d => {
+      if (d.tag.trim()) reservedTags.add(d.tag.trim());
+    });
+    next.symbols.forEach(s => {
+      const dev = next.devices.find(d => d.id === s.deviceId);
+      if (dev) {
+        const v = resolvedVariant(dev.kind, s.variant, dev.params);
+        v.terminals.forEach(t => {
+          if (t.label.trim() && reservedTerminalLabels.has(t.label)) {
+            reservedTags.add(t.label.trim());
+          }
+        });
+      }
+    });
+
+    // Union-Find for grouping connected wires
+    const parent = Array.from({ length: n }, (_, i) => i);
+    function find(i: number): number {
+      while (parent[i] !== i) {
+        parent[i] = parent[parent[i]];
+        i = parent[i];
+      }
+      return i;
+    }
+    function union(i: number, j: number) {
+      const rootI = find(i);
+      const rootJ = find(j);
+      if (rootI !== rootJ) {
+        parent[rootI] = rootJ;
+      }
+    }
+
+    const graph = buildNetGraph(next);
+    const wireIndex = new Map(wires.map((w, i) => [w.id, i]));
+    for (const ids of graph.nodeToWires.values()) {
+      let first: number | undefined;
+      for (const id of ids) {
+        const idx = wireIndex.get(id);
+        if (idx === undefined) continue;
+        if (first === undefined) first = idx;
+        else union(first, idx);
+      }
+    }
+
+    const components = new Map<number, string>();
+    
+    // First pass: assign reserved labels to their connected components
+    const rootLabels = new Map<number, string>();
+    
+    for (const [wireId, label] of reservedLabels) {
+      const wireIdx = wires.findIndex(w => w.id === wireId);
+      if (wireIdx >= 0) {
+        const root = find(wireIdx);
+        if (!rootLabels.has(root)) {
+          rootLabels.set(root, label);
+        }
+      }
+    }
+
+    // Calculate bounds for sorting by position
+    // Use wire route start point (from terminalWorld) to determine reading order
+    const componentBounds = new Map<number, { leftX: number; topY: number }>();
+    
+    wires.forEach((w, i) => {
+      const root = find(i);
+      if (!componentBounds.has(root)) {
+        // Get wire endpoints using terminalWorld
+        const a = terminalWorld(next, w.a);
+        const b = terminalWorld(next, w.b);
+        
+        if (a && b) {
+          // Use the topmost-leftmost point as the sorting anchor
+          // Sort by y (top to bottom), then by x (left to right)
+          const top = b.y < a.y || (b.y === a.y && b.x < a.x) ? b : a;
+          componentBounds.set(root, { leftX: top.x, topY: top.y });
+        } else {
+          // Fallback: use min x and y of wire route
+          const pts = wireRoute(next, w.a, w.b, w.jog);
+          let minX = Infinity, minY = Infinity;
+          for (const p of pts) {
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+          }
+          componentBounds.set(root, { leftX: minX, topY: minY });
+        }
+      }
+    });
+
+    // Circuit type (HV vs control) is *not* the same as Union-Find nets.
+    // Union-Find groups wires that share a port (same wire number). HV status
+    // must also cross series power devices (DISC → CB → KM main → OL → motor)
+    // without leaking through transformer secondaries or contactor coils.
+    const hvWireIds = collectHvWireIds(next, wires);
+    const hvNetMeta = collectHvNetMeta(next, wires, find);
+    const isHVCircuitMap = new Map<number, boolean>();
+
+    function determineCircuitType(root: number): boolean {
+      if (isHVCircuitMap.has(root)) return isHVCircuitMap.get(root)!;
+      let isHV = false;
+      for (let i = 0; i < wires.length; i++) {
+        if (find(i) === root && hvWireIds.has(wires[i].id)) {
+          isHV = true;
+          break;
+        }
+      }
+      isHVCircuitMap.set(root, isHV);
+      return isHV;
+    }
+
+    // Control nets: top to bottom, then left to right.
+    // HV nets: by hop from the source (DISC column, then CB, then KM…),
+    // then L1 / L2 / L3 — not "finish L1 all the way, then L2".
+    const controlSortedRoots = Array.from(componentBounds.entries())
+      .sort((a, b) => {
+        if (a[1].topY !== b[1].topY) return a[1].topY - b[1].topY;
+        return a[1].leftX - b[1].leftX;
+      });
+    const hvFallback: HvNetMeta = { phase: 99, stage: 99, onMotorPath: false };
+    const hvSortedRoots = Array.from(componentBounds.keys())
+      .sort((a, b) => {
+        const ma = hvNetMeta.get(a) ?? hvFallback;
+        const mb = hvNetMeta.get(b) ?? hvFallback;
+        // Motor starter path first; transformer primary spurs after, so they
+        // don't steal 10x numbers from the L1/L2/L3 columns.
+        const aMain = ma.onMotorPath ? 0 : 1;
+        const bMain = mb.onMotorPath ? 0 : 1;
+        if (aMain !== bMain) return aMain - bMain;
+        if (ma.stage !== mb.stage) return ma.stage - mb.stage;
+        if (ma.phase !== mb.phase) return ma.phase - mb.phase;
+        const ba = componentBounds.get(a)!;
+        const bb = componentBounds.get(b)!;
+        if (ba.leftX !== bb.leftX) return ba.leftX - bb.leftX;
+        return ba.topY - bb.topY;
+      });
+    
+    // Mark transformer internal jumper wires (single-phase transformers)
+    // H1 and H4 are primary input terminals, H2 and H3 are tap terminals
+    // Two common jumper configurations:
+    //   Mode 1: H1->H3 (input to tap), H2->H4 (tap to input)
+    //   Mode 2: H3->H2 (tap to tap - shorting taps together)
+    // These should not get wire numbers as they are internal connections
+    
+    // Mark transformer jumper wires - only H1 and H4 are primary input terminals
+    // For single-phase transformers:
+    //   - H1 and H4 connect to mains (L1/L2/L3) - these should be numbered (HV)
+    //   - H2 and H3 are tap terminals - connections to them don't need labels
+    // A wire is a "transformer internal jumper" if it connects H1-H2, H1-H3, H2-H4, or H3-H4
+    
+    const transformerInternalJumperWireIds = new Set<string>();
+    
+    for (const dev of next.devices) {
+      if (dev.kind === "transformer") {
+        // Find all transformer symbols
+        const transformerSyms = next.symbols.filter(s => s.deviceId === dev.id);
+        
+        for (const sym of transformerSyms) {
+          const v = variantDef(dev.kind, sym.variant);
+          const hasH1 = v.terminals.some(t => t.id === "H1");
+          const hasH2 = v.terminals.some(t => t.id === "H2");
+          const hasH3 = v.terminals.some(t => t.id === "H3");
+          const hasH4 = v.terminals.some(t => t.id === "H4");
+          
+          // Check H1->H2 connection (input to first tap)
+          if (hasH1 && hasH2) {
+            for (const w of wires) {
+              if ((w.a.symbolId === sym.id && w.a.term === "H1" && w.b.term === "H2") ||
+                  (w.a.symbolId === sym.id && w.a.term === "H2" && w.b.term === "H1") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H1" && w.a.term === "H2") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H2" && w.a.term === "H1")) {
+                transformerInternalJumperWireIds.add(w.id);
+              }
+            }
+          }
+          
+          // Check H1->H3 connection (input to second tap)
+          if (hasH1 && hasH3) {
+            for (const w of wires) {
+              if ((w.a.symbolId === sym.id && w.a.term === "H1" && w.b.term === "H3") ||
+                  (w.a.symbolId === sym.id && w.a.term === "H3" && w.b.term === "H1") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H1" && w.a.term === "H3") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H3" && w.a.term === "H1")) {
+                transformerInternalJumperWireIds.add(w.id);
+              }
+            }
+          }
+          
+          // Check H2->H4 connection (first tap to input)
+          if (hasH2 && hasH4) {
+            for (const w of wires) {
+              if ((w.a.symbolId === sym.id && w.a.term === "H2" && w.b.term === "H4") ||
+                  (w.a.symbolId === sym.id && w.a.term === "H4" && w.b.term === "H2") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H2" && w.a.term === "H4") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H4" && w.a.term === "H2")) {
+                transformerInternalJumperWireIds.add(w.id);
+              }
+            }
+          }
+          
+          // Check H3->H4 connection (second tap to input)
+          if (hasH3 && hasH4) {
+            for (const w of wires) {
+              if ((w.a.symbolId === sym.id && w.a.term === "H3" && w.b.term === "H4") ||
+                  (w.a.symbolId === sym.id && w.a.term === "H4" && w.b.term === "H3") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H3" && w.a.term === "H4") ||
+                  (w.b.symbolId === sym.id && w.b.term === "H4" && w.a.term === "H3")) {
+                transformerInternalJumperWireIds.add(w.id);
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Assign sequential labels. Reserved nets (90/91/92, X1=1, X2=2) first;
+    // remaining HV nets by stage then phase; control nets along X1→coil
+    // paths first, then leftover branches (lamps / alarms).
+    const controlOrder = collectControlNetOrder(next, wires, find, determineCircuitType);
+    let hvCounter = 100;
+    let controlCounter = 1;
+    const usedLabels = new Set<string>([...reservedTags, ...rootLabels.values()]);
+
+    const assignIfNeeded = (root: number, asHv: boolean) => {
+      if (components.has(root)) return;
+      const reserved = rootLabels.get(root);
+      if (reserved) {
+        components.set(root, reserved);
+        return;
+      }
+      if (asHv !== determineCircuitType(root)) return;
+      let label = asHv ? `${hvCounter++}` : `${controlCounter++}`;
+      while (usedLabels.has(label)) {
+        label = asHv ? `${hvCounter++}` : `${controlCounter++}`;
+      }
+      usedLabels.add(label);
+      components.set(root, label);
+    };
+
+    for (const root of hvSortedRoots) assignIfNeeded(root, true);
+    for (const root of controlOrder) assignIfNeeded(root, false);
+    for (const [root] of controlSortedRoots) assignIfNeeded(root, false);
+
+    // Set labels for all wires
+    wires.forEach((w, i) => {
+      const root = find(i);
+      
+      // Check if this specific wire is a transformer internal jumper
+      // If so, don't assign a label even if the component has one
+      const isTransformerJumper = transformerInternalJumperWireIds.has(w.id);
+      
+      if (isTransformerJumper) {
+        w.label = "";
+      } else {
+        w.label = components.get(root)!;
+      }
+    });
+
+    return next;
+
+}
+
+export function applyNetTerminalPinCount(
+  circuit: Circuit,
+  deviceId: string,
+  n: number,
+): { dropped: number; changed: boolean } {
+  const d = circuit.devices.find((x) => x.id === deviceId);
+  if (!d || d.kind !== "net-terminal") return { dropped: 0, changed: false };
+  if (!d.params) d.params = {};
+  const nextN = clampPinCount(n);
+  const current = clampPinCount(d.params.pinCount);
+  let dropped = 0;
+  if (nextN < current) {
+    const keep = netTerminalKeepIds(nextN);
+    const symIds = new Set(circuit.symbols.filter((s) => s.deviceId === deviceId).map((s) => s.id));
+    circuit.wires = circuit.wires.filter((w) => {
+      const hit =
+        (symIds.has(w.a.symbolId) && !keep.has(w.a.term)) ||
+        (symIds.has(w.b.symbolId) && !keep.has(w.b.term));
+      if (hit) dropped += 1;
+      return !hit;
+    });
+  }
+  const scaleChanged = d.params.scale !== undefined;
+  d.params.pinCount = nextN;
+  delete d.params.scale;
+  const changed = nextN !== current || scaleChanged || dropped > 0;
+  return { dropped, changed };
+}
+
 export const useLab = create<LabState>((set, get) => ({
   circuit: boot.circuit,
   snapshot: emptySnapshot(boot.circuit),
@@ -1057,7 +1481,7 @@ export const useLab = create<LabState>((set, get) => ({
   timeMs: 0,
   hoverPort: null,
   docName: boot.name ?? t("doc.untitled"),
-  notice: null,
+  notice: boot.shareFailed ? t("notice.shareLinkFailed") : null,
   savesTick: 0,
   lang: readLang(),
   theme: readTheme(),
@@ -1611,17 +2035,20 @@ export const useLab = create<LabState>((set, get) => ({
     const created = addDevice(
       next,
       item.kind,
-      item.kind === "net-label"
+      isNamedNetKind(item.kind)
         ? suggestNetLabelTag(next, selected?.type === "symbol" ? selected.id : null)
         : nextTag(next.devices.map((d) => d.tag), item.prefix),
       item.variant,
       gx,
       gy,
-      { ...defaultParams, ...extraParams },
+      { ...defaultParams, ...item.defaultParams, ...extraParams },
       rotToUse,
       flipXToUse,
       flipYToUse,
     );
+    if (created.device.kind === "net-terminal") {
+      delete created.device.params.scale;
+    }
     trackComponentPlaced(item.kind, item.group, next.symbols.length);
     set({
       circuit: next,
@@ -2120,8 +2547,14 @@ export const useLab = create<LabState>((set, get) => ({
     const d = next.devices.find((x) => x.id === deviceId);
     if (!d) return;
     if (!d.params) d.params = {};
+    let pinCountChanged = false;
     if (patch.params) {
-      d.params = { ...d.params, ...patch.params };
+      const { pinCount, ...restParams } = patch.params;
+      if (pinCount !== undefined && d.kind === "net-terminal") {
+        applyNetTerminalPinCount(next, deviceId, pinCount);
+        pinCountChanged = true;
+      }
+      d.params = { ...d.params, ...restParams };
     }
     if (patch.tag !== undefined) d.tag = patch.tag;
     if (patch.color) d.params.color = patch.color;
@@ -2171,7 +2604,13 @@ export const useLab = create<LabState>((set, get) => ({
     if (patch.hideTag !== undefined) d.params.hideTag = patch.hideTag;
     if (patch.width !== undefined) d.params.width = patch.width;
     if (patch.height !== undefined) d.params.height = patch.height;
-    set({ circuit: next, isDirty: true });
+    const namedTagChanged = isNamedNetKind(d.kind) && patch.tag !== undefined;
+    const refreshSnap = get().mode === "edit" && (pinCountChanged || namedTagChanged);
+    set({
+      circuit: next,
+      isDirty: true,
+      ...(refreshSnap ? { snapshot: emptySnapshot(next) } : {}),
+    });
     get().persistDraft();
   },
 
@@ -2685,8 +3124,12 @@ export const useLab = create<LabState>((set, get) => ({
     const s = get();
     trackShareLinkCreated({ symbolCount: s.circuit.symbols.length });
     const hash = hashFromDoc(makeDoc(s.circuit, s.docName, s.process));
-    const url = `${window.location.origin}${window.location.pathname}${hash}`;
-    window.history.replaceState(null, "", hash);
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${hash}`;
+    try {
+      window.history.replaceState(null, "", hash);
+    } catch {
+      // Safari can throw if the hash is extremely long; the clipboard URL still works.
+    }
     try {
       await navigator.clipboard.writeText(url);
       set({ notice: t("notice.shareCopied") });
@@ -2737,77 +3180,11 @@ export const useLab = create<LabState>((set, get) => ({
       ...options,
       skipPowerWiring: options?.skipPowerWiring ?? get().autoLayoutSkipPowerWiring,
     });
-    
-    // Auto-label wires after layout to ensure connected wires have same label
-    const labeledNext = clone(next);
-    const wires = labeledNext.wires;
-    const n = wires.length;
-    if (n > 0) {
-      const parent = Array.from({ length: n }, (_, i) => i);
-      function find(i: number): number {
-        while (parent[i] !== i) {
-          parent[i] = parent[parent[i]];
-          i = parent[i];
-        }
-        return i;
-      }
-      function union(i: number, j: number) {
-        const rootI = find(i);
-        const rootJ = find(j);
-        if (rootI !== rootJ) {
-          parent[rootI] = rootJ;
-        }
-      }
+    applyWireLabels(next);
 
-      for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
-          const w1 = wires[i];
-          const w2 = wires[j];
-          if (
-            portsEqual(w1.a, w2.a) ||
-            portsEqual(w1.a, w2.b) ||
-            portsEqual(w1.b, w2.a) ||
-            portsEqual(w1.b, w2.b)
-          ) {
-            union(i, j);
-          }
-        }
-      }
-
-      const components = new Map<number, string>();
-      let netCounter = 1;
-
-      // Collect all existing tags and terminal labels to avoid collisions
-      const reservedTags = new Set<string>();
-      labeledNext.devices.forEach(d => {
-        if (d.tag.trim()) reservedTags.add(d.tag.trim());
-      });
-      labeledNext.symbols.forEach(s => {
-        const dev = labeledNext.devices.find(d => d.id === s.deviceId);
-        if (dev) {
-          const v = variantDef(dev.kind, s.variant);
-          v.terminals.forEach(t => {
-            if (t.label.trim()) reservedTags.add(t.label.trim());
-          });
-        }
-      });
-
-      wires.forEach((w, i) => {
-        const root = find(i);
-        if (!components.has(root)) {
-          let label = `${netCounter++}`;
-          while (reservedTags.has(label)) {
-            label = `${netCounter++}`;
-          }
-          components.set(root, label);
-        }
-        w.label = components.get(root)!;
-      });
-    }
-    
     set({
-      circuit: labeledNext,
-      snapshot: emptySnapshot(labeledNext),
+      circuit: next,
+      snapshot: emptySnapshot(next),
       selected: null,
       selectedIds: [],
       selectedWireIds: [],
@@ -3044,13 +3421,15 @@ export const useLab = create<LabState>((set, get) => ({
     for (const d of clipboard.devices) {
       const nid = uniqueId("d", used);
       devMap.set(d.id, nid);
-      next.devices.push({
+      const copied = {
         ...clone(d),
         id: nid,
-        tag: d.kind === "net-label" || d.kind === "junction"
+        tag: isNamedNetKind(d.kind) || d.kind === "junction"
           ? d.tag
           : nextTag(next.devices.map((x) => x.tag), d.tag.replace(/\d+$/, "") || d.tag),
-      });
+      };
+      if (copied.kind === "net-terminal") delete copied.params.scale;
+      next.devices.push(copied);
     }
     for (const s of clipboard.symbols) {
       const deviceId = devMap.get(s.deviceId);
@@ -3271,384 +3650,26 @@ export const useLab = create<LabState>((set, get) => ({
   autoLabelWires: () => {
     get().pushHistory();
     const next = clone(get().circuit);
-    const wires = next.wires;
-    
-    const n = wires.length;
-    if (n === 0) {
-      set({ circuit: next, isDirty: true });
-      return;
-    }
-
-    // First pass: identify special nets and reserve their labels
-    const reservedLabels = new Map<string, string>(); // wireId -> reserved label
-    
-    for (const dev of next.devices) {
-      if (dev.kind === "mains-3ph") {
-        // Find L1, L2, L3, N connections - these are reserved
-        for (const sym of next.symbols) {
-          if (sym.deviceId === dev.id) {
-            const v = variantDef(dev.kind, sym.variant);
-            for (const term of ["L1", "L2", "L3", "N"]) {
-              const t = v.terminals.find(t => t.id === term);
-              if (t) {
-                for (const w of wires) {
-                  if ((w.a.symbolId === sym.id && w.a.term === term) ||
-                      (w.b.symbolId === sym.id && w.b.term === term)) {
-                    switch(term) {
-                      case "L1": reservedLabels.set(w.id, "90"); break;
-                      case "L2": reservedLabels.set(w.id, "91"); break;
-                      case "L3": reservedLabels.set(w.id, "92"); break;
-                      case "N": reservedLabels.set(w.id, "93"); break;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      } else if (dev.kind === "ground") {
-        // PE/Ground is reserved as 0
-        for (const sym of next.symbols) {
-          if (sym.deviceId === dev.id) {
-            const v = variantDef(dev.kind, sym.variant);
-            // Find ground terminal (usually "1" or "PE")
-            const gndTerm = v.terminals.find(t => t.id === "1" || t.id === "PE");
-            if (gndTerm) {
-              for (const w of wires) {
-                if ((w.a.symbolId === sym.id && w.a.term === gndTerm.id) ||
-                    (w.b.symbolId === sym.id && w.b.term === gndTerm.id)) {
-                  reservedLabels.set(w.id, "0");
-                }
-              }
-            }
-          }
-        }
-      } else if (dev.kind === "transformer") {
-        // Transformer output: X1 is control circuit hot (reserved 1), X2 is return/ground (reserved 2)
-        // Note: H1/H2/H3/H4 are high-voltage input and should NOT be reserved
-        for (const sym of next.symbols) {
-          if (sym.deviceId === dev.id) {
-            const v = variantDef(dev.kind, sym.variant);
-            // Check for X1 terminal (control circuit input) - reserved as 1
-            const x1Term = v.terminals.find(t => t.id === "X1");
-            if (x1Term) {
-              for (const w of wires) {
-                if ((w.a.symbolId === sym.id && w.a.term === x1Term.id) ||
-                    (w.b.symbolId === sym.id && w.b.term === x1Term.id)) {
-                  reservedLabels.set(w.id, "1");
-                }
-              }
-            }
-            // Check for X2 terminal (return/ground line) - reserved as 2
-            const x2Term = v.terminals.find(t => t.id === "X2");
-            if (x2Term) {
-              for (const w of wires) {
-                if ((w.a.symbolId === sym.id && w.a.term === x2Term.id) ||
-                    (w.b.symbolId === sym.id && w.b.term === x2Term.id)) {
-                  reservedLabels.set(w.id, "2");
-                }
-              }
-            }
-          }
-        }
-      } else if (dev.kind === "dc-supply") {
-        // Find wires connected to + and -
-        for (const sym of next.symbols) {
-          if (sym.deviceId === dev.id) {
-            const v = variantDef(dev.kind, sym.variant);
-            const posTerm = v.terminals.find(t => t.id === "+" || t.id === "POS" || t.id === "1");
-            const negTerm = v.terminals.find(t => t.id === "-" || t.id === "NEG" || t.id === "0V" || t.id === "2");
-            
-            if (posTerm) {
-              for (const w of wires) {
-                if ((w.a.symbolId === sym.id && w.a.term === posTerm.id) ||
-                    (w.b.symbolId === sym.id && w.b.term === posTerm.id)) {
-                  reservedLabels.set(w.id, "1");
-                }
-              }
-            }
-            if (negTerm) {
-              for (const w of wires) {
-                if ((w.a.symbolId === sym.id && w.a.term === negTerm.id) ||
-                    (w.b.symbolId === sym.id && w.b.term === negTerm.id)) {
-                  reservedLabels.set(w.id, "2");
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Only reserve specific terminal labels that should NOT be used as wire numbers:
-    // - Power phase labels: L1, L2, L3
-    // - Neutral: N
-    // - Ground/Protective Earth: G, PE
-    // - Transformer secondary: X1, X2
-    // These are fixed standards that must not conflict with wire numbering
-    const reservedTerminalLabels = new Set(["L1", "L2", "L3", "N", "G", "PE", "X1", "X2"]);
-    
-    const reservedTags = new Set<string>();
-    next.devices.forEach(d => {
-      if (d.tag.trim()) reservedTags.add(d.tag.trim());
-    });
-    next.symbols.forEach(s => {
-      const dev = next.devices.find(d => d.id === s.deviceId);
-      if (dev) {
-        const v = variantDef(dev.kind, s.variant);
-        v.terminals.forEach(t => {
-          if (t.label.trim() && reservedTerminalLabels.has(t.label)) {
-            reservedTags.add(t.label.trim());
-          }
-        });
-      }
-    });
-
-    // Union-Find for grouping connected wires
-    const parent = Array.from({ length: n }, (_, i) => i);
-    function find(i: number): number {
-      while (parent[i] !== i) {
-        parent[i] = parent[parent[i]];
-        i = parent[i];
-      }
-      return i;
-    }
-    function union(i: number, j: number) {
-      const rootI = find(i);
-      const rootJ = find(j);
-      if (rootI !== rootJ) {
-        parent[rootI] = rootJ;
-      }
-    }
-
-    for (let i = 0; i < n; i++) {
-      for (let j = i + 1; j < n; j++) {
-        const w1 = wires[i];
-        const w2 = wires[j];
-        if (
-          portsEqual(w1.a, w2.a) ||
-          portsEqual(w1.a, w2.b) ||
-          portsEqual(w1.b, w2.a) ||
-          portsEqual(w1.b, w2.b)
-        ) {
-          union(i, j);
-        }
-      }
-    }
-
-    const components = new Map<number, string>();
-    
-    // First pass: assign reserved labels to their connected components
-    const rootLabels = new Map<number, string>();
-    
-    for (const [wireId, label] of reservedLabels) {
-      const wireIdx = wires.findIndex(w => w.id === wireId);
-      if (wireIdx >= 0) {
-        const root = find(wireIdx);
-        if (!rootLabels.has(root)) {
-          rootLabels.set(root, label);
-        }
-      }
-    }
-
-    // Calculate bounds for sorting by position
-    // Use wire route start point (from terminalWorld) to determine reading order
-    const componentBounds = new Map<number, { leftX: number; topY: number }>();
-    
-    wires.forEach((w, i) => {
-      const root = find(i);
-      if (!componentBounds.has(root)) {
-        // Get wire endpoints using terminalWorld
-        const a = terminalWorld(next, w.a);
-        const b = terminalWorld(next, w.b);
-        
-        if (a && b) {
-          // Use the topmost-leftmost point as the sorting anchor
-          // Sort by y (top to bottom), then by x (left to right)
-          const top = b.y < a.y || (b.y === a.y && b.x < a.x) ? b : a;
-          componentBounds.set(root, { leftX: top.x, topY: top.y });
-        } else {
-          // Fallback: use min x and y of wire route
-          const pts = wireRoute(next, w.a, w.b, w.jog);
-          let minX = Infinity, minY = Infinity;
-          for (const p of pts) {
-            minX = Math.min(minX, p.x);
-            minY = Math.min(minY, p.y);
-          }
-          componentBounds.set(root, { leftX: minX, topY: minY });
-        }
-      }
-    });
-
-    // Circuit type (HV vs control) is *not* the same as Union-Find nets.
-    // Union-Find groups wires that share a port (same wire number). HV status
-    // must also cross series power devices (DISC → CB → KM main → OL → motor)
-    // without leaking through transformer secondaries or contactor coils.
-    const hvWireIds = collectHvWireIds(next, wires);
-    const hvNetMeta = collectHvNetMeta(next, wires, find);
-    const isHVCircuitMap = new Map<number, boolean>();
-
-    function determineCircuitType(root: number): boolean {
-      if (isHVCircuitMap.has(root)) return isHVCircuitMap.get(root)!;
-      let isHV = false;
-      for (let i = 0; i < wires.length; i++) {
-        if (find(i) === root && hvWireIds.has(wires[i].id)) {
-          isHV = true;
-          break;
-        }
-      }
-      isHVCircuitMap.set(root, isHV);
-      return isHV;
-    }
-
-    // Control nets: top to bottom, then left to right.
-    // HV nets: by hop from the source (DISC column, then CB, then KM…),
-    // then L1 / L2 / L3 — not "finish L1 all the way, then L2".
-    const controlSortedRoots = Array.from(componentBounds.entries())
-      .sort((a, b) => {
-        if (a[1].topY !== b[1].topY) return a[1].topY - b[1].topY;
-        return a[1].leftX - b[1].leftX;
-      });
-    const hvFallback: HvNetMeta = { phase: 99, stage: 99, onMotorPath: false };
-    const hvSortedRoots = Array.from(componentBounds.keys())
-      .sort((a, b) => {
-        const ma = hvNetMeta.get(a) ?? hvFallback;
-        const mb = hvNetMeta.get(b) ?? hvFallback;
-        // Motor starter path first; transformer primary spurs after, so they
-        // don't steal 10x numbers from the L1/L2/L3 columns.
-        const aMain = ma.onMotorPath ? 0 : 1;
-        const bMain = mb.onMotorPath ? 0 : 1;
-        if (aMain !== bMain) return aMain - bMain;
-        if (ma.stage !== mb.stage) return ma.stage - mb.stage;
-        if (ma.phase !== mb.phase) return ma.phase - mb.phase;
-        const ba = componentBounds.get(a)!;
-        const bb = componentBounds.get(b)!;
-        if (ba.leftX !== bb.leftX) return ba.leftX - bb.leftX;
-        return ba.topY - bb.topY;
-      });
-    
-    // Mark transformer internal jumper wires (single-phase transformers)
-    // H1 and H4 are primary input terminals, H2 and H3 are tap terminals
-    // Two common jumper configurations:
-    //   Mode 1: H1->H3 (input to tap), H2->H4 (tap to input)
-    //   Mode 2: H3->H2 (tap to tap - shorting taps together)
-    // These should not get wire numbers as they are internal connections
-    
-    // Mark transformer jumper wires - only H1 and H4 are primary input terminals
-    // For single-phase transformers:
-    //   - H1 and H4 connect to mains (L1/L2/L3) - these should be numbered (HV)
-    //   - H2 and H3 are tap terminals - connections to them don't need labels
-    // A wire is a "transformer internal jumper" if it connects H1-H2, H1-H3, H2-H4, or H3-H4
-    
-    const transformerInternalJumperWireIds = new Set<string>();
-    
-    for (const dev of next.devices) {
-      if (dev.kind === "transformer") {
-        // Find all transformer symbols
-        const transformerSyms = next.symbols.filter(s => s.deviceId === dev.id);
-        
-        for (const sym of transformerSyms) {
-          const v = variantDef(dev.kind, sym.variant);
-          const hasH1 = v.terminals.some(t => t.id === "H1");
-          const hasH2 = v.terminals.some(t => t.id === "H2");
-          const hasH3 = v.terminals.some(t => t.id === "H3");
-          const hasH4 = v.terminals.some(t => t.id === "H4");
-          
-          // Check H1->H2 connection (input to first tap)
-          if (hasH1 && hasH2) {
-            for (const w of wires) {
-              if ((w.a.symbolId === sym.id && w.a.term === "H1" && w.b.term === "H2") ||
-                  (w.a.symbolId === sym.id && w.a.term === "H2" && w.b.term === "H1") ||
-                  (w.b.symbolId === sym.id && w.b.term === "H1" && w.a.term === "H2") ||
-                  (w.b.symbolId === sym.id && w.b.term === "H2" && w.a.term === "H1")) {
-                transformerInternalJumperWireIds.add(w.id);
-              }
-            }
-          }
-          
-          // Check H1->H3 connection (input to second tap)
-          if (hasH1 && hasH3) {
-            for (const w of wires) {
-              if ((w.a.symbolId === sym.id && w.a.term === "H1" && w.b.term === "H3") ||
-                  (w.a.symbolId === sym.id && w.a.term === "H3" && w.b.term === "H1") ||
-                  (w.b.symbolId === sym.id && w.b.term === "H1" && w.a.term === "H3") ||
-                  (w.b.symbolId === sym.id && w.b.term === "H3" && w.a.term === "H1")) {
-                transformerInternalJumperWireIds.add(w.id);
-              }
-            }
-          }
-          
-          // Check H2->H4 connection (first tap to input)
-          if (hasH2 && hasH4) {
-            for (const w of wires) {
-              if ((w.a.symbolId === sym.id && w.a.term === "H2" && w.b.term === "H4") ||
-                  (w.a.symbolId === sym.id && w.a.term === "H4" && w.b.term === "H2") ||
-                  (w.b.symbolId === sym.id && w.b.term === "H2" && w.a.term === "H4") ||
-                  (w.b.symbolId === sym.id && w.b.term === "H4" && w.a.term === "H2")) {
-                transformerInternalJumperWireIds.add(w.id);
-              }
-            }
-          }
-          
-          // Check H3->H4 connection (second tap to input)
-          if (hasH3 && hasH4) {
-            for (const w of wires) {
-              if ((w.a.symbolId === sym.id && w.a.term === "H3" && w.b.term === "H4") ||
-                  (w.a.symbolId === sym.id && w.a.term === "H4" && w.b.term === "H3") ||
-                  (w.b.symbolId === sym.id && w.b.term === "H3" && w.a.term === "H4") ||
-                  (w.b.symbolId === sym.id && w.b.term === "H4" && w.a.term === "H3")) {
-                transformerInternalJumperWireIds.add(w.id);
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    // Assign sequential labels. Reserved nets (90/91/92, X1=1, X2=2) first;
-    // remaining HV nets by stage then phase; control nets along X1→coil
-    // paths first, then leftover branches (lamps / alarms).
-    const controlOrder = collectControlNetOrder(next, wires, find, determineCircuitType);
-    let hvCounter = 100;
-    let controlCounter = 1;
-    const usedLabels = new Set<string>([...reservedTags, ...rootLabels.values()]);
-
-    const assignIfNeeded = (root: number, asHv: boolean) => {
-      if (components.has(root)) return;
-      const reserved = rootLabels.get(root);
-      if (reserved) {
-        components.set(root, reserved);
-        return;
-      }
-      if (asHv !== determineCircuitType(root)) return;
-      let label = asHv ? `${hvCounter++}` : `${controlCounter++}`;
-      while (usedLabels.has(label)) {
-        label = asHv ? `${hvCounter++}` : `${controlCounter++}`;
-      }
-      usedLabels.add(label);
-      components.set(root, label);
-    };
-
-    for (const root of hvSortedRoots) assignIfNeeded(root, true);
-    for (const root of controlOrder) assignIfNeeded(root, false);
-    for (const [root] of controlSortedRoots) assignIfNeeded(root, false);
-
-    // Set labels for all wires
-    wires.forEach((w, i) => {
-      const root = find(i);
-      
-      // Check if this specific wire is a transformer internal jumper
-      // If so, don't assign a label even if the component has one
-      const isTransformerJumper = transformerInternalJumperWireIds.has(w.id);
-      
-      if (isTransformerJumper) {
-        w.label = "";
-      } else {
-        w.label = components.get(root)!;
-      }
-    });
-
+    applyWireLabels(next);
     set({ circuit: next, isDirty: true });
+  },
+
+  setNetTerminalPinCount: (deviceId, n) => {
+    const cur = get().circuit.devices.find((d) => d.id === deviceId);
+    if (!cur || cur.kind !== "net-terminal") return;
+    const nextN = clampPinCount(n);
+    const current = clampPinCount(cur.params?.pinCount);
+    if (nextN === current && cur.params?.scale === undefined) return;
+    get().pushHistory();
+    const next = clone(get().circuit);
+    const { dropped } = applyNetTerminalPinCount(next, deviceId, n);
+    set({
+      circuit: next,
+      snapshot: get().mode === "edit" ? emptySnapshot(next) : get().snapshot,
+      isDirty: true,
+      ...(dropped > 0 ? { notice: t("notice.pinsDroppedWires", { count: dropped }) } : {}),
+    });
+    get().persistDraft();
   },
 
   toggleShowLadderMenu: () => {
@@ -3862,6 +3883,30 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
 }));
+
+let appliedSharePayload = "";
+if (typeof window !== "undefined") {
+  const bootFrag = fragmentFromLocation();
+  const bootPayload = extractSharePayload(bootFrag);
+  if (bootPayload && !boot.shareFailed) appliedSharePayload = bootPayload;
+
+  const applyShareFromLocation = () => {
+    const frag = fragmentFromLocation();
+    const payload = extractSharePayload(frag);
+    if (!payload || payload === appliedSharePayload) return;
+    const doc = docFromHash(frag);
+    if (!doc) return;
+    appliedSharePayload = payload;
+    useLab.getState().loadCircuit(
+      doc.circuit,
+      doc.name ?? tOr("msg.unnamedDiagram", "Untitled Diagram"),
+      doc.process,
+    );
+    useLab.setState({ notice: t("notice.shareLoaded"), isDirty: false });
+  };
+  window.addEventListener("hashchange", applyShareFromLocation);
+  window.addEventListener("pageshow", applyShareFromLocation);
+}
 
 export function rotateSelected(dir: 1 | -1 = 1) {
   useLab.getState().rotateSelected(dir);

@@ -4,7 +4,7 @@ import { GRID, type DeviceKind } from "../types";
 import { KINDS } from "../catalog";
 import { terminalWorld, wireRoute } from "../geometry";
 import { selectorReversing, selfHoldMotor, starDeltaStart } from "../examples";
-import { createRuntime, emptySnapshot, PHASE_COLOR, tick } from "./engine";
+import { createRuntime, emptySnapshot, netLabelFill, PHASE_COLOR, tick } from "./engine";
 import type { ProcessVars } from "../types";
 
 const process: ProcessVars = {
@@ -956,6 +956,70 @@ describe("sim engine", () => {
     expect(snap.wires[feed.id].live).toBe(true);
     expect(snap.wires[feed.id].dir).toBe(1);
     expect(snap.wires[ret.id].dir).toBe(1);
+  });
+
+  it("netLabelFill uses phase match then default", () => {
+    expect(netLabelFill("l1")).toBe(PHASE_COLOR.L1);
+    expect(netLabelFill("HOT")).toBe("#efe6d0");
+    expect(netLabelFill("HOT", "#fff")).toBe("#fff");
+    expect(netLabelFill("A1")).toBe("#3a6ea5");
+  });
+
+  it("connects distant halves through matching net terminals", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const a = addDevice(c, "net-terminal", "L1", "body", 4, 0, { pinCount: 4 });
+    const b = addDevice(c, "net-terminal", "L1", "body", 20, 0, { pinCount: 4 });
+    const n = addDevice(c, "net-label", "N", "body", 20, 8);
+    const hl = addDevice(c, "lamp", "LT1", "body", 24, 0);
+    addWire(c, g.symbol, "L1", a.symbol, "2");
+    addWire(c, g.symbol, "N", n.symbol, "1");
+    addWire(c, b.symbol, "4", hl.symbol, "1");
+    addWire(c, hl.symbol, "2", n.symbol, "1");
+
+    const snap = run(c, [], 2);
+    expect(snap.runtime[hl.device.id].lit).toBe(true);
+    expect(snap.runtime[a.device.id].energized).toBe(true);
+    expect(snap.runtime[b.device.id].energized).toBe(true);
+  });
+
+  it("mixes a net label and a net terminal on the same name", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const a = addDevice(c, "net-label", "L1", "body", 4, 0);
+    const b = addDevice(c, "net-terminal", "L1", "body", 20, 0, { pinCount: 4 });
+    const n = addDevice(c, "net-label", "N", "body", 20, 8);
+    const hl = addDevice(c, "lamp", "LT1", "body", 24, 0);
+    addWire(c, g.symbol, "L1", a.symbol, "1");
+    addWire(c, g.symbol, "N", n.symbol, "1");
+    addWire(c, b.symbol, "3", hl.symbol, "1");
+    addWire(c, hl.symbol, "2", n.symbol, "1");
+    const snap = run(c, [], 2);
+    expect(snap.runtime[hl.device.id].lit).toBe(true);
+  });
+
+  it("does not jump empty-tag net terminals to each other", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const a = addDevice(c, "net-terminal", "", "body", 4, 0, { pinCount: 4 });
+    const b = addDevice(c, "net-terminal", "", "body", 20, 0, { pinCount: 4 });
+    const hl = addDevice(c, "lamp", "LT1", "body", 24, 0);
+    addWire(c, g.symbol, "L1", a.symbol, "1");
+    addWire(c, b.symbol, "1", hl.symbol, "1");
+    addWire(c, hl.symbol, "2", g.symbol, "N");
+    const snap = run(c, [], 2);
+    expect(snap.runtime[hl.device.id].lit).toBe(false);
+  });
+
+  it("faults when L1 and N share an empty-tag strip", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const strip = addDevice(c, "net-terminal", "", "body", 8, 0, { pinCount: 4 });
+    addWire(c, g.symbol, "L1", strip.symbol, "1");
+    addWire(c, g.symbol, "N", strip.symbol, "3");
+    const snap = run(c, [], 2);
+    expect(snap.faults.some((f) => f.msgKey === "fault.shortCircuit")).toBe(true);
+    expect(snap.runtime[strip.device.id].short).toBe(true);
   });
 
   it("does not bridge net labels with different or empty tags", () => {

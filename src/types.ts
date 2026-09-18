@@ -83,6 +83,7 @@ export type DeviceKind =
   | "ammeter"
   | "ground"
   | "net-label"
+  | "net-terminal"
   | "title-block"
   | "comment"
   | "junction";
@@ -144,6 +145,8 @@ export interface DeviceParams {
   hideOnPrint?: boolean;
   /** Omit this device's tag from print. Still shown (translucent) in Edit/Run. */
   hideTag?: boolean;
+  /** Net Terminal pairs (screws per side). Clamped 2..12. Omitted → 4. */
+  pinCount?: number;
 }
 
 export interface Device {
@@ -318,4 +321,5 @@ export interface CatalogItem {
   defaultRot?: Rot;
   defaultFlipX?: boolean;
   defaultFlipY?: boolean;
+  defaultParams?: Partial<DeviceParams>;
 }

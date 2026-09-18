@@ -48,6 +48,30 @@ describe("coil glyph leads", () => {
     expect(html).toContain("TR1");
   });
 
+  it("draws net-terminal name without the Safari-ghost .sym-tag class", () => {
+    const c = emptyCircuit();
+    const { device } = addDevice(c, "net-terminal", "L1", "body", 0, 0, { pinCount: 12 });
+    const html = renderToStaticMarkup(
+      createElement(SymbolGlyph, { device, variant: "body", w: 4, h: 13 }),
+    );
+    expect(html).toContain(">L1</text>");
+    expect(html).toContain("glyph-net-name");
+    expect(html).not.toMatch(/class="sym-tag"/);
+  });
+
+  it("uses dark net-terminal name on a light plate so it stays visible", () => {
+    const c = emptyCircuit();
+    const { device } = addDevice(c, "net-terminal", "BUS", "body", 0, 0, {
+      pinCount: 4,
+      color: "#efe6d0",
+    });
+    const html = renderToStaticMarkup(
+      createElement(SymbolGlyph, { device, variant: "body", w: 4, h: 5 }),
+    );
+    expect(html).toContain(">BUS</text>");
+    expect(html).toContain('fill="#1b1a16"');
+  });
+
   it("renders fuse with neutral background fill and without colored tint", () => {
     const c = emptyCircuit();
     const { device } = addDevice(c, "fuse", "FU1", "body", 0, 0);

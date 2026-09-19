@@ -1,5 +1,5 @@
 import { resolvedVariant, type VariantDef } from "./catalog";
-import { isNamedNetKind, namedNetKey } from "./namedNets";
+import { isNamedNetKind, namedNetKey, netTerminalPinSide } from "./namedNets";
 import { GRID, type Circuit, type PortRef, type Rot, type SymbolInst, type TerminalDef, type Wire, type WireJog } from "./types";
 
 export function rotatePoint(
@@ -742,14 +742,19 @@ export function deriveJogToMatchPolyline(
 export { cleanPolyline };
 
 /** Routes every wire, then nudges overlapping parallel runs apart. Terminals stay put. */
-/** Geometry fingerprint so routes/crossovers skip recompute when only labels change. */
+/** Geometry fingerprint so routes/crossovers skip recompute when only labels change.
+ *  Includes params that move terminals (`pinCount`, `scale`). Tag/color/text do not. */
 export function circuitRouteKey(circuit: Circuit): string {
   let key = `${circuit.symbols.length}:${circuit.wires.length}:${circuit.devices.length}|`;
   for (const s of circuit.symbols) {
     key += `${s.id}:${s.deviceId}:${s.x}:${s.y}:${s.rot}:${s.variant}:${s.flipX ? 1 : 0}:${s.flipY ? 1 : 0};`;
   }
   key += "|";
-  for (const d of circuit.devices) key += `${d.id}:${d.kind};`;
+  for (const d of circuit.devices) {
+    const pin = d.params.pinCount ?? "";
+    const scale = d.params.scale ?? "";
+    key += `${d.id}:${d.kind}:${pin}:${scale};`;
+  }
   key += "|";
   for (const w of circuit.wires) {
     const j = w.jog;
@@ -2255,7 +2260,116 @@ export function dedupeWireLabels(
   return next;
 }
 
+function polylineLen(pts: { x: number; y: number }[]): number {
+  let n = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    n += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+  }
+  return n;
+}
 
+/**
+ * A net-terminal is a visual break in the run: the same number must appear on
+ * both the left screws and the right screws, even when the two stubs are too
+ * close for the usual along-run dedupe.
+ */
+export function ensureNetTerminalSideLabels(
+  circuit: Circuit,
+  placed: Map<string, WireLabelAnchor[]>,
+  wireInfo: Map<string, { pts: { x: number; y: number }[]; tag: string; offset: number }>,
+): Map<string, WireLabelAnchor[]> {
+  const next = new Map<string, WireLabelAnchor[]>();
+  for (const [id, list] of placed) next.set(id, [...list]);
+
+  const existing: { tag: string; a: WireLabelAnchor }[] = [];
+  for (const [wid, list] of next) {
+    const tag = wireInfo.get(wid)?.tag;
+    if (!tag) continue;
+    for (const a of list) existing.push({ tag, a });
+  }
+
+  const pinSide = (w: { a: PortRef; b: PortRef }, symbolId: string): "L" | "R" | null => {
+    if (w.a.symbolId === symbolId) {
+      const s = netTerminalPinSide(w.a.term);
+      if (s) return s;
+    }
+    if (w.b.symbolId === symbolId) return netTerminalPinSide(w.b.term);
+    return null;
+  };
+
+  const ensureSide = (wireIds: string[], tag: string) => {
+    if (wireIds.some((id) => (next.get(id) ?? []).length > 0)) return;
+    let bestId: string | null = null;
+    let bestLen = -1;
+    for (const id of wireIds) {
+      const pts = wireInfo.get(id)?.pts;
+      if (!pts || pts.length < 2) continue;
+      const len = polylineLen(pts);
+      if (len > bestLen) {
+        bestLen = len;
+        bestId = id;
+      }
+    }
+    if (!bestId) return;
+    const info = wireInfo.get(bestId);
+    if (!info) return;
+    const othersDiff = existing.filter((e) => e.tag !== tag).map((e) => e.a);
+    const othersSame = existing.filter((e) => e.tag === tag).map((e) => e.a);
+    const anchors = wireLabelAnchors(info.pts, info.offset);
+    let chosen: WireLabelAnchor | null = null;
+    let bestScore = -Infinity;
+    for (const a of anchors) {
+      if (minDistTo(a, othersDiff) < WIRE_LABEL_SEPARATION) continue;
+      const score = minDistTo(a, othersSame) + a.segLen * 0.1;
+      if (score > bestScore) {
+        bestScore = score;
+        chosen = a;
+      }
+    }
+    if (!chosen) {
+      for (const a of anchors) {
+        if (minDistTo(a, othersDiff) >= WIRE_LABEL_SEPARATION) {
+          chosen = a;
+          break;
+        }
+      }
+    }
+    if (!chosen) return;
+    const list = next.get(bestId) ?? [];
+    list.push(chosen);
+    next.set(bestId, list);
+    existing.push({ tag, a: chosen });
+  };
+
+  for (const sym of circuit.symbols) {
+    const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+    if (dev?.kind !== "net-terminal") continue;
+    const left: string[] = [];
+    const right: string[] = [];
+    for (const w of circuit.wires) {
+      if (!wireInfo.has(w.id)) continue;
+      const side = pinSide(w, sym.id);
+      if (side === "L") left.push(w.id);
+      else if (side === "R") right.push(w.id);
+    }
+    if (!left.length || !right.length) continue;
+    const tagsOf = (ids: string[]) => {
+      const tags = new Set<string>();
+      for (const id of ids) {
+        const tag = wireInfo.get(id)?.tag;
+        if (tag) tags.add(tag);
+      }
+      return tags;
+    };
+    const rightTags = tagsOf(right);
+    for (const tag of tagsOf(left)) {
+      if (!rightTags.has(tag)) continue;
+      ensureSide(left.filter((id) => wireInfo.get(id)?.tag === tag), tag);
+      ensureSide(right.filter((id) => wireInfo.get(id)?.tag === tag), tag);
+    }
+  }
+  return next;
+}
 
 /** Calculate cumulative distance at each point along a polyline */
 export function getCumulativeDistances(pts: { x: number; y: number }[]): number[] {

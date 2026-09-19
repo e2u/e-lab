@@ -8,6 +8,25 @@ import type { MenuPos } from "../ContextMenu";
 import { interact, triggerHaptic } from "./interact";
 import { blurActiveInput } from "../../keyboard";
 
+/** Ruler hairline snaps to 1/8 grid so pointer-move does not re-render every pixel. */
+export const RULER_SNAP_EIGHTHS = 8;
+
+export function quantizeRulerPos(p: { x: number; y: number }): { x: number; y: number } {
+  return {
+    x: Math.round(p.x * RULER_SNAP_EIGHTHS) / RULER_SNAP_EIGHTHS,
+    y: Math.round(p.y * RULER_SNAP_EIGHTHS) / RULER_SNAP_EIGHTHS,
+  };
+}
+
+export function samePos(
+  a: { x: number; y: number } | null,
+  b: { x: number; y: number } | null,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.x === b.x && a.y === b.y;
+}
+
 interface UseSchematicEventsParams {
   circuit: Circuit;
   mode: Mode;
@@ -389,12 +408,14 @@ export function useSchematicEvents({
     const labWiring = useLab.getState().wiringFrom;
     const p = toGrid(e);
     if (e.pointerType !== "touch") {
-      setRulerPos(p);
+      const nextRuler = quantizeRulerPos(p);
+      setRulerPos((prev) => (samePos(prev, nextRuler) ? prev : nextRuler));
     }
     if (labWiring || placing) {
-      setCursor({ x: Math.round(p.x), y: Math.round(p.y) });
-    } else if (cursor !== null) {
-      setCursor(null);
+      const nextCursor = { x: Math.round(p.x), y: Math.round(p.y) };
+      setCursor((prev) => (samePos(prev, nextCursor) ? prev : nextCursor));
+    } else {
+      setCursor((prev) => (prev === null ? prev : null));
     }
 
     const world = { x: p.x * GRID, y: p.y * GRID };
@@ -1293,7 +1314,7 @@ export function useSchematicEvents({
   };
 
   const onSvgLeave = () => {
-    setRulerPos(null);
+    setRulerPos((prev) => (prev === null ? prev : null));
     if (mode === "run") {
       setHoveredSymbolId(null);
     }

@@ -33,7 +33,6 @@ import {
   trackCircuitPause,
   trackCircuitReset,
   trackCircuitRun,
-  trackCircuitStep,
   trackComponentDeleted,
   trackComponentPlaced,
   trackExampleLoaded,
@@ -614,7 +613,6 @@ export const useLab = create<LabState>((set, get) => ({
     get().setRunning(true);
   },
   step: () => {
-    trackCircuitStep();
     const s = get();
     const nextTimeMs = s.timeMs + 50;
     const snap = tick(
@@ -2203,11 +2201,12 @@ export const useLab = create<LabState>((set, get) => ({
     const { circuit } = get();
     if (!circuit.symbols.length) return;
     get().pushHistory();
+    const skipPowerWiring = options?.skipPowerWiring ?? get().autoLayoutSkipPowerWiring;
     const next = autoLayoutCircuit(circuit, {
       ...options,
-      skipPowerWiring: options?.skipPowerWiring ?? get().autoLayoutSkipPowerWiring,
+      skipPowerWiring,
     });
-    applyWireLabels(next);
+    applyWireLabels(next, { skipPowerWiring });
 
     set({
       circuit: next,
@@ -2677,7 +2676,7 @@ export const useLab = create<LabState>((set, get) => ({
   autoLabelWires: () => {
     get().pushHistory();
     const next = clone(get().circuit);
-    applyWireLabels(next);
+    applyWireLabels(next, { skipPowerWiring: get().autoLayoutSkipPowerWiring });
     set({ circuit: next, isDirty: true });
   },
 

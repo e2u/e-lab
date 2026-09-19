@@ -23,6 +23,13 @@ export function isNamedNetKind(kind: string): boolean {
   return NAMED_NET_KINDS.has(kind);
 }
 
+/** Left screws are odd (1,3,5…); right screws are even (2,4,6…). */
+export function netTerminalPinSide(termId: string): "L" | "R" | null {
+  const n = Number(termId);
+  if (!Number.isInteger(n) || n < 1) return null;
+  return n % 2 === 1 ? "L" : "R";
+}
+
 /** Case-sensitive. Empty / whitespace-only → isolated (null). */
 export function namedNetKey(tag: string): string | null {
   const k = tag.trim();

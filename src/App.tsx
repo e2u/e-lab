@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { EXAMPLES, type Example } from "./examples";
 import { useLab } from "./store";
-import type { Lang } from "./types";
+import type { Lang, Mode } from "./types";
+import { trackCircuitStep } from "./analytics";
 import { formatFaultMessage, t, tOr } from "./i18n";
 import { Bench, ProcessRack } from "./ui/Bench";
 import { FilesMenu } from "./ui/FilesMenu";
@@ -22,6 +23,15 @@ import { ENABLE_AUTO_LAYOUT } from "./features";
 
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
 type ExampleOption = Pick<Example, "id" | "title"> & { blurb?: string };
+
+const SIM_TICK_MS = 50;
+/** Fire `circuit_step` once per 5s of wall-clock ticks, not every 50ms. */
+const SIM_STEP_ANALYTICS_TICKS = 100;
+
+/** True when the 50ms sim interval should be scheduled. Hidden tabs freeze `timeMs`; `running` stays true. */
+export function simClockActive(running: boolean, mode: Mode, hidden: boolean): boolean {
+  return running && mode === "run" && !hidden;
+}
 
 const loadExamplesFromImports = async (): Promise<ExampleOption[]> => {
   try {
@@ -73,6 +83,9 @@ export function App() {
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
   const [mobileSideOpen, setMobileSideOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pageHidden, setPageHidden] = useState(
+    () => typeof document !== "undefined" && document.hidden,
+  );
 
   useEffect(() => {
     const id = window.setTimeout(() => useLab.getState().persistDraft(), 700);
@@ -101,10 +114,25 @@ export function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (!running || mode !== "run") return;
-    const id = window.setInterval(() => useLab.getState().step(), 50);
+    if (typeof document === "undefined") return;
+    const onVis = () => setPageHidden(document.hidden);
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+
+  useEffect(() => {
+    if (!simClockActive(running, mode, pageHidden)) return;
+    let ticks = 0;
+    const id = window.setInterval(() => {
+      useLab.getState().step();
+      ticks += 1;
+      if (ticks >= SIM_STEP_ANALYTICS_TICKS) {
+        ticks = 0;
+        trackCircuitStep();
+      }
+    }, SIM_TICK_MS);
     return () => window.clearInterval(id);
-  }, [running, mode]);
+  }, [running, mode, pageHidden]);
 
   // Global keyboard shortcuts and focus management
   useEffect(() => {

@@ -6,6 +6,7 @@ import {
   namedNetKey,
   namedNetKeyOf,
   netTerminalDef,
+  netTerminalPinSide,
 } from "./namedNets";
 import { nodeKeysForPort } from "./geometry";
 
@@ -30,6 +31,15 @@ describe("namedNets policy", () => {
     expect(namedNetKeyOf(lamp.device)).toBeNull();
     const flag = addDevice(c, "net-label", " L1 ", "body", 2, 0);
     expect(namedNetKeyOf(flag.device)).toBe("L1");
+  });
+
+  it("netTerminalPinSide maps odd left / even right", () => {
+    expect(netTerminalPinSide("1")).toBe("L");
+    expect(netTerminalPinSide("3")).toBe("L");
+    expect(netTerminalPinSide("2")).toBe("R");
+    expect(netTerminalPinSide("6")).toBe("R");
+    expect(netTerminalPinSide("")).toBeNull();
+    expect(netTerminalPinSide("A1")).toBeNull();
   });
 
   it("clampPinCount defaults, clamps, and parses strings", () => {

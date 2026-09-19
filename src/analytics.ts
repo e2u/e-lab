@@ -174,6 +174,7 @@ export function trackCircuitReset() {
   trackEvent("circuit_reset");
 }
 
+/** Manual or aggregated sim-step event. Do not call from the 50ms tick. */
 export function trackCircuitStep() {
   trackEvent("circuit_step");
 }

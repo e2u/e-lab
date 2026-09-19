@@ -601,7 +601,13 @@ function collectHvNetMeta(
   return netMeta;
 }
 
-export function applyWireLabels(circuit: Circuit): Circuit {
+export type ApplyWireLabelsOptions = {
+  /** Leave high-voltage power wires unlabeled; control nets still get 1, 2, 3… */
+  skipPowerWiring?: boolean;
+};
+
+export function applyWireLabels(circuit: Circuit, options?: ApplyWireLabelsOptions): Circuit {
+  const skipPowerWiring = Boolean(options?.skipPowerWiring);
   const next = circuit;
     const wires = next.wires;
     
@@ -955,7 +961,9 @@ export function applyWireLabels(circuit: Circuit): Circuit {
       components.set(root, label);
     };
 
-    for (const root of hvSortedRoots) assignIfNeeded(root, true);
+    if (!skipPowerWiring) {
+      for (const root of hvSortedRoots) assignIfNeeded(root, true);
+    }
     for (const root of controlOrder) assignIfNeeded(root, false);
     for (const [root] of controlSortedRoots) assignIfNeeded(root, false);
 
@@ -966,11 +974,12 @@ export function applyWireLabels(circuit: Circuit): Circuit {
       // Check if this specific wire is a transformer internal jumper
       // If so, don't assign a label even if the component has one
       const isTransformerJumper = transformerInternalJumperWireIds.has(w.id);
+      const skipHv = skipPowerWiring && determineCircuitType(root);
       
-      if (isTransformerJumper) {
+      if (isTransformerJumper || skipHv) {
         w.label = "";
       } else {
-        w.label = components.get(root)!;
+        w.label = components.get(root) ?? "";
       }
     });
 

@@ -19,6 +19,20 @@ describe("net terminal store", () => {
     expect(wires[0].label).toBe(wires[1].label);
   });
 
+  it("autoLabelWires assigns one number to both sides of a strip", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "pb-no", "PB1", "body", 0, 4);
+    const strip = addDevice(c, "net-terminal", "L1", "body", 8, 4, { pinCount: 3 });
+    const b = addDevice(c, "pb-no", "PB2", "body", 16, 4);
+    addWire(c, a.symbol, "2", strip.symbol, "1");
+    addWire(c, strip.symbol, "2", b.symbol, "1");
+    useLab.setState({ circuit: c, autoLayoutSkipPowerWiring: false });
+    useLab.getState().autoLabelWires();
+    const wires = useLab.getState().circuit.wires;
+    expect(wires[0].label).toBeTruthy();
+    expect(wires[0].label).toBe(wires[1].label);
+  });
+
   it("HV BFS jumps named-net flags past an isolator", () => {
     const c = emptyCircuit();
     const g1 = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0).symbol;

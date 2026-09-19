@@ -1,5 +1,5 @@
 import { memo, useMemo, type MouseEvent, type PointerEvent } from "react";
-import { alignStackedWireLabels, dedupeWireLabels, getConnectedWireIds, hopArcD, labelMarkMatches, makeWireLabelKey, pickVisibleWireLabels, polylinePathD, terminalWorld, WIRE_LABEL_SEPARATION, wireLabelAnchorAtT, wireLabelAnchors, wireLabelOffset, wireLabelRadius, type WireCrossover, type WireLabelAnchor } from "../../../geometry";
+import { alignStackedWireLabels, dedupeWireLabels, ensureNetTerminalSideLabels, getConnectedWireIds, hopArcD, labelMarkMatches, makeWireLabelKey, pickVisibleWireLabels, polylinePathD, terminalWorld, WIRE_LABEL_SEPARATION, wireLabelAnchorAtT, wireLabelAnchors, wireLabelOffset, wireLabelRadius, type WireCrossover, type WireLabelAnchor } from "../../../geometry";
 import { printHiddenSymbolIds, wireIsPrintHidden } from "../../../groups";
 import { PHASE_COLOR } from "../../../sim/engine";
 import type { Selection } from "../../../store";
@@ -126,7 +126,8 @@ export const WireLayer = memo(function WireLayer({
       }
       placed.set(w.id, list);
     }
-    return dedupeWireLabels(placed, wireInfo);
+    placed = dedupeWireLabels(placed, wireInfo);
+    return ensureNetTerminalSideLabels(circuit, placed, wireInfo);
   }, [circuit, routes, hiddenWireLabels, showWireLabels, omitPrintHidden, printHiddenIds]);
 
   return (

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { useLab } from "./store";
 import { emptyCircuit, addDevice, addWire, addJunction, addSymbol } from "./circuitBuilder";
 import { ex07OverloadAlarm } from "./examplesBuilder";
@@ -8,6 +8,10 @@ import { terminalWorld } from "./geometry";
 import { createRuntime, tick } from "./sim/engine";
 
 describe("autoLabelWires", () => {
+  beforeEach(() => {
+    useLab.setState({ autoLayoutSkipPowerWiring: false });
+  });
+
   it("assigns unique sequential labels when wires are not connected", () => {
     const c = emptyCircuit();
     const s1 = addDevice(c, "lamp", "L1", "body", 0, 0).symbol;
@@ -519,6 +523,35 @@ describe("autoLabelWires", () => {
     expect(labelOf(km, "A2", tc, "X2")).toBe("2");
     // Alarm rung is a branch off X1 — numbered after the coil path, not inserted as 3.
     expect(labelOf(frNo, "98", alarm, "1")).toBe("5");
+  });
+
+  it("skipPowerWiring leaves HV wires unlabeled and still numbers control wires", () => {
+    const c = emptyCircuit();
+    const g1 = addDevice(c, "mains-3ph", "PWR1", "delta", 0, 0).symbol;
+    const tc = addDevice(c, "transformer", "T1", "body", 8, 0).symbol;
+    const pb = addDevice(c, "pb-no", "PB1", "body", 14, 8).symbol;
+    const lamp = addDevice(c, "lamp", "LT1", "body", 20, 8).symbol;
+
+    addWire(c, g1, "L1", tc, "H1");
+    addWire(c, g1, "L2", tc, "H4");
+    addWire(c, tc, "X1", pb, "1");
+    addWire(c, pb, "2", lamp, "1");
+    addWire(c, lamp, "2", tc, "X2");
+
+    useLab.setState({ circuit: c, autoLayoutSkipPowerWiring: false });
+    useLab.getState().autoLabelWires();
+    expect(useLab.getState().circuit.wires[0].label).toBe("90");
+    expect(useLab.getState().circuit.wires[1].label).toBe("91");
+
+    useLab.setState({ autoLayoutSkipPowerWiring: true });
+    useLab.getState().autoLabelWires();
+
+    const wires = useLab.getState().circuit.wires;
+    expect(wires[0].label || "").toBe("");
+    expect(wires[1].label || "").toBe("");
+    expect(wires[2].label).toBe("1");
+    expect(wires[3].label).toBe("3");
+    expect(wires[4].label).toBe("2");
   });
 });
 

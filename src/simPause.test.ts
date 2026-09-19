@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useLab } from "./store";
 import { emptyCircuit } from "./circuitBuilder";
+import { simClockActive } from "./App";
+import * as analytics from "./analytics";
 
 describe("Simulation Pause and Resume", () => {
   beforeEach(() => {
@@ -87,5 +89,20 @@ describe("Simulation Pause and Resume", () => {
     s.resetSim();
     expect(useLab.getState().timeMs).toBe(0);
     expect(useLab.getState().snapshot.runtime[ktDev.id]?.elapsedMs).toBe(0);
+  });
+
+  it("keeps the sim clock off while the tab is hidden or not in run", () => {
+    expect(simClockActive(true, "run", false)).toBe(true);
+    expect(simClockActive(true, "run", true)).toBe(false);
+    expect(simClockActive(false, "run", false)).toBe(false);
+    expect(simClockActive(true, "edit", false)).toBe(false);
+  });
+
+  it("does not fire circuit_step analytics on every tick", () => {
+    const spy = vi.spyOn(analytics, "trackCircuitStep");
+    useLab.getState().setMode("run");
+    for (let i = 0; i < 20; i++) useLab.getState().step();
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

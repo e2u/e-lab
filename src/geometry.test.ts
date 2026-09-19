@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit, mergeWires, removeJunction } from "./circuitBuilder";
 import { GRID, type Circuit } from "./types";
-import { allWireRoutes, alignStackedWireLabels, areWiresConnected, cleanPolyline, dedupeWireLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
+import { allWireRoutes, alignStackedWireLabels, areWiresConnected, circuitRouteKey, cleanPolyline, dedupeWireLabels, ensureNetTerminalSideLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, WIRE_LANE, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
 import { useLab } from "./store";
 
 describe("wire routing stubs", () => {
@@ -571,6 +571,39 @@ describe("wire crossovers", () => {
     expect(x90.length).toBe(1);
     expect(x100.length).toBe(1);
     expect(Math.abs(x90[0] - x100[0])).toBeGreaterThan(GRID * 2);
+  });
+
+  it("keeps the same number on both sides of a net-terminal", () => {
+    const c = emptyCircuit();
+    const left = addDevice(c, "lamp", "LT1", "body", 0, 4);
+    const strip = addDevice(c, "net-terminal", "L1", "body", 8, 4, { pinCount: 3 });
+    const right = addDevice(c, "lamp", "LT2", "body", 16, 4);
+    addWire(c, left.symbol, "2", strip.symbol, "1");
+    addWire(c, strip.symbol, "2", right.symbol, "1");
+    c.wires[0].label = "4";
+    c.wires[1].label = "4";
+    const routes = allWireRoutes(c);
+    const candidates = c.wires.flatMap((w) => {
+      const tag = (w.label ?? "").trim();
+      const pts = routes.get(w.id);
+      if (!tag || !pts) return [];
+      const anchors = wireLabelAnchors(pts, wireLabelOffset(tag));
+      return anchors.length ? [{ wireId: w.id, tag, anchors }] : [];
+    });
+    const wireInfo = new Map(
+      c.wires.flatMap((w) => {
+        const tag = (w.label ?? "").trim();
+        const pts = routes.get(w.id);
+        return tag && pts ? [[w.id, { pts, tag, offset: wireLabelOffset(tag) }] as const] : [];
+      }),
+    );
+    const dropped = dedupeWireLabels(alignStackedWireLabels(pickVisibleWireLabels(candidates), wireInfo), wireInfo);
+    const keptWires = [...dropped.keys()].filter((id) => (dropped.get(id) ?? []).length > 0);
+    expect(keptWires.length).toBe(1);
+
+    const placed = ensureNetTerminalSideLabels(c, dropped, wireInfo);
+    expect((placed.get(c.wires[0].id) ?? []).length).toBeGreaterThanOrEqual(1);
+    expect((placed.get(c.wires[1].id) ?? []).length).toBeGreaterThanOrEqual(1);
   });
 
   it("places a wire label beside the longest run", () => {
@@ -1228,5 +1261,31 @@ describe("wire merge and optimal junction point", () => {
     });
 
 
+  });
+});
+
+describe("circuitRouteKey", () => {
+  it("changes when pinCount or scale change, not when tag or wire label change", () => {
+    const c = emptyCircuit();
+    const strip = addDevice(c, "net-terminal", "L1", "body", 0, 0, { pinCount: 4 });
+    const lamp = addDevice(c, "lamp", "LT1", "body", 10, 0);
+    addWire(c, strip.symbol, "1", lamp.symbol, "1");
+    const base = circuitRouteKey(c);
+
+    c.devices[0].tag = "L2";
+    c.wires[0].label = "17";
+    expect(circuitRouteKey(c)).toBe(base);
+
+    c.devices[0].params.pinCount = 8;
+    expect(circuitRouteKey(c)).not.toBe(base);
+
+    c.devices[0].params.pinCount = 4;
+    expect(circuitRouteKey(c)).toBe(base);
+
+    const xf = emptyCircuit();
+    addDevice(xf, "transformer", "T1", "body", 4, 4);
+    const s1 = circuitRouteKey(xf);
+    xf.devices[0].params.scale = 1.5;
+    expect(circuitRouteKey(xf)).not.toBe(s1);
   });
 });

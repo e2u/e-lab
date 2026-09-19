@@ -6,6 +6,7 @@ import {
   trackComponentPlaced,
   trackComponentDeleted,
   trackCircuitRun,
+  trackCircuitStep,
   trackLadderView,
   trackExportJson,
   trackOpenJson,
@@ -51,6 +52,7 @@ describe("Firebase & Telemetry Integration", () => {
       trackComponentPlaced("contactor", "relays", 5);
       trackComponentDeleted("relay");
       trackCircuitRun({ symbolCount: 10, wireCount: 8, deviceCount: 4 });
+      trackCircuitStep();
       trackLadderView({ source: "toggle", symbolCount: 12 });
       trackExportJson({ symbolCount: 15, deviceCount: 6, hasName: true });
       trackOpenJson({ source: "file", symbolCount: 15, name: "Motor Control" });

@@ -1,4 +1,4 @@
-import { isNamedNetKind, netTerminalDef, NET_TERMINAL_DEFAULT_PINS } from "./namedNets";
+import { busbarDef, isNamedNetKind, netTerminalDef, termBlockDef, NET_TERMINAL_DEFAULT_PINS } from "./namedNets";
 import type {
   CatalogGroup,
   CatalogItem,
@@ -305,8 +305,8 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     variants: {
       body: {
         w: 4,
-        h: 4,
-        terminals: [t("+", 4, 1, "+"), t("-", 4, 3, "−")],
+        h: 6,
+        terminals: [t("+", 4, 1, "+"), t("-", 4, 3, "−"), t("PE", 4, 5, "PE")],
       },
     },
   },
@@ -376,7 +376,39 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
   isolator: {
     prefix: "DISC",
     label: "隔離開關",
-    variants: { body: isolatorBody },
+    variants: {
+      body: isolatorBody,
+      body1: {
+        w: 4,
+        h: 2,
+        terminals: [t("L1", 0, 1, "L1"), t("T1", 4, 1, "T1"), t("1", 0, 1, "L1"), t("2", 4, 1, "T1")],
+      },
+      body2: {
+        w: 4,
+        h: 4,
+        terminals: [
+          t("L1", 0, 1, "L1"),
+          t("L2", 0, 3, "L2"),
+          t("T1", 4, 1, "T1"),
+          t("T2", 4, 3, "T2"),
+          t("1", 0, 1, "L1"),
+          t("3", 0, 3, "L2"),
+          t("2", 4, 1, "T1"),
+          t("4", 4, 3, "T2"),
+        ],
+      },
+    },
+  },
+  "breaker-2p": {
+    prefix: "CB",
+    label: "雙極斷路器",
+    variants: {
+      body: {
+        w: 4,
+        h: 4,
+        terminals: [t("1", 1, 0), t("3", 3, 0), t("2", 1, 4), t("4", 3, 4)],
+      },
+    },
   },
   overload: {
     prefix: "OL",
@@ -591,6 +623,16 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       },
     },
   },
+  "float-no": {
+    prefix: "FS",
+    label: "液位開關 常開",
+    variants: { body: { w: 4, h: 2, terminals: [t("1", 0, 1), t("2", 4, 1)] } },
+  },
+  "float-nc": {
+    prefix: "FS",
+    label: "液位開關 常閉",
+    variants: { body: { w: 4, h: 2, terminals: [t("1", 0, 1), t("2", 4, 1)] } },
+  },
   float: {
     prefix: "FS",
     label: "液位／浮球開關",
@@ -598,7 +640,13 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: {
         w: 4,
         h: 2,
-        terminals: [t("1", 0, 1), t("2", 4, 1)],
+        terminals: [
+          t("1", 0, 1),
+          t("2", 4, 1),
+          t("COM", 0, 1, "1"),
+          t("NC", 4, 1, "2"),
+          t("NO", 4, 1, "2"),
+        ],
       },
     },
   },
@@ -691,22 +739,42 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       "aux-no": {
         w: CONTACT_W,
         h: 2,
-        terminals: [t("1", 0, 1, "1"), t("2", CONTACT_W, 1, "2")],
+        terminals: [
+          t("13", 0, 1, "13"),
+          t("14", CONTACT_W, 1, "14"),
+          t("1", 0, 1, "13"),
+          t("2", CONTACT_W, 1, "14"),
+        ],
       },
       "aux-nc": {
         w: CONTACT_W,
         h: 2,
-        terminals: [t("3", 0, 1, "3"), t("4", CONTACT_W, 1, "4")],
+        terminals: [
+          t("21", 0, 1, "21"),
+          t("22", CONTACT_W, 1, "22"),
+          t("3", 0, 1, "21"),
+          t("4", CONTACT_W, 1, "22"),
+        ],
       },
       "aux-no2": {
         w: CONTACT_W,
         h: 2,
-        terminals: [t("5", 0, 1, "5"), t("6", CONTACT_W, 1, "6")],
+        terminals: [
+          t("43", 0, 1, "43"),
+          t("44", CONTACT_W, 1, "44"),
+          t("5", 0, 1, "43"),
+          t("6", CONTACT_W, 1, "44"),
+        ],
       },
       "aux-nc2": {
         w: CONTACT_W,
         h: 2,
-        terminals: [t("7", 0, 1, "7"), t("8", CONTACT_W, 1, "8")],
+        terminals: [
+          t("31", 0, 1, "31"),
+          t("32", CONTACT_W, 1, "32"),
+          t("7", 0, 1, "31"),
+          t("8", CONTACT_W, 1, "32"),
+        ],
       },
     },
   },
@@ -755,7 +823,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: {
         w: 2,
         h: 4,
-        terminals: [t("1", 1, 0, "X1"), t("2", 1, 4, "X2")],
+        terminals: [t("1", 1, 0, "1"), t("2", 1, 4, "2")],
       },
     },
   },
@@ -795,6 +863,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
           t("U", 1, 0, "U"),
           t("V", 3, 0, "V"),
           t("W", 5, 0, "W"),
+          t("PE", 0, 5, "PE"),
         ],
       },
     },
@@ -804,9 +873,14 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "單相電機",
     variants: {
       body: {
-        w: 4,
+        w: 6,
         h: 6,
-        terminals: [t("U1", 1, 0, "U1"), t("U2", 3, 0, "U2")],
+        terminals: [
+          t("U1", 1, 0, "U1"),
+          t("U2", 3, 0, "U2"),
+          t("Z1", 0, 3, "Z1"),
+          t("Z2", 6, 3, "Z2"),
+        ],
       },
     },
   },
@@ -880,6 +954,254 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
         ],
       },
     },
+  },
+  "pb-illum-no": {
+    prefix: "PB",
+    label: "帶燈常開按鈕",
+    variants: {
+      body: {
+        w: 4,
+        h: 4,
+        terminals: [
+          t("13", 0, 1, "13"),
+          t("14", 4, 1, "14"),
+          t("X1", 0, 3, "X1"),
+          t("X2", 4, 3, "X2"),
+        ],
+      },
+    },
+  },
+  "pb-illum-nc": {
+    prefix: "PB",
+    label: "帶燈常閉按鈕",
+    variants: {
+      body: {
+        w: 4,
+        h: 4,
+        terminals: [
+          t("11", 0, 1, "11"),
+          t("12", 4, 1, "12"),
+          t("X1", 0, 3, "X1"),
+          t("X2", 4, 3, "X2"),
+        ],
+      },
+    },
+  },
+  "selector-hoa": {
+    prefix: "SS",
+    label: "手／停／自動",
+    variants: {
+      body: {
+        w: 4,
+        h: 4,
+        terminals: [
+          t("COM", 0, 1, "COM"),
+          t("H", 4, 1, "H"),
+          t("COM2", 0, 3, "COM"),
+          t("A", 4, 3, "A"),
+        ],
+      },
+    },
+  },
+  "selector-key": {
+    prefix: "SS",
+    label: "鑰匙選擇開關",
+    variants: {
+      body: {
+        w: 6,
+        h: 4,
+        terminals: [t("1", 0, 1, "1"), t("2", 4, 1, "2"), t("3", 0, 3, "3"), t("4", 4, 3, "4")],
+      },
+    },
+  },
+  "door-nc": {
+    prefix: "DS",
+    label: "門限常閉",
+    variants: { body: { w: 4, h: 2, terminals: [t("11", 0, 1, "11"), t("12", 4, 1, "12")] } },
+  },
+  "pull-cord": {
+    prefix: "ES",
+    label: "拉繩急停",
+    variants: { body: { w: 4, h: 2, terminals: [t("11", 0, 1, "11"), t("12", 4, 1, "12")] } },
+  },
+  ssr: {
+    prefix: "SSR",
+    label: "固態繼電器",
+    variants: {
+      body: {
+        w: 4,
+        h: 4,
+        terminals: [t("A1", 0, 1, "A1"), t("A2", 4, 1, "A2"), t("1", 0, 3, "1"), t("2", 4, 3, "2")],
+      },
+    },
+  },
+  "safety-relay": {
+    prefix: "KSR",
+    label: "安全繼電器",
+    variants: {
+      body: {
+        w: 8,
+        h: 8,
+        terminals: [
+          t("A1", 0, 1, "A1"),
+          t("A2", 8, 1, "A2"),
+          t("S11", 0, 3, "S11"),
+          t("S12", 8, 3, "S12"),
+          t("S21", 0, 5, "S21"),
+          t("S22", 8, 5, "S22"),
+          t("13", 0, 7, "13"),
+          t("14", 8, 7, "14"),
+          t("Y1", 2, 8, "Y1"),
+          t("Y2", 6, 8, "Y2"),
+        ],
+      },
+    },
+  },
+  "phase-relay": {
+    prefix: "KPS",
+    label: "相序／缺相繼電器",
+    variants: {
+      body: {
+        w: 6,
+        h: 8,
+        terminals: [
+          t("L1", 0, 2, "L1"),
+          t("L2", 0, 4, "L2"),
+          t("L3", 0, 6, "L3"),
+          t("12", 6, 2, "NC"),
+          t("11", 6, 4, "COM"),
+          t("14", 6, 6, "NO"),
+        ],
+      },
+    },
+  },
+  "relay-uv": {
+    prefix: "KUV",
+    label: "欠壓繼電器",
+    variants: {
+      body: {
+        w: 6,
+        h: 8,
+        terminals: [
+          t("L1", 0, 2, "L1"),
+          t("L2", 0, 4, "L2"),
+          t("L3", 0, 6, "L3"),
+          t("12", 6, 2, "NC"),
+          t("11", 6, 4, "COM"),
+          t("14", 6, 6, "NO"),
+        ],
+      },
+    },
+  },
+  "relay-ov": {
+    prefix: "KOV",
+    label: "過壓繼電器",
+    variants: {
+      body: {
+        w: 6,
+        h: 8,
+        terminals: [
+          t("L1", 0, 2, "L1"),
+          t("L2", 0, 4, "L2"),
+          t("L3", 0, 6, "L3"),
+          t("12", 6, 2, "NC"),
+          t("11", 6, 4, "COM"),
+          t("14", 6, 6, "NO"),
+        ],
+      },
+    },
+  },
+  ptc: {
+    prefix: "PTC",
+    label: "熱敏電阻保護",
+    variants: {
+      body: {
+        w: 6,
+        h: 8,
+        terminals: [
+          t("A1", 0, 1, "A1"),
+          t("A2", 6, 1, "A2"),
+          t("T1", 0, 3, "T1"),
+          t("T2", 6, 3, "T2"),
+          t("95", 0, 5, "95 NC"),
+          t("96", 6, 5, "96"),
+          t("97", 0, 7, "97 NO"),
+          t("98", 6, 7, "98"),
+        ],
+      },
+    },
+  },
+  "timer-flash": { prefix: "TR", label: "閃爍繼電器", variants: timerVariants },
+  "timer-pulse": { prefix: "TR", label: "脈衝繼電器", variants: timerVariants },
+  "timer-star-delta": {
+    prefix: "TR",
+    label: "星三角計時器",
+    variants: {
+      coil: coilBody,
+      "inst-no": {
+        w: CONTACT_W,
+        h: 2,
+        terminals: [t("17", 0, 1, "17"), t("18", CONTACT_W, 1, "18")],
+      },
+      "delayed-no": {
+        w: CONTACT_W,
+        h: 2,
+        terminals: [t("17", 0, 1, "17"), t("28", CONTACT_W, 1, "28")],
+      },
+    },
+  },
+  capacitor: {
+    prefix: "C",
+    label: "電容器",
+    variants: { body: { w: 4, h: 2, terminals: [t("1", 0, 1, "1"), t("2", 4, 1, "2")] } },
+  },
+  vfd: {
+    prefix: "VFD",
+    label: "變頻器",
+    variants: {
+      body: {
+        w: 8,
+        h: 10,
+        terminals: [
+          t("L1", 0, 1, "L1"),
+          t("L2", 0, 3, "L2"),
+          t("L3", 0, 5, "L3"),
+          t("U", 8, 1, "U"),
+          t("V", 8, 3, "V"),
+          t("W", 8, 5, "W"),
+          t("DI1", 0, 7, "DI1"),
+          t("COM", 0, 9, "COM"),
+          t("PE", 8, 9, "PE"),
+        ],
+      },
+    },
+  },
+  "psu-24v": {
+    prefix: "PS",
+    label: "開關電源",
+    variants: {
+      body: {
+        w: 6,
+        h: 6,
+        terminals: [
+          t("L", 0, 1, "L"),
+          t("N", 0, 3, "N"),
+          t("PE", 0, 5, "PE"),
+          t("+", 6, 1, "+"),
+          t("-", 6, 3, "0V"),
+        ],
+      },
+    },
+  },
+  "term-block": {
+    prefix: "X",
+    label: "端子排",
+    variants: { body: termBlockDef(NET_TERMINAL_DEFAULT_PINS) },
+  },
+  busbar: {
+    prefix: "L1",
+    label: "網絡匯流排",
+    variants: { body: busbarDef(NET_TERMINAL_DEFAULT_PINS) },
   },
   "net-label": {
     prefix: "L1",
@@ -957,33 +1279,70 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body: meterBody,
     },
   },
+  "ammeter-series": {
+    prefix: "AM",
+    label: "串聯電流表",
+    variants: { body: meterBody },
+  },
+  ct: {
+    prefix: "CT",
+    label: "電流互感器",
+    variants: {
+      body: {
+        w: 4,
+        h: 4,
+        terminals: [
+          t("P1", 0, 1, "P1"),
+          t("P2", 4, 1, "P2"),
+          t("S1", 0, 3, "S1"),
+          t("S2", 4, 3, "S2"),
+        ],
+      },
+    },
+  },
 };
 
 export const CATALOG: CatalogItem[] = [
   { id: "mains-3ph", kind: "mains-3ph", variant: "wye", group: "電源與保護", subgroupId: "Power_Supply", label: "三相電源 (Y)", labelEn: "3Φ (Y)", prefix: "PWR", creates: "device" },
   { id: "mains-3ph-delta", kind: "mains-3ph", variant: "delta", group: "電源與保護", subgroupId: "Power_Supply", label: "三相電源 (Δ)", labelEn: "3Φ (Δ)", prefix: "PWR", creates: "device" },
-  { id: "dc-supply", kind: "dc-supply", variant: "body", group: "電源與保護", subgroupId: "Power_Supply", label: "直流電源", labelEn: "DC Supply", prefix: "PWS", creates: "device" },
+  { id: "dc-supply", kind: "dc-supply", variant: "body", group: "電源與保護", subgroupId: "Power_Supply", label: "直流電源", labelEn: "DC Supply", prefix: "PWS", creates: "device", defaultParams: { voltage: 24 } },
+  { id: "psu-24v", kind: "psu-24v", variant: "body", group: "電源與保護", subgroupId: "Power_Supply", label: "開關電源", labelEn: "Switching PSU", prefix: "PS", creates: "device", defaultParams: { voltage: 24 } },
   { id: "transformer", kind: "transformer", variant: "body", group: "電源與保護", subgroupId: "Power_Supply", label: "控制變壓器", labelEn: "Transformer", prefix: "T", creates: "device" },
   { id: "breaker-1p", kind: "breaker-1p", variant: "body", group: "電源與保護", subgroupId: "Breakers_Fuses", label: "單極斷路器", labelEn: "MCB 1P", prefix: "CB", creates: "device" },
+  { id: "breaker-2p", kind: "breaker-2p", variant: "body", group: "電源與保護", subgroupId: "Breakers_Fuses", label: "雙極斷路器", labelEn: "MCB 2P", prefix: "CB", creates: "device" },
   { id: "breaker-3p", kind: "breaker-3p", variant: "body", group: "電源與保護", subgroupId: "Breakers_Fuses", label: "三極斷路器", labelEn: "MCB 3P", prefix: "CB", creates: "device" },
   { id: "fuse", kind: "fuse", variant: "body", group: "電源與保護", subgroupId: "Breakers_Fuses", label: "熔斷器 (1P)", labelEn: "Fuse 1P", prefix: "FU", creates: "device" },
   { id: "fuse-2p", kind: "fuse", variant: "body2", group: "電源與保護", subgroupId: "Breakers_Fuses", label: "熔斷器 (2P)", labelEn: "Fuse 2P", prefix: "FU", creates: "device" },
   { id: "fuse-3p", kind: "fuse", variant: "body3", group: "電源與保護", subgroupId: "Breakers_Fuses", label: "熔斷器 (3P)", labelEn: "Fuse 3P", prefix: "FU", creates: "device" },
-  { id: "isolator", kind: "isolator", variant: "body", group: "電源與保護", subgroupId: "Breakers_Fuses", label: "隔離開關", labelEn: "Isolator", prefix: "DISC", creates: "device" },
+  { id: "isolator-1p", kind: "isolator", variant: "body1", group: "電源與保護", subgroupId: "Breakers_Fuses", label: "單極隔離", labelEn: "Isolator 1P", prefix: "DISC", creates: "device" },
+  { id: "isolator-2p", kind: "isolator", variant: "body2", group: "電源與保護", subgroupId: "Breakers_Fuses", label: "雙極隔離", labelEn: "Isolator 2P", prefix: "DISC", creates: "device" },
+  { id: "isolator", kind: "isolator", variant: "body", group: "電源與保護", subgroupId: "Breakers_Fuses", label: "三極隔離", labelEn: "Isolator 3P", prefix: "DISC", creates: "device" },
   { id: "overload", kind: "overload", variant: "body", group: "電源與保護", subgroupId: "Overload_Relays", label: "熱繼電器", labelEn: "Overload FR", prefix: "OL", creates: "device" },
   { id: "fr-nc", kind: "overload", variant: "aux-nc", group: "電源與保護", subgroupId: "Overload_Relays", label: "熱過載常閉 95-96", labelEn: "Overload Aux NC 95-96", prefix: "OL", creates: "attach", defaultRot: 0 },
   { id: "fr-no", kind: "overload", variant: "aux-no", group: "電源與保護", subgroupId: "Overload_Relays", label: "熱過載常開 97-98", labelEn: "Overload Aux NO 97-98", prefix: "OL", creates: "attach", defaultRot: 0 },
+  { id: "phase-relay", kind: "phase-relay", variant: "body", group: "電源與保護", subgroupId: "Overload_Relays", label: "相序／缺相", labelEn: "Phase Relay", prefix: "KPS", creates: "device" },
+  { id: "relay-uv", kind: "relay-uv", variant: "body", group: "電源與保護", subgroupId: "Overload_Relays", label: "欠壓繼電器", labelEn: "Undervoltage Relay", prefix: "KUV", creates: "device" },
+  { id: "relay-ov", kind: "relay-ov", variant: "body", group: "電源與保護", subgroupId: "Overload_Relays", label: "過壓繼電器", labelEn: "Overvoltage Relay", prefix: "KOV", creates: "device" },
+  { id: "ptc", kind: "ptc", variant: "body", group: "電源與保護", subgroupId: "Overload_Relays", label: "PTC 保護", labelEn: "PTC Protection", prefix: "PTC", creates: "device" },
 
   { id: "net-label", kind: "net-label", variant: "body", group: "接線", subgroupId: "Terminals", label: "標籤端子", labelEn: "Net label", prefix: "L1", creates: "device" },
   { id: "net-terminal", kind: "net-terminal", variant: "body", group: "接線", subgroupId: "Terminals", label: "網絡端子", labelEn: "Net terminal", prefix: "L1", creates: "device", defaultParams: { pinCount: 4 } },
+  { id: "term-block", kind: "term-block", variant: "body", group: "接線", subgroupId: "Terminals", label: "端子排", labelEn: "Terminal strip", prefix: "X", creates: "device", defaultParams: { pinCount: 4 } },
+  { id: "busbar", kind: "busbar", variant: "body", group: "接線", subgroupId: "Terminals", label: "網絡匯流排", labelEn: "Net Busbar", prefix: "L1", creates: "device", defaultParams: { pinCount: 6 } },
   { id: "ground", kind: "ground", variant: "body", group: "接線", subgroupId: "Terminals", label: "接地", labelEn: "Ground", prefix: "GND", creates: "device" },
 
   { id: "pb-no", kind: "pb-no", variant: "body", group: "開關", subgroupId: "Pushbuttons", label: "常開按鈕", labelEn: "PB NO", prefix: "PB", creates: "device" },
   { id: "pb-nc", kind: "pb-nc", variant: "body", group: "開關", subgroupId: "Pushbuttons", label: "常閉按鈕", labelEn: "PB NC", prefix: "PB", creates: "device" },
   { id: "estop-nc", kind: "estop-nc", variant: "body", group: "開關", subgroupId: "Pushbuttons", label: "急停常閉", labelEn: "E-Stop NC 11-12", prefix: "PB", creates: "device" },
   { id: "estop-no", kind: "estop-no", variant: "body", group: "開關", subgroupId: "Pushbuttons", label: "急停常開", labelEn: "E-Stop NO 13-14", prefix: "PB", creates: "device" },
+  { id: "pb-illum-no", kind: "pb-illum-no", variant: "body", group: "開關", subgroupId: "Pushbuttons", label: "帶燈常開", labelEn: "Illum. PB NO", prefix: "PB", creates: "device" },
+  { id: "pb-illum-nc", kind: "pb-illum-nc", variant: "body", group: "開關", subgroupId: "Pushbuttons", label: "帶燈常閉", labelEn: "Illum. PB NC", prefix: "PB", creates: "device" },
+  { id: "pull-cord", kind: "pull-cord", variant: "body", group: "開關", subgroupId: "Pushbuttons", label: "拉繩急停", labelEn: "Pull-cord E-Stop", prefix: "ES", creates: "device" },
+  { id: "door-nc", kind: "door-nc", variant: "body", group: "開關", subgroupId: "Pushbuttons", label: "門限常閉", labelEn: "Door Interlock NC", prefix: "DS", creates: "device" },
   { id: "selector-2", kind: "selector-2", variant: "body", group: "開關", subgroupId: "Selectors", label: "選擇開關 2 檔", labelEn: "Selector 2", prefix: "SS", creates: "device" },
   { id: "selector-3", kind: "selector-3", variant: "body", group: "開關", subgroupId: "Selectors", label: "正停反開關", labelEn: "F-O-R", prefix: "SS", creates: "device" },
+  { id: "selector-hoa", kind: "selector-hoa", variant: "body", group: "開關", subgroupId: "Selectors", label: "手／停／自動", labelEn: "HOA", prefix: "SS", creates: "device" },
+  { id: "selector-key", kind: "selector-key", variant: "body", group: "開關", subgroupId: "Selectors", label: "鑰匙選擇", labelEn: "Key Selector", prefix: "SS", creates: "device" },
   { id: "toggle-spst", kind: "toggle-spst", variant: "body", group: "開關", subgroupId: "Toggles", label: "SPST 撥動", labelEn: "SPST Toggle", prefix: "TGS", creates: "device" },
   { id: "toggle-spdt", kind: "toggle-spdt", variant: "body", group: "開關", subgroupId: "Toggles", label: "SPDT 撥動", labelEn: "SPDT Toggle", prefix: "TGS", creates: "device" },
   { id: "toggle-dpst", kind: "toggle-dpst", variant: "body", group: "開關", subgroupId: "Toggles", label: "DPST 撥動", labelEn: "DPST Toggle", prefix: "TGS", creates: "device" },
@@ -994,11 +1353,12 @@ export const CATALOG: CatalogItem[] = [
 
   { id: "limit-no", kind: "limit-no", variant: "body", group: "感測器", subgroupId: "Mechanical_Level", label: "限位常開", labelEn: "Limit NO", prefix: "LS", creates: "device" },
   { id: "limit-nc", kind: "limit-nc", variant: "body", group: "感測器", subgroupId: "Mechanical_Level", label: "限位常閉", labelEn: "Limit NC", prefix: "LS", creates: "device" },
-  { id: "float", kind: "float", variant: "body", group: "感測器", subgroupId: "Mechanical_Level", label: "液位開關", labelEn: "Float", prefix: "FS", creates: "device" },
+  { id: "float-no", kind: "float-no", variant: "body", group: "感測器", subgroupId: "Mechanical_Level", label: "液位常開", labelEn: "Float Switch NO", prefix: "FS", creates: "device" },
+  { id: "float-nc", kind: "float-nc", variant: "body", group: "感測器", subgroupId: "Mechanical_Level", label: "液位常閉", labelEn: "Float Switch NC", prefix: "FS", creates: "device" },
   { id: "temp-no", kind: "temp-no", variant: "body", group: "感測器", subgroupId: "Process_Sensors", label: "溫度開關常開", labelEn: "Temp SW NO", prefix: "TAS", creates: "device" },
   { id: "temp-nc", kind: "temp-nc", variant: "body", group: "感測器", subgroupId: "Process_Sensors", label: "溫度開關常閉", labelEn: "Temp SW NC", prefix: "TAS", creates: "device" },
   { id: "flow-no", kind: "flow-no", variant: "body", group: "感測器", subgroupId: "Process_Sensors", label: "流量常開", labelEn: "Flow NO", prefix: "FLS", creates: "device" },
-  { id: "flow-nc", kind: "flow-nc", variant: "body", group: "感測器", subgroupId: "Process_Sensors", label: "流量���閉", labelEn: "Flow NC", prefix: "FLS", creates: "device" },
+  { id: "flow-nc", kind: "flow-nc", variant: "body", group: "感測器", subgroupId: "Process_Sensors", label: "流量常閉", labelEn: "Flow NC", prefix: "FLS", creates: "device" },
   { id: "pressure-no", kind: "pressure-no", variant: "body", group: "感測器", subgroupId: "Process_Sensors", label: "壓力常開", labelEn: "Press NO", prefix: "PS", creates: "device" },
   { id: "pressure-nc", kind: "pressure-nc", variant: "body", group: "感測器", subgroupId: "Process_Sensors", label: "壓力常閉", labelEn: "Press NC", prefix: "PS", creates: "device" },
   { id: "prox-no", kind: "prox-no", variant: "body", group: "感測器", subgroupId: "Electronic_Sensors", label: "接近開關常開", labelEn: "Prox Sensor NO", prefix: "PRS", creates: "device" },
@@ -1006,17 +1366,17 @@ export const CATALOG: CatalogItem[] = [
   { id: "photo-no", kind: "photo-no", variant: "body", group: "感測器", subgroupId: "Electronic_Sensors", label: "光電開關常開", labelEn: "Photo Sensor NO", prefix: "PEC", creates: "device" },
   { id: "photo-nc", kind: "photo-nc", variant: "body", group: "感測器", subgroupId: "Electronic_Sensors", label: "光電開關常閉", labelEn: "Photo Sensor NC", prefix: "PEC", creates: "device" },
 
-  { id: "km-coil", kind: "contactor", variant: "coil", group: "Relays / Contactors", subgroupId: "Contactors", label: "Contactor Coil", labelEn: "Contactor Coil", prefix: "M", creates: "device" },
-  { id: "km-main", kind: "contactor", variant: "main", group: "Relays / Contactors", subgroupId: "Contactors", label: "Contactor Main", labelEn: "Contactor Main", prefix: "M", creates: "attach" },
-  { id: "km-no", kind: "contactor", variant: "aux-no", group: "Relays / Contactors", subgroupId: "Contactors", label: "Cont. Aux NO 13-14", labelEn: "Cont. Aux NO 13-14", prefix: "M", creates: "attach", defaultRot: 0 },
-  { id: "km-nc", kind: "contactor", variant: "aux-nc", group: "Relays / Contactors", subgroupId: "Contactors", label: "Cont. Aux NC 21-22", labelEn: "Cont. Aux NC 21-22", prefix: "M", creates: "attach", defaultRot: 0 },
-  { id: "km-no2", kind: "contactor", variant: "aux-no2", group: "Relays / Contactors", subgroupId: "Contactors", label: "Cont. Aux NO 43-44", labelEn: "Cont. Aux NO 43-44", prefix: "M", creates: "attach", defaultRot: 0 },
-  { id: "km-nc2", kind: "contactor", variant: "aux-nc2", group: "Relays / Contactors", subgroupId: "Contactors", label: "Cont. Aux NC 31-32", labelEn: "Cont. Aux NC 31-32", prefix: "M", creates: "attach", defaultRot: 0 },
-  { id: "ka-coil", kind: "relay", variant: "coil", group: "Relays / Contactors", subgroupId: "Control_Relays", label: "Relay Coil", labelEn: "Relay Coil", prefix: "CR", creates: "device" },
-  { id: "ka-no", kind: "relay", variant: "aux-no", group: "Relays / Contactors", subgroupId: "Control_Relays", label: "Relay Aux NO 1-2", labelEn: "Relay Aux NO 1-2", prefix: "CR", creates: "attach", defaultRot: 0 },
-  { id: "ka-nc", kind: "relay", variant: "aux-nc", group: "Relays / Contactors", subgroupId: "Control_Relays", label: "Relay Aux NC 3-4", labelEn: "Relay Aux NC 3-4", prefix: "CR", creates: "attach", defaultRot: 0 },
-  { id: "ka-no2", kind: "relay", variant: "aux-no2", group: "Relays / Contactors", subgroupId: "Control_Relays", label: "Relay Aux NO 5-6", labelEn: "Relay Aux NO 5-6", prefix: "CR", creates: "attach", defaultRot: 0 },
-  { id: "ka-nc2", kind: "relay", variant: "aux-nc2", group: "Relays / Contactors", subgroupId: "Control_Relays", label: "Relay Aux NC 7-8", labelEn: "Relay Aux NC 7-8", prefix: "CR", creates: "attach", defaultRot: 0 },
+  { id: "km-coil", kind: "contactor", variant: "coil", group: "繼電器／接觸器", subgroupId: "Contactors", label: "Contactor Coil", labelEn: "Contactor Coil", prefix: "M", creates: "device" },
+  { id: "km-main", kind: "contactor", variant: "main", group: "繼電器／接觸器", subgroupId: "Contactors", label: "Contactor Main", labelEn: "Contactor Main", prefix: "M", creates: "attach" },
+  { id: "km-no", kind: "contactor", variant: "aux-no", group: "繼電器／接觸器", subgroupId: "Contactors", label: "Cont. Aux NO 13-14", labelEn: "Cont. Aux NO 13-14", prefix: "M", creates: "attach", defaultRot: 0 },
+  { id: "km-nc", kind: "contactor", variant: "aux-nc", group: "繼電器／接觸器", subgroupId: "Contactors", label: "Cont. Aux NC 21-22", labelEn: "Cont. Aux NC 21-22", prefix: "M", creates: "attach", defaultRot: 0 },
+  { id: "km-no2", kind: "contactor", variant: "aux-no2", group: "繼電器／接觸器", subgroupId: "Contactors", label: "Cont. Aux NO 43-44", labelEn: "Cont. Aux NO 43-44", prefix: "M", creates: "attach", defaultRot: 0 },
+  { id: "km-nc2", kind: "contactor", variant: "aux-nc2", group: "繼電器／接觸器", subgroupId: "Contactors", label: "Cont. Aux NC 31-32", labelEn: "Cont. Aux NC 31-32", prefix: "M", creates: "attach", defaultRot: 0 },
+  { id: "ka-coil", kind: "relay", variant: "coil", group: "繼電器／接觸器", subgroupId: "Control_Relays", label: "Relay Coil", labelEn: "Relay Coil", prefix: "CR", creates: "device" },
+  { id: "ka-no", kind: "relay", variant: "aux-no", group: "繼電器／接觸器", subgroupId: "Control_Relays", label: "Relay Aux NO 13-14", labelEn: "Relay Aux NO 13-14", prefix: "CR", creates: "attach", defaultRot: 0 },
+  { id: "ka-nc", kind: "relay", variant: "aux-nc", group: "繼電器／接觸器", subgroupId: "Control_Relays", label: "Relay Aux NC 21-22", labelEn: "Relay Aux NC 21-22", prefix: "CR", creates: "attach", defaultRot: 0 },
+  { id: "ka-no2", kind: "relay", variant: "aux-no2", group: "繼電器／接觸器", subgroupId: "Control_Relays", label: "Relay Aux NO 43-44", labelEn: "Relay Aux NO 43-44", prefix: "CR", creates: "attach", defaultRot: 0 },
+  { id: "ka-nc2", kind: "relay", variant: "aux-nc2", group: "繼電器／接觸器", subgroupId: "Control_Relays", label: "Relay Aux NC 31-32", labelEn: "Relay Aux NC 31-32", prefix: "CR", creates: "attach", defaultRot: 0 },
 
   { id: "timer-on", kind: "timer-on", variant: "coil", group: "計時與計數", subgroupId: "Pneumatic_TON", label: "通電延時線圈", labelEn: "Timer ON Coil", prefix: "TR", creates: "device" },
   { id: "timer-on-nc", kind: "timer-on", variant: "delayed-nc", group: "計時與計數", subgroupId: "Pneumatic_TON", label: "常閉延時斷開 NC 15-16", labelEn: "TON NC (Timed Open) 15-16", prefix: "TR", creates: "attach", defaultRot: 0 },
@@ -1049,12 +1409,18 @@ export const CATALOG: CatalogItem[] = [
   { id: "fan", kind: "fan", variant: "body", group: "指示與負載", subgroupId: "Loads", label: "風扇", labelEn: "Fan", prefix: "FAN", creates: "device" },
   { id: "heater", kind: "heater", variant: "body", group: "指示與負載", subgroupId: "Loads", label: "電熱器", labelEn: "Heater", prefix: "HTR", creates: "device" },
   { id: "solenoid", kind: "solenoid", variant: "body", group: "指示與負載", subgroupId: "Loads", label: "電磁閥", labelEn: "Solenoid", prefix: "SOL", creates: "device" },
+  { id: "capacitor", kind: "capacitor", variant: "body", group: "指示與負載", subgroupId: "Loads", label: "電容器", labelEn: "Capacitor", prefix: "C", creates: "device" },
 
   { id: "motor-3ph", kind: "motor-3ph", variant: "body", group: "電機", subgroupId: "Motors", label: "三相電機", labelEn: "Motor 3Φ", prefix: "MTR", creates: "device" },
   { id: "motor-1ph", kind: "motor-1ph", variant: "body", group: "電機", subgroupId: "Motors", label: "單相電機", labelEn: "Motor 1Φ", prefix: "MTR", creates: "device" },
+  { id: "motor-dc", kind: "motor-dc", variant: "body", group: "電機", subgroupId: "Motors", label: "直流電機", labelEn: "Motor DC", prefix: "MTR", creates: "device" },
+  { id: "gen-ac", kind: "gen-ac", variant: "body", group: "電機", subgroupId: "Motors", label: "交流發電機", labelEn: "Generator AC", prefix: "GEN", creates: "device" },
+  { id: "gen-dc", kind: "gen-dc", variant: "body", group: "電機", subgroupId: "Motors", label: "直流發電機", labelEn: "Generator DC", prefix: "GEN", creates: "device" },
 
   { id: "voltmeter", kind: "voltmeter", variant: "body", group: "儀表與測量", subgroupId: "Meters", label: "電壓表", labelEn: "Voltmeter", prefix: "VM", creates: "device" },
   { id: "ammeter", kind: "ammeter", variant: "body", group: "儀表與測量", subgroupId: "Meters", label: "鉗形電流表", labelEn: "Clamp Meter", prefix: "AM", creates: "device" },
+  { id: "ammeter-series", kind: "ammeter-series", variant: "body", group: "儀表與測量", subgroupId: "Meters", label: "串聯電流表", labelEn: "Ammeter", prefix: "AM", creates: "device" },
+  { id: "ct", kind: "ct", variant: "body", group: "儀表與測量", subgroupId: "Meters", label: "電流互感器", labelEn: "CT", prefix: "CT", creates: "device" },
 
   { id: "title-block", kind: "title-block", variant: "body", group: "圖紙標註", subgroupId: "Annotations", label: "圖紙標題欄", labelEn: "Title Block", prefix: "TB", creates: "device" },
   { id: "comment", kind: "comment", variant: "body", group: "圖紙標註", subgroupId: "Annotations", label: "註釋文字框", labelEn: "Comment Box", prefix: "REM", creates: "device" },
@@ -1143,7 +1509,7 @@ export const GROUPS: readonly CatalogGroup[] = [
     label: "電機",
     labelEn: "Motors",
     subgroups: [
-      { id: "Motors", groupId: "Motor_Generator", label: "交流電機", labelEn: "AC Motors" },
+      { id: "Motors", groupId: "Motor_Generator", label: "電機與驅動", labelEn: "Motors & Drives" },
     ],
   },
   {
@@ -1168,7 +1534,8 @@ export function resolvedVariant(
   variant: string,
   params?: DeviceParams,
 ): VariantDef {
-  if (kind === "net-terminal") return netTerminalDef(params?.pinCount);
+  if (kind === "net-terminal" || kind === "term-block") return kind === "term-block" ? termBlockDef(params?.pinCount) : netTerminalDef(params?.pinCount);
+  if (kind === "busbar") return busbarDef(params?.pinCount);
   return variantDef(kind, variant);
 }
 

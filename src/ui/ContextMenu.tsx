@@ -270,7 +270,7 @@ export function ContextMenu({
                       {sym.hideTerminals ? t("ctx.showTerminals") : t("ctx.hideTerminals")}
                     </button>
                   )}
-                  {dev.kind === "net-terminal" && (() => {
+                  {(dev.kind === "net-terminal" || dev.kind === "term-block" || dev.kind === "busbar") && (() => {
                     const n = clampPinCount(dev.params.pinCount);
                     return (
                       <>

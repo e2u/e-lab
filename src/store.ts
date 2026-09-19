@@ -462,7 +462,7 @@ export function applyNetTerminalPinCount(
   n: number,
 ): { dropped: number; changed: boolean } {
   const d = circuit.devices.find((x) => x.id === deviceId);
-  if (!d || d.kind !== "net-terminal") return { dropped: 0, changed: false };
+  if (!d || (d.kind !== "net-terminal" && d.kind !== "term-block" && d.kind !== "busbar")) return { dropped: 0, changed: false };
   if (!d.params) d.params = {};
   const nextN = clampPinCount(n);
   const current = clampPinCount(d.params.pinCount);
@@ -628,7 +628,7 @@ export const useLab = create<LabState>((set, get) => ({
     const currentTimeSec = Math.round((nextTimeMs / 1000) * 10) / 10;
     let hasMeters = false;
     for (const d of s.circuit.devices) {
-      if (d.kind === "voltmeter" || d.kind === "ammeter") {
+      if (d.kind === "voltmeter" || d.kind === "ammeter" || d.kind === "ammeter-series") {
         hasMeters = true;
         const val = snap.runtime[d.id]?.meterValue ?? 0;
         const prev = nextHistory[d.id] ?? [];
@@ -1005,7 +1005,7 @@ export const useLab = create<LabState>((set, get) => ({
           ? { delayMs: 2000 }
           : item.kind === "counter"
             ? { preset: 5 }
-            : item.kind === "float"
+            : item.kind === "float" || item.kind === "float-no" || item.kind === "float-nc"
               ? { setpoint: 50 }
             : item.kind === "temp-no" || item.kind === "temp-nc"
               ? { setpoint: 140 }
@@ -1017,6 +1017,8 @@ export const useLab = create<LabState>((set, get) => ({
                     ? { primaryVoltage: 480, secondaryVoltage: 120, ratio: "480/120" }
                     : item.kind === "mains-3ph"
                       ? { supplyType: item.variant === "delta" ? "delta" : "wye", voltage: 480, maxCurrent: 400 }
+                      : item.kind === "dc-supply" || item.kind === "psu-24v"
+                        ? { voltage: 24 }
                       : item.kind === "motor-3ph" ||
                         item.kind === "starter-dol" ||
                         item.kind === "starter-fwd" ||
@@ -1558,7 +1560,7 @@ export const useLab = create<LabState>((set, get) => ({
   cyclePosition: (deviceId) => {
     const dev = get().circuit.devices.find((d) => d.id === deviceId);
     if (!dev) return;
-    const max = dev.kind === "selector-3" ? 3 : 2;
+    const max = dev.kind === "selector-3" || dev.kind === "selector-hoa" || dev.kind === "selector-key" ? 3 : 2;
     const runtime = { ...get().snapshot.runtime };
     const rt = { ...(runtime[deviceId] ?? emptySnapshot(get().circuit).runtime[deviceId]) };
     rt.position = (rt.position + 1) % max;
@@ -1575,7 +1577,7 @@ export const useLab = create<LabState>((set, get) => ({
     let pinCountChanged = false;
     if (patch.params) {
       const { pinCount, ...restParams } = patch.params;
-      if (pinCount !== undefined && d.kind === "net-terminal") {
+      if (pinCount !== undefined && (d.kind === "net-terminal" || d.kind === "term-block" || d.kind === "busbar")) {
         applyNetTerminalPinCount(next, deviceId, pinCount);
         pinCountChanged = true;
       }
@@ -2682,7 +2684,7 @@ export const useLab = create<LabState>((set, get) => ({
 
   setNetTerminalPinCount: (deviceId, n) => {
     const cur = get().circuit.devices.find((d) => d.id === deviceId);
-    if (!cur || cur.kind !== "net-terminal") return;
+    if (!cur || (cur.kind !== "net-terminal" && cur.kind !== "term-block" && cur.kind !== "busbar")) return;
     const nextN = clampPinCount(n);
     const current = clampPinCount(cur.params?.pinCount);
     if (nextN === current && cur.params?.scale === undefined) return;

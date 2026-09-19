@@ -28,6 +28,7 @@ function hvBridgeTerminals(kind: string, variant: string, termIds: string[]): st
       return termIds.filter((id) => id === "H1" || id === "H2" || id === "H3" || id === "H4");
     case "isolator":
     case "breaker-1p":
+    case "breaker-2p":
     case "breaker-3p":
     case "rcd":
     case "fuse":
@@ -36,7 +37,13 @@ function hvBridgeTerminals(kind: string, variant: string, termIds: string[]): st
     case "motor-dc":
     case "heater":
     case "fan":
+    case "vfd":
+    case "capacitor":
       return termIds;
+    case "phase-relay":
+    case "relay-uv":
+    case "relay-ov":
+      return termIds.filter((id) => id === "L1" || id === "L2" || id === "L3");
     case "overload":
       return variant === "body" || variant === "main" ? termIds : [];
     case "contactor":
@@ -279,6 +286,8 @@ function isControlSeriesDevice(kind: string, variant: string): boolean {
     case "foot-no":
     case "foot-nc":
     case "float":
+    case "float-no":
+    case "float-nc":
     case "temp-no":
     case "temp-nc":
     case "pressure-no":

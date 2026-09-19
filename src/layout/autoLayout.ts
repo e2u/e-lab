@@ -199,7 +199,7 @@ export function autoLayoutCircuit(
       k.startsWith("temp-") ||
       k.startsWith("pressure-") ||
       k.startsWith("flow-") ||
-      k === "float" ||
+      k.startsWith("float") ||
       k === "prox" ||
       k === "photo"
     ) {

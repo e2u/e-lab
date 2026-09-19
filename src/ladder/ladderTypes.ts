@@ -17,6 +17,7 @@ export type LadderContactType =
   | "pressure-no"  // Pressure Switch NO
   | "pressure-nc"  // Pressure Switch NC
   | "float"        // Float / Liquid Level Switch NO
+  | "float-no"     // Float / Liquid Level Switch NO
   | "float-nc"     // Float / Liquid Level Switch NC
   | "flow-no"      // Flow Switch NO
   | "flow-nc"      // Flow Switch NC

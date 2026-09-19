@@ -52,6 +52,8 @@ export function LadderContactGlyph({
       device.kind === "flow-no" ||
       device.kind === "flow-nc" ||
       device.kind === "float" ||
+      device.kind === "float-no" ||
+      device.kind === "float-nc" ||
       device.kind === "breaker-1p" ||
       device.kind === "breaker-3p" ||
       device.kind === "isolator" ||
@@ -75,7 +77,7 @@ export function LadderContactGlyph({
   const isLimit = contactType === "limit-no" || contactType === "limit-nc";
   const isToggle = contactType === "toggle" || contactType === "selector";
   const isPressure = contactType === "pressure-no" || contactType === "pressure-nc";
-  const isLevel = contactType === "float" || contactType === "float-nc";
+  const isLevel = contactType === "float" || contactType === "float-no" || contactType === "float-nc";
   const isTemp = contactType === "temp-no" || contactType === "temp-nc";
   const isFlow = contactType === "flow-no" || contactType === "flow-nc";
   const isFoot = contactType === "foot-no" || contactType === "foot-nc";
@@ -307,7 +309,7 @@ export function LadderContactGlyph({
 
   // 4. Level / Liquid Switch (Float Switch with Circular Ball)
   const renderLevelSwitch = () => {
-    const isNo = contactType === "float";
+    const isNo = contactType === "float" || contactType === "float-no";
     const isActuated = isClosed;
     const bridgeY = isClosed ? y - 3.5 : (isNo ? y - 9 : y - 3.5);
     const activeColor = isClosed && isRungLive ? "#10b981" : isClosed ? "#3b82f6" : barColor;

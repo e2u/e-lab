@@ -100,6 +100,23 @@ describe("Meters & Historical Curves", () => {
       expect(computeVoltage(pots220A, pots220B, circuit)).toBe(220);
     });
 
+    it("uses dc-supply and switching PSU voltage instead of a fixed 24V", () => {
+      const circuit: Circuit = {
+        devices: [
+          { id: "dc1", kind: "dc-supply", tag: "PWS1", params: { voltage: 12 } },
+          { id: "ps1", kind: "psu-24v", tag: "PS1", params: { voltage: 48 } },
+          { id: "dc2", kind: "dc-supply", tag: "PWS2", params: {} },
+        ],
+        symbols: [],
+        wires: [],
+      };
+      const plus = (id: string): Potential[] => [{ kind: "DC+", sourceId: id }];
+      const minus = (id: string): Potential[] => [{ kind: "DC-", sourceId: id }];
+      expect(computeVoltage(plus("dc1"), minus("dc1"), circuit)).toBe(12);
+      expect(computeVoltage(plus("ps1"), minus("ps1"), circuit)).toBe(48);
+      expect(computeVoltage(plus("dc2"), minus("dc2"), circuit)).toBe(24);
+    });
+
     it("should simulate a live voltmeter in a circuit", () => {
       const circuit: Circuit = {
         devices: [

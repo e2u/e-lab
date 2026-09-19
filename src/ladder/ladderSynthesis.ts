@@ -9,7 +9,8 @@ function findNextControlColumn(circuit: Circuit): { x: number; y: number } {
   const controlKinds = new Set<DeviceKind>([
     "contactor", "relay", "timer-on", "timer-off", "timer-ss-on", "timer-ss-off", "lamp",
     "pb-no", "pb-nc", "estop", "toggle", "limit-no", "limit-nc",
-    "temp-no", "temp-nc", "pressure-no", "pressure-nc", "float",
+    "temp-no", "temp-nc", "pressure-no", "pressure-nc", "float", "float-no", "float-nc",
+    "flow-no", "flow-nc",
     "solenoid", "heater", "alarm", "horn", "fan"
   ]);
 

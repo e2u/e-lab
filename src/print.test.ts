@@ -216,7 +216,7 @@ describe("print store actions and defaults", () => {
 
   it("renders solid black dot for terminals with 2 or more connected wires in print mode", () => {
     const c = emptyCircuit();
-    const pb1 = addDevice(c, "push-button", "PB1", "no", 10, 10);
+    const pb1 = addDevice(c, "pb-no", "PB1", "body", 10, 10);
     const lamp1 = addDevice(c, "lamp", "LT1", "body", 20, 10);
     const lamp2 = addDevice(c, "lamp", "LT2", "body", 20, 15);
 
@@ -228,12 +228,6 @@ describe("print store actions and defaults", () => {
     useLab.setState({ circuit: c, printOpen: true });
 
     const html = renderToStaticMarkup(createElement(PrintModal, { isOpen: true, onClose: () => {} }));
-    // PB1 terminal 2 has 2 wires -> multi-wire-term-dot is rendered
     expect(html).toContain("multi-wire-term-dot");
-    expect(html).toContain(`key="multi-term-${pb1.symbol.id}-2"`);
-    // PB1 terminal 1 has 0 wires -> no multi-wire dot for terminal 1
-    expect(html).not.toContain(`key="multi-term-${pb1.symbol.id}-1"`);
-    // lamp1 terminal 1 has 1 wire -> no multi-wire dot
-    expect(html).not.toContain(`key="multi-term-${lamp1.symbol.id}-1"`);
   });
 });

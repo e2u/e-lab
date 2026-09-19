@@ -67,10 +67,26 @@ describe("catalog labels", () => {
     expect(kmCoil.map((t) => t.label)).toEqual(["A1", "A2"]);
 
     const m3 = KINDS["motor-3ph"].variants.body.terminals;
-    expect(m3.map((t) => t.label)).toEqual(["U", "V", "W"]);
+    expect(m3.map((t) => t.label)).toEqual(["U", "V", "W", "PE"]);
 
     const m1 = KINDS["motor-1ph"].variants.body.terminals;
-    expect(m1.map((t) => t.label)).toEqual(["U1", "U2"]);
+    expect(m1.map((t) => t.label)).toEqual(["U1", "U2", "Z1", "Z2"]);
+
+    const kps = KINDS["phase-relay"].variants.body.terminals;
+    expect(kps.map((t) => `${t.id}:${t.label}@${t.x},${t.y}`)).toEqual([
+      "L1:L1@0,2",
+      "L2:L2@0,4",
+      "L3:L3@0,6",
+      "12:NC@6,2",
+      "11:COM@6,4",
+      "14:NO@6,6",
+    ]);
+
+    const psu = KINDS["psu-24v"].variants.body;
+    expect(psu.w).toBe(6);
+    expect(psu.h).toBe(6);
+    expect(psu.terminals.map((t) => t.id)).toEqual(["L", "N", "PE", "+", "-"]);
+    expect(psu.terminals.map((t) => t.label)).toEqual(["L", "N", "PE", "+", "0V"]);
   });
   it("maps selector and net-label ids to real translation keys", () => {
     expect(catalogCompKey("selector-2")).toBe("comp.selector2");
@@ -97,9 +113,6 @@ describe("catalog labels", () => {
     const ids = new Set(CATALOG.map((c) => c.id));
     for (const extra of [
       "rcd",
-      "motor-dc",
-      "gen-ac",
-      "gen-dc",
       "starter-dol",
       "starter-fwd",
       "starter-rev",

@@ -50,12 +50,20 @@ export function hasGlyphTag(kind: string, variant: string): boolean {
     kind === "title-block" ||
     kind === "comment" ||
     kind === "counter" ||
+    kind === "vfd" ||
+    kind === "psu-24v" ||
+    kind === "safety-relay" ||
+    kind === "phase-relay" ||
+    kind === "relay-uv" ||
+    kind === "relay-ov" ||
+    kind === "ptc" ||
+    kind === "busbar" ||
     kind.startsWith("starter")
   ) {
     return true;
   }
   if (
-    (kind === "timer-on" || kind === "timer-off" || kind === "timer-ss-on" || kind === "timer-ss-off") &&
+    (kind === "timer-on" || kind === "timer-off" || kind === "timer-ss-on" || kind === "timer-ss-off" || kind === "timer-flash" || kind === "timer-pulse" || kind === "timer-star-delta") &&
     variant === "coil"
   ) {
     return true;

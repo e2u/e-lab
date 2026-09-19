@@ -935,6 +935,55 @@ describe("sim engine", () => {
     expect(snap.runtime[hlR.device.id].lit).toBe(true);
   });
 
+  it("HOA Hand and Auto are independent NO contacts and do not short L1 to L2", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "wye", 0, 0);
+    const hoa = addDevice(c, "selector-hoa", "SS1", "body", 6, 0);
+    const hand = addDevice(c, "lamp", "LT1", "body", 16, 0);
+    const auto = addDevice(c, "lamp", "LT2", "body", 16, 6);
+    addWire(c, g.symbol, "L1", hoa.symbol, "COM");
+    addWire(c, g.symbol, "L2", hoa.symbol, "COM2");
+    addWire(c, hoa.symbol, "H", hand.symbol, "1");
+    addWire(c, hoa.symbol, "A", auto.symbol, "1");
+    addWire(c, hand.symbol, "2", g.symbol, "N");
+    addWire(c, auto.symbol, "2", g.symbol, "N");
+
+    const rt = createRuntime(c);
+    rt[hoa.device.id].position = 0;
+    let snap = tick(c, rt, { held: new Set(), process }, 50, 50);
+    expect(snap.faults.some((f) => f.msgKey === "fault.shortCircuit")).toBe(false);
+    expect(snap.runtime[hand.device.id].lit).toBe(true);
+    expect(snap.runtime[auto.device.id].lit).toBe(false);
+
+    rt[hoa.device.id].position = 1;
+    snap = tick(c, rt, { held: new Set(), process }, 50, 100);
+    expect(snap.faults.some((f) => f.msgKey === "fault.shortCircuit")).toBe(false);
+    expect(snap.runtime[hand.device.id].lit).toBe(false);
+    expect(snap.runtime[auto.device.id].lit).toBe(false);
+
+    rt[hoa.device.id].position = 2;
+    snap = tick(c, rt, { held: new Set(), process }, 50, 150);
+    expect(snap.faults.some((f) => f.msgKey === "fault.shortCircuit")).toBe(false);
+    expect(snap.runtime[hand.device.id].lit).toBe(false);
+    expect(snap.runtime[auto.device.id].lit).toBe(true);
+  });
+
+  it("lights a lamp from L1 to PE through HOA Hand", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "wye", 0, 0);
+    const hoa = addDevice(c, "selector-hoa", "SS1", "body", 6, 0);
+    const lamp = addDevice(c, "lamp", "LT1", "body", 16, 0);
+    addWire(c, g.symbol, "L1", hoa.symbol, "COM");
+    addWire(c, hoa.symbol, "COM", hoa.symbol, "COM2");
+    addWire(c, hoa.symbol, "H", lamp.symbol, "1");
+    addWire(c, lamp.symbol, "2", g.symbol, "PE");
+    const rt = createRuntime(c);
+    rt[hoa.device.id].position = 0;
+    const snap = tick(c, rt, { held: new Set(), process }, 50, 50);
+    expect(snap.faults.some((f) => f.msgKey === "fault.shortCircuit")).toBe(false);
+    expect(snap.runtime[lamp.device.id].lit).toBe(true);
+  });
+
   it("connects distant halves through matching net labels", () => {
     const c = emptyCircuit();
     const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);

@@ -47,13 +47,16 @@ export function Bench() {
       d.kind === "horn" ||
       d.kind === "voltmeter" ||
       d.kind === "ammeter" ||
+      d.kind === "ammeter-series" ||
       d.kind === "selector-2" ||
       d.kind === "selector-3" ||
+      d.kind === "selector-hoa" ||
+      d.kind === "selector-key" ||
       d.kind === "toggle" ||
       d.kind.startsWith("toggle-") ||
       d.kind.startsWith("limit") ||
       d.kind.startsWith("foot") ||
-      d.kind === "float" ||
+      d.kind.startsWith("float") ||
       d.kind.startsWith("temp-") ||
       d.kind.startsWith("pressure-") ||
       d.kind.startsWith("flow-") ||
@@ -271,7 +274,7 @@ export function Bench() {
             }
 
             // Voltmeters & Clamp Ammeters
-            if (d.kind === "voltmeter" || d.kind === "ammeter") {
+            if (d.kind === "voltmeter" || d.kind === "ammeter" || d.kind === "ammeter-series") {
               const isV = d.kind === "voltmeter";
               const val = rt.meterValue ?? 0;
               const text = isV ? `${val.toFixed(1)} V` : `${val.toFixed(2)} A`;
@@ -297,7 +300,7 @@ export function Bench() {
             }
 
             // Float Switches
-            if (d.kind === "float") {
+            if (d.kind.startsWith("float")) {
               const sp = d.params.setpoint ?? 50;
               const isAct = Boolean(rt.actuated);
               return (

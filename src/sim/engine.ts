@@ -94,10 +94,12 @@ export function directTerminalPotential(circuit: Circuit, port: PortRef): Potent
 export function defaultRuntime(kind: DeviceKind): DeviceRuntime {
   const closedHandle =
     kind === "breaker-1p" ||
+    kind === "breaker-2p" ||
     kind === "breaker-3p" ||
     kind === "isolator" ||
     kind === "rcd" ||
     kind === "dc-supply" ||
+    kind === "psu-24v" ||
     kind === "fuse";
   return {
     energized: false,
@@ -117,7 +119,7 @@ export function defaultRuntime(kind: DeviceKind): DeviceRuntime {
     starDelta: null,
     short: false,
     meterValue: 0,
-    meterUnit: kind === "ammeter" ? "A" : "V",
+    meterUnit: kind === "ammeter" || kind === "ammeter-series" ? "A" : "V",
   };
 }
 
@@ -273,7 +275,7 @@ function seedElectricalNodes(circuit: Circuit, uf: UnionFind): void {
   }
   for (const s of circuit.symbols) {
     const d = circuit.devices.find((x) => x.id === s.deviceId);
-    if (!d || d.kind !== "net-terminal") continue;
+    if (!d || (d.kind !== "net-terminal" && d.kind !== "term-block" && d.kind !== "busbar")) continue;
     for (const t of resolvedVariant(d.kind, s.variant, d.params).terminals) {
       uf.add(nk(d.id, t.id));
     }
@@ -284,9 +286,17 @@ function seedElectricalNodes(circuit: Circuit, uf: UnionFind): void {
 function linkNamedNets(circuit: Circuit, link: (a: string, b: string) => void): void {
   for (const s of circuit.symbols) {
     const d = circuit.devices.find((x) => x.id === s.deviceId);
-    if (!d || d.kind !== "net-terminal") continue;
+    if (!d) continue;
     const ids = resolvedVariant(d.kind, s.variant, d.params).terminals.map((t) => t.id);
-    for (let i = 1; i < ids.length; i += 1) link(nk(d.id, ids[0]), nk(d.id, ids[i]));
+    if (d.kind === "net-terminal" || d.kind === "busbar") {
+      for (let i = 1; i < ids.length; i += 1) link(nk(d.id, ids[0]), nk(d.id, ids[i]));
+    } else if (d.kind === "term-block") {
+      for (let i = 1; i + 1 <= ids.length; i += 2) {
+        const a = ids.find((id) => id === String(i));
+        const b = ids.find((id) => id === String(i + 1));
+        if (a && b) link(nk(d.id, a), nk(d.id, b));
+      }
+    }
   }
   const groups = new Map<string, string[]>();
   for (const d of circuit.devices) {
@@ -332,6 +342,12 @@ function voltageBetween(a: Potential | null, b: Potential | null): boolean {
   if (a.kind === b.kind) return false;
   const ac: PotentialKind[] = ["L1", "L2", "L3", "N"];
   if (ac.includes(a.kind) && ac.includes(b.kind)) return true;
+  if (
+    (isHotKind(a.kind) && b.kind === "PE") ||
+    (a.kind === "PE" && isHotKind(b.kind))
+  ) {
+    return true;
+  }
   if (
     (a.kind === "DC+" && b.kind === "DC-") ||
     (a.kind === "DC-" && b.kind === "DC+") ||
@@ -409,12 +425,13 @@ export function computeVoltage(
           }
           return lineToPhase(baseV);
         }
-        // DC+ to DC- (24V)
+        // DC+ to DC- (supply voltage, default 24V)
         if (
           (pa.kind === "DC+" && pb.kind === "DC-") ||
           (pa.kind === "DC-" && pb.kind === "DC+")
         ) {
-          return 24;
+          const v = srcDev?.params?.voltage;
+          return typeof v === "number" && v > 0 ? v : 24;
         }
         // Transformer secondary X1 / X2
         if (
@@ -535,7 +552,10 @@ function isPerSymbolContact(kind: DeviceKind, variant: string): boolean {
       kind === "timer-on" ||
       kind === "timer-off" ||
       kind === "timer-ss-on" ||
-      kind === "timer-ss-off"
+      kind === "timer-ss-off" ||
+      kind === "timer-flash" ||
+      kind === "timer-pulse" ||
+      kind === "timer-star-delta"
     );
   }
   return false;
@@ -687,6 +707,8 @@ function isMomentary(kind: DeviceKind): boolean {
   return (
     kind === "pb-no" ||
     kind === "pb-nc" ||
+    kind === "pb-illum-no" ||
+    kind === "pb-illum-nc" ||
     kind === "foot" ||
     kind === "foot-no" ||
     kind === "foot-nc"
@@ -700,6 +722,8 @@ function sensorActuated(device: Device, process: ProcessVars): boolean {
     case "limit-nc":
       return process.limitHit;
     case "float":
+    case "float-no":
+    case "float-nc":
       return process.level >= (set ?? 50);
     case "temp-no":
     case "temp-nc":
@@ -732,9 +756,13 @@ function isNc(kind: DeviceKind): boolean {
     kind === "temp-nc" ||
     kind === "pressure-nc" ||
     kind === "flow-nc" ||
+    kind === "float-nc" ||
     kind === "foot-nc" ||
     kind === "prox-nc" ||
-    kind === "photo-nc"
+    kind === "photo-nc" ||
+    kind === "pb-illum-nc" ||
+    kind === "door-nc" ||
+    kind === "pull-cord"
   );
 }
 
@@ -764,6 +792,10 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
   switch (kind) {
     case "pb-no":
     case "pb-nc":
+    case "pb-illum-no":
+    case "pb-illum-nc":
+    case "door-nc":
+    case "pull-cord":
     case "foot-no":
     case "foot-nc":
     case "limit-no":
@@ -774,6 +806,8 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
     case "pressure-nc":
     case "flow-no":
     case "flow-nc":
+    case "float-no":
+    case "float-nc":
     case "prox":
     case "prox-no":
     case "prox-nc":
@@ -800,7 +834,8 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
       else out.push(["3", "4"]);
       break;
     case "float":
-      if (rt.actuated) out.push(["1", "2"]);
+      if (rt.actuated) out.push(["1", "2"], ["COM", "NO"]);
+      else out.push(["1", "3"], ["COM", "NC"]);
       break;
     case "toggle-spst":
       if (rt.actuated) out.push(["1", "2"]);
@@ -823,6 +858,14 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
       if (rt.position === 0) out.push(["1", "2"]);
       if (rt.position === 1) out.push(["3", "4"]);
       break;
+    case "selector-key":
+      if (rt.position === 0) out.push(["1", "2"]);
+      if (rt.position === 2) out.push(["3", "4"]);
+      break;
+    case "selector-hoa":
+      if (rt.position === 0) out.push(["COM", "H"]);
+      if (rt.position === 2) out.push(["COM2", "A"]);
+      break;
     case "selector-3":
       if (rt.position === 1) {
         out.push(["COM", "FWD"]);
@@ -835,6 +878,9 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
       break;
     case "breaker-1p":
       if (on) out.push(["1", "2"]);
+      break;
+    case "breaker-2p":
+      if (on) out.push(["1", "2"], ["3", "4"]);
       break;
     case "fuse": {
       // Single pole fuse (body) or multi-pole fuses (body2, body3)
@@ -889,15 +935,53 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
       }
       break;
     case "relay":
-      if (e) out.push(["1", "2"], ["5", "6"]);
-      else out.push(["3", "4"], ["7", "8"]);
+      if (e) out.push(["1", "2"], ["5", "6"], ["13", "14"], ["43", "44"]);
+      else out.push(["3", "4"], ["7", "8"], ["21", "22"], ["31", "32"]);
+      break;
+    case "ssr":
+      if (e) out.push(["1", "2"]);
+      break;
+    case "safety-relay":
+      if (e) out.push(["13", "14"]);
+      break;
+    case "phase-relay":
+      if (e) out.push(["11", "14"]);
+      else out.push(["11", "12"]);
+      break;
+    case "relay-uv":
+      if (e) out.push(["11", "14"]);
+      else out.push(["11", "12"]);
+      break;
+    case "relay-ov":
+      if (trip) out.push(["11", "14"]);
+      else out.push(["11", "12"]);
+      break;
+    case "ptc":
+      if (e && !trip) out.push(["95", "96"]);
+      else out.push(["97", "98"]);
+      break;
+    case "capacitor":
+    case "ct":
+      out.push(["1", "2"], ["P1", "P2"]);
+      break;
+    case "vfd":
+      if (e) add3(out);
+      break;
+    case "ammeter-series":
+      out.push(["1", "2"]);
       break;
     case "timer-on":
     case "timer-off":
+    case "timer-flash":
+    case "timer-pulse":
       if (rt.done) out.push(["15", "18"]);
       else out.push(["15", "16"]);
       if (rt.energized) out.push(["21", "24"]);
       else out.push(["21", "22"]);
+      break;
+    case "timer-star-delta":
+      if (rt.energized && !rt.done) out.push(["17", "18"]);
+      if (rt.done) out.push(["17", "28"]);
       break;
     case "timer-ss-on":
       if (rt.done) out.push(["1", "3"], ["8", "6"]);
@@ -946,8 +1030,14 @@ function coilTerms(kind: DeviceKind): [string, string][] {
   switch (kind) {
     case "contactor":
     case "relay":
+    case "ssr":
+    case "safety-relay":
+    case "ptc":
     case "timer-on":
     case "timer-off":
+    case "timer-flash":
+    case "timer-pulse":
+    case "timer-star-delta":
     case "solenoid":
     case "starter-dol":
     case "starter-fwd":
@@ -967,6 +1057,13 @@ function coilTerms(kind: DeviceKind): [string, string][] {
     case "horn":
     case "heater":
       return [["1", "2"]];
+    case "pb-illum-no":
+    case "pb-illum-nc":
+      return [["X1", "X2"]];
+    case "vfd":
+      return [["DI1", "COM"]];
+    case "psu-24v":
+      return [["L", "N"]];
     case "counter":
       return [
         ["A1", "A2"],
@@ -1009,7 +1106,7 @@ export function tick(
       d.kind.startsWith("temp") ||
       d.kind.startsWith("pressure") ||
       d.kind.startsWith("flow") ||
-      d.kind === "float" ||
+      d.kind.startsWith("float") ||
       d.kind === "prox" ||
       d.kind === "photo"
     ) {
@@ -1211,6 +1308,7 @@ export function tick(
     if (d.kind === "dc-supply" && rt.on) {
       stampNode(d.id, "+", { sourceId: d.id, kind: "DC+" });
       stampNode(d.id, "-", { sourceId: d.id, kind: "DC-" });
+      stampNode(d.id, "PE", { sourceId: d.id, kind: "PE" });
     }
     if (d.kind === "gen-ac" && Math.abs(rt.rpm) > 0.25) {
       stampNode(d.id, "U", { sourceId: d.id, kind: "L1" });
@@ -1255,6 +1353,17 @@ export function tick(
           }
         }
       }
+      if (d.kind === "psu-24v") {
+        const live = hasVoltageBetween(nodePots(stamp, uf, nk(d.id, "L")), nodePots(stamp, uf, nk(d.id, "N")));
+        if (live) {
+          const already = nodePots(stamp, uf, nk(d.id, "+")).some((p) => p.sourceId === d.id);
+          if (!already) {
+            stampNode(d.id, "+", { sourceId: d.id, kind: "DC+" });
+            stampNode(d.id, "-", { sourceId: d.id, kind: "DC-" });
+            grew = true;
+          }
+        }
+      }
     }
   }
 
@@ -1286,8 +1395,19 @@ export function tick(
       }
     }
 
-    if (d.kind === "lamp" || d.kind === "alarm" || d.kind === "horn") {
+    if (d.kind === "lamp" || d.kind === "alarm" || d.kind === "horn" || d.kind === "pb-illum-no" || d.kind === "pb-illum-nc") {
       rt.lit = rt.energized;
+    }
+    if (d.kind === "safety-relay" && rt.energized) {
+      const ch1 = uf.find(nk(d.id, "S11")) === uf.find(nk(d.id, "S12"));
+      const ch2 = uf.find(nk(d.id, "S21")) === uf.find(nk(d.id, "S22"));
+      rt.energized = ch1 && ch2;
+    }
+    if (d.kind === "phase-relay" || d.kind === "relay-uv" || d.kind === "relay-ov") {
+      const p1 = nodePots(stamp, uf, nk(d.id, "L1"));
+      const p2 = nodePots(stamp, uf, nk(d.id, "L2"));
+      const p3 = nodePots(stamp, uf, nk(d.id, "L3"));
+      rt.energized = p1.length > 0 && p2.length > 0 && p3.length > 0;
     }
 
     if (isNamedNetKind(d.kind) || d.kind === "junction" || d.kind === "ground") {
@@ -1414,6 +1534,41 @@ export function tick(
     const rt = runtime[d.id];
     const delay = d.params.delayMs ?? 2000;
     const preset = d.params.preset ?? 5;
+
+    if (d.kind === "timer-flash") {
+      if (rt.energized) {
+        rt.elapsedMs += dtMs;
+        const half = Math.max(80, delay / 2);
+        rt.done = Math.floor(rt.elapsedMs / half) % 2 === 1;
+      } else {
+        rt.elapsedMs = 0;
+        rt.done = false;
+      }
+    }
+
+    if (d.kind === "timer-pulse") {
+      if (rt.energized && !rt.prevEnergized) {
+        rt.elapsedMs = 0;
+        rt.done = true;
+      }
+      if (rt.done) {
+        rt.elapsedMs += dtMs;
+        if (rt.elapsedMs >= delay) {
+          rt.done = false;
+        }
+      }
+      if (!rt.energized && !rt.done) rt.elapsedMs = 0;
+    }
+
+    if (d.kind === "timer-star-delta") {
+      if (rt.energized) {
+        rt.elapsedMs = Math.min(delay, rt.elapsedMs + dtMs);
+        rt.done = rt.elapsedMs >= delay;
+      } else {
+        rt.elapsedMs = 0;
+        rt.done = false;
+      }
+    }
 
     if (d.kind === "timer-on" || d.kind === "timer-ss-on") {
       if (rt.energized) {
@@ -1599,6 +1754,23 @@ export function tick(
       rt.meterValue = v;
       rt.meterUnit = "V";
       rt.energized = v > 0;
+    }
+
+    if (d.kind === "ammeter-series") {
+      const root1 = uf.find(nk(d.id, "1"));
+      const root2 = uf.find(nk(d.id, "2"));
+      const shorted = shortRoots.has(root1) || shortRoots.has(root2) || rt.short;
+      rt.meterUnit = "A";
+      if (shorted) {
+        rt.meterValue = 999.9;
+        rt.energized = true;
+      } else if (currentRoots.has(root1) || currentRoots.has(root2)) {
+        rt.meterValue = 1;
+        rt.energized = true;
+      } else {
+        rt.meterValue = 0;
+        rt.energized = false;
+      }
     }
 
     // Evaluate ammeter (Clamp meter or in-line meter)

@@ -812,7 +812,7 @@ export function Inspector() {
           )}
         </>
       )}
-      {(dev.kind === "voltmeter" || dev.kind === "ammeter") && (
+      {(dev.kind === "voltmeter" || dev.kind === "ammeter" || dev.kind === "ammeter-series") && (
         <MeterHistoryChart
           deviceId={dev.id}
           tag={dev.tag}
@@ -896,6 +896,36 @@ export function Inspector() {
           </div>
         </>
       )}
+      {(dev.kind === "dc-supply" || dev.kind === "psu-24v") && (
+        <div className="inspector-field-group">
+          <div className="inspector-field-title">
+            <span>{t("inspector.voltageSetting")} ({dev.params.voltage ?? 24}V)</span>
+          </div>
+          <div className="inspector-preset-row">
+            {[12, 24, 48].map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={`btn ${(dev.params.voltage ?? 24) === v ? "primary" : ""}`}
+                onClick={() => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, voltage: v } })}
+              >
+                {v}V
+              </button>
+            ))}
+          </div>
+          <div className="inspector-slider-row">
+            <input
+              type="number"
+              min="1"
+              max="600"
+              step="1"
+              style={{ width: "100%" }}
+              value={dev.params.voltage ?? 24}
+              onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, voltage: Number(e.target.value) || 24 } })}
+            />
+          </div>
+        </div>
+      )}
       {dev.kind === "ammeter" && (
         <label>
           <span>{t("inspector.clampedWire")}</span>
@@ -936,7 +966,7 @@ export function Inspector() {
           )}
         </label>
       )}
-      {dev.kind === "lamp" && (
+      {(dev.kind === "lamp" || dev.kind === "pb-illum-no" || dev.kind === "pb-illum-nc") && (
         <label>
           {t("inspector.color")}
           <select
@@ -961,10 +991,10 @@ export function Inspector() {
           />
         </label>
       )}
-      {dev.kind === "net-terminal" && (
+      {(dev.kind === "net-terminal" || dev.kind === "term-block" || dev.kind === "busbar") && (
         <NetTerminalPinCount deviceId={dev.id} pinCount={clampPinCount(dev.params.pinCount)} />
       )}
-      {(dev.kind === "timer-on" || dev.kind === "timer-off" || dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off") && (
+      {(dev.kind === "timer-on" || dev.kind === "timer-off" || dev.kind === "timer-ss-on" || dev.kind === "timer-ss-off" || dev.kind === "timer-flash" || dev.kind === "timer-pulse" || dev.kind === "timer-star-delta") && (
         <label>
           {t("inspector.delayMs")}
           <input
@@ -1050,7 +1080,7 @@ export function Inspector() {
           </div>
         </div>
       )}
-      {dev.kind === "float" && (
+      {(dev.kind === "float" || dev.kind === "float-no" || dev.kind === "float-nc") && (
         <>
           <div className="inspector-field-group">
             <div className="inspector-field-title">

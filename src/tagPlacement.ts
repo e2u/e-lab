@@ -107,6 +107,8 @@ export function getSymbolTagPlacement(
     "limit-no",
     "limit-nc",
     "float",
+    "float-no",
+    "float-nc",
     "temp-no",
     "temp-nc",
     "pressure-no",

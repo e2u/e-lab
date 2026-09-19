@@ -5,7 +5,7 @@ import { t } from "../i18n";
 interface MeterHistoryChartProps {
   deviceId: string;
   tag: string;
-  kind: "voltmeter" | "ammeter";
+  kind: "voltmeter" | "ammeter" | "ammeter-series";
   liveValue: number;
   unit: "V" | "A";
   history: MeterDataPoint[];
@@ -81,7 +81,7 @@ export function MeterHistoryChart({
             {tag}
           </span>
           <span className="meter-type-title">
-            {kind === "voltmeter" ? t("meters.voltmeter") : t("meters.ammeter")}
+            {kind === "voltmeter" ? t("meters.voltmeter") : kind === "ammeter-series" ? t("comp.ammeterSeries") : t("meters.ammeter")}
           </span>
         </div>
         <div className="meter-header-right">

@@ -1,6 +1,6 @@
 import type { Device, TerminalDef } from "./types";
 
-export const NAMED_NET_KINDS: ReadonlySet<string> = new Set(["net-label", "net-terminal"]);
+export const NAMED_NET_KINDS: ReadonlySet<string> = new Set(["net-label", "net-terminal", "busbar"]);
 
 export const NET_TERMINAL_MIN_PINS = 2;
 export const NET_TERMINAL_MAX_PINS = 12;
@@ -77,5 +77,28 @@ export function netTerminalDef(pinCount?: number): {
     h: n + 1,
     terminals,
   };
+}
+
+/** Isolated terminal strip: same pin grid as Net Terminal, but each row is its own pair. */
+export function termBlockDef(pinCount?: number): {
+  w: number;
+  h: number;
+  terminals: TerminalDef[];
+} {
+  return netTerminalDef(pinCount);
+}
+
+/** Horizontal bus with `n` downward taps, all internally shorted. */
+export function busbarDef(pinCount?: number): {
+  w: number;
+  h: number;
+  terminals: TerminalDef[];
+} {
+  const n = clampPinCount(pinCount);
+  const terminals: TerminalDef[] = [];
+  for (let i = 1; i <= n; i += 1) {
+    terminals.push({ id: String(i), label: String(i), x: i, y: 2 });
+  }
+  return { w: n + 1, h: 2, terminals };
 }
 

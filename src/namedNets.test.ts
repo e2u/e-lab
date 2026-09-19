@@ -102,4 +102,18 @@ describe("nodeKeysForPort matrix", () => {
       `port:${lamp.symbol.id}:1`,
     ]);
   });
+
+  it("term-block pairs are isolated rows", () => {
+    const c = emptyCircuit();
+    const strip = addDevice(c, "term-block", "X1", "body", 8, 4, { pinCount: 3 });
+    expect(nodeKeysForPort(c, { symbolId: strip.symbol.id, term: "1" })).toEqual([
+      `pair:${strip.device.id}:1`,
+    ]);
+    expect(nodeKeysForPort(c, { symbolId: strip.symbol.id, term: "2" })).toEqual([
+      `pair:${strip.device.id}:1`,
+    ]);
+    expect(nodeKeysForPort(c, { symbolId: strip.symbol.id, term: "3" })).toEqual([
+      `pair:${strip.device.id}:2`,
+    ]);
+  });
 });

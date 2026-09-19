@@ -4,7 +4,7 @@ import { GRID, type Circuit, type Device, type SymbolInst } from "./types";
 export type Pt = { x: number; y: number };
 export type Box = { x: number; y: number; w: number; h: number };
 
-const SKIP_KINDS = new Set(["junction", "net-label", "net-terminal", "title-block"]);
+const SKIP_KINDS = new Set(["junction", "net-label", "net-terminal", "term-block", "busbar", "title-block"]);
 
 /** Same-device / same-tag / comment-target match used by the amber selection highlight. */
 export function devicesAreRelated(selected: Device, other: Device, otherSymbol: SymbolInst): boolean {

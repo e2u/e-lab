@@ -1341,6 +1341,16 @@ export function nodeKeysForPort(circuit: Circuit, ref: PortRef): string[] {
     if (k) keys.push(`net:${k}`);
     return keys;
   }
+  if (dev.kind === "term-block") {
+    const n = Number(ref.term);
+    if (Number.isInteger(n) && n >= 1) return [`pair:${dev.id}:${Math.ceil(n / 2)}`];
+  }
+  if (dev.kind === "busbar") {
+    const keys = [`bus:${dev.id}`];
+    const k = namedNetKey(dev.tag);
+    if (k) keys.push(`net:${k}`);
+    return keys;
+  }
   return [`port:${ref.symbolId}:${ref.term}`];
 }
 
@@ -2343,7 +2353,7 @@ export function ensureNetTerminalSideLabels(
 
   for (const sym of circuit.symbols) {
     const dev = circuit.devices.find((d) => d.id === sym.deviceId);
-    if (dev?.kind !== "net-terminal") continue;
+    if (dev?.kind !== "net-terminal" && dev?.kind !== "term-block") continue;
     const left: string[] = [];
     const right: string[] = [];
     for (const w of circuit.wires) {

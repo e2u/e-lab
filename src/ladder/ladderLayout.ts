@@ -92,6 +92,10 @@ export function isContactClosed(
       return (process.flow ?? 0) >= (device.params.setpoint ?? 10);
     case "flow-nc":
       return (process.flow ?? 0) < (device.params.setpoint ?? 10);
+    case "float-no":
+      return (process.level ?? 0) >= (device.params.setpoint ?? 50);
+    case "float-nc":
+      return (process.level ?? 0) < (device.params.setpoint ?? 50);
     case "float":
       return variant === "nc"
         ? (process.level ?? 0) < (device.params.setpoint ?? 50)
@@ -153,6 +157,10 @@ function getContactType(kind: DeviceKind, variant?: string): LadderContactType {
       return "flow-no";
     case "flow-nc":
       return "flow-nc";
+    case "float-no":
+      return "float-no";
+    case "float-nc":
+      return "float-nc";
     case "float":
       return variant === "nc" ? "float-nc" : "float";
     case "foot-no":
@@ -857,6 +865,8 @@ export function buildLadderDiagram(
       dev.kind === "flow-no" ||
       dev.kind === "flow-nc" ||
       dev.kind === "float" ||
+      dev.kind === "float-no" ||
+      dev.kind === "float-nc" ||
       dev.kind.startsWith("prox") ||
       dev.kind.startsWith("photo") ||
       dev.kind === "toggle" ||
@@ -896,6 +906,8 @@ export function buildLadderDiagram(
         dev.kind === "flow-no" ||
         dev.kind === "flow-nc" ||
         dev.kind === "float" ||
+        dev.kind === "float-no" ||
+        dev.kind === "float-nc" ||
         dev.kind === "overload" ||
         dev.kind === "toggle" ||
         dev.kind.startsWith("toggle-") ||
@@ -1046,11 +1058,17 @@ export function buildLadderDiagram(
   for (const s of allSymbols) {
     const d = symToDev.get(s.id);
     if (!d || !isNamedNetKind(d.kind)) continue;
-    if (d.kind === "net-terminal") {
+    if (d.kind === "net-terminal" || d.kind === "busbar") {
       const ids = resolvedVariant(d.kind, s.variant, d.params).terminals.map((t) => t.id);
       for (let i = 1; i < ids.length; i += 1) {
         unionNode(`${d.id}:${ids[0]}`, `${d.id}:${ids[i]}`);
         unionNode(`${s.id}:${ids[0]}`, `${s.id}:${ids[i]}`);
+      }
+    } else if (d.kind === "term-block") {
+      const ids = resolvedVariant(d.kind, s.variant, d.params).terminals.map((t) => t.id);
+      for (let i = 1; i + 1 <= ids.length; i += 2) {
+        unionNode(`${d.id}:${String(i)}`, `${d.id}:${String(i + 1)}`);
+        unionNode(`${s.id}:${String(i)}`, `${s.id}:${String(i + 1)}`);
       }
     }
     const tag = namedNetKey(d.tag);
@@ -1232,6 +1250,7 @@ export function buildLadderDiagram(
       case "pressure-no":
       case "flow-no":
       case "float":
+      case "float-no":
       case "foot-no":
       case "prox":
       case "photo":

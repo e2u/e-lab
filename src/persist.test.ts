@@ -141,7 +141,7 @@ describe("persist", () => {
 
   it("persists device setpoint and parameters across updates and drafts", () => {
     useLab.getState().newBoard();
-    useLab.getState().setPlacing("float");
+    useLab.getState().setPlacing("float-no");
     useLab.getState().placeAt(5, 5);
     const state = useLab.getState();
     const floatSym = state.circuit.symbols[state.circuit.symbols.length - 1];

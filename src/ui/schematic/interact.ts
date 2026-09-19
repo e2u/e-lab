@@ -16,7 +16,7 @@ export function interact(kind: string, id: string, down: boolean) {
   if (down) {
     triggerHaptic(15);
   }
-  if (kind === "pb-no" || kind === "pb-nc" || kind === "foot" || kind === "foot-no" || kind === "foot-nc") {
+  if (kind === "pb-no" || kind === "pb-nc" || kind === "pb-illum-no" || kind === "pb-illum-nc" || kind === "foot" || kind === "foot-no" || kind === "foot-nc") {
     lab.pointerDevice(id, down);
     return;
   }
@@ -25,16 +25,18 @@ export function interact(kind: string, id: string, down: boolean) {
     kind === "estop" ||
     kind === "estop-nc" ||
     kind === "estop-no" ||
+    kind === "pull-cord" ||
+    kind === "door-nc" ||
     kind === "toggle" ||
     kind.startsWith("toggle-")
   ) {
     lab.toggleIo(id, "actuated");
   }
-  if (kind === "breaker-1p" || kind === "breaker-3p" || kind === "isolator" || kind === "rcd") {
+  if (kind === "breaker-1p" || kind === "breaker-2p" || kind === "breaker-3p" || kind === "isolator" || kind === "rcd") {
     lab.toggleIo(id, "on");
   }
-  if (kind === "overload" || kind === "fuse") lab.toggleIo(id, "tripped");
-  if (kind === "selector-2" || kind === "selector-3") lab.cyclePosition(id);
+  if (kind === "overload" || kind === "fuse" || kind === "ptc" || kind === "relay-ov") lab.toggleIo(id, "tripped");
+  if (kind === "selector-2" || kind === "selector-3" || kind === "selector-hoa" || kind === "selector-key") lab.cyclePosition(id);
   if (kind === "limit-no" || kind === "limit-nc") {
     const dev = lab.circuit.devices.find((d) => d.id === id);
     if (dev) {
@@ -43,7 +45,7 @@ export function interact(kind: string, id: string, down: boolean) {
       lab.setProcess({ limitHit: !lab.process.limitHit });
     }
   }
-  if (kind === "float") {
+  if (kind === "float" || kind === "float-no" || kind === "float-nc") {
     const dev = lab.circuit.devices.find((d) => d.id === id);
     const sp = dev?.params?.setpoint ?? 50;
     if (lab.process.level >= sp) {

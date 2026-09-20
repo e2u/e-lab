@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EXAMPLES, type Example } from "./examples";
 import { useLab } from "./store";
-import type { Lang, Mode } from "./types";
+import type { Mode } from "./types";
 import { trackCircuitStep } from "./analytics";
 import { formatFaultMessage, t, tOr } from "./i18n";
 import { Bench, ProcessRack } from "./ui/Bench";
@@ -62,7 +62,7 @@ export function App() {
   const circuit = useLab((s) => s.circuit);
   const docName = useLab((s) => s.docName);
   const process = useLab((s) => s.process);
-  const lang = useLab((s) => s.lang);
+  // lang is available for future use but currently unused
   const theme = useLab((s) => s.theme);
   const isDirty = useLab((s) => s.isDirty);
   const paletteOpen = useLab((s) => s.paletteOpen);

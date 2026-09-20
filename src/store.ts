@@ -4,7 +4,7 @@ import { clampPinCount, isNamedNetKind, netTerminalKeepIds } from "./namedNets";
 import { applyWireLabels } from "./wireLabels";
 import { addDevice, addJunction, addSymbol, deleteWireAndCleanJunctions, findJunctionAt, isHostVariant, isJunctionSymbol, mergeDuplicateTagGhosts, migrateDeviceHideTagToSymbols, mergeWires, pruneOrphanDevices, pruneOrphanJunctions, removeJunction, splitWireAt } from "./circuitBuilder";
 import { loadExampleJson } from "./examples/index";
-import templateData from "./examples/blank-template.json";
+// templateData is no longer used after changing blank template to empty circuit (see createBlankTemplateCircuit)
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols, unionBounds } from "./groups";
 import { EXAMPLES } from "./examples";
 import { allWireRoutes, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";

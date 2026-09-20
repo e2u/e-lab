@@ -1284,22 +1284,6 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "串聯電流表",
     variants: { body: meterBody },
   },
-  ct: {
-    prefix: "CT",
-    label: "電流互感器",
-    variants: {
-      body: {
-        w: 4,
-        h: 4,
-        terminals: [
-          t("P1", 0, 1, "P1"),
-          t("P2", 4, 1, "P2"),
-          t("S1", 0, 3, "S1"),
-          t("S2", 4, 3, "S2"),
-        ],
-      },
-    },
-  },
 };
 
 export const CATALOG: CatalogItem[] = [
@@ -1420,7 +1404,6 @@ export const CATALOG: CatalogItem[] = [
   { id: "voltmeter", kind: "voltmeter", variant: "body", group: "儀表與測量", subgroupId: "Meters", label: "電壓表", labelEn: "Voltmeter", prefix: "VM", creates: "device" },
   { id: "ammeter", kind: "ammeter", variant: "body", group: "儀表與測量", subgroupId: "Meters", label: "鉗形電流表", labelEn: "Clamp Meter", prefix: "AM", creates: "device" },
   { id: "ammeter-series", kind: "ammeter-series", variant: "body", group: "儀表與測量", subgroupId: "Meters", label: "串聯電流表", labelEn: "Ammeter", prefix: "AM", creates: "device" },
-  { id: "ct", kind: "ct", variant: "body", group: "儀表與測量", subgroupId: "Meters", label: "電流互感器", labelEn: "CT", prefix: "CT", creates: "device" },
 
   { id: "title-block", kind: "title-block", variant: "body", group: "圖紙標註", subgroupId: "Annotations", label: "圖紙標題欄", labelEn: "Title Block", prefix: "TB", creates: "device" },
   { id: "comment", kind: "comment", variant: "body", group: "圖紙標註", subgroupId: "Annotations", label: "註釋文字框", labelEn: "Comment Box", prefix: "REM", creates: "device" },

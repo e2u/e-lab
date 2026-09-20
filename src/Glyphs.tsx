@@ -3183,36 +3183,6 @@ function GlyphBody({
             </S>
         );
     }
-    if (kind === "ct") {
-        const bodyW = w * GRID;
-        const yP = 1 * GRID;
-        const yS = 3 * GRID;
-        const cx = bodyW / 2;
-        const loops = 4;
-        const loopS = 10;
-        const loopR = 10;
-        const coilW = loops * loopS;
-        let coilD = `M ${cx - coilW / 2} ${yS}`;
-        for (let i = 0; i < loops; i += 1) coilD += ` c 0 ${-loopR} ${loopS} ${-loopR} ${loopS} 0`;
-        return (
-            <S w={w} h={h}>
-                <line x1={0} y1={yP} x2={bodyW} y2={yP} stroke={ink} strokeWidth="2.4" />
-                <circle cx={cx} cy={yP} r="13" fill="none" stroke={ink} strokeWidth="2" />
-                <line x1={cx} y1={yP + 13} x2={cx} y2={yS - 2} stroke={ink} strokeWidth="1.4" strokeDasharray="3 2" />
-                <line x1={0} y1={yS} x2={cx - coilW / 2} y2={yS} stroke={ink} strokeWidth="2" />
-                <line x1={cx + coilW / 2} y1={yS} x2={bodyW} y2={yS} stroke={ink} strokeWidth="2" />
-                <path d={coilD} fill="none" stroke={ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <TermDot cx={0} cy={yP} />
-                <TermDot cx={bodyW} cy={yP} />
-                <TermDot cx={0} cy={yS} />
-                <TermDot cx={bodyW} cy={yS} />
-                <PadLab x={0} y={yP} out={-10}>P1</PadLab>
-                <PadLab x={bodyW} y={yP} out={10}>P2</PadLab>
-                <PadLab x={0} y={yS} out={-10}>S1</PadLab>
-                <PadLab x={bodyW} y={yS} out={10}>S2</PadLab>
-            </S>
-        );
-    }
     if (kind === "ammeter-series") {
         const cx = w * GRID / 2;
         const cy = h * GRID / 2;

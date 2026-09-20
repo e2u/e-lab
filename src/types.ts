@@ -103,7 +103,6 @@ export type DeviceKind =
   | "voltmeter"
   | "ammeter"
   | "ammeter-series"
-  | "ct"
   | "ground"
   | "net-label"
   | "net-terminal"

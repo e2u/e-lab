@@ -961,7 +961,6 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
       else out.push(["97", "98"]);
       break;
     case "capacitor":
-    case "ct":
       out.push(["1", "2"], ["P1", "P2"]);
       break;
     case "vfd":

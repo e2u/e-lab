@@ -563,7 +563,6 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "comp.timerStarDeltaDelta": "Delta Contact 17-28",
     "comp.capacitor": "Capacitor",
     "comp.vfd": "VFD",
-    "comp.ct": "Current Transformer",
 
     // Meter labels and charts
     "meters.title": "Meters & Probes",
@@ -1596,7 +1595,6 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "comp.timerStarDeltaDelta": "三角形觸點 17-28",
     "comp.capacitor": "電容器",
     "comp.vfd": "變頻器",
-    "comp.ct": "電流互感器",
 
     // Meter labels and charts
     "meters.title": "儀表與測量",
@@ -1915,7 +1913,6 @@ const COMP_KEY: Record<string, string> = {
   "timer-star-delta-delta": "timerStarDeltaDelta",
   capacitor: "capacitor",
   vfd: "vfd",
-  ct: "ct",
   "ammeter-series": "ammeterSeries",
   overload: "overload",
   estop: "estop",

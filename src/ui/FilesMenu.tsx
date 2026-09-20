@@ -3,7 +3,7 @@ import { t } from "../i18n";
 import { listSaves } from "../persist";
 import { useLab } from "../store";
 
-export function FilesMenu() {
+export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const tick = useLab((s) => s.savesTick);
   const docName = useLab((s) => s.docName);
@@ -59,6 +59,18 @@ export function FilesMenu() {
             onChange={(e) => useLab.getState().setDocName(e.target.value)}
           />
         </label>
+        <button
+          className="btn"
+          onClick={() => {
+            if (onNewDiagram) {
+              handleAction(onNewDiagram);
+            } else {
+              handleAction(() => useLab.getState().loadBlankTemplate(true));
+            }
+          }}
+        >
+          {t("lib.newDiagram") || "New Diagram"}
+        </button>
         <button className="btn" onClick={() => handleAction(() => useLab.getState().saveToLibrary())}>
           {t("files.saveToLibrary")}
         </button>

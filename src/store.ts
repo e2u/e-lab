@@ -435,15 +435,16 @@ function formatMMDDYYYY(d = new Date()): string {
 
 
 export function createBlankTemplateCircuit(): Circuit {
-  const c = clone(templateData.circuit as unknown as Circuit);
-  sanitizeCircuitIds(c);
-  mergeDuplicateTagGhosts(c);
-  migrateDeviceHideTagToSymbols(c);
-  return c;
+  return {
+    devices: [],
+    symbols: [],
+    wires: [],
+    groups: [],
+  };
 }
 
 export function createBlankTemplateProcess(): ProcessVars {
-  return templateData.process ? { ...defaultProcess(), ...templateData.process } : defaultProcess();
+  return defaultProcess();
 }
 
 // Initialize from URL share hash, saved draft, or fallback to default template
@@ -1837,10 +1838,12 @@ export const useLab = create<LabState>((set, get) => ({
       held: [],
       running: false,
       mode: "edit",
+      layoutMode: "schematic",
       docName: t("doc.untitled"),
-      process: createBlankTemplateProcess(),
+      process: defaultProcess(),
       isDirty: false,
     });
+    writeDraft(makeDoc(c, t("doc.untitled"), defaultProcess()));
     if (typeof requestAnimationFrame === "function") {
       requestAnimationFrame(() => get().zoomFit());
     }

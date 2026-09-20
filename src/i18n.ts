@@ -54,6 +54,9 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "toolbar.zoomOut": "Zoom Out (⌘-)",
     "toolbar.zoomReset": "Reset Zoom (⌘0)",
     "toolbar.zoomFit": "Fit Screen (⌘9)",
+    "toolbar.scrollLeft": "Scroll left",
+    "toolbar.scrollRight": "Scroll right",
+    "toolbar.moreOptions": "More Options",
     "toolbar.layoutMode": "Layout Mode",
     "toolbar.schematic": "Schematic",
     "toolbar.ladder": "Ladder",
@@ -365,7 +368,7 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "symbol.weldedTag": "WELD",
 
     // Examples
-    "example.none.title": "Blank Template",
+    "example.none.title": "Blank Diagram",
     "example.01-basic-lamp.title": "01# Basic Lamp Circuit",
     "example.02-start-stop-lamp.title": "02# Start-Stop Dual Indicators",
     "example.03-transformer-fuse.title": "03# Control Transformer & Fuses",
@@ -1093,6 +1096,9 @@ export const TRANSLATIONS: Record<Lang, Record<string, string>> = {
     "toolbar.zoomOut": "縮小 (⌘-)",
     "toolbar.zoomReset": "重設縮放 (⌘0)",
     "toolbar.zoomFit": "適應屏幕 (⌘9)",
+    "toolbar.scrollLeft": "向左滾動",
+    "toolbar.scrollRight": "向右滾動",
+    "toolbar.moreOptions": "更多選項",
     "toolbar.layoutMode": "佈局模式",
     "toolbar.schematic": "原理圖",
     "toolbar.ladder": "梯形圖",

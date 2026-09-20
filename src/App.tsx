@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { EXAMPLES, type Example } from "./examples";
 import { useLab } from "./store";
 import type { Lang, Mode } from "./types";
@@ -15,6 +15,7 @@ import { TogglePanelButton } from "./ui/TogglePanelButton";
 import { PanelResizer } from "./ui/PanelResizer";
 import { FloatingActionBar } from "./ui/FloatingActionBar";
 import { MobileMenuModal } from "./ui/MobileMenuModal";
+import { OptionsMenu } from "./ui/OptionsMenu";
 import { PrintModal } from "./ui/PrintModal";
 import { TutorialOverlay } from "./tutorial/TutorialOverlay";
 import { setupKeyboardShortcuts } from "./keyboard";
@@ -24,14 +25,14 @@ import { ENABLE_AUTO_LAYOUT } from "./features";
 // Import all example JSON data directly for both dev and prod (works in GitHub Pages)
 type ExampleOption = Pick<Example, "id" | "title"> & { blurb?: string };
 
+// Internal helper - re-exported for internal use only
+function _simClockActive(running: boolean, mode: Mode, hidden: boolean): boolean {
+  return running && mode === "run" && !hidden;
+}
+
 const SIM_TICK_MS = 50;
 /** Fire `circuit_step` once per 5s of wall-clock ticks, not every 50ms. */
 const SIM_STEP_ANALYTICS_TICKS = 100;
-
-/** True when the 50ms sim interval should be scheduled. Hidden tabs freeze `timeMs`; `running` stays true. */
-export function simClockActive(running: boolean, mode: Mode, hidden: boolean): boolean {
-  return running && mode === "run" && !hidden;
-}
 
 const loadExamplesFromImports = async (): Promise<ExampleOption[]> => {
   try {
@@ -121,7 +122,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!simClockActive(running, mode, pageHidden)) return;
+    if (!_simClockActive(running, mode, pageHidden)) return;
     let ticks = 0;
     const id = window.setInterval(() => {
       useLab.getState().step();
@@ -229,6 +230,25 @@ export function App() {
   }, [snapshot, mode]);
 
   const faults = snapshot.faults;
+
+  const statusbarRef = useRef<HTMLElement>(null);
+
+  // Support wheel scrolling for statusbar
+  useEffect(() => {
+    const sb = statusbarRef.current;
+    if (!sb) return;
+    const onSbWheel = (e: WheelEvent) => {
+      if (sb.scrollWidth <= sb.clientWidth) return;
+      if (Math.abs(e.deltaY) >= Math.abs(e.deltaX) && e.deltaY !== 0) {
+        e.preventDefault();
+        sb.scrollLeft += e.deltaY;
+      }
+    };
+    sb.addEventListener("wheel", onSbWheel, { passive: false });
+    return () => {
+      sb.removeEventListener("wheel", onSbWheel);
+    };
+  }, []);
 
   // Handle new diagram - show modal for unsaved changes only if dirty
   const handleRequestNewDiagram = () => {
@@ -430,8 +450,9 @@ export function App() {
                 <h1>E-LAB</h1>
                 <small>{t("brand.subtitle")}</small>
               </div>
+
               <div className="topbar-divider" />
-              <FilesMenu />
+              <FilesMenu onNewDiagram={handleRequestNewDiagram} />
               <button
                 type="button"
                 className="btn btn-new-doc"
@@ -452,7 +473,7 @@ export function App() {
               </div>
             </div>
 
-            {/* Center Section: Mode, Layout View, Probes, Guide, Examples */}
+            {/* Center Section: Mode Switch & Edit Sub-Mode */}
             <div className="topbar-center">
               {/* Simulation Mode Segmented Switch */}
               <div className="segmented-group mode-switch">
@@ -545,66 +566,10 @@ export function App() {
                   )}
                 </>
               )}
+            </div>
 
-              {/* Run Mode Probe Tools */}
-              {mode === "run" && (
-                <div className="probe-tools-group">
-                  <button
-                    type="button"
-                    className={`btn btn-probe ${placing === "ammeter" ? "active" : ""}`}
-                    onClick={() => useLab.getState().setPlacing(placing === "ammeter" ? null : "ammeter")}
-                    title={t("meters.clampProbe")}
-                  >
-                    🧲 {t("meters.clampProbe")}
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-probe ${placing === "voltmeter" ? "active" : ""}`}
-                    onClick={() => useLab.getState().setPlacing(placing === "voltmeter" ? null : "voltmeter")}
-                    title={t("meters.voltageProbe")}
-                  >
-                    ⚡ {t("meters.voltageProbe")}
-                  </button>
-                </div>
-              )}
-
-              <div className="topbar-divider" />
-
-              {/* Schematic / Ladder view toggle */}
-              <div className="segmented-group layout-mode-switch">
-                <button
-                  type="button"
-                  className={`seg-btn ${layoutMode === "schematic" ? "active" : ""}`}
-                  onClick={() => useLab.getState().setLayoutMode("schematic")}
-                  title={t("toolbar.schematic")}
-                >
-                  <span className="seg-icon">📐</span>
-                  <span>{t("toolbar.schematic")}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`seg-btn ${layoutMode === "ladder" ? "active" : ""}`}
-                  onClick={() => useLab.getState().setLayoutMode("ladder")}
-                  title={t("toolbar.ladder")}
-                >
-                  <span className="seg-icon">🪜</span>
-                  <span>{t("toolbar.ladder")}</span>
-                </button>
-              </div>
-
-              <div className="topbar-divider" />
-
-              {/* Interactive Tutorial Button */}
-              <button
-                type="button"
-                className="btn-tutorial-highlight"
-                onClick={() => useLab.getState().openTutorial("pc")}
-                title={t("tutorial.buttonTooltip")}
-              >
-                <span className="btn-tutorial-icon">✨</span>
-                <span>{t("tutorial.button")}</span>
-              </button>
-
+            {/* Right Section: Templates & Options Menu */}
+            <div className="topbar-right">
               {/* Example Selector */}
               <div className="example-selector-wrapper">
                 <span className="example-icon">📚</span>
@@ -624,38 +589,8 @@ export function App() {
                   ))}
                 </select>
               </div>
-            </div>
 
-            {/* Right Section: Theme & Language */}
-            <div className="topbar-right">
-              {/* Theme Switcher */}
-              <button
-                type="button"
-                className="btn-icon btn-theme-toggle"
-                onClick={() => useLab.getState().toggleTheme()}
-                title={theme === "dark" ? (t("theme.switchToLight")) : (t("theme.switchToDark"))}
-                aria-label={t("theme.theme")}
-              >
-                {theme === "dark" ? "🌙" : "☀️"}
-              </button>
-
-              {/* Language Switcher */}
-              <div className="lang-select-wrapper">
-                <span className="lang-icon">🌐</span>
-                <select
-                  value={lang}
-                  title={t("lib.language")}
-                  className="lang-select"
-                  onChange={(e) => {
-                    useLab.getState().setLang(e.target.value as Lang);
-                    e.target.blur();
-                  }}
-                >
-                  <option value="zh">繁中</option>
-                  <option value="en">EN</option>
-                </select>
-              </div>
-
+              <OptionsMenu />
             </div>
           </>
         )}
@@ -734,11 +669,9 @@ export function App() {
         {layoutMode === "ladder" ? (
           <LadderSchematic />
         ) : (
-          <>
-            <Schematic />
-            <FloatingActionBar />
-          </>
+          <Schematic />
         )}
+        <FloatingActionBar />
 
         {/* Desktop right panel resizer */}
         {!isMobile && sideOpen && (
@@ -832,7 +765,7 @@ export function App() {
         />
       </div>
 
-      <footer className="statusbar">
+      <footer ref={statusbarRef} className="statusbar">
         <span>{mode === "edit" ? t("status.edit") : running ? t("status.run") : t("status.pause")}</span>
         <span>{Math.round(timeMs)} ms</span>
         <span>{placing ? `${t("runtime.placing")}: ${placing}` : t("runtime.wiring")}</span>
@@ -842,6 +775,30 @@ export function App() {
         {circuit.wires.some((w) => w.broken) || circuit.devices.some((d) => d.params.welded) ? (
           <span className="fault">{t("runtime.faultInjection")}</span>
         ) : null}
+
+        {/* Run Mode Probe Tools */}
+        {mode === "run" && (
+          <div className="statusbar-probe-tools">
+            <button
+              type="button"
+              className={`btn-statusbar-probe ${placing === "ammeter" ? "active" : ""}`}
+              onClick={() => useLab.getState().setPlacing(placing === "ammeter" ? null : "ammeter")}
+              title={t("meters.clampProbe")}
+            >
+              <span className="probe-icon">🧲</span>
+              <span>{t("meters.clampProbe")}</span>
+            </button>
+            <button
+              type="button"
+              className={`btn-statusbar-probe ${placing === "voltmeter" ? "active" : ""}`}
+              onClick={() => useLab.getState().setPlacing(placing === "voltmeter" ? null : "voltmeter")}
+              title={t("meters.voltageProbe")}
+            >
+              <span className="probe-icon">⚡</span>
+              <span>{t("meters.voltageProbe")}</span>
+            </button>
+          </div>
+        )}
 
         {/* Zoom Controls */}
         <div className="zoom-controls">

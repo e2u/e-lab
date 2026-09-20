@@ -19,6 +19,7 @@ import { WireLayer } from "./schematic/layers/WireLayer";
 interface PrintModalProps {
   isOpen: boolean;
   onClose: () => void;
+  circuit?: Circuit;
 }
 
 function PrintEdgeUrlMarks({
@@ -71,8 +72,9 @@ function PrintEdgeUrlMarks({
   );
 }
 
-export function PrintModal({ isOpen, onClose }: PrintModalProps) {
-  const circuit = useLab((s) => s.circuit);
+export function PrintModal({ isOpen, onClose, circuit: propCircuit }: PrintModalProps) {
+  const storeCircuit = useLab((s) => s.circuit);
+  const circuit = propCircuit ?? storeCircuit;
   const showWireLabels = useLab((s) => s.showWireLabels);
   const docName = useLab((s) => s.docName);
   const [options, setOptions] = useState<PrintOptions>(DEFAULT_PRINT_OPTIONS);

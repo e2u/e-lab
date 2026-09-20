@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useLab } from "./store";
 import { emptyCircuit } from "./circuitBuilder";
-import { simClockActive } from "./App";
+import { simClockActive } from "./ui/schematic/useSchematicEvents";
 import * as analytics from "./analytics";
 
 describe("Simulation Pause and Resume", () => {

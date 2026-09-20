@@ -8,6 +8,11 @@ import type { MenuPos } from "../ContextMenu";
 import { interact, triggerHaptic } from "./interact";
 import { blurActiveInput } from "../../keyboard";
 
+/** True when the 50ms sim interval should be scheduled. Hidden tabs freeze timeMs; running stays true. */
+export function simClockActive(running: boolean, mode: Mode, hidden: boolean): boolean {
+  return running && mode === "run" && !hidden;
+}
+
 /** Ruler hairline snaps to 1/8 grid so pointer-move does not re-render every pixel. */
 export const RULER_SNAP_EIGHTHS = 8;
 

@@ -5,6 +5,7 @@ import { ENABLE_AUTO_LAYOUT } from "../features";
 
 export function FloatingActionBar() {
   const mode = useLab((s) => s.mode);
+  const layoutMode = useLab((s) => s.layoutMode);
   const editSubMode = useLab((s) => s.editSubMode);
   const placing = useLab((s) => s.placing);
   const selected = useLab((s) => s.selected);
@@ -134,6 +135,17 @@ export function FloatingActionBar() {
       )}
 
       <div className="floating-divider" />
+
+      {/* Schematic / Ladder view toggle */}
+      <button
+        type="button"
+        className={`floating-btn ${layoutMode === "ladder" ? "active" : ""}`}
+        onClick={() => handleAction(() => useLab.getState().toggleLayoutMode())}
+        title={layoutMode === "ladder" ? t("toolbar.switchToSchematic") : t("toolbar.switchToLadder")}
+        aria-label={layoutMode === "ladder" ? t("toolbar.switchToSchematic") : t("toolbar.switchToLadder")}
+      >
+        <span className="floating-btn-icon">{layoutMode === "ladder" ? "📐" : "🪜"}</span>
+      </button>
 
       <button
         type="button"

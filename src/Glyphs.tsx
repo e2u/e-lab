@@ -3056,7 +3056,6 @@ function GlyphBody({
         const y2 = 4 * GRID;
         const y3 = 6 * GRID;
         const splitX = pad + 52;
-        const rightIn = bodyW - pad;
         const pivotX = bodyW - 44;
         const throwX = bodyW - 22;
         const pickup = kind === "relay-ov" ? Boolean(rt?.tripped) : hot;
@@ -3101,12 +3100,12 @@ function GlyphBody({
         const bodyW = w * GRID;
         const bodyH = h * GRID;
         const pad = 10;
+        const rightIn = bodyW - pad;
         const yA = 1 * GRID;
         const yT = 3 * GRID;
         const yNc = 5 * GRID;
         const yNo = 7 * GRID;
         const mid = bodyW / 2;
-        const rightIn = bodyW - pad;
         const loops = 5;
         const loopS = 11;
         const loopR = 11;

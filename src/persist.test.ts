@@ -10,7 +10,8 @@ import {
   parseDoc,
 } from "./persist";
 import { createBlankTemplateCircuit, createBlankTemplateProcess, useLab } from "./store";
-import templateData from "./examples/blank-template.json";
+
+// templateData is no longer used after changing blank template to empty circuit
 
 describe("persist", () => {
   it("round-trips a circuit through a share payload", () => {
@@ -120,22 +121,25 @@ describe("persist", () => {
 
   it("loads blank template when creating a new diagram", () => {
     const c = createBlankTemplateCircuit();
-    expect(c.symbols.length).toBe(templateData.circuit.symbols.length);
-    expect(c.wires.length).toBe(templateData.circuit.wires.length);
-    expect(c.devices.every((d) => c.symbols.some((s) => s.deviceId === d.id))).toBe(true);
-    expect(c.devices.map((d) => d.tag)).toEqual(
-      expect.arrayContaining(["PWR1", "T1", "PB1", "PB2", "CR1", "FU1", "M1", "OL1", "MTR1"]),
-    );
+    // New blank templates should be empty
+    expect(c.symbols.length).toBe(0);
+    expect(c.wires.length).toBe(0);
+    expect(c.devices.length).toBe(0);
 
     const proc = createBlankTemplateProcess();
-    expect(proc.temperature).toBe(templateData.process.temperature);
+    expect(proc.temperature).toBeDefined();
 
     // Test store loadBlankTemplate
+    useLab.getState().setLayoutMode("ladder");
+    useLab.getState().setMode("run");
     useLab.getState().loadBlankTemplate(true);
     const state = useLab.getState();
-    expect(state.circuit.devices.length).toBe(c.devices.length);
-    expect(state.circuit.symbols.length).toBe(templateData.circuit.symbols.length);
-    expect(state.circuit.wires.length).toBe(templateData.circuit.wires.length);
+    // After loading blank template, circuit should also be empty
+    expect(state.circuit.devices.length).toBe(0);
+    expect(state.circuit.symbols.length).toBe(0);
+    expect(state.circuit.wires.length).toBe(0);
+    expect(state.layoutMode).toBe("schematic");
+    expect(state.mode).toBe("edit");
     expect(state.isDirty).toBe(false);
   });
 

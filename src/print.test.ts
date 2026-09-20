@@ -207,7 +207,7 @@ describe("print store actions and defaults", () => {
 
     useLab.setState({ circuit: c, printOpen: true });
 
-    const html = renderToStaticMarkup(createElement(PrintModal, { isOpen: true, onClose: () => {} }));
+    const html = renderToStaticMarkup(createElement(PrintModal, { isOpen: true, onClose: () => {}, circuit: c }));
     expect(html).toContain("junction-dot");
     expect(html).toContain("junction-inner");
     expect(html).toContain('fill="#000000"');
@@ -227,7 +227,7 @@ describe("print store actions and defaults", () => {
 
     useLab.setState({ circuit: c, printOpen: true });
 
-    const html = renderToStaticMarkup(createElement(PrintModal, { isOpen: true, onClose: () => {} }));
+    const html = renderToStaticMarkup(createElement(PrintModal, { isOpen: true, onClose: () => {}, circuit: c }));
     expect(html).toContain("multi-wire-term-dot");
   });
 });

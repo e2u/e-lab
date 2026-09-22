@@ -211,6 +211,22 @@
         "kind": "junction",
         "tag": "",
         "params": {}
+      },
+      {
+        "id": "d_1ns_992000a1",
+        "kind": "title-block",
+        "tag": "TB1",
+        "params": {
+          "projectName": "11",
+          "projectNo": "1",
+          "rev": "2.0",
+          "sheetNum": "1",
+          "sheetTotal": "1",
+          "description": "Draw a schematic for a two motor operation on a continuous loop",
+          "designedBy": "DW",
+          "date": "09/11/2026",
+          "scale": 1
+        }
       }
     ],
     "symbols": [
@@ -643,6 +659,16 @@
         "x": 31,
         "y": 19,
         "rot": 0
+      },
+      {
+        "id": "s_1nt_e3ac9972",
+        "deviceId": "d_1ns_992000a1",
+        "variant": "body",
+        "x": 19,
+        "y": 62,
+        "rot": 0,
+        "flipX": false,
+        "flipY": false
       }
     ],
     "wires": [

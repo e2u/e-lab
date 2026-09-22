@@ -245,7 +245,7 @@
         "deviceId": "d_jb_06d2d565",
         "variant": "coil",
         "x": 47,
-        "y": 48,
+        "y": 46,
         "rot": 0,
         "flipX": false,
         "flipY": false
@@ -265,25 +265,11 @@
         }
       },
       {
-        "id": "s_je_a6dd04f6",
-        "deviceId": "d_j9_c6e4dec1",
-        "variant": "delayed-no",
-        "x": 22,
-        "y": 48,
-        "rot": 0,
-        "flipX": false,
-        "flipY": false,
-        "tagOffset": {
-          "dx": 0.051,
-          "dy": -2.493
-        }
-      },
-      {
         "id": "s_jv_ef06b905",
         "deviceId": "d_j9_c6e4dec1",
         "variant": "delayed-nc",
         "x": 22,
-        "y": 58,
+        "y": 53,
         "rot": 0,
         "flipX": false,
         "flipY": false,
@@ -297,7 +283,7 @@
         "deviceId": "d_kf_e07d43b3",
         "variant": "body",
         "x": 54,
-        "y": 49,
+        "y": 47,
         "rot": 0
       },
       {
@@ -305,7 +291,7 @@
         "deviceId": "d_j9_c6e4dec1",
         "variant": "delayed-no",
         "x": 22,
-        "y": 53,
+        "y": 49,
         "rot": 0,
         "flipX": false,
         "flipY": false,
@@ -319,7 +305,7 @@
         "deviceId": "d_kq_11de90d4",
         "variant": "body",
         "x": 54,
-        "y": 54,
+        "y": 50,
         "rot": 0
       },
       {
@@ -327,7 +313,7 @@
         "deviceId": "d_kx_9eab66ca",
         "variant": "body",
         "x": 19,
-        "y": 54,
+        "y": 50,
         "rot": 0
       },
       {
@@ -335,7 +321,7 @@
         "deviceId": "d_l1_35662889",
         "variant": "body",
         "x": 19,
-        "y": 49,
+        "y": 45,
         "rot": 0
       },
       {
@@ -343,7 +329,7 @@
         "deviceId": "d_l6_8d090a0c",
         "variant": "coil",
         "x": 47,
-        "y": 53,
+        "y": 49,
         "rot": 0,
         "flipX": false,
         "flipY": false
@@ -353,7 +339,7 @@
         "deviceId": "d_l8_de90bd58",
         "variant": "coil",
         "x": 47,
-        "y": 58,
+        "y": 53,
         "rot": 0,
         "flipX": false,
         "flipY": false
@@ -684,17 +670,6 @@
         }
       },
       {
-        "id": "w_jg_19d84404",
-        "a": {
-          "symbolId": "s_je_a6dd04f6",
-          "term": "3"
-        },
-        "b": {
-          "symbolId": "s_jc_5ed22d89",
-          "term": "2"
-        }
-      },
-      {
         "id": "w_k7_d03d6668",
         "a": {
           "symbolId": "s_k5_854f1346",
@@ -771,17 +746,6 @@
         },
         "b": {
           "symbolId": "s_ky_dc0a5e68",
-          "term": "1"
-        }
-      },
-      {
-        "id": "w_l4_e190c2ce",
-        "a": {
-          "symbolId": "s_je_a6dd04f6",
-          "term": "1"
-        },
-        "b": {
-          "symbolId": "s_l2_2b312604",
           "term": "1"
         }
       },
@@ -1444,6 +1408,17 @@
         "b": {
           "symbolId": "s_p5_1a9bbf22",
           "term": "1"
+        }
+      },
+      {
+        "id": "w_1nv_6468502b",
+        "a": {
+          "symbolId": "s_jc_5ed22d89",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_l7_48624d56",
+          "term": "A1"
         }
       }
     ],

@@ -101,6 +101,21 @@
       "blurb": "接近開關與光電感測器輸送帶自動計數、批量完成氣動分揀推料。"
     },
     {
+      "id": "simple-fuse-test",
+      "title": "Simple Fuse Test",
+      "blurb": "基礎熔斷器測試電路。"
+    },
+    {
+      "id": "19-ats-dual-power",
+      "title": "19# ATS Dual Power Transfer",
+      "blurb": "自動切換開關控制兩路電源在斷電時自動切換至備用電源。"
+    },
+    {
+      "id": "20-automated-cell",
+      "title": "20# Automated Manufacturing Cell",
+      "blurb": "工業自動化生產線：包含傳送帶、感測器與機械臂控制迴路。"
+    },
+    {
       "id": "transformer",
       "title": "Transformer",
       "blurb": "三相電源經變壓器降壓，驅動綠色指示燈。"

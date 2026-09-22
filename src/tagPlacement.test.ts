@@ -36,11 +36,9 @@ describe("tagPlacement", () => {
   });
 
   it("correctly identifies symbols that render tag inside glyph", () => {
-    // Timer coils have tag drawn inside glyph
-    expect(hasGlyphTag("timer-on", "coil")).toBe(true);
-    expect(hasGlyphTag("timer-off", "coil")).toBe(true);
-
-    // Contactor/relay coils now show external device tags (not inside glyph)
+    // Coils (timer, contactor, relay) now show external device tags
+    expect(hasGlyphTag("timer-on", "coil")).toBe(false);
+    expect(hasGlyphTag("timer-off", "coil")).toBe(false);
     expect(hasGlyphTag("contactor", "coil")).toBe(false);
     expect(hasGlyphTag("relay", "coil")).toBe(false);
 
@@ -68,7 +66,7 @@ describe("tagPlacement", () => {
     expect(hasGlyphTag("motor-3ph", "body")).toBe(false);
   });
 
-  it("renders timer contact delay badge tightly to the right of Device Tag and follows tagOffset", () => {
+  it("renders timer contact and timer coil delay badges tightly to the right of Device Tag and follows tagOffset", () => {
     const c = emptyCircuit();
     const tr = addDevice(c, "timer-on", "TR1", "coil", 10, 10, { delayMs: 3000 });
     const noSym = addSymbol(c, tr.device.id, "delayed-no", 20, 20);
@@ -104,7 +102,19 @@ describe("tagPlacement", () => {
     // delayBadgeY = tagBoxY + (16 - 14) / 2 = 486
     expect(html).toContain('x="502.5" y="486"');
 
-    // Test with tagOffset
+    // Base placement for timer-on coil (w=4, h=2, sym at x=10, y=10, GRID=22):
+    // tagX = (10 + 2) * 22 = 264
+    // tagY = (10 + 2 + 0.5) * 22 = 275
+    // textAnchor = middle, tagWidth = 21
+    // tagBoxX = 264 - 16.5 = 247.5
+    // tagBoxW = 33
+    // tagBoxY = 275 - 10 = 265, tagBoxH = 16
+    // delayBadgeX = tagBoxX + tagBoxW + 2 = 247.5 + 33 + 2 = 282.5
+    // delayBadgeY = tagBoxY + (16 - 14) / 2 = 266
+    expect(html).toContain('x="282.5" y="266"');
+
+    // Test with tagOffset on both coil and contact
+    tr.symbol.tagOffset = { dx: 1, dy: 1 };
     noSym.tagOffset = { dx: 3, dy: 2 };
     const htmlOffset = renderToStaticMarkup(
       createElement(SymbolLayer, {
@@ -113,9 +123,14 @@ describe("tagPlacement", () => {
       }),
     );
 
-    // tagOffset: dx = 3 * 22 = +66, dy = 2 * 22 = +44
-    // Expected delayBadgeX = 502.5 + 66 = 568.5
-    // Expected delayBadgeY = 486 + 44 = 530
+    // Coil with tagOffset: dx = 1 * 22 = +22, dy = 1 * 22 = +22
+    // Expected coil delayBadgeX = 282.5 + 22 = 304.5
+    // Expected coil delayBadgeY = 266 + 22 = 288
+    expect(htmlOffset).toContain('x="304.5" y="288"');
+
+    // Contact with tagOffset: dx = 3 * 22 = +66, dy = 2 * 22 = +44
+    // Expected contact delayBadgeX = 502.5 + 66 = 568.5
+    // Expected contact delayBadgeY = 486 + 44 = 530
     expect(htmlOffset).toContain('x="568.5" y="530"');
   });
 });

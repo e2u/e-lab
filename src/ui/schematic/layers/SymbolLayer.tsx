@@ -40,7 +40,7 @@ function getCornerCursor(corner: "tl" | "tr" | "br" | "bl", rot: number = 0): st
   return isNwSe !== isRotated ? "nwse-resize" : "nesw-resize";
 }
 
-export function hasGlyphTag(kind: string, variant: string): boolean {
+export function hasGlyphTag(kind: string, _variant?: string): boolean {
   if (
     kind === "junction" ||
     kind === "mains-3ph" ||
@@ -59,12 +59,6 @@ export function hasGlyphTag(kind: string, variant: string): boolean {
     kind === "ptc" ||
     kind === "busbar" ||
     kind.startsWith("starter")
-  ) {
-    return true;
-  }
-  if (
-    (kind === "timer-on" || kind === "timer-off" || kind === "timer-ss-on" || kind === "timer-ss-off" || kind === "timer-flash" || kind === "timer-pulse" || kind === "timer-star-delta") &&
-    variant === "coil"
   ) {
     return true;
   }
@@ -280,12 +274,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                 }
               }
 
-              // For coil variants of contactor/relay, we still show external device tags
-              const isCoilWithExternalTag = 
-                (dev.kind === "contactor" || dev.kind === "relay") && 
-                sym.variant === "coil";
-              
-              if (glyphHasTag && !isCoilWithExternalTag && (!isTimerActive || !delayText)) {
+              if (glyphHasTag && (!isTimerActive || !delayText)) {
                 return null;
               }
 

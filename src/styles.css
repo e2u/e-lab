@@ -55,7 +55,6 @@ body::before {
   position: relative;
   z-index: 50;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   height: 48px;
   min-height: 48px;
@@ -68,7 +67,20 @@ body::before {
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 18px rgba(0,0,0,0.35);
   user-select: none;
   box-sizing: border-box;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  cursor: grab;
+}
+
+.topbar:active {
+  cursor: grabbing;
+}
+
+.topbar::-webkit-scrollbar {
+  display: none;
 }
 
 .topbar-left,
@@ -82,12 +94,11 @@ body::before {
 }
 
 .topbar-center {
-  flex: 1;
-  justify-content: center;
+  margin: 0 auto;
 }
 
 .topbar-right {
-  justify-content: flex-end;
+  margin-left: auto;
 }
 
 /* Topbar Scroll Chevrons & Edge Fade Masks */
@@ -2696,14 +2707,19 @@ input[type="range"] { width: 100%; accent-color: var(--stripe); }
   }
   .topbar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     height: 48px;
     padding: 0 10px;
     gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
   }
   .brand {
     gap: 6px;
+    flex-shrink: 0;
   }
   .brand h1 {
     font-size: 22px;
@@ -2711,53 +2727,11 @@ input[type="range"] { width: 100%; accent-color: var(--stripe); }
   .brand small {
     display: none;
   }
-  .mode-switch {
-    gap: 4px;
-  }
-  .mode-switch .btn {
-    padding: 6px 10px;
-    font-size: 13px;
-    font-weight: 600;
-    min-height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .mobile-header-actions {
-    display: flex;
+  .topbar-left,
+  .topbar-center,
+  .topbar-right {
     gap: 6px;
-    align-items: center;
-    margin-left: auto;
-  }
-  .mobile-header-btn {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 17px;
-    border-radius: 8px;
-    background: #242e1d;
-    border: 1px solid #3d4c32;
-    color: var(--nameplate);
-    cursor: pointer;
-    transition: all 0.15s ease;
-    touch-action: manipulation;
-  }
-  .mobile-header-btn:hover {
-    background: #2f3c26;
-    border-color: var(--stripe);
-    color: var(--stripe);
-  }
-  .mobile-header-btn:active {
-    transform: scale(0.92);
-  }
-  .mobile-header-btn.active {
-    background: var(--stripe);
-    color: #161c12;
-    border-color: var(--stripe);
-    font-weight: 700;
+    flex-shrink: 0;
   }
 
   /* Workspace: single column, canvas takes full width */

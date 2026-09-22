@@ -5,12 +5,27 @@ import type { Lang } from "../types";
 
 export function OptionsMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const [popStyle, setPopStyle] = useState<React.CSSProperties>({});
   const menuRef = useRef<HTMLDetailsElement>(null);
   const lang = useLab((s) => s.lang);
   const theme = useLab((s) => s.theme);
 
+  const updatePosition = () => {
+    if (!menuRef.current) return;
+    const rect = menuRef.current.getBoundingClientRect();
+    setPopStyle({
+      position: "fixed",
+      top: `${rect.bottom + 6}px`,
+      right: `${Math.max(8, window.innerWidth - rect.right)}px`,
+      left: "auto",
+      zIndex: 1000,
+    });
+  };
+
   useEffect(() => {
     if (!isOpen) return;
+
+    updatePosition();
 
     const handlePointerDown = (e: MouseEvent | PointerEvent | TouchEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -24,11 +39,27 @@ export function OptionsMenu() {
       }
     };
 
+    const handleScroll = (e: Event) => {
+      if (menuRef.current && menuRef.current.contains(e.target as Node)) {
+        return;
+      }
+      updatePosition();
+    };
+
+    const handleResize = () => {
+      updatePosition();
+    };
+
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+    window.addEventListener("resize", handleResize);
+
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleScroll, { capture: true });
+      window.removeEventListener("resize", handleResize);
     };
   }, [isOpen]);
 
@@ -51,12 +82,15 @@ export function OptionsMenu() {
         <span className="options-icon">⋮</span>
       </summary>
 
-      <div className="menu-pop options-menu-pop">
+      <div className="menu-pop options-menu-pop" style={popStyle}>
         {/* Quick Guide */}
         <button
           type="button"
           className="btn options-item-btn tutorial-btn"
-          onClick={() => handleAction(() => useLab.getState().openTutorial("pc"))}
+          onClick={() => handleAction(() => {
+            const isMobile = typeof window !== "undefined" && (window.innerWidth <= 768 || (window.innerHeight <= 550 && window.innerWidth <= 1024));
+            useLab.getState().openTutorial(isMobile ? "mobile" : "pc");
+          })}
           title={t("tutorial.buttonTooltip")}
         >
           <span className="options-item-icon">✨</span>

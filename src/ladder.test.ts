@@ -603,8 +603,8 @@ describe("Ladder Diagram System", () => {
       expect(olContact?.label).toContain("OL1");
       expect(olContact?.address).toBe("97-98");
 
-      // Stop indicator lamp rung (tag: "Stop")
-      const stopLampRung = model.rungs.find((r) => r.coils.some((c) => c.device.tag === "Stop"));
+      // Stop indicator lamp rung (tag: "Stopped" or "Stop")
+      const stopLampRung = model.rungs.find((r) => r.coils.some((c) => c.device.tag === "Stopped" || c.device.tag === "Stop"));
       expect(stopLampRung).toBeDefined();
       
       // ✅ Updated: M1 NC contact may be at different index due to improved path finding algorithm

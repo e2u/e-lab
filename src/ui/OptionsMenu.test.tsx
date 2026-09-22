@@ -40,4 +40,13 @@ describe("OptionsMenu component", () => {
     expect(htmlEn).toContain("Dark");
     expect(htmlEn).toContain("Light");
   });
+
+  it("handles mobile tutorial opening appropriately", () => {
+    // Verify store tutorial opening
+    useLab.getState().openTutorial("mobile");
+    expect(useLab.getState().tutorialOpen).toBe(true);
+    expect(useLab.getState().tutorialVersion).toBe("mobile");
+    useLab.getState().closeTutorial();
+    expect(useLab.getState().tutorialOpen).toBe(false);
+  });
 });

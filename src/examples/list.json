@@ -176,6 +176,11 @@
       "blurb": "兩台馬達連續循環運轉控制電路。"
     },
     {
+      "id": "project-11-single-relay",
+      "title": "Project 11 - Single Relay",
+      "blurb": "單中間繼電器控制多台馬達，實現啟停與自鎖功能。"
+    },
+    {
       "id": "project-12",
       "title": "Project 12",
       "blurb": "三台馬達連續循環運轉控制電路。"

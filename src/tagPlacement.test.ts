@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { GRID } from "./types";
 import { getSymbolTagPlacement } from "./tagPlacement";
-import { hasGlyphTag } from "./ui/schematic/layers/SymbolLayer";
+import { hasGlyphTag, SymbolLayer } from "./ui/schematic/layers/SymbolLayer";
+import { addDevice, addSymbol, emptyCircuit } from "./circuitBuilder";
+import { emptySnapshot } from "./sim/engine";
 
 describe("tagPlacement", () => {
   it("places breaker-1p tag on the right side", () => {
@@ -62,5 +66,56 @@ describe("tagPlacement", () => {
     expect(hasGlyphTag("ground", "body")).toBe(false);
     expect(hasGlyphTag("lamp", "body")).toBe(false);
     expect(hasGlyphTag("motor-3ph", "body")).toBe(false);
+  });
+
+  it("renders timer contact delay badge tightly to the right of Device Tag and follows tagOffset", () => {
+    const c = emptyCircuit();
+    const tr = addDevice(c, "timer-on", "TR1", "coil", 10, 10, { delayMs: 3000 });
+    const noSym = addSymbol(c, tr.device.id, "delayed-no", 20, 20);
+
+    const snap = emptySnapshot(c);
+    snap.runtime[tr.device.id] = {
+      ...snap.runtime[tr.device.id],
+      energized: true,
+      elapsedMs: 1200,
+      done: false,
+    };
+
+    // Render static markup
+    const html = renderToStaticMarkup(
+      createElement(SymbolLayer, {
+        circuit: c,
+        snapshot: snap,
+      }),
+    );
+
+    expect(html).toContain("sym-tag-delay-group");
+    expect(html).toContain("1.8s / 3.0s");
+
+    // Check that delay badge is placed to the right of device tag:
+    // Base placement for timer-on contact (w=4, h=2, sym at x=20, y=20, GRID=22):
+    // tagX = (20 + 2) * 22 = 484
+    // tagY = (20 + 2 + 0.5) * 22 = 495
+    // textAnchor = middle, tagWidth = Math.max(16, 3 * 7) = 21
+    // tagBoxX = 484 - (21/2 + 6) = 484 - 16.5 = 467.5
+    // tagBoxW = 21 + 12 = 33
+    // tagBoxY = 495 - 10 = 485, tagBoxH = 16
+    // delayBadgeX = tagBoxX + tagBoxW + 2 = 467.5 + 33 + 2 = 502.5
+    // delayBadgeY = tagBoxY + (16 - 14) / 2 = 486
+    expect(html).toContain('x="502.5" y="486"');
+
+    // Test with tagOffset
+    noSym.tagOffset = { dx: 3, dy: 2 };
+    const htmlOffset = renderToStaticMarkup(
+      createElement(SymbolLayer, {
+        circuit: c,
+        snapshot: snap,
+      }),
+    );
+
+    // tagOffset: dx = 3 * 22 = +66, dy = 2 * 22 = +44
+    // Expected delayBadgeX = 502.5 + 66 = 568.5
+    // Expected delayBadgeY = 486 + 44 = 530
+    expect(htmlOffset).toContain('x="568.5" y="530"');
   });
 });

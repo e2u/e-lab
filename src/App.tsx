@@ -14,7 +14,6 @@ import { DiscardModal } from "./ui/DiscardModal";
 import { TogglePanelButton } from "./ui/TogglePanelButton";
 import { PanelResizer } from "./ui/PanelResizer";
 import { FloatingActionBar } from "./ui/FloatingActionBar";
-import { MobileMenuModal } from "./ui/MobileMenuModal";
 import { OptionsMenu } from "./ui/OptionsMenu";
 import { PrintModal } from "./ui/PrintModal";
 import { TutorialOverlay } from "./tutorial/TutorialOverlay";
@@ -83,7 +82,6 @@ export function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
   const [mobileSideOpen, setMobileSideOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pageHidden, setPageHidden] = useState(
     () => typeof document !== "undefined" && document.hidden,
   );
@@ -188,7 +186,6 @@ export function App() {
       if (!mobile) {
         setMobilePaletteOpen(false);
         setMobileSideOpen(false);
-        setMobileMenuOpen(false);
       }
     };
     checkMobile();
@@ -231,7 +228,82 @@ export function App() {
 
   const faults = snapshot.faults;
 
+  const topbarRef = useRef<HTMLElement>(null);
   const statusbarRef = useRef<HTMLElement>(null);
+  const isDraggingTopbarRef = useRef(false);
+  const dragStartRef = useRef({ x: 0, scrollLeft: 0, moved: false });
+
+  // Native mouse wheel translation (vertical deltaY to horizontal scroll) for topbar
+  useEffect(() => {
+    const el = topbarRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      if (Math.abs(e.deltaY) >= Math.abs(e.deltaX) && e.deltaY !== 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, []);
+
+  const handleTopbarMouseDown = (e: React.MouseEvent<HTMLElement>) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    // Don't drag if clicking interactive elements
+    if (target.closest("button, input, select, summary, a, .cat-item, .diagram-name, .btn-new-doc, .seg-btn, .options-icon, .example-select")) {
+      return;
+    }
+
+    const el = topbarRef.current;
+    if (!el) return;
+
+    isDraggingTopbarRef.current = true;
+    dragStartRef.current = {
+      x: e.clientX,
+      scrollLeft: el.scrollLeft,
+      moved: false,
+    };
+  };
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDraggingTopbarRef.current) return;
+      const el = topbarRef.current;
+      if (!el) return;
+      const dx = e.clientX - dragStartRef.current.x;
+      if (Math.abs(dx) > 3) {
+        dragStartRef.current.moved = true;
+      }
+      el.scrollLeft = dragStartRef.current.scrollLeft - dx;
+    };
+
+    const onMouseUp = () => {
+      if (isDraggingTopbarRef.current) {
+        if (dragStartRef.current.moved) {
+          const captureClick = (ev: MouseEvent) => {
+            ev.stopPropagation();
+            ev.preventDefault();
+          };
+          window.addEventListener("click", captureClick, { capture: true, once: true });
+        }
+        isDraggingTopbarRef.current = false;
+        dragStartRef.current.moved = false;
+      }
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
 
   // Support wheel scrolling for statusbar
   useEffect(() => {
@@ -309,291 +381,159 @@ export function App() {
   return (
     <>
       <div className="app">
-      <header className="topbar">
-        {isMobile ? (
-          <>
-            <div className="brand">
-              <h1>E-LAB</h1>
-              <small>{t("brand.subtitle")}</small>
-            </div>
-            <div className="mode-switch">
-              {layoutMode !== "ladder" && (
-                <button className={`btn ${mode === "edit" ? "active" : ""}`} onClick={() => useLab.getState().setMode("edit")}>
-                  {t("toolbar.edit")}
-                </button>
-              )}
-              {mode === "edit" && layoutMode !== "ladder" && (
-                <>
-                  <button
-                    type="button"
-                    className={`btn submode-mobile-btn ${editSubMode === "wiring" ? "active" : ""}`}
-                    onClick={() => useLab.getState().toggleEditSubMode()}
-                    title={editSubMode === "wiring" ? t("toolbar.wiringTip") : t("toolbar.editingTip")}
-                  >
-                    {editSubMode === "wiring" ? `🔌 ${t("toolbar.wiring")}` : `✋ ${t("toolbar.editing")}`}
-                  </button>
-                  {ENABLE_AUTO_LAYOUT && (
-                    <button
-                      type="button"
-                      className="btn submode-mobile-btn"
-                      onClick={() => useLab.getState().autoLayout()}
-                      title={t("toolbar.autoLayoutTip")}
-                    >
-                      🪄 {t("toolbar.autoLayout")}
-                    </button>
-                  )}
-                </>
-              )}
+      <header
+        ref={topbarRef}
+        className="topbar"
+        onMouseDown={handleTopbarMouseDown}
+      >
+        {/* Left Section: Brand, File Menu, New Diagram, Title */}
+        <div className="topbar-left">
+          <div className="brand">
+            <h1>E-LAB</h1>
+            <small>{t("brand.subtitle")}</small>
+          </div>
+
+          <div className="topbar-divider" />
+          <FilesMenu onNewDiagram={handleRequestNewDiagram} />
+          <button
+            type="button"
+            className="btn btn-new-doc"
+            onClick={() => handleRequestNewDiagram()}
+            title={t("lib.newDiagram")}
+          >
+            <span className="btn-plus-icon">+</span>
+            <span>{t("lib.newDiagram")}</span>
+          </button>
+          <div className="doc-title-wrapper" title={t("files.docName")}>
+            <input
+              type="text"
+              className="diagram-name"
+              value={docName}
+              onChange={(e) => useLab.getState().setDocName(e.target.value)}
+              placeholder={t("lib.diagramNamePlaceholder")}
+            />
+          </div>
+        </div>
+
+        {/* Center Section: Mode Switch & Edit Sub-Mode */}
+        <div className="topbar-center">
+          {/* Simulation Mode Segmented Switch */}
+          <div className="segmented-group mode-switch">
+            {layoutMode !== "ladder" && (
               <button
                 type="button"
-                className={`btn ${mode === "run" && running ? "active" : ""}`}
-                onClick={() => {
-                  if (mode !== "run") {
-                    useLab.getState().setMode("run");
-                  } else {
-                    useLab.getState().setRunning(true);
-                  }
-                }}
-                title={t("toolbar.run")}
+                className={`seg-btn ${mode === "edit" ? "active" : ""}`}
+                onClick={() => useLab.getState().setMode("edit")}
+                title={t("toolbar.edit")}
               >
-                ▶ {t("toolbar.run")}
+                <span className="seg-icon">✏️</span>
+                <span>{t("toolbar.edit")}</span>
               </button>
-              <button
-                type="button"
-                className={`btn ${mode === "run" && !running ? "active" : ""}`}
-                onClick={() => {
-                  if (mode !== "run") {
-                    useLab.getState().setMode("run");
-                    useLab.getState().setRunning(false);
-                  } else {
-                    useLab.getState().setRunning(false);
-                  }
-                }}
-                title={t("toolbar.pause")}
-              >
-                ⏸ {t("toolbar.pause")}
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => useLab.getState().resetSim()}
-                title={t("toolbar.reset")}
-              >
-                ↺ {t("toolbar.reset")}
-              </button>
-            </div>
-            <div className="mobile-header-actions">
-              <button
-                type="button"
-                className={`btn-icon mobile-header-btn ${layoutMode === "ladder" ? "active" : ""}`}
-                onClick={() => useLab.getState().toggleLayoutMode()}
-                title={layoutMode === "ladder" ? t("toolbar.switchToSchematic") : t("toolbar.switchToLadder")}
-                aria-label={layoutMode === "ladder" ? t("toolbar.switchToSchematic") : t("toolbar.switchToLadder")}
-              >
-                {layoutMode === "ladder" ? "📐" : "🪜"}
-              </button>
-              <button
-                type="button"
-                className="btn-tutorial-mobile-highlight"
-                onClick={() => useLab.getState().openTutorial("mobile")}
-                title={t("tutorial.buttonTooltip")}
-                aria-label={t("tutorial.button")}
-              >
-                ✨ {t("tutorial.button")}
-              </button>
-              {layoutMode !== "ladder" && (
+            )}
+            <button
+              type="button"
+              className={`seg-btn ${mode === "run" && running ? "active" : ""}`}
+              onClick={() => {
+                if (mode !== "run") {
+                  useLab.getState().setMode("run");
+                } else {
+                  useLab.getState().setRunning(true);
+                }
+              }}
+              title={t("toolbar.run")}
+            >
+              <span className="seg-icon">▶</span>
+              <span>{t("toolbar.run")}</span>
+            </button>
+            <button
+              type="button"
+              className={`seg-btn ${mode === "run" && !running ? "active" : ""}`}
+              onClick={() => {
+                if (mode !== "run") {
+                  useLab.getState().setMode("run");
+                  useLab.getState().setRunning(false);
+                } else {
+                  useLab.getState().setRunning(false);
+                }
+              }}
+              title={t("toolbar.pause")}
+            >
+              <span className="seg-icon">⏸</span>
+              <span>{t("toolbar.pause")}</span>
+            </button>
+            <button
+              type="button"
+              className="seg-btn btn-reset"
+              onClick={() => useLab.getState().resetSim()}
+              title={t("toolbar.reset")}
+            >
+              <span className="seg-icon">↺</span>
+              <span>{t("toolbar.reset")}</span>
+            </button>
+          </div>
+
+          {/* Edit Sub-Mode Segmented Switch (Editing / Wiring) & Auto Layout */}
+          {mode === "edit" && layoutMode !== "ladder" && (
+            <>
+              <div className="segmented-group submode-switch">
                 <button
                   type="button"
-                  className={`btn-icon mobile-header-btn ${mobilePaletteOpen ? "active" : ""}`}
-                  onClick={() => {
-                    const next = !mobilePaletteOpen;
-                    setMobilePaletteOpen(next);
-                    setMobileSideOpen(false);
-                    useLab.getState().setPaletteOpen(next);
-                  }}
-                  title={t("toolbar.palette")}
-                  aria-label={t("toolbar.palette")}
+                  className={`seg-btn ${editSubMode === "editing" ? "active" : ""}`}
+                  onClick={() => useLab.getState().setEditSubMode("editing")}
+                  title={t("toolbar.editingTip")}
                 >
-                  ☰
-                </button>
-              )}
-              <button
-                type="button"
-                className={`btn-icon mobile-header-btn ${mobileSideOpen ? "active" : ""}`}
-                onClick={() => {
-                  const next = !mobileSideOpen;
-                  setMobileSideOpen(next);
-                  setMobilePaletteOpen(false);
-                  useLab.getState().setSideOpen(next);
-                }}
-                title={t("toolbar.sidePanel")}
-                aria-label={t("toolbar.sidePanel")}
-              >
-                ⚙
-              </button>
-              <button
-                type="button"
-                className={`btn-icon mobile-header-btn ${mobileMenuOpen ? "active" : ""}`}
-                onClick={() => setMobileMenuOpen(true)}
-                title={t("toolbar.menu")}
-                aria-label={t("toolbar.menu")}
-              >
-                ⋯
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Left Section: Brand, File Menu, New Diagram, Title */}
-            <div className="topbar-left">
-              <div className="brand">
-                <h1>E-LAB</h1>
-                <small>{t("brand.subtitle")}</small>
-              </div>
-
-              <div className="topbar-divider" />
-              <FilesMenu onNewDiagram={handleRequestNewDiagram} />
-              <button
-                type="button"
-                className="btn btn-new-doc"
-                onClick={() => handleRequestNewDiagram()}
-                title={t("lib.newDiagram")}
-              >
-                <span className="btn-plus-icon">+</span>
-                <span>{t("lib.newDiagram")}</span>
-              </button>
-              <div className="doc-title-wrapper" title={t("files.docName")}>
-                <input
-                  type="text"
-                  className="diagram-name"
-                  value={docName}
-                  onChange={(e) => useLab.getState().setDocName(e.target.value)}
-                  placeholder={t("lib.diagramNamePlaceholder")}
-                />
-              </div>
-            </div>
-
-            {/* Center Section: Mode Switch & Edit Sub-Mode */}
-            <div className="topbar-center">
-              {/* Simulation Mode Segmented Switch */}
-              <div className="segmented-group mode-switch">
-                {layoutMode !== "ladder" && (
-                  <button
-                    type="button"
-                    className={`seg-btn ${mode === "edit" ? "active" : ""}`}
-                    onClick={() => useLab.getState().setMode("edit")}
-                    title={t("toolbar.edit")}
-                  >
-                    <span className="seg-icon">✏️</span>
-                    <span>{t("toolbar.edit")}</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className={`seg-btn ${mode === "run" && running ? "active" : ""}`}
-                  onClick={() => {
-                    if (mode !== "run") {
-                      useLab.getState().setMode("run");
-                    } else {
-                      useLab.getState().setRunning(true);
-                    }
-                  }}
-                  title={t("toolbar.run")}
-                >
-                  <span className="seg-icon">▶</span>
-                  <span>{t("toolbar.run")}</span>
+                  <span className="seg-icon">✋</span>
+                  <span>{t("toolbar.editing")}</span>
                 </button>
                 <button
                   type="button"
-                  className={`seg-btn ${mode === "run" && !running ? "active" : ""}`}
-                  onClick={() => {
-                    if (mode !== "run") {
-                      useLab.getState().setMode("run");
-                      useLab.getState().setRunning(false);
-                    } else {
-                      useLab.getState().setRunning(false);
-                    }
-                  }}
-                  title={t("toolbar.pause")}
+                  className={`seg-btn ${editSubMode === "wiring" ? "active" : ""}`}
+                  onClick={() => useLab.getState().setEditSubMode("wiring")}
+                  title={t("toolbar.wiringTip")}
                 >
-                  <span className="seg-icon">⏸</span>
-                  <span>{t("toolbar.pause")}</span>
+                  <span className="seg-icon">🔌</span>
+                  <span>{t("toolbar.wiring")}</span>
                 </button>
+              </div>
+              {ENABLE_AUTO_LAYOUT && (
                 <button
                   type="button"
-                  className="seg-btn btn-reset"
-                  onClick={() => useLab.getState().resetSim()}
-                  title={t("toolbar.reset")}
+                  className="btn btn-auto-layout"
+                  onClick={() => useLab.getState().autoLayout()}
+                  title={t("toolbar.autoLayoutTip")}
                 >
-                  <span className="seg-icon">↺</span>
-                  <span>{t("toolbar.reset")}</span>
+                  <span>🪄</span>
+                  <span>{t("toolbar.autoLayout")}</span>
                 </button>
-              </div>
-
-              {/* Edit Sub-Mode Segmented Switch (Editing / Wiring) & Auto Layout */}
-              {mode === "edit" && layoutMode !== "ladder" && (
-                <>
-                  <div className="segmented-group submode-switch">
-                    <button
-                      type="button"
-                      className={`seg-btn ${editSubMode === "editing" ? "active" : ""}`}
-                      onClick={() => useLab.getState().setEditSubMode("editing")}
-                      title={t("toolbar.editingTip")}
-                    >
-                      <span className="seg-icon">✋</span>
-                      <span>{t("toolbar.editing")}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`seg-btn ${editSubMode === "wiring" ? "active" : ""}`}
-                      onClick={() => useLab.getState().setEditSubMode("wiring")}
-                      title={t("toolbar.wiringTip")}
-                    >
-                      <span className="seg-icon">🔌</span>
-                      <span>{t("toolbar.wiring")}</span>
-                    </button>
-                  </div>
-                  {ENABLE_AUTO_LAYOUT && (
-                    <button
-                      type="button"
-                      className="btn btn-auto-layout"
-                      onClick={() => useLab.getState().autoLayout()}
-                      title={t("toolbar.autoLayoutTip")}
-                    >
-                      <span>🪄</span>
-                      <span>{t("toolbar.autoLayout")}</span>
-                    </button>
-                  )}
-                </>
               )}
-            </div>
+            </>
+          )}
+        </div>
 
-            {/* Right Section: Templates & Options Menu */}
-            <div className="topbar-right">
-              {/* Example Selector */}
-              <div className="example-selector-wrapper">
-                <span className="example-icon">📚</span>
-                <select 
-                  value={selectedExample}
-                  onChange={(e) => {
-                    handleRequestSelectExample(e.target.value);
-                    e.target.blur();
-                  }}
-                  className="example-select"
-                  title={t("lib.example")}
-                >
-                  {examples.map((ex) => (
-                    <option key={ex.id} value={ex.id}>
-                      {tOr(`example.${ex.id}.title`, ex.title)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        {/* Right Section: Templates & Options Menu */}
+        <div className="topbar-right">
+          {/* Example Selector */}
+          <div className="example-selector-wrapper">
+            <span className="example-icon">📚</span>
+            <select 
+              value={selectedExample}
+              onChange={(e) => {
+                handleRequestSelectExample(e.target.value);
+                e.target.blur();
+              }}
+              className="example-select"
+              title={t("lib.example")}
+            >
+              {examples.map((ex) => (
+                <option key={ex.id} value={ex.id}>
+                  {tOr(`example.${ex.id}.title`, ex.title)}
+                </option>
+              ))}
+            </select>
+          </div>
 
-              <OptionsMenu />
-            </div>
-          </>
-        )}
+          <OptionsMenu />
+        </div>
       </header>
       {notice && <div className="toast">{notice}</div>}
       
@@ -601,16 +541,6 @@ export function App() {
       <DiscardModal
         isOpen={discardModalOpen}
         onClose={handleDiscardModalClose}
-      />
-
-      {/* Mobile Menu Modal / Bottom Sheet */}
-      <MobileMenuModal
-        isOpen={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        examples={examples}
-        selectedExample={selectedExample}
-        onSelectExample={handleRequestSelectExample}
-        onRequestNewDiagram={handleRequestNewDiagram}
       />
 
       {/* Tutorial Overlay */}

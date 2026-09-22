@@ -11,7 +11,7 @@ import {
 } from "../print";
 import { useLab } from "../store";
 import { trackExportImage } from "../analytics";
-import { COLS, GRID, ROWS } from "../types";
+import { type Circuit, COLS, GRID, ROWS } from "../types";
 import { emptySnapshot } from "../sim/engine";
 import { SymbolLayer } from "./schematic/layers/SymbolLayer";
 import { WireLayer } from "./schematic/layers/WireLayer";

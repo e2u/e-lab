@@ -14,16 +14,16 @@ import { type Selection } from "../../../store";
 interface SymbolLayerProps {
   circuit: Circuit;
   snapshot: SimSnapshot;
-  selected: Selection | null;
-  selectedIds: string[];
-  selectedNetTag: string;
+  selected?: Selection | null;
+  selectedIds?: string[];
+  selectedNetTag?: string;
   highlightedWireIds?: Set<string>;
   hoveredSymbolId?: string | null;
-  held: string[];
-  onSymbolContextMenu: (e: MouseEvent<SVGElement>, symId: string) => void;
-  onSymbolPointerDown: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
-  onSymbolPointerUp: (dev: Device) => void;
-  onSymbolPointerLeave: (dev: Device, sym?: SymbolInst) => void;
+  held?: string[];
+  onSymbolContextMenu?: (e: MouseEvent<SVGElement>, symId: string) => void;
+  onSymbolPointerDown?: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
+  onSymbolPointerUp?: (dev: Device) => void;
+  onSymbolPointerLeave?: (dev: Device, sym?: SymbolInst) => void;
   onSymbolPointerEnter?: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onSymbolDoubleClick?: (e: MouseEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
   onTagPointerDown?: (e: PointerEvent<SVGElement>, sym: SymbolInst, dev: Device) => void;
@@ -74,12 +74,12 @@ export function hasGlyphTag(kind: string, variant: string): boolean {
 export const SymbolLayer = memo(function SymbolLayer({
   circuit,
   snapshot,
-  selected,
-  selectedIds,
-  selectedNetTag,
+  selected = null,
+  selectedIds = [],
+  selectedNetTag = "",
   highlightedWireIds,
   hoveredSymbolId = null,
-  held,
+  held = [],
   onSymbolContextMenu,
   onSymbolPointerDown,
   onSymbolPointerEnter,
@@ -127,11 +127,11 @@ export const SymbolLayer = memo(function SymbolLayer({
             <g
               className={`sym-g${sym.hideTerminals ? " hide-terminals" : ""}`}
               transform={glyphTransform(sym, boxW, boxH)}
-              onContextMenu={(e) => onSymbolContextMenu(e, sym.id)}
-              onPointerDown={(e) => onSymbolPointerDown(e, sym, dev)}
+              onContextMenu={(e) => onSymbolContextMenu?.(e, sym.id)}
+              onPointerDown={(e) => onSymbolPointerDown?.(e, sym, dev)}
               onPointerEnter={(e) => onSymbolPointerEnter?.(e, sym, dev)}
-              onPointerUp={() => onSymbolPointerUp(dev)}
-              onPointerLeave={() => onSymbolPointerLeave(dev, sym)}
+              onPointerUp={() => onSymbolPointerUp?.(dev)}
+              onPointerLeave={() => onSymbolPointerLeave?.(dev, sym)}
               onDoubleClick={(e) => onSymbolDoubleClick?.(e, sym, dev)}
             >
               {dev.kind === "junction" ? (
@@ -298,12 +298,21 @@ export const SymbolLayer = memo(function SymbolLayer({
               const tagWidth = Math.max(16, dev.tag.length * 7);
               const isTagHighlighted = (selected?.type === "symbol" && selected.id === sym.id) || isSameDevice;
 
+              const tagBoxX = tagX - (textAnchor === "start" ? 4 : tagWidth / 2 + 6);
+              const tagBoxY = tagY - 10;
+              const tagBoxW = textAnchor === "start" ? tagWidth + 8 : tagWidth + 12;
+              const tagBoxH = 16;
+
               const delayBadgeW = Math.max(26, delayText.length * 6.2 + 8);
               const delayBadgeH = 14;
-              const delayBadgeY = glyphHasTag ? tagY : tagY + 8;
-              const delayBadgeX = textAnchor === "start" ? tagX : tagX - delayBadgeW / 2;
-              const delayTextX = textAnchor === "start" ? tagX + 4 : tagX;
-              const delayTextAnchor = textAnchor === "start" ? "start" : "middle";
+              const delayBadgeY = glyphHasTag ? tagY : tagBoxY + (tagBoxH - delayBadgeH) / 2;
+              const delayBadgeX = glyphHasTag
+                ? (textAnchor === "start" ? tagX : tagX - delayBadgeW / 2)
+                : tagBoxX + tagBoxW + 2;
+              const delayTextX = glyphHasTag
+                ? (textAnchor === "start" ? tagX + 4 : tagX)
+                : delayBadgeX + delayBadgeW / 2;
+              const delayTextAnchor = glyphHasTag && textAnchor === "start" ? "start" : "middle";
               const hideTag = isSymbolTagPrintHidden(sym, dev);
 
               return (
@@ -313,7 +322,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                     style={{ cursor: "move" }}
                     onPointerDown={(e) => onTagPointerDown?.(e, sym, dev)}
                     onDoubleClick={(e) => onTagDoubleClick?.(e, sym, dev)}
-                    onContextMenu={(e) => (onTagContextMenu ? onTagContextMenu(e, sym, dev) : onSymbolContextMenu(e, sym.id))}
+                    onContextMenu={(e) => (onTagContextMenu ? onTagContextMenu(e, sym, dev) : onSymbolContextMenu?.(e, sym.id))}
                   >
                     {!glyphHasTag && !(hideTag && omitPrintHidden) && (
                       // Keyed by tag+position: renaming or moving the tag replaces these nodes

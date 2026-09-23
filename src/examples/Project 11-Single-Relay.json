@@ -269,7 +269,7 @@
         "deviceId": "d_j9_c6e4dec1",
         "variant": "delayed-nc",
         "x": 22,
-        "y": 53,
+        "y": 52,
         "rot": 0,
         "flipX": false,
         "flipY": false,
@@ -339,7 +339,7 @@
         "deviceId": "d_l8_de90bd58",
         "variant": "coil",
         "x": 47,
-        "y": 53,
+        "y": 52,
         "rot": 0,
         "flipX": false,
         "flipY": false
@@ -651,7 +651,7 @@
         "deviceId": "d_1ns_992000a1",
         "variant": "body",
         "x": 19,
-        "y": 62,
+        "y": 55,
         "rot": 0,
         "flipX": false,
         "flipY": false

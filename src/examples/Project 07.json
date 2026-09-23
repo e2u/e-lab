@@ -93,7 +93,7 @@
         "params": {
           "projectName": "7",
           "projectNo": "7",
-          "rev": "1.0",
+          "rev": "2.0",
           "sheetNum": "1",
           "sheetTotal": "1",
           "description": "Draw a schematic for multi start & stop P.B. station for sequence strt on motors.",
@@ -238,14 +238,14 @@
         "id": "s_rv_b8d84d97",
         "deviceId": "d_ru_0b2f057e",
         "variant": "body",
-        "x": 19,
+        "x": 16,
         "y": 26,
         "rot": 0,
         "flipX": false,
         "flipY": false,
         "tagOffset": {
-          "dx": 0.057,
-          "dy": 0.508
+          "dx": 1.602,
+          "dy": 0.782
         }
       },
       {
@@ -338,10 +338,9 @@
         "flipX": false,
         "flipY": false,
         "tagOffset": {
-          "dx": -0.106,
-          "dy": -2.86
-        },
-        "hideTag": true
+          "dx": 0.092,
+          "dy": -2.601
+        }
       },
       {
         "id": "s_uh_c86df6f7",
@@ -365,7 +364,7 @@
         "id": "s_up_28e9727f",
         "deviceId": "d_uo_ec2c69e2",
         "variant": "body",
-        "x": 13,
+        "x": 6,
         "y": 38,
         "rot": 0,
         "flipX": false,
@@ -485,10 +484,9 @@
         "flipX": false,
         "flipY": false,
         "tagOffset": {
-          "dx": -0.106,
-          "dy": -2.86
-        },
-        "hideTag": true
+          "dx": 0.099,
+          "dy": -2.545
+        }
       },
       {
         "id": "s_yo_4c9f202c",
@@ -508,27 +506,27 @@
         "id": "s_1ll_a1f2b3e7",
         "deviceId": "d_1lk_0d8df996",
         "variant": "body",
-        "x": 19,
+        "x": 16,
         "y": 32,
         "rot": 0,
         "flipX": false,
         "flipY": false,
         "tagOffset": {
-          "dx": 0.057,
-          "dy": 0.508
+          "dx": 1.674,
+          "dy": 0.879
         }
       },
       {
         "id": "s_1lq_52c471d1",
         "deviceId": "d_sx_bd1a0393",
         "variant": "aux-no",
-        "x": 19,
+        "x": 16,
         "y": 28,
         "rot": 0,
         "flipX": false,
         "flipY": false,
         "tagOffset": {
-          "dx": -0.073,
+          "dx": 0.287,
           "dy": -2.484
         }
       },
@@ -536,14 +534,14 @@
         "id": "s_1mb_09d2b8b2",
         "deviceId": "d_vd_0ac6d7d7",
         "variant": "aux-no",
-        "x": 19,
+        "x": 16,
         "y": 35,
         "rot": 0,
         "flipX": false,
         "flipY": false,
         "tagOffset": {
-          "dx": -0.096,
-          "dy": -3.11
+          "dx": 0.075,
+          "dy": -2.688
         }
       },
       {
@@ -562,7 +560,11 @@
         "y": 29,
         "rot": 0,
         "flipX": false,
-        "flipY": false
+        "flipY": false,
+        "tagOffset": {
+          "dx": 0.048,
+          "dy": -2.649
+        }
       },
       {
         "id": "s_1oj_d3ae1f7a",
@@ -576,11 +578,16 @@
         "id": "s_1on_0c6661f8",
         "deviceId": "d_1og_c63e7741",
         "variant": "aux-no",
-        "x": 13,
+        "x": 23,
         "y": 32,
         "rot": 0,
         "flipX": false,
-        "flipY": false
+        "flipY": false,
+        "tagOffset": {
+          "dx": 0.071,
+          "dy": -2.705
+        },
+        "hideTerminals": true
       }
     ],
     "wires": [
@@ -1169,33 +1176,6 @@
         }
       },
       {
-        "id": "w_1o2_2276e096",
-        "a": {
-          "symbolId": "s_1ll_a1f2b3e7",
-          "term": "2"
-        },
-        "b": {
-          "symbolId": "s_xq_254a225e",
-          "term": "A1"
-        }
-      },
-      {
-        "id": "w_1o6_683bbbca",
-        "a": {
-          "symbolId": "s_1mb_09d2b8b2",
-          "term": "14"
-        },
-        "b": {
-          "symbolId": "s_1ll_a1f2b3e7",
-          "term": "2"
-        },
-        "jog": {
-          "axis": "x",
-          "pos": 506,
-          "x": 506
-        }
-      },
-      {
         "id": "w_1o7_309bcfba",
         "a": {
           "symbolId": "s_rv_b8d84d97",
@@ -1241,20 +1221,9 @@
         }
       },
       {
-        "id": "w_1oo_a9a6d567",
+        "id": "w_1r4_78103c57",
         "a": {
-          "symbolId": "s_1on_0c6661f8",
-          "term": "13"
-        },
-        "b": {
           "symbolId": "s_yo_4c9f202c",
-          "term": "2"
-        }
-      },
-      {
-        "id": "w_1op_8151c8a2",
-        "a": {
-          "symbolId": "s_1on_0c6661f8",
           "term": "2"
         },
         "b": {
@@ -1263,19 +1232,52 @@
         }
       },
       {
-        "id": "w_1oq_4c0b9658",
+        "id": "w_1r5_1f869327",
+        "a": {
+          "symbolId": "s_1ll_a1f2b3e7",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_1on_0c6661f8",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_1r6_2004b462",
+        "a": {
+          "symbolId": "s_1on_0c6661f8",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_xq_254a225e",
+          "term": "A1"
+        }
+      },
+      {
+        "id": "w_1r7_62927909",
         "a": {
           "symbolId": "s_1mb_09d2b8b2",
           "term": "13"
         },
         "b": {
-          "symbolId": "s_1on_0c6661f8",
+          "symbolId": "s_1ll_a1f2b3e7",
           "term": "1"
+        }
+      },
+      {
+        "id": "w_1r9_3af3617e",
+        "a": {
+          "symbolId": "s_1mb_09d2b8b2",
+          "term": "14"
+        },
+        "b": {
+          "symbolId": "s_xq_254a225e",
+          "term": "A1"
         },
         "jog": {
           "axis": "x",
-          "pos": 286,
-          "x": 286
+          "pos": 660,
+          "x": 660
         }
       }
     ],

@@ -6354,3 +6354,67 @@ html, body {
 .wire-label-hit {
   pointer-events: all;
 }
+
+.rail-spine {
+  fill: none;
+  pointer-events: none;
+  cursor: move;
+}
+.rail-spine.selected {
+  stroke: #2ca02c;
+  stroke-width: 3.4;
+}
+.rail-break {
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linecap: butt;
+  stroke-dasharray: 6 5;
+  opacity: 0.4;
+  pointer-events: none;
+}
+.rail-break.selected {
+  stroke: #2ca02c;
+  opacity: 0.75;
+}
+@media print {
+  .rail-break,
+  .rail-break-handles {
+    display: none !important;
+  }
+}
+.rail-end-handle {
+  fill: #ffffff;
+  stroke: #2ca02c;
+  stroke-width: 1.5;
+  cursor: ns-resize;
+}
+.rail-cell-bg {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+  cursor: pointer;
+}
+.rail-cell-bg.selected {
+  fill: rgba(59, 125, 224, 0.16);
+  stroke: #3b7de0;
+}
+.rail-cell-text {
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 12px;
+  fill: var(--ink);
+  pointer-events: none;
+}
+.rail-cell-text.nc,
+.rail-cell-text .nc {
+  text-decoration: underline;
+}
+.rail-inline {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid #3b7de0;
+  background: #fffdf6;
+  color: var(--ink);
+  font: 12px "Red Hat Mono", ui-monospace, monospace;
+  padding: 0 4px;
+}

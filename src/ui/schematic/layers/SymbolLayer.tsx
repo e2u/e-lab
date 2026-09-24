@@ -1,5 +1,6 @@
 import { memo, type MouseEvent, type PointerEvent } from "react";
 import { resolvedVariant } from "../../../catalog";
+import { isLogicRailKind } from "../../../rails/logicRails";
 import { isNamedNetKind } from "../../../namedNets";
 import { glyphTransform, isJunction, symbolBounds, terminalWorld, textUnflipTransform } from "../../../geometry";
 import { isSymbolTagPrintHidden } from "../../../circuitBuilder";
@@ -49,6 +50,8 @@ export function hasGlyphTag(kind: string, _variant?: string): boolean {
     kind === "net-terminal" ||
     kind === "title-block" ||
     kind === "comment" ||
+    kind === "rail-l" ||
+    kind === "rail-n" ||
     kind === "counter" ||
     kind === "vfd" ||
     kind === "psu-24v" ||
@@ -95,7 +98,7 @@ export const SymbolLayer = memo(function SymbolLayer({
     <>
       {circuit.symbols.map((sym) => {
         const dev = circuit.devices.find((d) => d.id === sym.deviceId);
-        if (!dev) return null;
+        if (!dev || isLogicRailKind(dev.kind)) return null;
         const hideOnPrint = printHiddenIds.has(sym.id);
         if (omitPrintHidden && hideOnPrint) return null;
         const v = resolvedVariant(dev.kind, sym.variant, dev.params);
@@ -168,7 +171,7 @@ export const SymbolLayer = memo(function SymbolLayer({
                       pointerEvents="none"
                     />
                   )}
-                  {sel && dev.kind !== "net-terminal" && (
+                  {sel && dev.kind !== "net-terminal" && !isLogicRailKind(dev.kind) && (
                     <g className="resize-handles">
                       {([
                         { corner: "tl" as const, cx: -4, cy: -4 },

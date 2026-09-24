@@ -471,7 +471,15 @@ export function autoLayoutCircuit(
   let otherY = returnBusY + 4;
   for (const oth of classified.controlOther) {
     const dev = getDev(oth);
-    if (dev?.kind === "title-block") {
+    if (dev?.kind === "rail-l") {
+      oth.x = 1;
+      oth.y = 2;
+      oth.rot = 0;
+    } else if (dev?.kind === "rail-n") {
+      oth.x = 72;
+      oth.y = 2;
+      oth.rot = 0;
+    } else if (dev?.kind === "title-block") {
       oth.x = 60;
       oth.y = returnBusY + 6;
       oth.rot = 0;

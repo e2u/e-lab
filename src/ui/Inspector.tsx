@@ -5,6 +5,7 @@ import { bindingDisplayTag, devicesForBinding } from "../circuitBuilder";
 import { selectionHasGroup, selectionIsGroup } from "../groups";
 import { areWiresConnected } from "../geometry";
 import { componentDisplayName, t, variantDisplayName } from "../i18n";
+import { contentRows, railEnds } from "../rails/logicRails";
 import { useLab } from "../store";
 import type { Circuit, DeviceKind } from "../types";
 import { MeterHistoryChart } from "./MeterHistoryChart";
@@ -138,6 +139,61 @@ function weldable(kind: DeviceKind): boolean {
 
 
 
+function RailSpanFields({ kind }: { kind: "rail-l" | "rail-n" }) {
+  const circuit = useLab((s) => s.circuit);
+  const dev = circuit.devices.find((d) => d.kind === kind);
+  const sym = dev && circuit.symbols.find((s) => s.deviceId === dev.id);
+  if (!dev || !sym) return null;
+  const ends = railEnds(dev, sym, contentRows(circuit));
+  const commitEnd = (which: "y0" | "y1", raw: string) => {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return;
+    if (which === "y0") useLab.getState().setRailSpan(kind, n, ends.y1);
+    else useLab.getState().setRailSpan(kind, ends.y0, n);
+  };
+  return (
+    <div className="rail-span-editor">
+      <p className="hint">{t("inspector.railSpanHint")}</p>
+      <label>
+        {t("inspector.railColumn")}
+        <input
+          type="number"
+          key={`rail-col-${sym.id}-${sym.x}`}
+          defaultValue={sym.x}
+          onBlur={(e) => useLab.getState().setRailColumn(kind, Number(e.target.value))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+        />
+      </label>
+      <label>
+        {t("inspector.railStart")}
+        <input
+          type="number"
+          key={`rail-y0-${dev.id}-${ends.y0}`}
+          defaultValue={ends.y0}
+          onBlur={(e) => commitEnd("y0", e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+        />
+      </label>
+      <label>
+        {t("inspector.railEnd")}
+        <input
+          type="number"
+          key={`rail-y1-${dev.id}-${ends.y1}`}
+          defaultValue={ends.y1}
+          onBlur={(e) => commitEnd("y1", e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
 export function Inspector() {
   const selected = useLab((s) => s.selected);
   const selectedIds = useLab((s) => s.selectedIds);
@@ -148,6 +204,9 @@ export function Inspector() {
   const process = useLab((s) => s.process);
   const showWireLabels = useLab((s) => s.showWireLabels);
   const autoLayoutSkipPowerWiring = useLab((s) => s.autoLayoutSkipPowerWiring);
+  const railSelection = useLab((s) => s.railSelection);
+  const lineNumbers = useLab((s) => s.lineNumbers);
+  const crossReferences = useLab((s) => s.crossReferences);
 
   const injected = [
     ...circuit.wires.filter((w) => w.broken).map((w) => ({ id: w.id, type: "wire" as const, label: t("inspector.broken") })),
@@ -185,6 +244,90 @@ export function Inspector() {
         </button>
         <button className="btn danger" onClick={() => useLab.getState().deleteSelected()}>
           {t("inspector.deleteWire")}
+        </button>
+      </div>
+    );
+  }
+
+  if (railSelection) {
+    const rowLabel = t("inspector.railRow", { row: String(railSelection.y) });
+    if (railSelection.rail === "l") {
+      const text = lineNumbers[railSelection.y] ?? "";
+      return (
+        <div className="inspector" key={`rail-l-${railSelection.y}`}>
+          <h3>{t("inspector.railLineTitle")}</h3>
+          <RailSpanFields kind="rail-l" />
+          <p className="hint">{rowLabel}</p>
+          <p className="hint">{t("inspector.railHint")}</p>
+          <label>
+            {t("inspector.railText")}
+            <input
+              key={`rail-line-${railSelection.y}-${text}`}
+              defaultValue={text}
+              onBlur={(e) => useLab.getState().updateRailLineNumber(railSelection.y, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+            />
+          </label>
+          <button className="btn" onClick={() => useLab.getState().resetRailRow("l", railSelection.y)}>
+            {t("inspector.railReset")}
+          </button>
+        </div>
+      );
+    }
+    const cells = crossReferences[railSelection.y] ?? [];
+    const cell = cells[railSelection.index];
+    if (!cell) return null;
+    return (
+      <div className="inspector" key={`rail-n-${railSelection.y}-${railSelection.index}`}>
+        <h3>{t("inspector.railCrossTitle")}</h3>
+        <RailSpanFields kind="rail-n" />
+        <p className="hint">{rowLabel}</p>
+        <p className="hint">{t("inspector.railHint")}</p>
+        <label>
+          {t("inspector.railText")}
+          <input
+            key={`rail-x-${railSelection.y}-${railSelection.index}-${cell.text}`}
+            defaultValue={cell.text}
+            onBlur={(e) =>
+              useLab.getState().updateRailCrossCell(railSelection.y, railSelection.index, { text: e.target.value })
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+            }}
+          />
+        </label>
+        <label className="chk">
+          <input
+            type="checkbox"
+            checked={Boolean(cell.isNC)}
+            onChange={(e) =>
+              useLab.getState().updateRailCrossCell(railSelection.y, railSelection.index, { isNC: e.target.checked })
+            }
+          />
+          {t("inspector.railNc")}
+        </label>
+        <label>
+          {t("inspector.railStyle")}
+          <select
+            value={cell.style ?? ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              const style = value === "bold" || value === "italic" ? value : undefined;
+              useLab.getState().updateRailCrossCell(railSelection.y, railSelection.index, { style });
+            }}
+          >
+            <option value="">{t("inspector.railStyleNone")}</option>
+            <option value="bold">{t("inspector.railStyleBold")}</option>
+            <option value="italic">{t("inspector.railStyleItalic")}</option>
+          </select>
+        </label>
+        <button className="btn" onClick={() => useLab.getState().addRailCrossCell(railSelection.y)}>
+          {t("inspector.railAdd")}
+        </button>
+        <button className="btn" onClick={() => useLab.getState().resetRailRow("n", railSelection.y)}>
+          {t("inspector.railReset")}
         </button>
       </div>
     );
@@ -439,6 +582,17 @@ export function Inspector() {
         <p className="hint">{t("inspector.junctionWires", { count: n.toString(), hot: rt?.energized ? ` ${t("runtime.energized")}` : "" })}</p>
         <button className="btn danger" onClick={() => useLab.getState().deleteSelected()}>
           {t("inspector.deleteJunction")}
+        </button>
+      </div>
+    );
+  }
+  if (dev.kind === "rail-l" || dev.kind === "rail-n") {
+    return (
+      <div className="inspector" key={`rail-dev-${dev.id}`}>
+        <h3>{componentDisplayName(dev.kind, sym.variant)}</h3>
+        <RailSpanFields kind={dev.kind} />
+        <button className="btn danger" onClick={() => useLab.getState().deleteSelected()}>
+          {t("ctx.delete")}
         </button>
       </div>
     );

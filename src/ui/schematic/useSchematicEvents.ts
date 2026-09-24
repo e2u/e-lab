@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from "react";
 import { findPortAtPoint, findWireAtPoint, getClosestTOnPolyline, hitWireSegment, portsEqual, wireRoute, wiresInRect } from "../../geometry";
+import { contentRows, hitTestRailCell, layoutLogicRails, railEnds, type RailCellBox, type RailSelection, type RailSpine } from "../../rails/logicRails";
+import { railTermId } from "../../rails/railBus";
 import { normalizeRect, symbolsInRect } from "../../groups";
 import { useLab } from "../../store";
 import { variantDef } from "../../catalog";
@@ -48,6 +50,7 @@ export function useSchematicEvents({
   containerRef,
 }: UseSchematicEventsParams) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const [editingRail, setEditingRail] = useState<RailSelection | null>(null);
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [rulerPos, setRulerPos] = useState<{ x: number; y: number } | null>(null);
   const [menu, setMenu] = useState<MenuPos | null>(null);
@@ -58,6 +61,22 @@ export function useSchematicEvents({
     origins: Record<string, { x: number; y: number }>;
     wireJogOrigins: Record<string, WireJog>;
     pushedHistory?: boolean;
+  } | null>(null);
+  const railEndDrag = useRef<{
+    kind: "rail-l" | "rail-n" | "rail-break";
+    symbolId: string;
+    which: "y0" | "y1";
+    pushed: boolean;
+  } | null>(null);
+  const railMoveDrag = useRef<{
+    kind: "rail-l" | "rail-n" | "rail-break";
+    symbolId: string;
+    originX: number;
+    originY0: number;
+    originY1: number;
+    grabX: number;
+    grabY: number;
+    pushed: boolean;
   } | null>(null);
   const resizeDrag = useRef<{
     symbolId: string;
@@ -149,6 +168,8 @@ export function useSchematicEvents({
       const dragging = drag.current;
       drag.current = null;
       resizeDrag.current = null;
+      railEndDrag.current = null;
+      railMoveDrag.current = null;
       wireDrag.current = null;
       tagDrag.current = null;
       commitLabelDrag();
@@ -339,6 +360,7 @@ export function useSchematicEvents({
     }
     if (mode !== "edit") {
       lab.select(null);
+      setEditingRail(null);
       if (e.pointerType === "touch") {
         paperTouchPanRef.current = { x: e.clientX, y: e.clientY, moved: false };
         try {
@@ -361,7 +383,17 @@ export function useSchematicEvents({
       return;
     }
 
+    const world = toWorld(e);
+    const railLayout = layoutLogicRails(lab.circuit, lab.lineNumbers, lab.crossReferences);
+    const railHit = hitTestRailCell(world.x, world.y, railLayout.cells);
+    if (railHit) {
+      setEditingRail(null);
+      lab.selectRailCell({ rail: railHit.rail, y: railHit.y, index: railHit.index });
+      return;
+    }
+
     const p = toGrid(e);
+    setEditingRail(null);
     marqueeRef.current = { x0: p.x, y0: p.y, x1: p.x, y1: p.y, shift: e.shiftKey };
     setMarqueeView({ x0: p.x, y0: p.y, x1: p.x, y1: p.y });
     if (!e.shiftKey) lab.select(null);
@@ -424,6 +456,28 @@ export function useSchematicEvents({
     }
 
     const world = { x: p.x * GRID, y: p.y * GRID };
+    if (railMoveDrag.current && mode === "edit") {
+      const rd = railMoveDrag.current;
+      const dx = Math.round(p.x) - rd.grabX;
+      const dy = Math.round(p.y) - rd.grabY;
+      if (useLab.getState().moveRail(rd.kind, rd.originX + dx, rd.originY0 + dy, rd.originY1 + dy, !rd.pushed, rd.symbolId)) {
+        rd.pushed = true;
+      }
+      return;
+    }
+    if (railEndDrag.current && mode === "edit") {
+      const rd = railEndDrag.current;
+      const circuitNow = useLab.getState().circuit;
+      const dev = circuitNow.devices.find((d) => d.kind === rd.kind);
+      const sym = dev && circuitNow.symbols.find((s) => s.deviceId === dev.id);
+      if (dev && sym) {
+        const ends = railEnds(dev, sym, contentRows(circuitNow));
+        const y = Math.round(p.y);
+        const next = rd.which === "y0" ? { y0: y, y1: ends.y1 } : { y0: ends.y0, y1: y };
+        if (useLab.getState().setRailSpan(rd.kind, next.y0, next.y1, !rd.pushed, rd.symbolId)) rd.pushed = true;
+      }
+      return;
+    }
     if (resizeDrag.current && mode === "edit") {
       const rd = resizeDrag.current;
       if (!rd.pushedHistory) {
@@ -715,6 +769,8 @@ export function useSchematicEvents({
       finishMarquee();
       drag.current = null;
       resizeDrag.current = null;
+      railEndDrag.current = null;
+      railMoveDrag.current = null;
       wireDrag.current = null;
       tagDrag.current = null;
       labelDrag.current = null;
@@ -1306,6 +1362,99 @@ export function useSchematicEvents({
     } catch {}
   };
 
+  const onRailSpinePointerDown = (e: PointerEvent<SVGLineElement>, spine: RailSpine) => {
+    e.stopPropagation();
+    if (placing) {
+      placeAtEvent(e);
+      return;
+    }
+    if (mode !== "edit") return;
+    const lab = useLab.getState();
+    if (lab.editSubMode === "wiring" || lab.wiringFrom) {
+      const row = Math.round(toWorld(e).y / GRID);
+      const sym = lab.circuit.symbols.find((s) => s.id === spine.symbolId);
+      const dev = sym && lab.circuit.devices.find((d) => d.id === sym.deviceId);
+      const y0 = dev?.params.railY0;
+      const y1 = dev?.params.railY1;
+      if (dev && dev.kind !== "rail-break" && typeof y0 === "number" && typeof y1 === "number" && row >= Math.min(y0, y1) && row <= Math.max(y0, y1)) {
+        lab.clickPort({ symbolId: spine.symbolId, term: railTermId(row) });
+      }
+      return;
+    }
+    const sym = lab.circuit.symbols.find((s) => s.id === spine.symbolId);
+    const dev = sym && lab.circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!sym || !dev) return;
+    const ends = railEnds(dev, sym, contentRows(lab.circuit));
+    const p = toGrid(e);
+    if (dev.kind !== "rail-l" && dev.kind !== "rail-n" && dev.kind !== "rail-break") return;
+    lab.select({ type: "symbol", id: spine.symbolId });
+    railMoveDrag.current = {
+      kind: dev.kind,
+      symbolId: sym.id,
+      originX: sym.x,
+      originY0: ends.y0,
+      originY1: ends.y1,
+      grabX: Math.round(p.x),
+      grabY: Math.round(p.y),
+      pushed: false,
+    };
+    try {
+      svgRef.current?.setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  const onRailEndPointerDown = (e: PointerEvent<SVGRectElement>, spine: RailSpine, which: "y0" | "y1") => {
+    blurActiveInput();
+    e.stopPropagation();
+    e.preventDefault();
+    if (mode !== "edit" || placing) return;
+    const owner = useLab.getState().circuit.symbols.find((s) => s.id === spine.symbolId);
+    const ownerDev = owner && useLab.getState().circuit.devices.find((d) => d.id === owner.deviceId);
+    if (!ownerDev || (ownerDev.kind !== "rail-l" && ownerDev.kind !== "rail-n" && ownerDev.kind !== "rail-break")) return;
+    railEndDrag.current = {
+      kind: ownerDev.kind,
+      symbolId: spine.symbolId,
+      which,
+      pushed: false,
+    };
+    try {
+      svgRef.current?.setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  const onRailCellPointerDown = (e: PointerEvent<SVGRectElement>, cell: RailCellBox) => {
+    blurActiveInput();
+    e.stopPropagation();
+    const lab = useLab.getState();
+    if (lab.placing) {
+      placeAtEvent(e);
+      return;
+    }
+    if (lab.mode !== "edit") return;
+    setEditingRail(null);
+    lab.selectRailCell({ rail: cell.rail, y: cell.y, index: cell.index });
+  };
+
+  const onRailCellDoubleClick = (e: MouseEvent<SVGRectElement>, cell: RailCellBox) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const lab = useLab.getState();
+    if (lab.mode !== "edit" || lab.placing) return;
+    const sel = { rail: cell.rail, y: cell.y, index: cell.index };
+    lab.selectRailCell(sel);
+    lab.setSideOpen(true);
+    setEditingRail(sel);
+  };
+
+  const onCommitRailText = (cell: RailCellBox, text: string) => {
+    const lab = useLab.getState();
+    if (cell.rail === "l") lab.updateRailLineNumber(cell.y, text);
+    else lab.updateRailCrossCell(cell.y, cell.index, { text });
+    setEditingRail(null);
+  };
+
+  const onCancelRailEdit = () => setEditingRail(null);
+
   const onPlaceOverlayPointerDown = (e: PointerEvent<SVGRectElement>) => {
     blurActiveInput();
     e.stopPropagation();
@@ -1361,5 +1510,12 @@ export function useSchematicEvents({
     onPortPointerLeave,
     onPlaceOverlayPointerDown,
     onPlaceOverlayContextMenu,
+    editingRail,
+    onRailCellPointerDown,
+    onRailCellDoubleClick,
+    onCommitRailText,
+    onCancelRailEdit,
+    onRailEndPointerDown,
+    onRailSpinePointerDown,
   };
 }

@@ -63,6 +63,10 @@ const exampleImports: Record<string, ExampleImporter> = {
   "22-timer-ss-off-three-motor": () => import("./22-timer-ss-off-three-motor.json"),
   "23-timer-ss-on-dual-motor": () => import("./23-timer-ss-on-dual-motor.json"),
   "24-timer-ss-on-three-motor": () => import("./24-timer-ss-on-three-motor.json"),
+  L: () => import("./rail-l.json"),
+  N: () => import("./rail-n.json"),
+  "rail-l": () => import("./rail-l.json"),
+  "rail-n": () => import("./rail-n.json"),
 };
 
 export async function loadExampleJson(id: string): Promise<ExampleDoc | null> {

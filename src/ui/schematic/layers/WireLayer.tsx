@@ -132,7 +132,17 @@ export const WireLayer = memo(function WireLayer({
 
   return (
     <>
-      {circuit.wires.map((w) => {
+      {[...circuit.wires]
+        .sort((a, b) => {
+          const rank = (id: string) =>
+            (selected?.type === "wire" && selected.id === id) || selectedWireIds?.includes(id)
+              ? 2
+              : activeHighlightedWireIds.has(id)
+                ? 1
+                : 0;
+          return rank(a.id) - rank(b.id);
+        })
+        .map((w) => {
         const pts = routes.get(w.id);
         if (!pts || pts.length < 2) return null;
         const hideOnPrint = wireIsPrintHidden(w, printHiddenIds);

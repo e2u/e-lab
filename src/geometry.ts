@@ -1,4 +1,5 @@
 import { resolvedVariant, type VariantDef } from "./catalog";
+import { isRailKind, railBusTerminals, railTermId } from "./rails/railBus";
 import { isNamedNetKind, namedNetKey, netTerminalPinSide } from "./namedNets";
 import { GRID, type Circuit, type PortRef, type Rot, type SymbolInst, type TerminalDef, type Wire, type WireJog } from "./types";
 
@@ -43,6 +44,15 @@ export function symbolBounds(
 ): { x: number; y: number; w: number; h: number } | null {
   const dev = circuit.devices.find((d) => d.id === sym.deviceId);
   if (!dev) return null;
+  if (
+    (isRailKind(dev.kind) || dev.kind === "rail-break") &&
+    typeof dev.params.railY0 === "number" &&
+    typeof dev.params.railY1 === "number"
+  ) {
+    const lo = Math.min(dev.params.railY0, dev.params.railY1);
+    const hi = Math.max(dev.params.railY0, dev.params.railY1);
+    return { x: sym.x, y: lo, w: 1, h: Math.max(1, hi - lo) };
+  }
   const size = symbolSize(sym, dev.kind, dev.params);
   return { x: sym.x, y: sym.y, w: size.w, h: size.h };
 }
@@ -108,6 +118,11 @@ export function terminalWorld(
   if (!sym) return null;
   const dev = circuit.devices.find((d) => d.id === sym.deviceId);
   if (!dev) return null;
+  if (isRailKind(dev.kind)) {
+    const term = railBusTerminals(sym, dev).find((t) => t.id === ref.term);
+    if (!term) return null;
+    return { x: (sym.x + term.x) * GRID, y: (sym.y + term.y) * GRID };
+  }
   const v = resolvedVariant(dev.kind, sym.variant, dev.params);
   const term = lookupTerminal(v, dev.kind, ref.term);
   if (!term) return null;
@@ -162,7 +177,7 @@ export function terminalOutward(
   if (!sym) return { x: 0, y: 0 };
   const dev = circuit.devices.find((d) => d.id === sym.deviceId);
   if (!dev) return { x: 0, y: 0 };
-  if (dev.kind === "junction" || isNamedNetKind(dev.kind)) {
+  if (dev.kind === "junction" || isNamedNetKind(dev.kind) || isRailKind(dev.kind)) {
     return { x: 0, y: 0 };
   }
   const v = resolvedVariant(dev.kind, sym.variant, dev.params);
@@ -371,8 +386,45 @@ export function portKind(circuit: Circuit, ref: PortRef): string | null {
 
 function stubLen(circuit: Circuit, ref: PortRef): number {
   const kind = portKind(circuit, ref);
-  if (kind === "junction" || (kind !== null && isNamedNetKind(kind))) return 0;
+  if (kind === "junction" || (kind !== null && (isNamedNetKind(kind) || isRailKind(kind)))) return 0;
   return STUB;
+}
+
+/**
+ * A vertical control rail is met by a horizontal segment at the placed row.
+ * The corner sits beside the device, so the run does not travel along the rail
+ * and land inside a rail break.
+ */
+function approachRail(
+  circuit: Circuit,
+  from: PortRef,
+  to: PortRef,
+  a: { x: number; y: number },
+  a1: { x: number; y: number },
+  oa: { x: number; y: number },
+  b: { x: number; y: number },
+  b1: { x: number; y: number },
+  ob: { x: number; y: number },
+  jog: WireJog | undefined,
+  isSelf: boolean,
+): { x: number; y: number }[] | null {
+  if (jog || isSelf) return null;
+  const fromKind = portKind(circuit, from);
+  const toKind = portKind(circuit, to);
+  const fromRail = fromKind !== null && isRailKind(fromKind);
+  const toRail = toKind !== null && isRailKind(toKind);
+  if (fromRail === toRail) return null;
+  const rail = toRail ? b : a;
+  const dev = toRail ? a : b;
+  const stub = toRail ? a1 : b1;
+  const out = toRail ? oa : ob;
+  let laneX = stub.x;
+  if (Math.abs(laneX - rail.x) < 1) {
+    const dir = out.x !== 0 ? out.x : Math.sign(dev.x - rail.x) || 1;
+    laneX = dev.x + dir * GRID;
+  }
+  const corner = { x: laneX, y: rail.y };
+  return toRail ? [a, stub, corner, b] : [a, corner, stub, b];
 }
 
 /** Orthogonal route that leaves each terminal in a straight stub before any 90° bend. */
@@ -400,6 +452,8 @@ export function wireRoute(
     const ob = terminalOutward(circuit, to);
     const sb = stubLen(circuit, to);
     const b1 = { x: b.x + ob.x * sb, y: b.y + ob.y * sb };
+    const railPath = approachRail(circuit, from, to, a, a1, oa, b, b1, ob, jog, isSelf);
+    if (railPath) return cleanPolyline(railPath);
     for (const p of betweenStubs(a1, b1, oa, ob, jog, isSelf).slice(1)) append(pts, p);
     append(pts, b);
     return cleanPolyline(pts);
@@ -753,7 +807,9 @@ export function circuitRouteKey(circuit: Circuit): string {
   for (const d of circuit.devices) {
     const pin = d.params.pinCount ?? "";
     const scale = d.params.scale ?? "";
-    key += `${d.id}:${d.kind}:${pin}:${scale};`;
+    const railY0 = d.params.railY0 ?? "";
+    const railY1 = d.params.railY1 ?? "";
+    key += `${d.id}:${d.kind}:${pin}:${scale}:${railY0}:${railY1};`;
   }
   key += "|";
   for (const w of circuit.wires) {
@@ -996,8 +1052,8 @@ export function findPortAtPoint(
   for (const sym of circuit.symbols) {
     const dev = circuit.devices.find((d) => d.id === sym.deviceId);
     if (!dev) continue;
-    const v = resolvedVariant(dev.kind, sym.variant, dev.params);
-    for (const t of v.terminals) {
+    const terminals = isRailKind(dev.kind) ? railBusTerminals(sym, dev) : resolvedVariant(dev.kind, sym.variant, dev.params).terminals;
+    for (const t of terminals) {
       const world = terminalWorld(circuit, { symbolId: sym.id, term: t.id });
       if (!world) continue;
       const d = Math.hypot(world.x - x, world.y - y);
@@ -1017,14 +1073,16 @@ function uniqueLocatedPorts(circuit: Circuit, symbolId: string): { port: PortRef
   if (!sym) return [];
   const dev = circuit.devices.find((d) => d.id === sym.deviceId);
   if (!dev) return [];
-  const v = resolvedVariant(dev.kind, sym.variant, dev.params);
+  const terminals = isRailKind(dev.kind)
+    ? railBusTerminals(sym, dev)
+    : resolvedVariant(dev.kind, sym.variant, dev.params).terminals;
   const wired = new Set<string>();
   for (const w of circuit.wires) {
     if (w.a.symbolId === symbolId) wired.add(w.a.term);
     if (w.b.symbolId === symbolId) wired.add(w.b.term);
   }
   const byPos = new Map<string, { port: PortRef; x: number; y: number }[]>();
-  for (const t of v.terminals) {
+  for (const t of terminals) {
     const world = terminalWorld(circuit, { symbolId: sym.id, term: t.id });
     if (!world) continue;
     const key = `${Math.round(world.x)},${Math.round(world.y)}`;
@@ -1038,6 +1096,181 @@ function uniqueLocatedPorts(circuit: Circuit, symbolId: string): { port: PortRef
     out.push(list.find((p) => wired.has(p.port.term)) ?? list[0]);
   }
   return out;
+}
+
+export interface HotRailSplice {
+  contactSymbolId: string;
+  railSymbolId: string;
+  railDeviceId: string;
+  /** Upper and lower grid rows where the contact meets the rail. */
+  rows: [number, number];
+}
+
+function isNoNcContact(kind: string, variant: string): boolean {
+  const v = variant.toLowerCase();
+  if (v === "coil" || v === "main") return false;
+  if (v.includes("nc") || v.includes("no")) return true;
+  return /(?:^|-)(no|nc)$/.test(kind) || kind === "estop" || kind === "door-nc" || kind === "pull-cord";
+}
+
+/** NO/NC whose terminals both sit on the control hot rail. The rail opens between them. */
+export function hotRailSplices(circuit: Circuit): HotRailSplice[] {
+  const rails = circuit.symbols.flatMap((sym) => {
+    const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev || dev.kind !== "rail-l") return [];
+    const y0 = dev.params.railY0;
+    const y1 = dev.params.railY1;
+    if (typeof y0 !== "number" || typeof y1 !== "number") return [];
+    return [{ sym, dev, x: sym.x * GRID, lo: Math.min(y0, y1), hi: Math.max(y0, y1) }];
+  });
+  if (rails.length === 0) return [];
+  const splices: HotRailSplice[] = [];
+  for (const sym of circuit.symbols) {
+    const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev || !isNoNcContact(dev.kind, sym.variant)) continue;
+    const variant = resolvedVariant(dev.kind, sym.variant, dev.params);
+    const points = variant.terminals
+      .map((t) => ({ id: t.id, world: terminalWorld(circuit, { symbolId: sym.id, term: t.id }) }))
+      .filter((p): p is { id: string; world: { x: number; y: number } } => Boolean(p.world));
+    const unique = new Map<string, { id: string; x: number; y: number }>();
+    for (const p of points) unique.set(`${Math.round(p.world.x)},${Math.round(p.world.y)}`, { id: p.id, ...p.world });
+    if (unique.size !== 2) continue;
+    const [p, q] = [...unique.values()];
+    if (Math.abs(p.x - q.x) > 0.5) continue;
+    const rail = rails.find((r) => Math.abs(r.x - p.x) <= 0.5);
+    if (!rail) continue;
+    const rowP = Math.round(p.y / GRID);
+    const rowQ = Math.round(q.y / GRID);
+    if (rowP === rowQ) continue;
+    const lo = Math.min(rowP, rowQ);
+    const hi = Math.max(rowP, rowQ);
+    if (lo < rail.lo || hi > rail.hi) continue;
+    splices.push({
+      contactSymbolId: sym.id,
+      railSymbolId: rail.sym.id,
+      railDeviceId: rail.dev.id,
+      rows: [lo, hi],
+    });
+  }
+  return splices;
+}
+
+/** Vertical break marks sitting on a control rail. They open the rail but do not renumber it. */
+export function railBreakCuts(circuit: Circuit): { railSymbolId: string; rows: [number, number] }[] {
+  const rails = circuit.symbols.flatMap((sym) => {
+    const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev || (dev.kind !== "rail-l" && dev.kind !== "rail-n")) return [];
+    const y0 = dev.params.railY0;
+    const y1 = dev.params.railY1;
+    if (typeof y0 !== "number" || typeof y1 !== "number") return [];
+    return [{ sym, lo: Math.min(y0, y1), hi: Math.max(y0, y1) }];
+  });
+  const cuts: { railSymbolId: string; rows: [number, number] }[] = [];
+  for (const sym of circuit.symbols) {
+    const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev || dev.kind !== "rail-break") continue;
+    const y0 = dev.params.railY0;
+    const y1 = dev.params.railY1;
+    if (typeof y0 !== "number" || typeof y1 !== "number") continue;
+    const rail = rails.find((r) => r.sym.x === sym.x);
+    if (!rail) continue;
+    const lo = Math.max(Math.min(y0, y1), rail.lo);
+    const hi = Math.min(Math.max(y0, y1), rail.hi);
+    if (hi - lo < 1) continue;
+    cuts.push({ railSymbolId: rail.sym.id, rows: [lo, hi] });
+  }
+  return cuts;
+}
+
+/**
+ * Slide a rail tap onto the other end's row so that wire stays one straight line.
+ * Pass `onlySymbolIds` for the symbols that just moved. A tap then moves only when
+ * its device end moved and its rail did not, so a row placed on Control hot stays
+ * when the rail or a rail break moves. A wire between two rails is left alone in
+ * that scoped call; moving one rail shifts its own taps with the span instead.
+ * Returns true when a tap or jog changed.
+ */
+export function alignRailWireEnds(
+  circuit: Circuit,
+  keepJogs = false,
+  onlySymbolIds?: ReadonlySet<string>,
+): boolean {
+  let changed = false;
+  const setTerm = (port: PortRef, row: number) => {
+    const id = railTermId(row);
+    if (port.term !== id) {
+      port.term = id;
+      changed = true;
+    }
+  };
+  for (const w of circuit.wires) {
+    const a = railPort(circuit, w.a);
+    const b = railPort(circuit, w.b);
+    if (!a && !b) continue;
+    if (a && b) {
+      if (onlySymbolIds) continue;
+      const lo = Math.max(a.lo, b.lo);
+      const hi = Math.min(a.hi, b.hi);
+      if (lo > hi) continue;
+      const current = termRow(w.a.term) ?? termRow(w.b.term) ?? lo;
+      const row = Math.max(lo, Math.min(hi, current));
+      setTerm(w.a, row);
+      setTerm(w.b, row);
+      if (!keepJogs && w.jog !== undefined) {
+        w.jog = undefined;
+        changed = true;
+      }
+      continue;
+    }
+    const rail = (a ?? b)!;
+    const other = a ? w.b : w.a;
+    const railSymId = a ? w.a.symbolId : w.b.symbolId;
+    if (onlySymbolIds && (!onlySymbolIds.has(other.symbolId) || onlySymbolIds.has(railSymId))) continue;
+    const world = terminalWorld(circuit, other);
+    if (!world) continue;
+    const row = Math.max(rail.lo, Math.min(rail.hi, Math.round(world.y / GRID)));
+    setTerm(a ? w.a : w.b, row);
+    if (!keepJogs && w.jog !== undefined) {
+      w.jog = undefined;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function termRow(term: string): number | null {
+  const match = /^y(-?\d+)$/.exec(term);
+  return match ? Number(match[1]) : null;
+}
+
+function railPort(circuit: Circuit, port: PortRef): { lo: number; hi: number } | null {
+  const sym = circuit.symbols.find((s) => s.id === port.symbolId);
+  if (!sym) return null;
+  const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+  if (!dev || !isRailKind(dev.kind)) return null;
+  const y0 = dev.params.railY0;
+  const y1 = dev.params.railY1;
+  if (typeof y0 !== "number" || typeof y1 !== "number") return null;
+  return { lo: Math.min(y0, y1), hi: Math.max(y0, y1) };
+}
+
+/** Drop wires from a contact onto the hot rail once it is no longer spliced into that rail. */
+export function detachUnsplicedHotRailWires(circuit: Circuit, contactIds: string[]): void {
+  if (contactIds.length === 0) return;
+  const spliced = new Set(hotRailSplices(circuit).map((s) => s.contactSymbolId));
+  const leaving = contactIds.filter((id) => !spliced.has(id));
+  if (leaving.length === 0) return;
+  const railIds = new Set(
+    circuit.symbols
+      .filter((s) => circuit.devices.some((d) => d.id === s.deviceId && d.kind === "rail-l"))
+      .map((s) => s.id),
+  );
+  const drop = new Set(leaving);
+  circuit.wires = circuit.wires.filter((w) => {
+    const aLeave = drop.has(w.a.symbolId) && railIds.has(w.b.symbolId);
+    const bLeave = drop.has(w.b.symbolId) && railIds.has(w.a.symbolId);
+    return !aLeave && !bLeave;
+  });
 }
 
 /**
@@ -1351,6 +1584,7 @@ export function nodeKeysForPort(circuit: Circuit, ref: PortRef): string[] {
     if (k) keys.push(`net:${k}`);
     return keys;
   }
+  if (dev.kind === "rail-l" || dev.kind === "rail-n") return [`rail:${dev.id}`];
   return [`port:${ref.symbolId}:${ref.term}`];
 }
 

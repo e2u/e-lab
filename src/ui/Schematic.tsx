@@ -8,6 +8,7 @@ import { PaperBackground } from "./schematic/layers/PaperBackground";
 import { PortLayer } from "./schematic/layers/PortLayer";
 import { RelationLayer } from "./schematic/layers/RelationLayer";
 import { SymbolLayer } from "./schematic/layers/SymbolLayer";
+import { RailLayer } from "./schematic/layers/RailLayer";
 import { WireLayer } from "./schematic/layers/WireLayer";
 import { RulerLeft, RulerTop } from "./schematic/Ruler";
 import { useSchematicEvents } from "./schematic/useSchematicEvents";
@@ -47,6 +48,9 @@ export function Schematic() {
   const held = useLab((s) => s.held);
   const zoom = useLab((s) => s.zoom);
   const showWireLabels = useLab((s) => s.showWireLabels);
+  const lineNumbers = useLab((s) => s.lineNumbers);
+  const crossReferences = useLab((s) => s.crossReferences);
+  const railSelection = useLab((s) => s.railSelection);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const [isDesktop, setIsDesktop] = useState(typeof window !== "undefined" ? window.innerWidth > 768 : true);
@@ -168,6 +172,13 @@ export function Schematic() {
     onPortPointerLeave,
     onPlaceOverlayPointerDown,
     onPlaceOverlayContextMenu,
+    editingRail,
+    onRailCellPointerDown,
+    onRailCellDoubleClick,
+    onCommitRailText,
+    onCancelRailEdit,
+    onRailEndPointerDown,
+    onRailSpinePointerDown,
   } = useSchematicEvents({
     circuit,
     mode,
@@ -180,7 +191,11 @@ export function Schematic() {
     <div
       className="paper-wrap"
       ref={wrapRef}
-      onPointerDownCapture={blurActiveInput}
+      onPointerDownCapture={(e) => {
+        const target = e.target as HTMLElement | null;
+        if (target?.closest?.(".rail-inline, .rail-inline-wrap")) return;
+        blurActiveInput();
+      }}
     >
       <div className={`schematic-container ${showRulers ? "with-rulers" : ""}`}>
         {showRulers && (
@@ -256,6 +271,22 @@ export function Schematic() {
             onWireLabelDoubleClick={onWireLabelDoubleClick}
             onWireLabelContextMenu={onWireLabelContextMenu}
             labelDragPreview={labelDragPreview}
+          />
+
+          <RailLayer
+            circuit={circuit}
+            lineNumbers={lineNumbers}
+            crossReferences={crossReferences}
+            railSelection={railSelection}
+            editingRail={editingRail}
+            editable={mode === "edit"}
+            selectedSymbolId={selected?.type === "symbol" ? selected.id : null}
+            onRailCellPointerDown={onRailCellPointerDown}
+            onRailCellDoubleClick={onRailCellDoubleClick}
+            onCommitRailText={onCommitRailText}
+            onCancelRailEdit={onCancelRailEdit}
+            onRailEndPointerDown={onRailEndPointerDown}
+            onRailSpinePointerDown={onRailSpinePointerDown}
           />
 
           <PortLayer

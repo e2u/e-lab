@@ -1165,6 +1165,25 @@ function GlyphBody({
         );
     };
 
+    if (kind === "rail-break") {
+        return (
+            <S w={1} h={3}>
+                <line x1={GRID / 2} y1={6} x2={GRID / 2} y2={3 * GRID - 6} stroke={ink} strokeWidth={2.2} strokeDasharray="5 4" opacity={0.55} />
+            </S>
+        );
+    }
+    if (kind === "rail-l" || kind === "rail-n") {
+        const letter = kind === "rail-l" ? "L" : "N";
+        return (
+            <S w={1} h={1}>
+                <line x1={GRID / 2} y1={2} x2={GRID / 2} y2={GRID - 2} stroke={ink} strokeWidth={2.2} strokeLinecap="round" />
+                <Txt x={GRID / 2} y={GRID / 2} textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight="700" fill={ink}>
+                    {letter}
+                </Txt>
+            </S>
+        );
+    }
+
     const hot = Boolean(rt?.energized);
     const closed = Boolean(rt && (kind.includes("nc") || kind === "estop" || kind === "estop-nc" ? !rt.actuated : rt.actuated));
     const key = `${kind}:${variant}`;

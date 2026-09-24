@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "name": "N",
+  "circuit": {
+    "devices": [
+      { "id": "d_rail_l", "kind": "rail-l", "tag": "L", "params": {} },
+      { "id": "d_rail_n", "kind": "rail-n", "tag": "N", "params": {} },
+      { "id": "d_pb", "kind": "pb-nc", "tag": "PB1", "params": {} },
+      { "id": "d_cr", "kind": "relay", "tag": "CR1", "params": {} }
+    ],
+    "symbols": [
+      { "id": "s_rail_l", "deviceId": "d_rail_l", "variant": "body", "x": 1, "y": 2, "rot": 0 },
+      { "id": "s_rail_n", "deviceId": "d_rail_n", "variant": "body", "x": 28, "y": 2, "rot": 0 },
+      { "id": "s_pb", "deviceId": "d_pb", "variant": "body", "x": 6, "y": 4, "rot": 0 },
+      { "id": "s_coil", "deviceId": "d_cr", "variant": "coil", "x": 14, "y": 4, "rot": 0 },
+      { "id": "s_aux", "deviceId": "d_cr", "variant": "aux-nc", "x": 14, "y": 8, "rot": 0 }
+    ],
+    "wires": [
+      {
+        "id": "w_pb_coil",
+        "a": { "symbolId": "s_pb", "term": "2" },
+        "b": { "symbolId": "s_coil", "term": "A1" }
+      }
+    ]
+  }
+}

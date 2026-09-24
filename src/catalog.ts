@@ -1254,6 +1254,27 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       },
     },
   },
+  "rail-l": {
+    prefix: "L",
+    label: "控制火線",
+    variants: {
+      body: { w: 1, h: 1, terminals: [] },
+    },
+  },
+  "rail-n": {
+    prefix: "N",
+    label: "控制零線",
+    variants: {
+      body: { w: 1, h: 1, terminals: [] },
+    },
+  },
+  "rail-break": {
+    prefix: "BK",
+    label: "軌斷開",
+    variants: {
+      body: { w: 1, h: 3, terminals: [] },
+    },
+  },
   junction: {
     prefix: "",
     label: "連接點",
@@ -1407,6 +1428,9 @@ export const CATALOG: CatalogItem[] = [
 
   { id: "title-block", kind: "title-block", variant: "body", group: "圖紙標註", subgroupId: "Annotations", label: "圖紙標題欄", labelEn: "Title Block", prefix: "TB", creates: "device" },
   { id: "comment", kind: "comment", variant: "body", group: "圖紙標註", subgroupId: "Annotations", label: "註釋文字框", labelEn: "Comment Box", prefix: "REM", creates: "device" },
+  { id: "rail-l", kind: "rail-l", variant: "body", group: "電源與保護", subgroupId: "Power_Supply", label: "控制火線", labelEn: "Control hot", prefix: "L", creates: "device" },
+  { id: "rail-n", kind: "rail-n", variant: "body", group: "電源與保護", subgroupId: "Power_Supply", label: "控制零線", labelEn: "Control neutral", prefix: "N", creates: "device" },
+  { id: "rail-break", kind: "rail-break", variant: "body", group: "電源與保護", subgroupId: "Power_Supply", label: "軌斷開", labelEn: "Rail break", prefix: "BK", creates: "device" },
 ];
 
 export const GROUPS: readonly CatalogGroup[] = [

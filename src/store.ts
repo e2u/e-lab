@@ -7,7 +7,7 @@ import { loadExampleJson } from "./examples/index";
 // templateData is no longer used after changing blank template to empty circuit (see createBlankTemplateCircuit)
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols, unionBounds } from "./groups";
 import { EXAMPLES } from "./examples";
-import { allWireRoutes, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { alignRailWireEnds, allWireRoutes, detachUnsplicedHotRailWires, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, hotRailSplices, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   docFromHash,
@@ -27,7 +27,9 @@ import {
 import { defaultRuntime, emptySnapshot, tick } from "./sim/engine";
 import { buildLadderDiagram } from "./ladder/ladderLayout";
 import { autoLayoutCircuit, type AutoLayoutOptions } from "./layout/autoLayout";
-import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type Rot, type SimSnapshot, type Theme, type Wire, type WireJog } from "./types";
+import { computeLogicRails, layoutLogicRails, mergeRailCell, normalizeRailCell, sameLogicRails, type RailSelection } from "./rails/logicRails";
+import { isRailKind, isRailSpanKind, shiftBreaksOnColumn, shiftRailWithSymbol } from "./rails/railBus";
+import { GRID, COLS, ROWS, type Circuit, type DeviceParams, type EditSubMode, type Lang, type LayoutMode, type MeterDataPoint, type Mode, type PortRef, type ProcessVars, type RailCellContent, type Rot, type SimSnapshot, type Theme, type Wire, type WireJog } from "./types";
 import {getLang as getLanguage, setLang as setLanguage, t, tOr} from "./i18n";
 import {
   trackCircuitPause,
@@ -224,6 +226,18 @@ export interface LabState {
   tutorialStepIndex: number;
   tutorialVersion: "pc" | "mobile";
   meterHistory: Record<string, MeterDataPoint[]>;
+  lineNumbers: Record<number, string>;
+  crossReferences: Record<number, RailCellContent[]>;
+  railSelection: RailSelection | null;
+
+  selectRailCell: (sel: RailSelection | null) => void;
+  updateRailLineNumber: (y: number, text: string) => void;
+  updateRailCrossCell: (y: number, index: number, patch: Partial<RailCellContent>) => void;
+  addRailCrossCell: (y: number) => void;
+  resetRailRow: (rail: "l" | "n", y: number) => void;
+  setRailSpan: (kind: "rail-l" | "rail-n" | "rail-break", y0: number, y1: number, history?: boolean, symbolId?: string) => boolean;
+  setRailColumn: (kind: "rail-l" | "rail-n" | "rail-break", x: number, history?: boolean, symbolId?: string) => boolean;
+  moveRail: (kind: "rail-l" | "rail-n" | "rail-break", x: number, y0: number, y1: number, history?: boolean, symbolId?: string) => boolean;
 
   setMode: (mode: Mode) => void;
   setEditSubMode: (subMode: EditSubMode) => void;
@@ -447,6 +461,58 @@ export function createBlankTemplateProcess(): ProcessVars {
   return defaultProcess();
 }
 
+/**
+ * Keep a placed control-rail tap on the same row of that rail when the rail translates.
+ * A jog follows the rail unless both wire ends are in `movedIds` — that case is translated
+ * once by the group move, so it is not shifted again here.
+ */
+function shiftRailTapRows(
+  circuit: Circuit,
+  railSymbolId: string,
+  dy: number,
+  movedIds?: ReadonlySet<string>,
+): void {
+  if (dy === 0) return;
+  for (const w of circuit.wires) {
+    let onRail = false;
+    for (const end of [w.a, w.b]) {
+      if (end.symbolId !== railSymbolId) continue;
+      const match = /^y(-?\d+)$/.exec(end.term);
+      if (!match) continue;
+      end.term = `y${Number(match[1]) + dy}`;
+      onRail = true;
+    }
+    if (!onRail || !w.jog) continue;
+    if (movedIds && movedIds.has(w.a.symbolId) && movedIds.has(w.b.symbolId)) continue;
+    if (typeof w.jog.y === "number") w.jog.y += dy * GRID;
+    if (w.jog.axis === "y" && typeof w.jog.pos === "number") w.jog.pos += dy * GRID;
+  }
+}
+
+/** Symbols whose move may slide a rail tap. Rails are included so a tap whose rail moved in the same operation stays on the row it was given. */
+function alignScopeForMove(circuit: Circuit, movedIds: Iterable<string>): Set<string> {
+  const scope = new Set<string>();
+  for (const id of movedIds) {
+    const sym = circuit.symbols.find((s) => s.id === id);
+    const dev = sym && circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev || dev.kind === "rail-break") continue;
+    scope.add(id);
+  }
+  return scope;
+}
+
+function findRailDevice(circuit: Circuit, kind: string, symbolId?: string) {
+  if (symbolId) {
+    const sym = circuit.symbols.find((s) => s.id === symbolId);
+    const dev = sym && circuit.devices.find((d) => d.id === sym.deviceId);
+    if (dev && sym && isRailSpanKind(dev.kind)) return { dev, sym };
+  }
+  const dev = circuit.devices.find((d) => d.kind === kind);
+  const sym = dev && circuit.symbols.find((s) => s.deviceId === dev.id);
+  if (!dev || !sym) return null;
+  return { dev, sym };
+}
+
 // Initialize from URL share hash, saved draft, or fallback to default template
 const boot = startupDoc(createBlankTemplateCircuit, t("doc.untitled"));
 sanitizeCircuitIds(boot.circuit);
@@ -528,6 +594,9 @@ export const useLab = create<LabState>((set, get) => ({
   tutorialStepIndex: 0,
   tutorialVersion: "pc",
   meterHistory: {},
+  lineNumbers: computeLogicRails(boot.circuit).lineNumbers,
+  crossReferences: computeLogicRails(boot.circuit).crossReferences,
+  railSelection: null,
 
   pushHistory: () => {
     const { history, circuit } = get();
@@ -716,7 +785,7 @@ export const useLab = create<LabState>((set, get) => ({
   setHoverPort: (port) => set({ hoverPort: port }),
   select: (sel, isolate = false) => {
     if (!sel) {
-      set({ selected: null, selectedIds: [], selectedWireIds: [], placing: null, wiringFrom: null });
+      set({ selected: null, selectedIds: [], selectedWireIds: [], placing: null, wiringFrom: null, railSelection: null });
       return;
     }
     if (sel.type === "wire") {
@@ -726,6 +795,7 @@ export const useLab = create<LabState>((set, get) => ({
         selectedWireIds: [sel.id],
         placing: null,
         wiringFrom: null,
+        railSelection: null,
       });
       return;
     }
@@ -736,6 +806,7 @@ export const useLab = create<LabState>((set, get) => ({
         selectedWireIds: [],
         placing: null,
         wiringFrom: null,
+        railSelection: null,
       });
       return;
     }
@@ -745,7 +816,139 @@ export const useLab = create<LabState>((set, get) => ({
       selectedWireIds: [],
       placing: null,
       wiringFrom: null,
+      railSelection: null,
     });
+  },
+  selectRailCell: (sel) => {
+    set({
+      railSelection: sel,
+      selected: null,
+      selectedIds: [],
+      selectedWireIds: [],
+      placing: null,
+      wiringFrom: null,
+    });
+  },
+  updateRailLineNumber: (y, text) => {
+    const dev = get().circuit.devices.find((d) => d.kind === "rail-l");
+    if (!dev) return;
+    get().pushHistory();
+    const next = clone(get().circuit);
+    const d = next.devices.find((x) => x.id === dev.id);
+    if (!d) return;
+    d.params = {
+      ...d.params,
+      railLineOverrides: { ...d.params.railLineOverrides, [String(y)]: text },
+    };
+    set({ circuit: next, isDirty: true });
+  },
+  updateRailCrossCell: (y, index, patch) => {
+    const dev = get().circuit.devices.find((d) => d.kind === "rail-n");
+    if (!dev) return;
+    const base = (get().crossReferences[y] ?? []).map((cell) => normalizeRailCell(cell));
+    if (!base[index]) return;
+    get().pushHistory();
+    const next = clone(get().circuit);
+    const d = next.devices.find((x) => x.id === dev.id);
+    if (!d) return;
+    base[index] = mergeRailCell(base[index], patch);
+    d.params = {
+      ...d.params,
+      railCrossOverrides: { ...d.params.railCrossOverrides, [String(y)]: base },
+    };
+    set({ circuit: next, isDirty: true });
+  },
+  addRailCrossCell: (y) => {
+    const dev = get().circuit.devices.find((d) => d.kind === "rail-n");
+    if (!dev) return;
+    const base = (get().crossReferences[y] ?? []).map((cell) => normalizeRailCell(cell));
+    base.push(normalizeRailCell({ text: "", side: "right" }));
+    get().pushHistory();
+    const next = clone(get().circuit);
+    const d = next.devices.find((x) => x.id === dev.id);
+    if (!d) return;
+    d.params = {
+      ...d.params,
+      railCrossOverrides: { ...d.params.railCrossOverrides, [String(y)]: base },
+    };
+    set({ circuit: next, isDirty: true });
+  },
+  resetRailRow: (rail, y) => {
+    const kind = rail === "l" ? "rail-l" : "rail-n";
+    const dev = get().circuit.devices.find((d) => d.kind === kind);
+    if (!dev) return;
+    get().pushHistory();
+    const next = clone(get().circuit);
+    const d = next.devices.find((x) => x.id === dev.id);
+    if (!d) return;
+    const key = String(y);
+    if (rail === "l") {
+      const overrides = { ...d.params.railLineOverrides };
+      delete overrides[key];
+      d.params = { ...d.params, railLineOverrides: overrides };
+    } else {
+      const overrides = { ...d.params.railCrossOverrides };
+      delete overrides[key];
+      d.params = { ...d.params, railCrossOverrides: overrides };
+    }
+    set({ circuit: next, isDirty: true });
+  },
+  setRailSpan: (kind, y0, y1, history = true, symbolId) => {
+    const found = findRailDevice(get().circuit, kind, symbolId);
+    if (!found) return false;
+    const { dev, sym } = found;
+    const a = Math.max(0, Math.min(ROWS - 1, Math.round(y0)));
+    const b = Math.max(0, Math.min(ROWS - 1, Math.round(y1)));
+    if (dev.params.railY0 === a && dev.params.railY1 === b) return false;
+    if (history) get().pushHistory();
+    const next = clone(get().circuit);
+    const d = next.devices.find((x) => x.id === dev.id);
+    const s = next.symbols.find((item) => item.id === sym.id);
+    if (!d || !s) return false;
+    d.params = { ...d.params, railY0: a, railY1: b };
+    set({ circuit: next, isDirty: true });
+    return true;
+  },
+  setRailColumn: (kind, x, history = true, symbolId) => {
+    const found = findRailDevice(get().circuit, kind, symbolId);
+    if (!found) return false;
+    const { dev, sym } = found;
+    const rx = Math.max(0, Math.min(COLS - 1, Math.round(x)));
+    if (sym.x === rx) return false;
+    if (history) get().pushHistory();
+    const next = clone(get().circuit);
+    const s = next.symbols.find((item) => item.id === sym.id);
+    if (!s) return false;
+    const oldX = s.x;
+    s.x = rx;
+    if (isRailKind(dev.kind)) shiftBreaksOnColumn(next, oldX, rx - oldX, 0);
+    set({ circuit: next, isDirty: true });
+    return true;
+  },
+  moveRail: (kind, x, y0, y1, history = true, symbolId) => {
+    const found = findRailDevice(get().circuit, kind, symbolId);
+    if (!found) return false;
+    const { dev, sym } = found;
+    const rx = Math.max(0, Math.min(COLS - 1, Math.round(x)));
+    const a = Math.max(0, Math.min(ROWS - 1, Math.round(y0)));
+    const b = Math.max(0, Math.min(ROWS - 1, Math.round(y1)));
+    if (sym.x === rx && dev.params.railY0 === a && dev.params.railY1 === b) return false;
+    if (history) get().pushHistory();
+    const next = clone(get().circuit);
+    const d = next.devices.find((item) => item.id === dev.id);
+    const s = next.symbols.find((item) => item.id === sym.id);
+    if (!d || !s) return false;
+    const oldX = s.x;
+    const prevY0 = d.params.railY0;
+    const dy = typeof prevY0 === "number" ? a - prevY0 : 0;
+    s.x = rx;
+    d.params = { ...d.params, railY0: a, railY1: b };
+    if (isRailKind(d.kind)) {
+      shiftBreaksOnColumn(next, oldX, rx - oldX, dy);
+      shiftRailTapRows(next, s.id, dy);
+    }
+    set({ circuit: next, isDirty: true });
+    return true;
   },
   selectToggle: (id) => {
     const { circuit, selectedIds } = get();
@@ -761,6 +964,7 @@ export const useLab = create<LabState>((set, get) => ({
       selectedWireIds: [],
       placing: null,
       wiringFrom: null,
+      railSelection: null,
     });
   },
   selectIds: (ids, additive = false) => {
@@ -775,6 +979,7 @@ export const useLab = create<LabState>((set, get) => ({
       selectedWireIds: [],
       placing: null,
       wiringFrom: null,
+      railSelection: null,
     });
   },
   selectWireToggle: (id) => {
@@ -792,6 +997,7 @@ export const useLab = create<LabState>((set, get) => ({
       selectedIds: [],
       placing: null,
       wiringFrom: null,
+      railSelection: null,
     });
   },
   selectWireIds: (ids, additive = false) => {
@@ -805,6 +1011,7 @@ export const useLab = create<LabState>((set, get) => ({
       selectedIds: [],
       placing: null,
       wiringFrom: null,
+      railSelection: null,
     });
   },
   mergeSelectedWires: () => {
@@ -1077,6 +1284,26 @@ export const useLab = create<LabState>((set, get) => ({
     if (created.device.kind === "net-terminal") {
       delete created.device.params.scale;
     }
+    if (created.device.kind === "rail-l" || created.device.kind === "rail-n") {
+      created.device.params = {
+        ...created.device.params,
+        railY0: gy,
+        railY1: Math.min(ROWS - 1, gy + 12),
+      };
+    }
+    if (created.device.kind === "rail-break") {
+      const near = next.symbols.find((s) => {
+        if (s.id === created.symbol.id) return false;
+        const host = next.devices.find((d) => d.id === s.deviceId);
+        return (host?.kind === "rail-l" || host?.kind === "rail-n") && Math.abs(s.x - created.symbol.x) <= 1;
+      });
+      if (near) created.symbol.x = near.x;
+      created.device.params = {
+        ...created.device.params,
+        railY0: gy,
+        railY1: Math.min(ROWS - 1, gy + 3),
+      };
+    }
     trackComponentPlaced(item.kind, item.group, next.symbols.length);
     set({
       circuit: next,
@@ -1218,6 +1445,10 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === symbolId);
     if (!sym) return;
+    const devForSpan = next.devices.find((d) => d.id === sym.deviceId);
+    if (y !== undefined && devForSpan && isRailSpanKind(devForSpan.kind)) {
+      shiftRailWithSymbol(devForSpan, Math.round(y) - sym.y);
+    }
     if (x !== undefined) sym.x = Math.round(x);
     if (y !== undefined) sym.y = Math.round(y);
     const dev = next.devices.find((d) => d.id === sym.deviceId);
@@ -1232,36 +1463,61 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === id);
     if (!sym) return;
+    const splicedBefore = hotRailSplices(next).map((s) => s.contactSymbolId);
     const rx = Math.round(x);
     const ry = Math.round(y);
+    const dev = next.devices.find((d) => d.id === sym.deviceId);
+    const oldX = sym.x;
+    const dy = ry - sym.y;
+    if (dev && isRailSpanKind(dev.kind)) shiftRailWithSymbol(dev, dy);
     sym.x = rx;
     sym.y = ry;
-    const dev = next.devices.find((d) => d.id === sym.deviceId);
+    if (dev && isRailKind(dev.kind)) {
+      shiftBreaksOnColumn(next, oldX, rx - oldX, dy);
+      shiftRailTapRows(next, sym.id, dy);
+    }
     if (dev && dev.kind === "ammeter") {
       const detected = findWireAtPoint(next, (rx + 2) * GRID, (ry + 2) * GRID, GRID * 2.5);
       dev.params = { ...dev.params, clampedWireId: detected?.id };
+    }
+    detachUnsplicedHotRailWires(next, splicedBefore);
+    if (dev && !isRailKind(dev.kind) && dev.kind !== "rail-break") {
+      alignRailWireEnds(next, false, new Set([id]));
     }
     set({ circuit: next, isDirty: true });
   },
   moveGroup: (updates, wireUpdates) => {
     const next = clone(get().circuit);
+    const splicedBefore = hotRailSplices(next).map((s) => s.contactSymbolId);
     const movedIds = new Set(updates.map((u) => u.id));
     const deltas = new Map<string, { dx: number; dy: number }>();
+    const railFollows: { oldX: number; dx: number; dy: number }[] = [];
     for (const u of updates) {
       const sym = next.symbols.find((s) => s.id === u.id);
       if (sym) {
         const rx = Math.round(u.x);
         const ry = Math.round(u.y);
-        deltas.set(u.id, { dx: rx - sym.x, dy: ry - sym.y });
+        const dx = rx - sym.x;
+        const dy = ry - sym.y;
+        deltas.set(u.id, { dx, dy });
+        const dev = next.devices.find((d) => d.id === sym.deviceId);
+        if (dev && isRailKind(dev.kind)) railFollows.push({ oldX: sym.x, dx, dy });
+        if (dev && isRailSpanKind(dev.kind)) shiftRailWithSymbol(dev, dy);
         sym.x = rx;
         sym.y = ry;
-        const dev = next.devices.find((d) => d.id === sym.deviceId);
         if (dev && dev.kind === "ammeter") {
           const detected = findWireAtPoint(next, (rx + 2) * GRID, (ry + 2) * GRID, GRID * 2.5);
           dev.params = { ...dev.params, clampedWireId: detected?.id };
         }
       }
     }
+    for (const follow of railFollows) shiftBreaksOnColumn(next, follow.oldX, follow.dx, follow.dy, movedIds);
+    for (const [id, delta] of deltas) {
+      const sym = next.symbols.find((s) => s.id === id);
+      const movedDev = sym && next.devices.find((d) => d.id === sym.deviceId);
+      if (movedDev && isRailKind(movedDev.kind)) shiftRailTapRows(next, id, delta.dy, movedIds);
+    }
+    detachUnsplicedHotRailWires(next, splicedBefore);
     if (wireUpdates && wireUpdates.length > 0) {
       for (const wu of wireUpdates) {
         const w = next.wires.find((x) => x.id === wu.id);
@@ -1303,6 +1559,7 @@ export const useLab = create<LabState>((set, get) => ({
         }
       }
     }
+    alignRailWireEnds(next, false, alignScopeForMove(next, movedIds));
     set({ circuit: next, isDirty: true });
   },
 
@@ -2185,9 +2442,14 @@ export const useLab = create<LabState>((set, get) => ({
 
     get().pushHistory();
     const next = clone(circuit);
+    const movedIds = new Set(res.symbolUpdates.map((u) => u.id));
     for (const update of res.symbolUpdates) {
       const sym = next.symbols.find((x) => x.id === update.id);
       if (sym) {
+        const dev = next.devices.find((d) => d.id === sym.deviceId);
+        const dy = update.y - sym.y;
+        if (dev && isRailSpanKind(dev.kind)) shiftRailWithSymbol(dev, dy);
+        if (dev && isRailKind(dev.kind)) shiftRailTapRows(next, sym.id, dy, movedIds);
         sym.x = update.x;
         sym.y = update.y;
         sym.rot = update.rot;
@@ -2199,6 +2461,7 @@ export const useLab = create<LabState>((set, get) => ({
         w.jog = update.jog;
       }
     }
+    alignRailWireEnds(next, false, alignScopeForMove(next, movedIds));
     set({ circuit: next, isDirty: true });
   },
 
@@ -2308,12 +2571,21 @@ export const useLab = create<LabState>((set, get) => ({
     get().pushHistory();
     const next = clone(circuit);
     const movedIds = new Set(ids);
+    const railFollows: { id: string; oldX: number; dx: number; dy: number }[] = [];
     for (const id of ids) {
       const sym = next.symbols.find((s) => s.id === id);
       if (!sym) continue;
+      const dev = next.devices.find((d) => d.id === sym.deviceId);
+      if (dev && isRailKind(dev.kind)) railFollows.push({ id, oldX: sym.x, dx, dy });
+      if (dev && isRailSpanKind(dev.kind)) shiftRailWithSymbol(dev, dy);
       sym.x += dx;
       sym.y += dy;
     }
+    for (const follow of railFollows) {
+      shiftBreaksOnColumn(next, follow.oldX, follow.dx, follow.dy, movedIds);
+      shiftRailTapRows(next, follow.id, follow.dy, movedIds);
+    }
+    alignRailWireEnds(next, false, alignScopeForMove(next, movedIds));
     for (const w of next.wires) {
       if (w.jog && movedIds.has(w.a.symbolId) && movedIds.has(w.b.symbolId)) {
         if (w.jog.x !== undefined) {
@@ -2341,9 +2613,19 @@ export const useLab = create<LabState>((set, get) => ({
 
     get().pushHistory();
     const next = clone(circuit);
+    const movedIds = new Set(res.symbolUpdates.map((u) => u.id));
     for (const update of res.symbolUpdates) {
       const sym = next.symbols.find((s) => s.id === update.id);
       if (sym) {
+        const dev = next.devices.find((d) => d.id === sym.deviceId);
+        const dx = update.x - sym.x;
+        const dy = update.y - sym.y;
+        const oldX = sym.x;
+        if (dev && isRailSpanKind(dev.kind)) shiftRailWithSymbol(dev, dy);
+        if (dev && isRailKind(dev.kind)) {
+          shiftBreaksOnColumn(next, oldX, dx, dy, movedIds);
+          shiftRailTapRows(next, sym.id, dy, movedIds);
+        }
         sym.x = update.x;
         sym.y = update.y;
       }
@@ -2354,6 +2636,7 @@ export const useLab = create<LabState>((set, get) => ({
         w.jog = update.jog;
       }
     }
+    alignRailWireEnds(next, false, alignScopeForMove(next, movedIds));
     set({ circuit: next, isDirty: true });
   },
 
@@ -2384,6 +2667,8 @@ export const useLab = create<LabState>((set, get) => ({
       const nx = Math.round(sym.x);
       const ny = Math.round(sym.y);
       deltas.set(id, { dx: nx - sym.x, dy: ny - sym.y });
+      const dev = next.devices.find((d) => d.id === sym.deviceId);
+      if (dev && isRailSpanKind(dev.kind)) shiftRailWithSymbol(dev, ny - sym.y);
       sym.x = nx;
       sym.y = ny;
     }
@@ -2914,6 +3199,23 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
 }));
+
+useLab.subscribe((state, prev) => {
+  if (state.circuit === prev.circuit) return;
+  const next = computeLogicRails(state.circuit);
+  const patch: Partial<LabState> = {};
+  if (!sameLogicRails(next, state)) {
+    patch.lineNumbers = next.lineNumbers;
+    patch.crossReferences = next.crossReferences;
+  }
+  const sel = state.railSelection;
+  if (sel) {
+    const layout = layoutLogicRails(state.circuit, next.lineNumbers, next.crossReferences);
+    const still = layout.cells.some((cell) => cell.rail === sel.rail && cell.y === sel.y && cell.index === sel.index);
+    if (!still) patch.railSelection = null;
+  }
+  if (Object.keys(patch).length > 0) useLab.setState(patch);
+});
 
 let appliedSharePayload = "";
 if (typeof window !== "undefined") {

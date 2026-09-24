@@ -4,7 +4,7 @@ import { useLab } from "./store";
 import { emptyCircuit, addDevice, addWire, addJunction, addSymbol } from "./circuitBuilder";
 import { ex07OverloadAlarm } from "./examplesBuilder";
 import { GRID } from "./types";
-import { terminalWorld } from "./geometry";
+import { getConnectedWireIds, nodeKeysForPort, railBreakCuts, terminalWorld, wireRoute } from "./geometry";
 import { createRuntime, tick } from "./sim/engine";
 
 describe("autoLabelWires", () => {
@@ -632,6 +632,254 @@ describe("connectOverlappingTerminals", () => {
     expect(wires).toHaveLength(1);
     expect(wires[0].a).toEqual({ symbolId: a.symbol.id, term: "2" });
     expect(wires[0].b).toEqual({ symbolId: b.symbol.id, term: "1" });
+  });
+
+  it("moves control hot and neutral rails with a selected group", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 2, 4, { railY0: 4, railY1: 12 });
+    const neu = addDevice(c, "rail-n", "N", "body", 16, 4, { railY0: 4, railY1: 12 });
+    const lamp = addDevice(c, "lamp", "LT1", "body", 8, 6);
+    addWire(c, lamp.symbol, "1", hot.symbol, "y6");
+    addWire(c, lamp.symbol, "2", neu.symbol, "y10");
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().selectAll();
+    useLab.getState().moveGroup([
+      { id: hot.symbol.id, x: 4, y: 7 },
+      { id: neu.symbol.id, x: 18, y: 7 },
+      { id: lamp.symbol.id, x: 10, y: 9 },
+    ]);
+    const next = useLab.getState().circuit;
+    const hotDev = next.devices.find((d) => d.id === hot.device.id);
+    const neuDev = next.devices.find((d) => d.id === neu.device.id);
+    expect(next.symbols.find((s) => s.id === hot.symbol.id)).toMatchObject({ x: 4, y: 7 });
+    expect(hotDev?.params.railY0).toBe(7);
+    expect(hotDev?.params.railY1).toBe(15);
+    expect(neuDev?.params.railY0).toBe(7);
+    expect(neuDev?.params.railY1).toBe(15);
+    expect(next.wires.map((w) => w.b.term).sort()).toEqual(["y13", "y9"]);
+  });
+
+  it("drops the hot-rail splice wires after the contact is dragged off", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 4, 2, { railY0: 2, railY1: 16 });
+    const pb = addDevice(c, "pb-nc", "PB1", "body", 3, 6, {}, 90);
+    addWire(c, pb.symbol, "1", hot.symbol, "y6");
+    addWire(c, pb.symbol, "2", hot.symbol, "y10");
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().moveGroup([{ id: pb.symbol.id, x: 10, y: 6 }]);
+    expect(useLab.getState().circuit.wires).toHaveLength(0);
+    useLab.getState().moveGroup([{ id: pb.symbol.id, x: 3, y: 6 }]);
+    expect(useLab.getState().circuit.wires).toHaveLength(0);
+  });
+
+  it("keeps a top jumper on the rail ends and reroutes when one rail moves", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 2, 4, { railY0: 4, railY1: 12 });
+    const neu = addDevice(c, "rail-n", "N", "body", 16, 4, { railY0: 4, railY1: 12 });
+    const w = addWire(c, hot.symbol, "y4", neu.symbol, "y4");
+    w.jog = { axis: "y", pos: 80, y: 80 };
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().moveRail("rail-l", 5, 7, 15);
+    const next = useLab.getState().circuit;
+    const wire = next.wires[0];
+    expect(wire.a.term).toBe("y7");
+    expect(wire.b.term).toBe("y4");
+    expect(wire.jog).toMatchObject({ y: 80 + 3 * GRID });
+    const route = wireRoute(next, wire.a, wire.b, wire.jog);
+    expect(route[0]).toEqual({ x: 5 * GRID, y: 7 * GRID });
+    expect(route[route.length - 1]).toEqual({ x: 16 * GRID, y: 4 * GRID });
+    expect(route.some((p) => p.y === 80 + 3 * GRID)).toBe(true);
+  });
+
+  it("keeps one wire number across a rail break", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 4, 2, { railY0: 2, railY1: 16 });
+    addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 10 });
+    const above = addDevice(c, "junction", "J1", "body", 8, 4);
+    const below = addDevice(c, "junction", "J2", "body", 8, 14);
+    const top = addWire(c, above.symbol, "1", hot.symbol, "y4");
+    const bot = addWire(c, below.symbol, "1", hot.symbol, "y14");
+    expect(nodeKeysForPort(c, { symbolId: hot.symbol.id, term: "y4" })).toEqual([`rail:${hot.device.id}`]);
+    expect(nodeKeysForPort(c, { symbolId: hot.symbol.id, term: "y14" })).toEqual([`rail:${hot.device.id}`]);
+    expect(getConnectedWireIds(c, top.id).has(bot.id)).toBe(true);
+  });
+
+  it("keeps a wire below a rail break straight when the component moves", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 4, 0, { railY0: 0, railY1: 24 });
+    addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 10 });
+    const lamp = addDevice(c, "lamp", "LT1", "body", 12, 14);
+    const w = addWire(c, lamp.symbol, "1", hot.symbol, "y13");
+    w.jog = { axis: "x", pos: 8 * GRID, x: 8 * GRID };
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().moveGroup(
+      [{ id: lamp.symbol.id, x: 12, y: 16 }],
+      [{ id: w.id, jog: { ...w.jog } }],
+    );
+    const wire = useLab.getState().circuit.wires[0];
+    expect(wire.b.term).toBe("y16");
+    expect(wire.jog).toBeUndefined();
+    expect(wireRoute(useLab.getState().circuit, wire.a, wire.b)).toEqual([
+      { x: 13 * GRID, y: 16 * GRID },
+      { x: 4 * GRID, y: 16 * GRID },
+    ]);
+  });
+
+  it("slides a tap that was locked on the other side of a rail break", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 4, 0, { railY0: 0, railY1: 24 });
+    addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 12 });
+    const lamp = addDevice(c, "lamp", "LT1", "body", 12, 16);
+    const w = addWire(c, lamp.symbol, "1", hot.symbol, "y4");
+    w.jog = { axis: "y", pos: 16 * GRID, y: 16 * GRID };
+    useLab.setState({ circuit: c, mode: "edit" });
+    const wire = useLab.getState().circuit.wires[0];
+    expect(wire.b.term).toBe("y4");
+    expect(wire.jog).toMatchObject({ y: 16 * GRID });
+    const parked = wireRoute(useLab.getState().circuit, wire.a, wire.b, wire.jog);
+    expect(parked[parked.length - 1]).toEqual({ x: 4 * GRID, y: 4 * GRID });
+    expect(parked.some((p) => p.y === 16 * GRID)).toBe(true);
+    useLab.setState({ selectedIds: [lamp.symbol.id], selected: { type: "symbol", id: lamp.symbol.id } });
+    useLab.getState().nudgeSelected(0, 2);
+    const nudged = useLab.getState().circuit.wires[0];
+    expect(nudged.b.term).toBe("y18");
+    expect(nudged.jog).toBeUndefined();
+    expect(wireRoute(useLab.getState().circuit, nudged.a, nudged.b)).toEqual([
+      { x: 13 * GRID, y: 18 * GRID },
+      { x: 4 * GRID, y: 18 * GRID },
+    ]);
+    useLab.getState().moveRail("rail-l", 6, 1, 22);
+    const moved = useLab.getState().circuit.wires[0];
+    expect(moved.b.term).toBe("y19");
+    expect(wireRoute(useLab.getState().circuit, moved.a, moved.b).at(-1)).toEqual({ x: 6 * GRID, y: 19 * GRID });
+    useLab.getState().setWireJog(moved.id, { axis: "y", pos: 4 * GRID, y: 4 * GRID });
+    const bent = useLab.getState().circuit.wires[0];
+    expect(bent.jog?.y).toBe(4 * GRID);
+    expect(bent.b.term).toBe("y19");
+    expect(wireRoute(useLab.getState().circuit, bent.a, bent.b, bent.jog).some((p) => p.y === 4 * GRID)).toBe(true);
+  });
+
+  it("carries an attached rail break when the control rail moves and heals when the break is dragged off", () => {
+    const c = emptyCircuit();
+    addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
+    const hot = addDevice(c, "rail-l", "L", "body", 4, 2, { railY0: 2, railY1: 16 });
+    const neu = addDevice(c, "rail-n", "N", "body", 20, 2, { railY0: 2, railY1: 16 });
+    const gap = addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 10 });
+    const other = addDevice(c, "rail-break", "BK2", "body", 30, 8, { railY0: 8, railY1: 11 });
+    const lamp = addDevice(c, "lamp", "LT1", "body", 10, 12);
+    addWire(c, lamp.symbol, "1", hot.symbol, "y12");
+    addWire(c, lamp.symbol, "2", neu.symbol, "y12");
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().moveRail("rail-l", 7, 5, 19);
+    const moved = useLab.getState().circuit;
+    const hotSym = moved.symbols.find((s) => s.id === hot.symbol.id);
+    const gapSym = moved.symbols.find((s) => s.id === gap.symbol.id);
+    const gapDev = moved.devices.find((d) => d.id === gap.device.id);
+    const otherSym = moved.symbols.find((s) => s.id === other.symbol.id);
+    const otherDev = moved.devices.find((d) => d.id === other.device.id);
+    expect(hotSym).toMatchObject({ x: 7 });
+    expect(gapSym).toMatchObject({ x: 7, y: 9 });
+    expect(gapDev?.params.railY0).toBe(9);
+    expect(gapDev?.params.railY1).toBe(13);
+    expect(otherSym).toMatchObject({ x: 30, y: 8 });
+    expect(otherDev?.params.railY0).toBe(8);
+    expect(railBreakCuts(moved).map((cut) => cut.rows)).toEqual([[9, 13]]);
+    const process = { temperature: 25, pressure: 1, level: 20, flow: 0, limitHit: false, proxHit: false, photoHit: false };
+    expect(tick(moved, createRuntime(moved), { held: new Set(), process }, 50, 0).runtime[lamp.device.id].lit).toBe(false);
+
+    useLab.getState().moveRail("rail-break", 8, 9, 13, true, gap.symbol.id);
+    const detached = useLab.getState().circuit;
+    expect(detached.symbols.find((s) => s.id === gap.symbol.id)).toMatchObject({ x: 8 });
+    expect(railBreakCuts(detached)).toEqual([]);
+    expect(tick(detached, createRuntime(detached), { held: new Set(), process }, 50, 0).runtime[lamp.device.id].lit).toBe(true);
+
+    useLab.getState().moveRail("rail-break", 7, 11, 15, true, gap.symbol.id);
+    const back = useLab.getState().circuit;
+    expect(back.symbols.find((s) => s.id === gap.symbol.id)).toMatchObject({ x: 7 });
+    expect(railBreakCuts(back).some((cut) => cut.railSymbolId === hot.symbol.id && cut.rows[0] === 11)).toBe(true);
+    expect(tick(back, createRuntime(back), { held: new Set(), process }, 50, 0).runtime[lamp.device.id].lit).toBe(false);
+  });
+
+  it("carries an attached rail break when only the control rail is in a group move", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 4, 2, { railY0: 2, railY1: 16 });
+    const gap = addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 10 });
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().moveGroup([{ id: hot.symbol.id, x: 9, y: 5 }]);
+    const next = useLab.getState().circuit;
+    const gapSym = next.symbols.find((s) => s.id === gap.symbol.id);
+    const gapDev = next.devices.find((d) => d.id === gap.device.id);
+    expect(gapSym).toMatchObject({ x: 9, y: 9 });
+    expect(gapDev?.params).toMatchObject({ railY0: 9, railY1: 13 });
+    expect(railBreakCuts(next)).toEqual([{ railSymbolId: hot.symbol.id, rows: [9, 13] }]);
+  });
+
+  it("keeps a placed tap, then follows the component into a rail break", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 4, 0, { railY0: 0, railY1: 24 });
+    addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 12 });
+    const lamp = addDevice(c, "lamp", "LT1", "body", 12, 7);
+    addWire(c, lamp.symbol, "1", hot.symbol, "y6");
+    useLab.setState({ circuit: c, mode: "edit" });
+    expect(useLab.getState().circuit.wires[0].b.term).toBe("y6");
+    useLab.getState().moveSymbol(lamp.symbol.id, 12, 9);
+    const wire = useLab.getState().circuit.wires[0];
+    expect(wire.b.term).toBe("y9");
+    expect(wireRoute(useLab.getState().circuit, wire.a, wire.b)).toEqual([
+      { x: 13 * GRID, y: 9 * GRID },
+      { x: 4 * GRID, y: 9 * GRID },
+    ]);
+  });
+
+  it("keeps a control-hot tap below a rail break when the rail or the break moves", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 4, 0, { railY0: 0, railY1: 24 });
+    const gap = addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 12 });
+    const pb = addDevice(c, "pb-no", "CR1", "body", 10, 8);
+    addWire(c, pb.symbol, "2", hot.symbol, "y16");
+    useLab.setState({ circuit: c, mode: "edit" });
+    const placed = useLab.getState().circuit.wires[0];
+    expect(placed.b.term).toBe("y16");
+    useLab.getState().setWireJog(placed.id, { axis: "y", pos: 20 * GRID, y: 20 * GRID });
+    useLab.getState().moveRail("rail-break", 4, 3, 14, true, gap.symbol.id);
+    useLab.getState().setRailSpan("rail-break", 5, 15, true, gap.symbol.id);
+    const held = useLab.getState().circuit.wires[0];
+    expect(held.b.term).toBe("y16");
+    expect(held.jog?.y).toBe(20 * GRID);
+    useLab.getState().moveGroup([
+      { id: hot.symbol.id, x: 4, y: 3 },
+      { id: pb.symbol.id, x: 10, y: 11 },
+    ]);
+    expect(useLab.getState().circuit.wires[0].b.term).toBe("y19");
+    useLab.getState().moveRail("rail-l", 6, 5, 29);
+    const shifted = useLab.getState().circuit.wires[0];
+    expect(shifted.b.term).toBe("y21");
+    expect(wireRoute(useLab.getState().circuit, shifted.a, shifted.b, shifted.jog).at(-1)).toEqual({
+      x: 6 * GRID,
+      y: 21 * GRID,
+    });
+    useLab.getState().moveSymbol(pb.symbol.id, 10, 18);
+    const slid = useLab.getState().circuit.wires[0];
+    const row = Math.round(terminalWorld(useLab.getState().circuit, { symbolId: pb.symbol.id, term: "2" })!.y / GRID);
+    expect(slid.b.term).toBe(`y${row}`);
+    expect(slid.jog).toBeUndefined();
+  });
+
+  it("slides a rail tap so the wire stays one straight line", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 2, 2, { railY0: 2, railY1: 20 });
+    const lamp = addDevice(c, "lamp", "LT1", "body", 8, 6);
+    const w = addWire(c, lamp.symbol, "1", hot.symbol, "y8");
+    w.jog = { axis: "y", pos: 40, y: 40 };
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().moveSymbol(lamp.symbol.id, 10, 9);
+    useLab.getState().moveRail("rail-l", 4, 2, 20);
+    const wire = useLab.getState().circuit.wires[0];
+    const route = wireRoute(useLab.getState().circuit, wire.a, wire.b);
+    expect(route).toEqual([
+      { x: 11 * GRID, y: 9 * GRID },
+      { x: 4 * GRID, y: 9 * GRID },
+    ]);
   });
 
   it("does not add a duplicate wire if those ports are already connected", () => {

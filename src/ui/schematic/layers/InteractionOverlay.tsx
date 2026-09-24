@@ -51,12 +51,14 @@ export const InteractionOverlay = memo(function InteractionOverlay({
         if (!a) return null;
         let b = { x: Math.round(cursor.x) * GRID, y: Math.round(cursor.y) * GRID };
         let snapped = false;
+        let snappedPort: PortRef | null = null;
         const targetPort = findPortAtPoint(circuit, b.x, b.y, 16);
         if (targetPort && !portsEqual(wiringFrom, targetPort)) {
           const p = terminalWorld(circuit, targetPort);
           if (p) {
             b = p;
             snapped = true;
+            snappedPort = targetPort;
           }
         }
         if (!snapped) {
@@ -70,7 +72,7 @@ export const InteractionOverlay = memo(function InteractionOverlay({
             }
           }
         }
-        const pts = wireRoute(circuit, wiringFrom, b);
+        const pts = snappedPort ? wireRoute(circuit, wiringFrom, snappedPort) : wireRoute(circuit, wiringFrom, b);
         const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
         return (
           <g pointerEvents="none">

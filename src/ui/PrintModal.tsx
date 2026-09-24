@@ -13,6 +13,7 @@ import { useLab } from "../store";
 import { trackExportImage } from "../analytics";
 import { type Circuit, COLS, GRID, ROWS } from "../types";
 import { emptySnapshot } from "../sim/engine";
+import { RailLayer } from "./schematic/layers/RailLayer";
 import { SymbolLayer } from "./schematic/layers/SymbolLayer";
 import { WireLayer } from "./schematic/layers/WireLayer";
 
@@ -76,6 +77,8 @@ export function PrintModal({ isOpen, onClose, circuit: propCircuit }: PrintModal
   const storeCircuit = useLab((s) => s.circuit);
   const circuit = propCircuit ?? storeCircuit;
   const showWireLabels = useLab((s) => s.showWireLabels);
+  const lineNumbers = useLab((s) => s.lineNumbers);
+  const crossReferences = useLab((s) => s.crossReferences);
   const docName = useLab((s) => s.docName);
   const [options, setOptions] = useState<PrintOptions>(DEFAULT_PRINT_OPTIONS);
 
@@ -220,6 +223,22 @@ export function PrintModal({ isOpen, onClose, circuit: propCircuit }: PrintModal
           omitPrintHidden
           onWireContextMenu={() => {}}
           onWirePointerDown={() => {}}
+        />
+
+        <RailLayer
+          circuit={circuit}
+          lineNumbers={lineNumbers}
+          crossReferences={crossReferences}
+          railSelection={null}
+          editingRail={null}
+          editable={false}
+          hideBreaks
+          onRailCellPointerDown={() => {}}
+          onRailCellDoubleClick={() => {}}
+          onCommitRailText={() => {}}
+          onCancelRailEdit={() => {}}
+          onRailEndPointerDown={() => {}}
+          onRailSpinePointerDown={() => {}}
         />
 
         {edges && <PrintEdgeUrlMarks contentX={edges.contentX} contentY={edges.contentY} contentW={edges.contentW} contentH={edges.contentH} gutter={edges.gutter} />}

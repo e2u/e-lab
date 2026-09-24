@@ -10,6 +10,24 @@ export type Rot = 0 | 90 | 180 | 270;
 /** Language code for UI localization */
 export type Lang = "en" | "zh";
 
+/** One run of text inside a rail cell. NC runs are underlined. */
+export interface RailTextSegment {
+  text: string;
+  isNC?: boolean;
+}
+
+/** One cross-reference or line-number cell on a vertical rail. */
+export interface RailCellContent {
+  text: string;
+  /** Which side of the rail column the text grows toward. */
+  side: "left" | "right";
+  /** Underline the whole text (normally closed contact). */
+  isNC?: boolean;
+  style?: "bold" | "italic";
+  /** When set, paint these runs instead of `text`, so only some digits are underlined. */
+  segments?: RailTextSegment[];
+}
+
 /** UI Theme */
 export type Theme = "dark" | "light";
 
@@ -110,6 +128,9 @@ export type DeviceKind =
   | "busbar"
   | "title-block"
   | "comment"
+  | "rail-l"
+  | "rail-n"
+  | "rail-break"
   | "junction";
 
 export type PotentialKind = "L1" | "L2" | "L3" | "N" | "PE" | "DC+" | "DC-" | "X1" | "X2";
@@ -171,6 +192,13 @@ export interface DeviceParams {
   hideTag?: boolean;
   /** Net Terminal pairs (screws per side). Clamped 2..12. Omitted → 4. */
   pinCount?: number;
+  /** Manual line-number text keyed by grid row. Present keys replace the Y-scan. */
+  railLineOverrides?: Record<string, string>;
+  /** Top or bottom grid row of a line rail or cross-ref rail. Both set → the span is manual. */
+  railY0?: number;
+  railY1?: number;
+  /** Manual cross-reference cells keyed by grid row. Present keys replace the search. */
+  railCrossOverrides?: Record<string, RailCellContent[]>;
 }
 
 export interface Device {

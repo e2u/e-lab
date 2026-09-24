@@ -1,6 +1,7 @@
 import { KINDS, resolvedVariant } from "../catalog";
-import { nodeKey, portDevice, findWireAtPoint, terminalWorld } from "../geometry";
+import { hotRailSplices, nodeKey, portDevice, findWireAtPoint, railBreakCuts, terminalWorld } from "../geometry";
 import { isNamedNetKind, namedNetKeyOf } from "../namedNets";
+import { isRailKind, railBusTerminals } from "../rails/railBus";
 import {
   GRID,
   type Circuit,
@@ -169,6 +170,7 @@ export function emptySnapshot(circuit: Circuit): SimSnapshot {
 
   linkColocatedTerminals(circuit, link);
   linkNamedNets(circuit, link);
+  linkLogicRails(circuit, uf, link);
 
   for (const d of circuit.devices) {
     const rt = runtime[d.id];
@@ -279,6 +281,67 @@ function seedElectricalNodes(circuit: Circuit, uf: UnionFind): void {
     for (const t of resolvedVariant(d.kind, s.variant, d.params).terminals) {
       uf.add(nk(d.id, t.id));
     }
+  }
+}
+
+/** Line rail joins the control hot. Cross-ref rail joins the neutral. Every row of a rail is one wire. */
+function controlRailSource(circuit: Circuit, hot: boolean): { id: string; term: string } | null {
+  const xf = circuit.devices.find((d) => d.kind === "transformer");
+  if (xf) return { id: xf.id, term: hot ? "X1" : "X2" };
+  const dc = circuit.devices.find((d) => d.kind === "dc-supply");
+  if (dc) return { id: dc.id, term: hot ? "+" : "-" };
+  const mains = circuit.devices.find((d) => d.kind === "mains-3ph");
+  if (!mains) return null;
+  if (hot) return { id: mains.id, term: "L1" };
+  const sym = circuit.symbols.find((s) => s.deviceId === mains.id);
+  const terms = resolvedVariant(mains.kind, sym?.variant ?? "wye", mains.params).terminals;
+  return { id: mains.id, term: terms.some((t) => t.id === "N") ? "N" : "L2" };
+}
+
+function linkLogicRails(circuit: Circuit, uf: UnionFind, link: (a: string, b: string) => void): void {
+  for (const sym of circuit.symbols) {
+    const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev || !isRailKind(dev.kind)) continue;
+    const terms = railBusTerminals(sym, dev);
+    for (const term of terms) uf.add(nk(dev.id, term.id));
+    if (terms.length === 0) continue;
+    const rows = terms
+      .map((term) => Number(/^y(-?\d+)$/.exec(term.id)?.[1]))
+      .filter((row) => Number.isFinite(row))
+      .sort((a, b) => a - b);
+    const cuts = [
+      ...(dev.kind === "rail-l"
+        ? hotRailSplices(circuit)
+            .filter((splice) => splice.railSymbolId === sym.id)
+            .map((splice) => splice.rows)
+        : []),
+      ...railBreakCuts(circuit)
+        .filter((cut) => cut.railSymbolId === sym.id)
+        .map((cut) => cut.rows),
+    ];
+    const blocked = (lo: number, hi: number) => cuts.some(([a, b]) => lo >= a && hi <= b && hi > a);
+    for (let i = 1; i < rows.length; i += 1) {
+      if (blocked(rows[i - 1], rows[i])) continue;
+      link(nk(dev.id, `y${rows[i - 1]}`), nk(dev.id, `y${rows[i]}`));
+    }
+    for (const splice of hotRailSplices(circuit).filter((item) => item.railSymbolId === sym.id)) {
+      const contact = circuit.symbols.find((s) => s.id === splice.contactSymbolId);
+      const contactDev = contact && circuit.devices.find((d) => d.id === contact.deviceId);
+      if (!contact || !contactDev) continue;
+      const variant = resolvedVariant(contactDev.kind, contact.variant, contactDev.params);
+      for (const term of variant.terminals) {
+        const world = terminalWorld(circuit, { symbolId: contact.id, term: term.id });
+        if (!world) continue;
+        const row = Math.round(world.y / GRID);
+        if (row !== splice.rows[0] && row !== splice.rows[1]) continue;
+        const contactNode = portNk(circuit, { symbolId: contact.id, term: term.id });
+        if (contactNode) link(contactNode, nk(dev.id, `y${row}`));
+      }
+    }
+    const source = controlRailSource(circuit, dev.kind === "rail-l");
+    if (!source || rows.length === 0) continue;
+    uf.add(nk(source.id, source.term));
+    link(nk(dev.id, `y${rows[0]}`), nk(source.id, source.term));
   }
 }
 
@@ -1199,6 +1262,7 @@ export function tick(
 
   linkColocatedTerminals(circuit, link);
   linkNamedNets(circuit, link);
+  linkLogicRails(circuit, uf, link);
 
   for (const d of circuit.devices) {
     const rt = runtime[d.id];

@@ -235,6 +235,8 @@ export interface SymbolInst {
 export interface PortRef {
   symbolId: string;
   term: string;
+  /** Attached to a control-rail end square. That wire may turn; every other rail tap stays horizontal. */
+  railPin?: "y0" | "y1";
 }
 
 export interface WireJog {

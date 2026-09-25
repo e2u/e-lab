@@ -683,12 +683,12 @@ describe("connectOverlappingTerminals", () => {
     const next = useLab.getState().circuit;
     const wire = next.wires[0];
     expect(wire.a.term).toBe("y7");
-    expect(wire.b.term).toBe("y4");
-    expect(wire.jog).toMatchObject({ y: 80 + 3 * GRID });
-    const route = wireRoute(next, wire.a, wire.b, wire.jog);
-    expect(route[0]).toEqual({ x: 5 * GRID, y: 7 * GRID });
-    expect(route[route.length - 1]).toEqual({ x: 16 * GRID, y: 4 * GRID });
-    expect(route.some((p) => p.y === 80 + 3 * GRID)).toBe(true);
+    expect(wire.b.term).toBe("y7");
+    expect(wire.jog).toBeUndefined();
+    expect(wireRoute(next, wire.a, wire.b)).toEqual([
+      { x: 5 * GRID, y: 7 * GRID },
+      { x: 16 * GRID, y: 7 * GRID },
+    ]);
   });
 
   it("keeps one wire number across a rail break", () => {
@@ -734,11 +734,12 @@ describe("connectOverlappingTerminals", () => {
     w.jog = { axis: "y", pos: 16 * GRID, y: 16 * GRID };
     useLab.setState({ circuit: c, mode: "edit" });
     const wire = useLab.getState().circuit.wires[0];
-    expect(wire.b.term).toBe("y4");
-    expect(wire.jog).toMatchObject({ y: 16 * GRID });
-    const parked = wireRoute(useLab.getState().circuit, wire.a, wire.b, wire.jog);
-    expect(parked[parked.length - 1]).toEqual({ x: 4 * GRID, y: 4 * GRID });
-    expect(parked.some((p) => p.y === 16 * GRID)).toBe(true);
+    expect(wire.b.term).toBe("y16");
+    expect(wire.jog).toBeUndefined();
+    expect(wireRoute(useLab.getState().circuit, wire.a, wire.b)).toEqual([
+      { x: 13 * GRID, y: 16 * GRID },
+      { x: 4 * GRID, y: 16 * GRID },
+    ]);
     useLab.setState({ selectedIds: [lamp.symbol.id], selected: { type: "symbol", id: lamp.symbol.id } });
     useLab.getState().nudgeSelected(0, 2);
     const nudged = useLab.getState().circuit.wires[0];
@@ -750,13 +751,19 @@ describe("connectOverlappingTerminals", () => {
     ]);
     useLab.getState().moveRail("rail-l", 6, 1, 22);
     const moved = useLab.getState().circuit.wires[0];
-    expect(moved.b.term).toBe("y19");
-    expect(wireRoute(useLab.getState().circuit, moved.a, moved.b).at(-1)).toEqual({ x: 6 * GRID, y: 19 * GRID });
+    expect(moved.b.term).toBe("y18");
+    expect(wireRoute(useLab.getState().circuit, moved.a, moved.b)).toEqual([
+      { x: 13 * GRID, y: 18 * GRID },
+      { x: 6 * GRID, y: 18 * GRID },
+    ]);
     useLab.getState().setWireJog(moved.id, { axis: "y", pos: 4 * GRID, y: 4 * GRID });
     const bent = useLab.getState().circuit.wires[0];
-    expect(bent.jog?.y).toBe(4 * GRID);
-    expect(bent.b.term).toBe("y19");
-    expect(wireRoute(useLab.getState().circuit, bent.a, bent.b, bent.jog).some((p) => p.y === 4 * GRID)).toBe(true);
+    expect(bent.jog).toBeUndefined();
+    expect(bent.b.term).toBe("y18");
+    expect(wireRoute(useLab.getState().circuit, bent.a, bent.b)).toEqual([
+      { x: 13 * GRID, y: 18 * GRID },
+      { x: 6 * GRID, y: 18 * GRID },
+    ]);
   });
 
   it("carries an attached rail break when the control rail moves and heals when the break is dragged off", () => {
@@ -821,7 +828,7 @@ describe("connectOverlappingTerminals", () => {
     const lamp = addDevice(c, "lamp", "LT1", "body", 12, 7);
     addWire(c, lamp.symbol, "1", hot.symbol, "y6");
     useLab.setState({ circuit: c, mode: "edit" });
-    expect(useLab.getState().circuit.wires[0].b.term).toBe("y6");
+    expect(useLab.getState().circuit.wires[0].b.term).toBe("y7");
     useLab.getState().moveSymbol(lamp.symbol.id, 12, 9);
     const wire = useLab.getState().circuit.wires[0];
     expect(wire.b.term).toBe("y9");
@@ -831,38 +838,50 @@ describe("connectOverlappingTerminals", () => {
     ]);
   });
 
-  it("keeps a control-hot tap below a rail break when the rail or the break moves", () => {
+  it("keeps control-rail wires horizontal when the rail moves", () => {
     const c = emptyCircuit();
     const hot = addDevice(c, "rail-l", "L", "body", 4, 0, { railY0: 0, railY1: 24 });
-    const gap = addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 12 });
+    addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 12 });
     const pb = addDevice(c, "pb-no", "CR1", "body", 10, 8);
     addWire(c, pb.symbol, "2", hot.symbol, "y16");
     useLab.setState({ circuit: c, mode: "edit" });
-    const placed = useLab.getState().circuit.wires[0];
-    expect(placed.b.term).toBe("y16");
-    useLab.getState().setWireJog(placed.id, { axis: "y", pos: 20 * GRID, y: 20 * GRID });
-    useLab.getState().moveRail("rail-break", 4, 3, 14, true, gap.symbol.id);
-    useLab.getState().setRailSpan("rail-break", 5, 15, true, gap.symbol.id);
-    const held = useLab.getState().circuit.wires[0];
-    expect(held.b.term).toBe("y16");
-    expect(held.jog?.y).toBe(20 * GRID);
-    useLab.getState().moveGroup([
-      { id: hot.symbol.id, x: 4, y: 3 },
-      { id: pb.symbol.id, x: 10, y: 11 },
-    ]);
-    expect(useLab.getState().circuit.wires[0].b.term).toBe("y19");
-    useLab.getState().moveRail("rail-l", 6, 5, 29);
-    const shifted = useLab.getState().circuit.wires[0];
-    expect(shifted.b.term).toBe("y21");
-    expect(wireRoute(useLab.getState().circuit, shifted.a, shifted.b, shifted.jog).at(-1)).toEqual({
-      x: 6 * GRID,
-      y: 21 * GRID,
-    });
-    useLab.getState().moveSymbol(pb.symbol.id, 10, 18);
-    const slid = useLab.getState().circuit.wires[0];
     const row = Math.round(terminalWorld(useLab.getState().circuit, { symbolId: pb.symbol.id, term: "2" })!.y / GRID);
-    expect(slid.b.term).toBe(`y${row}`);
-    expect(slid.jog).toBeUndefined();
+    const placed = useLab.getState().circuit.wires[0];
+    expect(placed.b.term).toBe(`y${row}`);
+    expect(placed.jog).toBeUndefined();
+    expect(wireRoute(useLab.getState().circuit, placed.a, placed.b)).toEqual([
+      { x: 14 * GRID, y: row * GRID },
+      { x: 4 * GRID, y: row * GRID },
+    ]);
+    useLab.getState().moveRail("rail-l", 6, 3, 27);
+    const shifted = useLab.getState().circuit.wires[0];
+    expect(shifted.b.term).toBe(`y${row}`);
+    expect(wireRoute(useLab.getState().circuit, shifted.a, shifted.b)).toEqual([
+      { x: 14 * GRID, y: row * GRID },
+      { x: 6 * GRID, y: row * GRID },
+    ]);
+  });
+
+  it("keeps a wire on the control-rail end square when that end moves", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 4, 2, { railY0: 2, railY1: 16 });
+    const pb = addDevice(c, "pb-no", "CR1", "body", 10, 8);
+    const w = addWire(c, pb.symbol, "2", hot.symbol, "y2");
+    w.b.railPin = "y0";
+    useLab.setState({ circuit: c, mode: "edit" });
+    const pinned = useLab.getState().circuit.wires[0];
+    expect(pinned.b).toMatchObject({ term: "y2", railPin: "y0" });
+    const parked = wireRoute(useLab.getState().circuit, pinned.a, pinned.b);
+    expect(parked.at(-1)).toEqual({ x: 4 * GRID, y: 2 * GRID });
+    expect(parked.at(-2)?.y).toBe(2 * GRID);
+    expect(parked.length).toBeGreaterThan(2);
+    useLab.getState().moveRail("rail-l", 6, 5, 19);
+    const followed = useLab.getState().circuit.wires[0];
+    expect(followed.b).toMatchObject({ term: "y5", railPin: "y0" });
+    expect(wireRoute(useLab.getState().circuit, followed.a, followed.b).at(-1)).toEqual({
+      x: 6 * GRID,
+      y: 5 * GRID,
+    });
   });
 
   it("slides a rail tap so the wire stays one straight line", () => {

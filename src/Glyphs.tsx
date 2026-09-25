@@ -6,6 +6,9 @@ import {netLabelFill, PHASE_COLOR} from "./sim/engine";
 
 const ink = "#1b1a16";
 
+/** One motor revolution. Slow enough to see which way the rotor turns. */
+const MOTOR_SPIN = "3.6s";
+
 /** Dark ink on light plates, white on phase-colored plates. Inline fill beats CSS. */
 function inkOnFill(fill: string): string {
     const hex = fill.trim().replace("#", "");
@@ -2733,7 +2736,7 @@ function GlyphBody({
                             type="rotate"
                             from={`0 ${cx} ${cy}`}
                             to={rt && rt.direction < 0 ? `-360 ${cx} ${cy}` : `360 ${cx} ${cy}`}
-                            dur="1.2s"
+                            dur={MOTOR_SPIN}
                             repeatCount="indefinite"
                         />
                     </g>
@@ -2794,7 +2797,7 @@ function GlyphBody({
                             type="rotate"
                             from={`0 ${cx} ${cy}`}
                             to={rt && rt.direction < 0 ? `-360 ${cx} ${cy}` : `360 ${cx} ${cy}`}
-                            dur="1.2s"
+                            dur={MOTOR_SPIN}
                             repeatCount="indefinite"
                         />
                     </g>
@@ -2846,7 +2849,7 @@ function GlyphBody({
                             type="rotate"
                             from={`0 ${cx} ${cy}`}
                             to={rt && rt.direction < 0 ? `-360 ${cx} ${cy}` : `360 ${cx} ${cy}`}
-                            dur="1.2s"
+                            dur={MOTOR_SPIN}
                             repeatCount="indefinite"
                         />
                     </g>

@@ -77,7 +77,7 @@ export const InteractionOverlay = memo(function InteractionOverlay({
         return (
           <g pointerEvents="none">
             <path d={d} fill="none" stroke="#e6c11e" strokeDasharray="5 4" strokeWidth="1.6" />
-            {snapped && <circle cx={b.x} cy={b.y} r="5" fill="#e6c11e" />}
+            {snapped && pts.length > 0 && <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r="5" fill="#e6c11e" />}
           </g>
         );
       })()}

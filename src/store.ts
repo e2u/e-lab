@@ -516,6 +516,7 @@ function findRailDevice(circuit: Circuit, kind: string, symbolId?: string) {
 // Initialize from URL share hash, saved draft, or fallback to default template
 const boot = startupDoc(createBlankTemplateCircuit, t("doc.untitled"));
 sanitizeCircuitIds(boot.circuit);
+alignRailWireEnds(boot.circuit);
 mergeDuplicateTagGhosts(boot.circuit);
 migrateDeviceHideTagToSymbols(boot.circuit);
 const sidebarBoot = readSidebarState();
@@ -3202,6 +3203,11 @@ export const useLab = create<LabState>((set, get) => ({
 
 useLab.subscribe((state, prev) => {
   if (state.circuit === prev.circuit) return;
+  const aligned = clone(state.circuit);
+  if (alignRailWireEnds(aligned)) {
+    useLab.setState({ circuit: aligned });
+    return;
+  }
   const next = computeLogicRails(state.circuit);
   const patch: Partial<LabState> = {};
   if (!sameLogicRails(next, state)) {

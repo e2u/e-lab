@@ -1408,9 +1408,18 @@ export function useSchematicEvents({
     e.stopPropagation();
     e.preventDefault();
     if (mode !== "edit" || placing) return;
-    const owner = useLab.getState().circuit.symbols.find((s) => s.id === spine.symbolId);
-    const ownerDev = owner && useLab.getState().circuit.devices.find((d) => d.id === owner.deviceId);
+    const lab = useLab.getState();
+    const owner = lab.circuit.symbols.find((s) => s.id === spine.symbolId);
+    const ownerDev = owner && lab.circuit.devices.find((d) => d.id === owner.deviceId);
     if (!ownerDev || (ownerDev.kind !== "rail-l" && ownerDev.kind !== "rail-n" && ownerDev.kind !== "rail-break")) return;
+    if (lab.wiringFrom || lab.editSubMode === "wiring") {
+      if (owner && (ownerDev.kind === "rail-l" || ownerDev.kind === "rail-n")) {
+        const ends = railEnds(ownerDev, owner, contentRows(lab.circuit));
+        const row = Math.round(which === "y0" ? ends.y0 : ends.y1);
+        lab.clickPort({ symbolId: spine.symbolId, term: railTermId(row), railPin: which });
+      }
+      return;
+    }
     railEndDrag.current = {
       kind: ownerDev.kind,
       symbolId: spine.symbolId,

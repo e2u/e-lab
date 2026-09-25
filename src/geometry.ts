@@ -390,10 +390,13 @@ function stubLen(circuit: Circuit, ref: PortRef): number {
   return STUB;
 }
 
+function isRailEndPin(port: PortRef): boolean {
+  return port.railPin === "y0" || port.railPin === "y1";
+}
+
 /**
- * A vertical control rail is met by a horizontal segment at the placed row.
- * The corner sits beside the device, so the run does not travel along the rail
- * and land inside a rail break.
+ * A wire pinned to a control-rail end square may turn beside the device and
+ * enter that square horizontally. Every other rail tap is a straight run.
  */
 function approachRail(
   circuit: Circuit,
@@ -414,6 +417,7 @@ function approachRail(
   const fromRail = fromKind !== null && isRailKind(fromKind);
   const toRail = toKind !== null && isRailKind(toKind);
   if (fromRail === toRail) return null;
+  if (!(toRail && isRailEndPin(to)) && !(fromRail && isRailEndPin(from))) return null;
   const rail = toRail ? b : a;
   const dev = toRail ? a : b;
   const stub = toRail ? a1 : b1;
@@ -448,6 +452,14 @@ export function wireRoute(
     const isSelf = from.symbolId === to.symbolId;
     if (!isSelf && !jog && (Math.abs(a.x - b.x) < 0.5 || Math.abs(a.y - b.y) < 0.5)) {
       return [a, b];
+    }
+    const fromKind = portKind(circuit, from);
+    const toKind = portKind(circuit, to);
+    const fromRail = fromKind !== null && isRailKind(fromKind);
+    const toRail = toKind !== null && isRailKind(toKind);
+    const pinned = (toRail && isRailEndPin(to)) || (fromRail && isRailEndPin(from));
+    if (!isSelf && !jog && fromRail !== toRail && !pinned) {
+      return toRail ? [a, { x: b.x, y: a.y }] : [{ x: a.x, y: b.y }, b];
     }
     const ob = terminalOutward(circuit, to);
     const sb = stubLen(circuit, to);
@@ -814,7 +826,7 @@ export function circuitRouteKey(circuit: Circuit): string {
   key += "|";
   for (const w of circuit.wires) {
     const j = w.jog;
-    key += `${w.id}:${w.a.symbolId}:${w.a.term}:${w.b.symbolId}:${w.b.term}:${w.broken ? 1 : 0}:`;
+    key += `${w.id}:${w.a.symbolId}:${w.a.term}:${w.a.railPin ?? ""}:${w.b.symbolId}:${w.b.term}:${w.b.railPin ?? ""}:${w.broken ? 1 : 0}:`;
     key += j ? `${j.axis}:${j.pos}:${j.x ?? ""}:${j.y ?? ""}` : "";
     key += ";";
   }
@@ -1183,11 +1195,9 @@ export function railBreakCuts(circuit: Circuit): { railSymbolId: string; rows: [
 }
 
 /**
- * Slide a rail tap onto the other end's row so that wire stays one straight line.
- * Pass `onlySymbolIds` for the symbols that just moved. A tap then moves only when
- * its device end moved and its rail did not, so a row placed on Control hot stays
- * when the rail or a rail break moves. A wire between two rails is left alone in
- * that scoped call; moving one rail shifts its own taps with the span instead.
+ * Keep every control-rail tap on one horizontal line.
+ * A tap pinned to an end square stays on that square and may turn.
+ * Pass `onlySymbolIds` to limit the pass to wires that touch those symbols.
  * Returns true when a tap or jog changed.
  */
 export function alignRailWireEnds(
@@ -1203,12 +1213,34 @@ export function alignRailWireEnds(
       changed = true;
     }
   };
+  const syncPin = (port: PortRef): boolean => {
+    if (!isRailEndPin(port)) return false;
+    const sym = circuit.symbols.find((s) => s.id === port.symbolId);
+    const dev = sym && circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev || !isRailKind(dev.kind)) {
+      delete port.railPin;
+      changed = true;
+      return false;
+    }
+    const end = port.railPin === "y0" ? dev.params.railY0 : dev.params.railY1;
+    if (typeof end === "number") setTerm(port, Math.round(end));
+    return true;
+  };
+  const clearJog = (w: { jog?: WireJog }) => {
+    if (!keepJogs && w.jog !== undefined) {
+      w.jog = undefined;
+      changed = true;
+    }
+  };
   for (const w of circuit.wires) {
+    const pinA = syncPin(w.a);
+    const pinB = syncPin(w.b);
     const a = railPort(circuit, w.a);
     const b = railPort(circuit, w.b);
     if (!a && !b) continue;
+    if (pinA || pinB) continue;
     if (a && b) {
-      if (onlySymbolIds) continue;
+      if (onlySymbolIds && !onlySymbolIds.has(w.a.symbolId) && !onlySymbolIds.has(w.b.symbolId)) continue;
       const lo = Math.max(a.lo, b.lo);
       const hi = Math.min(a.hi, b.hi);
       if (lo > hi) continue;
@@ -1216,24 +1248,18 @@ export function alignRailWireEnds(
       const row = Math.max(lo, Math.min(hi, current));
       setTerm(w.a, row);
       setTerm(w.b, row);
-      if (!keepJogs && w.jog !== undefined) {
-        w.jog = undefined;
-        changed = true;
-      }
+      clearJog(w);
       continue;
     }
     const rail = (a ?? b)!;
     const other = a ? w.b : w.a;
     const railSymId = a ? w.a.symbolId : w.b.symbolId;
-    if (onlySymbolIds && (!onlySymbolIds.has(other.symbolId) || onlySymbolIds.has(railSymId))) continue;
+    if (onlySymbolIds && !onlySymbolIds.has(other.symbolId) && !onlySymbolIds.has(railSymId)) continue;
     const world = terminalWorld(circuit, other);
     if (!world) continue;
     const row = Math.max(rail.lo, Math.min(rail.hi, Math.round(world.y / GRID)));
     setTerm(a ? w.a : w.b, row);
-    if (!keepJogs && w.jog !== undefined) {
-      w.jog = undefined;
-      changed = true;
-    }
+    clearJog(w);
   }
   return changed;
 }

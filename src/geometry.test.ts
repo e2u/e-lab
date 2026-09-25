@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit, mergeWires, removeJunction } from "./circuitBuilder";
 import { GRID, type Circuit } from "./types";
-import { allWireRoutes, alignStackedWireLabels, areWiresConnected, circuitRouteKey, cleanPolyline, dedupeWireLabels, ensureNetTerminalSideLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, WIRE_LANE, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
+import { allWireRoutes, alignRailWireEnds, alignStackedWireLabels, areWiresConnected, circuitRouteKey, cleanPolyline, dedupeWireLabels, ensureNetTerminalSideLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, WIRE_LANE, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
 import { useLab } from "./store";
 
 describe("wire routing stubs", () => {
@@ -619,18 +619,28 @@ describe("wire crossovers", () => {
     expect(pos!.y).toBeGreaterThan(40);  // Label is below the wire
   });
 
-  it("meets a control rail horizontally at the placed row", () => {
+  it("draws an ordinary control-rail tap as one horizontal line", () => {
     const c = emptyCircuit();
     const hot = addDevice(c, "rail-l", "L", "body", 2, 0, { railY0: 0, railY1: 20 });
-    addDevice(c, "rail-break", "BK1", "body", 2, 4, { railY0: 4, railY1: 10 });
     const pb = addDevice(c, "pb-no", "CR1", "body", 8, 4);
     addWire(c, pb.symbol, "2", hot.symbol, "y16");
+    alignRailWireEnds(c);
     const pts = wireRoute(c, c.wires[0].a, c.wires[0].b);
-    const rail = pts[pts.length - 1];
-    const prev = pts[pts.length - 2];
-    expect(rail).toEqual({ x: 2 * GRID, y: 16 * GRID });
-    expect(prev.y).toBe(rail.y);
-    expect(Math.abs(prev.x - rail.x)).toBeGreaterThan(GRID);
+    const row = terminalWorld(c, { symbolId: pb.symbol.id, term: "2" })!;
+    expect(pts).toEqual([row, { x: 2 * GRID, y: row.y }]);
+  });
+
+  it("turns into a control-rail end square", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 2, 0, { railY0: 0, railY1: 20 });
+    const pb = addDevice(c, "pb-no", "CR1", "body", 8, 4);
+    const w = addWire(c, pb.symbol, "2", hot.symbol, "y0");
+    w.b.railPin = "y0";
+    alignRailWireEnds(c);
+    const pts = wireRoute(c, w.a, w.b);
+    expect(pts.at(-1)).toEqual({ x: 2 * GRID, y: 0 });
+    expect(pts.at(-2)?.y).toBe(0);
+    expect(pts.length).toBeGreaterThan(2);
   });
 
   it("routes in the middle channel between horizontal terminals avoiding terminal overlap", () => {

@@ -284,20 +284,7 @@ function seedElectricalNodes(circuit: Circuit, uf: UnionFind): void {
   }
 }
 
-/** Line rail joins the control hot. Cross-ref rail joins the neutral. Every row of a rail is one wire. */
-function controlRailSource(circuit: Circuit, hot: boolean): { id: string; term: string } | null {
-  const xf = circuit.devices.find((d) => d.kind === "transformer");
-  if (xf) return { id: xf.id, term: hot ? "X1" : "X2" };
-  const dc = circuit.devices.find((d) => d.kind === "dc-supply");
-  if (dc) return { id: dc.id, term: hot ? "+" : "-" };
-  const mains = circuit.devices.find((d) => d.kind === "mains-3ph");
-  if (!mains) return null;
-  if (hot) return { id: mains.id, term: "L1" };
-  const sym = circuit.symbols.find((s) => s.deviceId === mains.id);
-  const terms = resolvedVariant(mains.kind, sym?.variant ?? "wye", mains.params).terminals;
-  return { id: mains.id, term: terms.some((t) => t.id === "N") ? "N" : "L2" };
-}
-
+/** Every row of a control rail is one wire. The rail is live only where a wire brings a source onto it. */
 function linkLogicRails(circuit: Circuit, uf: UnionFind, link: (a: string, b: string) => void): void {
   for (const sym of circuit.symbols) {
     const dev = circuit.devices.find((d) => d.id === sym.deviceId);
@@ -338,10 +325,6 @@ function linkLogicRails(circuit: Circuit, uf: UnionFind, link: (a: string, b: st
         if (contactNode) link(contactNode, nk(dev.id, `y${row}`));
       }
     }
-    const source = controlRailSource(circuit, dev.kind === "rail-l");
-    if (!source || rows.length === 0) continue;
-    uf.add(nk(source.id, source.term));
-    link(nk(dev.id, `y${rows[0]}`), nk(source.id, source.term));
   }
 }
 

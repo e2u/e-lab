@@ -33,11 +33,13 @@ function run(
 describe("sim engine", () => {
   it("opens a control rail at a rail break and heals when the break moves off", () => {
     const c = emptyCircuit();
-    addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
+    const pws = addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
     const hot = addDevice(c, "rail-l", "L", "body", 4, 2, { railY0: 2, railY1: 16 });
     const neu = addDevice(c, "rail-n", "N", "body", 20, 2, { railY0: 2, railY1: 16 });
     const gap = addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 10 });
     const lamp = addDevice(c, "lamp", "LT1", "body", 10, 12);
+    addWire(c, pws.symbol, "+", hot.symbol, "y2");
+    addWire(c, pws.symbol, "-", neu.symbol, "y2");
     addWire(c, lamp.symbol, "1", hot.symbol, "y12");
     addWire(c, lamp.symbol, "2", neu.symbol, "y12");
     expect(run(c).runtime[lamp.device.id].lit).toBe(false);
@@ -47,11 +49,13 @@ describe("sim engine", () => {
 
   it("opens the control hot where an NO sits on it and heals after the NO moves away", () => {
     const c = emptyCircuit();
-    addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
+    const pws = addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
     const hot = addDevice(c, "rail-l", "L", "body", 4, 2, { railY0: 2, railY1: 16 });
     const neu = addDevice(c, "rail-n", "N", "body", 20, 2, { railY0: 2, railY1: 16 });
     const pb = addDevice(c, "pb-no", "PB1", "body", 3, 6, {}, 90);
     const lamp = addDevice(c, "lamp", "LT1", "body", 10, 12);
+    addWire(c, pws.symbol, "+", hot.symbol, "y2");
+    addWire(c, pws.symbol, "-", neu.symbol, "y2");
     addWire(c, lamp.symbol, "1", hot.symbol, "y12");
     addWire(c, lamp.symbol, "2", neu.symbol, "y12");
     expect(run(c).runtime[lamp.device.id].lit).toBe(false);
@@ -60,19 +64,21 @@ describe("sim engine", () => {
     expect(run(c).runtime[lamp.device.id].lit).toBe(true);
   });
 
-  it("lights a lamp wired between the line rail hot and the cross-ref neutral", () => {
+  it("lights a lamp between the control rails only after they are wired to a supply", () => {
     const c = emptyCircuit();
-    addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
+    const pws = addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
     const hot = addDevice(c, "rail-l", "L", "body", 2, 4, { railY0: 4, railY1: 12 });
     const neu = addDevice(c, "rail-n", "N", "body", 16, 4, { railY0: 4, railY1: 12 });
     const lamp = addDevice(c, "lamp", "LT1", "body", 8, 6);
     addWire(c, lamp.symbol, "1", hot.symbol, "y6");
     addWire(c, lamp.symbol, "2", neu.symbol, "y10");
-    const snap = run(c);
-    expect(snap.runtime[lamp.device.id].lit).toBe(true);
+    expect(run(c).runtime[lamp.device.id].lit).toBe(false);
+    addWire(c, pws.symbol, "+", hot.symbol, "y4");
+    addWire(c, pws.symbol, "-", neu.symbol, "y4");
+    expect(run(c).runtime[lamp.device.id].lit).toBe(true);
   });
 
-  it("ties the line rail to the control transformer hot instead of the mains", () => {
+  it("powers the control rails from the transformer secondary wires", () => {
     const c = emptyCircuit();
     const mains = addDevice(c, "mains-3ph", "PWR", "body", 0, 0);
     const xf = addDevice(c, "transformer", "T1", "body", 4, 0);
@@ -84,6 +90,9 @@ describe("sim engine", () => {
     expect(run(c).runtime[lamp.device.id].lit).toBe(false);
     addWire(c, mains.symbol, "L1", xf.symbol, "H1");
     addWire(c, mains.symbol, "N", xf.symbol, "H2");
+    expect(run(c).runtime[lamp.device.id].lit).toBe(false);
+    addWire(c, xf.symbol, "X1", hot.symbol, "y8");
+    addWire(c, xf.symbol, "X2", neu.symbol, "y8");
     expect(run(c).runtime[lamp.device.id].lit).toBe(true);
   });
 

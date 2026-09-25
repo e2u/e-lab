@@ -768,12 +768,14 @@ describe("connectOverlappingTerminals", () => {
 
   it("carries an attached rail break when the control rail moves and heals when the break is dragged off", () => {
     const c = emptyCircuit();
-    addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
+    const pws = addDevice(c, "dc-supply", "PWS1", "body", 0, 0);
     const hot = addDevice(c, "rail-l", "L", "body", 4, 2, { railY0: 2, railY1: 16 });
     const neu = addDevice(c, "rail-n", "N", "body", 20, 2, { railY0: 2, railY1: 16 });
     const gap = addDevice(c, "rail-break", "BK1", "body", 4, 6, { railY0: 6, railY1: 10 });
     const other = addDevice(c, "rail-break", "BK2", "body", 30, 8, { railY0: 8, railY1: 11 });
     const lamp = addDevice(c, "lamp", "LT1", "body", 10, 12);
+    addWire(c, pws.symbol, "+", hot.symbol, "y2");
+    addWire(c, pws.symbol, "-", neu.symbol, "y2");
     addWire(c, lamp.symbol, "1", hot.symbol, "y12");
     addWire(c, lamp.symbol, "2", neu.symbol, "y12");
     useLab.setState({ circuit: c, mode: "edit" });

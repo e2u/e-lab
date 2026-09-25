@@ -16,6 +16,7 @@ help:
 	@echo "  make preview   Preview production build locally"
 	@echo "  make test      Run tests"
 	@echo "  make lint      Run ESLint static analysis"
+	@echo "  make update-examples  Run the example update script"
 	@echo "  make deploy    Deploy to GitHub Pages"
 	@echo "  make clean     Clean build artifacts"
 
@@ -47,6 +48,9 @@ test:
 lint:
 	@echo "Running ESLint static analysis..."
 	@yarn lint
+
+update-examples:
+	@npx tsx src/scripts/update-examples.ts
 
 deploy: build
 	@echo "Deployment to GitHub Pages is automated via GitHub Actions."

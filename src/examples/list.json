@@ -1,224 +1,294 @@
 {
+  "metadata": {
+    "hashes": {
+      "01-basic-lamp.json": "3ce8985b64cd7eed89153d1757c52bdd",
+      "02-start-stop-lamp.json": "af2b700cd8f3ddcfc67280df641d22fb",
+      "03-transformer-fuse.json": "b6a6b3cb45b21534dd2749e92d4d7c04",
+      "04-relay-self-holding.json": "6e29ce99612b19932ab4fd8c983cc754",
+      "05-motor-1ph-manual.json": "2732da39995b397e717801e0e69ad8cb",
+      "06-motor-3ph-dol.json": "317c5fc0f69efc2850bc8cf6b2168b82",
+      "07-overload-alarm.json": "8bb8acf007efc93dbe481e5096ed827b",
+      "08-estop-safety.json": "52ff067ea226c208d145e73107f5f885",
+      "09-hoa-selector.json": "7ff905e901402f0151abd7d2bfcfca22",
+      "10-dual-station.json": "f0fd83aacea3825d55e69c45d635086b",
+      "11-fwd-rev-interlock.json": "5ff5150d734bdbb4cdaa50fffc9fcd49",
+      "12-limit-reciprocating.json": "57b0c1fe3bb18fcd3dca343d6c5ef2a5",
+      "13-timer-on-sequence.json": "35beed2e6c1c80ff4983830df4d73990",
+      "14-timer-off-cooling.json": "7008531b7978d0ed03ab49974b00d8e5",
+      "15-star-delta-starter.json": "8768eda969a9ea78d8087d65dea25074",
+      "16-tank-level-pump.json": "38772d291a9d934df310a178f9a1a4e9",
+      "17-temp-pressure-heater.json": "5d1ee652093f14a58f2d25cbcd78c62c",
+      "18-conveyor-counter-sorter.json": "c077a9a105a2983d3f4f09f42c286a63",
+      "19-ats-dual-power.json": "5ef5683bbc379cbdb7e4b07c0d521792",
+      "20-automated-cell.json": "fc68443bf862f65b3a624057f1b96e80",
+      "21-timer-ss-off-dual-motor.json": "118ae7096cc306ffa23cca31f373fae3",
+      "22-timer-ss-off-three-motor.json": "034af21e8cc0e9cc27000015782f73f2",
+      "23-timer-ss-on-dual-motor.json": "0c1ac5991b73d371888b2b073f4170c7",
+      "24-timer-ss-on-three-motor.json": "ddff232068ab41626d7c293ad06953c1",
+      "BaseTemplate.json": "a77d9fc32376a57eddecf928a6376014",
+      "Project 01.json": "9b75e70e0ec84c764e7a6897f59dd685",
+      "Project 02.json": "6cd06833a88b5de9eed45ab2c202cb5d",
+      "Project 03.json": "2b958d52cdd9079ec56358292c0c2452",
+      "Project 04.json": "72f3be960bbc9baedb3a7069fdf1fc2a",
+      "Project 05-Off-Delay.json": "80936828baa4e8d0cbfe6cc4f8d37cda",
+      "Project 05-On-Delay.json": "fafaa98e15a198b6f90019578179e083",
+      "Project 06-Single-Timer.json": "2b479990182bdc6103be6d77f9c9b91a",
+      "Project 06.json": "b2225a6a9578148f8e4c93686b5121f1",
+      "Project 07.json": "4734552c861c1be063f5943afc610697",
+      "Project 08.json": "e92d4c713e70547efaa94058ca6cd4d0",
+      "Project 09.json": "2aea86d1ed891e85453d5472b9cc61e0",
+      "Project 10.json": "3a5f634c4f58e99b3fa7bb081fdef9fe",
+      "Project 11-Single-Relay.json": "92546a9c7208d7932a43464415b5208b",
+      "Project 11.json": "7dacee7bc3b05ecaf8946707643dec23",
+      "Project 12.json": "9a46bb53b7bd61b4c5ccbf135e14a6bb",
+      "Project 13.json": "d487ba9f5b62d78f5124d9bd6fa9b61d",
+      "Project 14.json": "798b3beae8387a7ac2025c3660443e64",
+      "blank-template.json": "89a56205e873ad5674c6d063eaa1bc8f",
+      "simple-fuse-test.json": "8058b1d28828b23c234e5949e818f414",
+      "three-phase-motor.json": "68d1e3d85108fd31578d252db9e02818",
+      "transformer.json": "b5badb7a91f6e020d47e4aa84a054a7e"
+    }
+  },
   "examples": [
     {
-      "id": "none",
-      "title": "Blank Diagram",
-      "blurb": "空白圖紙，從零開始設計電路。"
-    },
-    {
-      "id": "base-template",
-      "title": "Base Template",
-      "blurb": "三相電源、主隔離、控制變壓器與接觸器／過載起步圖。"
-    },
-    {
       "id": "01-basic-lamp",
-      "title": "01# Basic Lamp Circuit",
-      "blurb": "直流電源驅動常開按鈕與綠色指示燈基礎電路。"
+      "title": "01-basic-lamp",
+      "blurb": ""
     },
     {
       "id": "02-start-stop-lamp",
-      "title": "02# Start-Stop Dual Indicators",
-      "blurb": "啟動/停止雙按鈕與紅綠雙色狀態指示電路。"
+      "title": "02-start-stop-lamp",
+      "blurb": ""
     },
     {
       "id": "03-transformer-fuse",
-      "title": "03# Control Transformer & Fuses",
-      "blurb": "控制變壓器降壓 480V/120V、一次側二次側熔斷保護與電壓表監測。"
+      "title": "03-transformer-fuse",
+      "blurb": ""
     },
     {
       "id": "04-relay-self-holding",
-      "title": "04# Relay Self-Holding Circuit",
-      "blurb": "中間繼電器經典啟停自鎖自保電路與運行/停止雙燈指示。"
+      "title": "04-relay-self-holding",
+      "blurb": ""
     },
     {
       "id": "05-motor-1ph-manual",
-      "title": "05# Single-Phase Motor Manual Control",
-      "blurb": "單相交流馬達單極斷路器、開關控制、電壓表與鉗形電流表監測。"
+      "title": "05-motor-1ph-manual",
+      "blurb": ""
     },
     {
       "id": "06-motor-3ph-dol",
-      "title": "06# 3-Phase Motor DOL Starter",
-      "blurb": "三相馬達直接起動 (DOL) 隔離刀閘、三極斷路器、接觸器自鎖控制迴路。"
+      "title": "06-motor-3ph-dol",
+      "blurb": ""
     },
     {
       "id": "07-overload-alarm",
-      "title": "07# Motor Overload Protection & Alarm",
-      "blurb": "三相馬達熱過載繼電器脫扣保護與 97-98 故障聲光警報迴路。"
+      "title": "07-overload-alarm",
+      "blurb": ""
     },
     {
       "id": "08-estop-safety",
-      "title": "08# Emergency Stop Safety Interlock",
-      "blurb": "急停安全主繼電器迴路，拍下急停即時切斷全系統並觸發紅燈警報。"
+      "title": "08-estop-safety",
+      "blurb": ""
     },
     {
       "id": "09-hoa-selector",
-      "title": "09# Hand-Off-Auto Selector & Pump",
-      "blurb": "三檔選擇開關 (HOA) 手動點動/自動浮球控制抽水泵與排污電磁閥。"
+      "title": "09-hoa-selector",
+      "blurb": ""
     },
     {
       "id": "10-dual-station",
-      "title": "10# Dual-Station Remote Motor Control",
-      "blurb": "兩地異地控制電路：雙按鈕串聯停止與並聯啟動三相馬達。"
+      "title": "10-dual-station",
+      "blurb": ""
     },
     {
       "id": "11-fwd-rev-interlock",
-      "title": "11# Forward / Reverse Interlock Starter",
-      "blurb": "三相馬達正反轉雙接觸器電氣互鎖與相序切換控制迴路。"
+      "title": "11-fwd-rev-interlock",
+      "blurb": ""
     },
     {
       "id": "12-limit-reciprocating",
-      "title": "12# Limit Switch Auto-Cycle Travel",
-      "blurb": "雙行程開關端點碰撞自動反轉往返工作台運動控制系統。"
+      "title": "12-limit-reciprocating",
+      "blurb": ""
     },
     {
       "id": "13-timer-on-sequence",
-      "title": "13# On-Delay Timer Sequential Start",
-      "blurb": "通電延時繼電器 (TON) 主輸送帶與進料馬達延時順序起動控制。"
+      "title": "13-timer-on-sequence",
+      "blurb": ""
     },
     {
       "id": "14-timer-off-cooling",
-      "title": "14# Off-Delay Timer Fan Cooling Cycle",
-      "blurb": "斷電延時繼電器 (TOF) 電熱爐停機後冷卻風扇延時自動散熱排風。"
+      "title": "14-timer-off-cooling",
+      "blurb": ""
     },
     {
       "id": "15-star-delta-starter",
-      "title": "15# Star-Delta (Y-Δ) Reduced Starter",
-      "blurb": "三相馬達星三角降壓起動：星形起動延時自動切換角形全壓運轉。"
+      "title": "15-star-delta-starter",
+      "blurb": ""
     },
     {
       "id": "16-tank-level-pump",
-      "title": "16# Water Tank Automatic Pump & Horn",
-      "blurb": "水箱高低雙浮球自動抽水泵自鎖排水與極限溢流電笛警報系統。"
+      "title": "16-tank-level-pump",
+      "blurb": ""
     },
     {
       "id": "17-temp-pressure-heater",
-      "title": "17# Temp & Pressure Interlock Chamber",
-      "blurb": "冷卻水流量、溫度與壓力三重安全閉環聯鎖工業加熱爐控制系統。"
+      "title": "17-temp-pressure-heater",
+      "blurb": ""
     },
     {
       "id": "18-conveyor-counter-sorter",
-      "title": "18# Conveyor Counter & Sorting Solenoid",
-      "blurb": "接近開關與光電感測器輸送帶自動計數、批量完成氣動分揀推料。"
-    },
-    {
-      "id": "simple-fuse-test",
-      "title": "Simple Fuse Test",
-      "blurb": "基礎熔斷器測試電路。"
+      "title": "18-conveyor-counter-sorter",
+      "blurb": ""
     },
     {
       "id": "19-ats-dual-power",
-      "title": "19# ATS Dual Power Transfer",
-      "blurb": "自動切換開關控制兩路電源在斷電時自動切換至備用電源。"
+      "title": "19-ats-dual-power",
+      "blurb": ""
     },
     {
       "id": "20-automated-cell",
-      "title": "20# Automated Manufacturing Cell",
-      "blurb": "工業自動化生產線：包含傳送帶、感測器與機械臂控制迴路。"
+      "title": "20-automated-cell",
+      "blurb": "MULTI-STATION MACHINING & CLAMPING CELL"
     },
     {
-      "id": "transformer",
-      "title": "Transformer",
-      "blurb": "三相電源經變壓器降壓，驅動綠色指示燈。"
+      "id": "21-timer-ss-off-dual-motor",
+      "title": "21-timer-ss-off-dual-motor",
+      "blurb": "Two Motor Alternating Control with 11-Pin Solid-State OFF-Delay Timers"
     },
     {
-      "id": "three-phase-motor",
-      "title": "Three Phase Motor Control",
-      "blurb": "三相電機基礎控制迴路。"
+      "id": "22-timer-ss-off-three-motor",
+      "title": "22-timer-ss-off-three-motor",
+      "blurb": "Three Motor Alternating Control with 11-Pin Solid-State OFF-Delay Timers"
+    },
+    {
+      "id": "23-timer-ss-on-dual-motor",
+      "title": "23-timer-ss-on-dual-motor",
+      "blurb": "Two Motor Alternating Control with 8-Pin Solid-State ON-Delay Timers"
+    },
+    {
+      "id": "24-timer-ss-on-three-motor",
+      "title": "24-timer-ss-on-three-motor",
+      "blurb": "Three Motor Alternating Control with 8-Pin Solid-State ON-Delay Timers"
+    },
+    {
+      "id": "base-template",
+      "title": "Untitled Diagram",
+      "blurb": ""
     },
     {
       "id": "project-01",
       "title": "Project 01",
-      "blurb": "單站啟停按鈕控制一台三相馬達。"
+      "blurb": "Draw a schematic for a single start & stop P.B. station controlling a motor."
     },
     {
       "id": "project-02",
       "title": "Project 02",
-      "blurb": "雙站啟動、單站停止控制一台三相馬達。"
+      "blurb": "Draw a schematic for a dual start & stop P.B. station controlling a motor."
     },
     {
       "id": "project-03",
       "title": "Project 03",
-      "blurb": "單站啟停同時控制多台三相馬達。"
+      "blurb": "Draw a schematic for a single start & stop P.B. station controlling multi motors."
     },
     {
       "id": "project-04",
-      "title": "Project 04",
-      "blurb": "雙站啟動、單站停止控制一台三相馬達。"
+      "title": "Untitled Diagram",
+      "blurb": "Draw a schematic for a multi start & stop P.B. stations cntrolling a motor."
     },
     {
       "id": "project-05-off-delay",
-      "title": "Project 05 - Off-Delay Timer",
-      "blurb": "多站啟停按鈕控制一台三相馬達，配備斷電延時繼電器實現停機後冷卻風扇延時散熱。"
+      "title": "Project 05-Off-Delay",
+      "blurb": "Draw a schematic for a multi start & stop P.B. station to control a motor with a timer to a control circuit."
     },
     {
       "id": "project-05-on-delay",
-      "title": "Project 05 - On-Delay Timer",
-      "blurb": "單相交流馬達手動控制，配備通電延時繼電器實現啟動後延時運行。"
+      "title": "Project 05-On-Delay",
+      "blurb": "Draw a schematic for a multi start & stop P.B. station to control a motor with a timer to a control circuit."
+    },
+    {
+      "id": "project-06-single-timer",
+      "title": "Project 06-Single-Timer",
+      "blurb": "Draw a schematic for a start & stop P.B. station controlling a multi motors with a timer for motors to operate in a sequence."
     },
     {
       "id": "project-06",
       "title": "Project 06",
-      "blurb": "三相馬達直接起動 (DOL) 控制，包含隔離刀閘、斷路器、接觸器自鎖控制迴路。"
-    },
-    {
-      "id": "project-06-single-timer",
-      "title": "Project 06 - Single Timer",
-      "blurb": "單站啟停按鈕與單通電延時繼電器控制多台馬達順序運轉。"
+      "blurb": "Draw a schematic for a start & stop P.B. station controlling a multi motors with a timer for motors to operate in a sequence."
     },
     {
       "id": "project-07",
       "title": "Project 07",
-      "blurb": "三相馬達熱過載保護與聲光警報系統。"
+      "blurb": "Draw a schematic for multi start & stop P.B. station for sequence strt on motors."
     },
     {
       "id": "project-08",
       "title": "Project 08",
-      "blurb": "急停安全互鎖主繼電器迴路，觸發時切斷全系統並點亮紅燈警報。"
+      "blurb": "DRAW a schematic for an interlock circuit."
     },
     {
       "id": "project-09",
       "title": "Project 09",
-      "blurb": "手動/自動/關閉 (HOA) 選擇開關控制抽水泵與排污電磁閥。"
+      "blurb": "Drwa a schematic for a reversing starter with pilot lights  indicating rotating."
     },
     {
       "id": "project-10",
       "title": "Project 10",
-      "blurb": "雙地異地控制：雙按鈕串聯停止與並聯啟動三相馬達。"
+      "blurb": "Draw a schematic for a mechanical interlock with fan motors to operate."
+    },
+    {
+      "id": "project-11-single-relay",
+      "title": "Project 11-Single-Relay",
+      "blurb": "Draw a schematic for a two motor operation on a continuous loop"
     },
     {
       "id": "project-11",
       "title": "Project 11",
-      "blurb": "兩台馬達連續循環運轉控制電路。"
-    },
-    {
-      "id": "project-11-single-relay",
-      "title": "Project 11 - Single Relay",
-      "blurb": "單中間繼電器控制多台馬達，實現啟停與自鎖功能。"
+      "blurb": "Draw a schematic for a two motor operation on a continuous loop"
     },
     {
       "id": "project-12",
       "title": "Project 12",
-      "blurb": "三台馬達連續循環運轉控制電路。"
+      "blurb": "Draw a schematic for a three motor operation on a continuous loop."
     },
     {
-      "id": "21-timer-ss-off-dual-motor",
-      "title": "21# Solid-State Dual Motor Alternating",
-      "blurb": "兩台 11-Pin 固態斷電延時繼電器 (Solid-State TOF) 控制雙電機自動輪流交替運行。"
+      "id": "project-13",
+      "title": "Project 13",
+      "blurb": "Draw a schematic for a three stop & start P.B stations to control three motors to operate on an interlock circuit."
     },
     {
-      "id": "22-timer-ss-off-three-motor",
-      "title": "22# Solid-State Three Motor Alternating",
-      "blurb": "三台 11-Pin 固態斷電延時繼電器 (Solid-State TOF) 控制三台電機自動輪流循環運行。"
+      "id": "project-14",
+      "title": "Project 14",
+      "blurb": "Draw a schematic for two stop & start P.B stations to control two motors to operate in sequence with 3rd motor to start on a T.M. & stop on a T.D."
     },
     {
-      "id": "23-timer-ss-on-dual-motor",
-      "title": "23# Solid-State Dual Motor Alternating (TON)",
-      "blurb": "兩台 8-Pin 固態通電延時繼電器 (Solid-State TON) 控制雙電機自動輪流交替運行。"
+      "id": "blank-template",
+      "title": "Untitled Diagram",
+      "blurb": ""
     },
     {
-      "id": "24-timer-ss-on-three-motor",
-      "title": "24# Solid-State Three Motor Alternating (TON)",
-      "blurb": "三台 8-Pin 固態通電延時繼電器 (Solid-State TON) 控制三台電機自動輪流循環運行。"
+      "id": "rail-l",
+      "title": "L",
+      "blurb": ""
+    },
+    {
+      "id": "rail-n",
+      "title": "N",
+      "blurb": ""
+    },
+    {
+      "id": "simple-fuse-test",
+      "title": "01-basic-lamp",
+      "blurb": ""
+    },
+    {
+      "id": "three-phase-motor",
+      "title": "three-phase-motor",
+      "blurb": ""
+    },
+    {
+      "id": "transformer",
+      "title": "transformer",
+      "blurb": ""
     }
   ]
 }

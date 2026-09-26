@@ -1,7 +1,6 @@
 {
   "metadata": {
     "hashes": {
-      "01-basic-lamp.json": "3ce8985b64cd7eed89153d1757c52bdd",
       "02-start-stop-lamp.json": "af2b700cd8f3ddcfc67280df641d22fb",
       "03-transformer-fuse.json": "b6a6b3cb45b21534dd2749e92d4d7c04",
       "04-relay-self-holding.json": "6e29ce99612b19932ab4fd8c983cc754",
@@ -25,13 +24,13 @@
       "22-timer-ss-off-three-motor.json": "034af21e8cc0e9cc27000015782f73f2",
       "23-timer-ss-on-dual-motor.json": "0c1ac5991b73d371888b2b073f4170c7",
       "24-timer-ss-on-three-motor.json": "ddff232068ab41626d7c293ad06953c1",
-      "BaseTemplate.json": "a77d9fc32376a57eddecf928a6376014",
+      "BaseTemplate.json": "4b1c1e930d434855b3c765f87fe19cd4",
       "Project 01.json": "9b75e70e0ec84c764e7a6897f59dd685",
       "Project 02.json": "6cd06833a88b5de9eed45ab2c202cb5d",
       "Project 03.json": "2b958d52cdd9079ec56358292c0c2452",
-      "Project 04.json": "72f3be960bbc9baedb3a7069fdf1fc2a",
-      "Project 05-Off-Delay.json": "80936828baa4e8d0cbfe6cc4f8d37cda",
-      "Project 05-On-Delay.json": "fafaa98e15a198b6f90019578179e083",
+      "Project 04.json": "1b6d5ce562e79c4ca49cecbb5260b0a9",
+      "Project 05-Off-Delay.json": "1f10112d7cf2470f3e592b5e494d18ef",
+      "Project 05-On-Delay.json": "72420f044f0fa73460b46eb614a1e5f7",
       "Project 06-Single-Timer.json": "2b479990182bdc6103be6d77f9c9b91a",
       "Project 06.json": "b2225a6a9578148f8e4c93686b5121f1",
       "Project 07.json": "4734552c861c1be063f5943afc610697",
@@ -42,11 +41,14 @@
       "Project 11.json": "7dacee7bc3b05ecaf8946707643dec23",
       "Project 12.json": "9a46bb53b7bd61b4c5ccbf135e14a6bb",
       "Project 13.json": "d487ba9f5b62d78f5124d9bd6fa9b61d",
-      "Project 14.json": "798b3beae8387a7ac2025c3660443e64",
-      "blank-template.json": "89a56205e873ad5674c6d063eaa1bc8f",
-      "simple-fuse-test.json": "8058b1d28828b23c234e5949e818f414",
+      "blank-template.json": "0ac63e0e9e9e45ebe933b5f3106bdc96",
       "three-phase-motor.json": "68d1e3d85108fd31578d252db9e02818",
-      "transformer.json": "b5badb7a91f6e020d47e4aa84a054a7e"
+      "transformer.json": "b5badb7a91f6e020d47e4aa84a054a7e",
+      "Project 14 Third-motor-start-after-first-motor Reset-by-motor1.json": "4fa5fac51df0e67b1474febc13eef6c2",
+      "Project 14 Third-motor-start-after-first-motor.json": "bbdc3166188f3e8033d04e8457692c00",
+      "Project 14 Third-motor-start-after-second-motor Reset-by-motor2.json": "250cc5329c82f9059bb32856581c227a",
+      "Project 14 Third-motor-start-after-second-motor.json": "7125ba26240049f20eefdd734275fcdf",
+      "01-basic-lamp.json": "3ce8985b64cd7eed89153d1757c52bdd"
     }
   },
   "examples": [
@@ -172,7 +174,7 @@
     },
     {
       "id": "base-template",
-      "title": "Untitled Diagram",
+      "title": "Base Template",
       "blurb": ""
     },
     {
@@ -192,7 +194,7 @@
     },
     {
       "id": "project-04",
-      "title": "Untitled Diagram",
+      "title": "Project 04",
       "blurb": "Draw a schematic for a multi start & stop P.B. stations cntrolling a motor."
     },
     {
@@ -256,28 +258,28 @@
       "blurb": "Draw a schematic for a three stop & start P.B stations to control three motors to operate on an interlock circuit."
     },
     {
-      "id": "project-14",
-      "title": "Project 14",
+      "id": "project-14-third-motor-start-after-first-motor-reset-by-motor1",
+      "title": "Project 14 Third-motor-start-after-first-motor Reset-by-motor1",
+      "blurb": "Draw a schematic for two stop & start P.B stations to control two motors to operate in sequence with 3rd motor to start on a T.M. & stop on a T.D."
+    },
+    {
+      "id": "project-14-third-motor-start-after-first-motor",
+      "title": "Project 14 Third-motor-start-after-first-motor",
+      "blurb": "Draw a schematic for two stop & start P.B stations to control two motors to operate in sequence with 3rd motor to start on a T.M. & stop on a T.D."
+    },
+    {
+      "id": "project-14-third-motor-start-after-second-motor-reset-by-motor2",
+      "title": "Project 14 Third-motor-start-after-second-motor Reset-by-motor2",
+      "blurb": "Draw a schematic for two stop & start P.B stations to control two motors to operate in sequence with 3rd motor to start on a T.M. & stop on a T.D."
+    },
+    {
+      "id": "project-14-third-motor-start-after-second-motor",
+      "title": "Project 14 Third-motor-start-after-second-motor",
       "blurb": "Draw a schematic for two stop & start P.B stations to control two motors to operate in sequence with 3rd motor to start on a T.M. & stop on a T.D."
     },
     {
       "id": "blank-template",
-      "title": "Untitled Diagram",
-      "blurb": ""
-    },
-    {
-      "id": "rail-l",
-      "title": "L",
-      "blurb": ""
-    },
-    {
-      "id": "rail-n",
-      "title": "N",
-      "blurb": ""
-    },
-    {
-      "id": "simple-fuse-test",
-      "title": "01-basic-lamp",
+      "title": "Blank Template",
       "blurb": ""
     },
     {

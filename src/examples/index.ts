@@ -13,8 +13,6 @@ type ExampleImporter = () => Promise<unknown>;
 
 const exampleImports: Record<string, ExampleImporter> = {
   "none": () => Promise.resolve({ circuit: null }),
-  "L": () => import("./rail-l.json"),
-  "N": () => import("./rail-n.json"),
   "01-basic-lamp": () => import("./01-basic-lamp.json"),
   "02-start-stop-lamp": () => import("./02-start-stop-lamp.json"),
   "03-transformer-fuse": () => import("./03-transformer-fuse.json"),
@@ -57,12 +55,18 @@ const exampleImports: Record<string, ExampleImporter> = {
   "project-11-single-relay": () => import("./Project 11-Single-Relay.json"),
   "project-12": () => import("./Project 12.json"),
   "project-13": () => import("./Project 13.json"),
-  "project-14": () => import("./Project 14.json"),
-  "rail-l": () => import("./rail-l.json"),
-  "rail-n": () => import("./rail-n.json"),
-  "simple-fuse-test": () => import("./simple-fuse-test.json"),
+  "project-14-third-motor-start-after-first-motor": () => import("./Project 14 Third-motor-start-after-first-motor.json"),
+  "project-14-third-motor-start-after-first-motor-reset-by-motor1": () => import("./Project 14 Third-motor-start-after-first-motor Reset-by-motor1.json"),
+  "project-14-third-motor-start-after-second-motor": () => import("./Project 14 Third-motor-start-after-second-motor.json"),
+  "project-14-third-motor-start-after-second-motor-reset-by-motor2": () => import("./Project 14 Third-motor-start-after-second-motor Reset-by-motor2.json"),
   "three-phase-motor": () => import("./three-phase-motor.json"),
   "transformer": () => import("./transformer.json"),
+  "project-05": () => import("./Project 05-Off-Delay.json"),
+  "Project 05": () => import("./Project 05-Off-Delay.json"),
+  "Project 05-Off-Delay": () => import("./Project 05-Off-Delay.json"),
+  "Project 05-On-Delay": () => import("./Project 05-On-Delay.json"),
+  "Project 06": () => import("./Project 06.json"),
+  "Project 06-Single-Timer": () => import("./Project 06-Single-Timer.json"),
 };
 
 export async function loadExampleJson(id: string): Promise<ExampleDoc | null> {

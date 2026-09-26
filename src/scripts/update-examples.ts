@@ -36,11 +36,11 @@ function getExampleData(filePath: string, filename: string): ExampleMetadata | n
   try {
     const content = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     
-    let title = content.name || filename.replace('.json', '');
+    const title = content.name || filename.replace('.json', '');
     let blurb = '';
 
     if (content.circuit && content.circuit.devices) {
-      const tb = content.circuit.devices.find((d: any) => d.kind === 'title-block');
+      const tb = content.circuit.devices.find((d: { kind?: string; params?: { description?: string } }) => d.kind === 'title-block');
       if (tb && tb.params) {
         blurb = tb.params.description || '';
       }
@@ -72,10 +72,6 @@ async function main() {
   // 定義特殊不需要對應文件的 ID
   const SPECIAL_IDS: Record<string, { id: string, importPath: string }> = {
     'none': { id: 'none', importPath: '() => Promise.resolve({ circuit: null })' },
-    'L': { id: 'L', importPath: '() => import("./rail-l.json")' },
-    'N': { id: 'N', importPath: '() => import("./rail-n.json")' },
-    'rail-l': { id: 'rail-l', importPath: '() => import("./rail-l.json")' },
-    'rail-n': { id: 'rail-n', importPath: '() => import("./rail-n.json")' }
   };
 
   const filesOnDisk = fs.readdirSync(EXAMPLES_DIR).filter(f => f.endsWith('.json') && f !== 'list.json');
@@ -91,7 +87,7 @@ async function main() {
   if (fs.existsSync(LIST_JSON_PATH)) {
     try {
         listJson = JSON.parse(fs.readFileSync(LIST_JSON_PATH, 'utf-8'));
-    } catch (e) {
+    } catch (_e) {
         console.warn("⚠️ 無法讀取舊的 list.json，將建立新的。");
     }
   }
@@ -173,7 +169,7 @@ async function main() {
 
   // 4. 同步 index.ts
   console.log("🔄 同步 src/examples/index.ts...");
-  let indexContent = fs.readFileSync(INDEX_TS_PATH, 'utf-8');
+  const indexContent = fs.readFileSync(INDEX_TS_PATH, 'utf-8');
   const importPattern = /const exampleImports: Record<string, ExampleImporter> = \{([\s\S]*?)\};/;
   const match = indexContent.match(importPattern);
 
@@ -195,6 +191,15 @@ async function main() {
       }
     }
 
+    const SPECIAL_ALIASES: Record<string, string> = {
+      'project-05': '() => import("./Project 05-Off-Delay.json")',
+      'Project 05': '() => import("./Project 05-Off-Delay.json")',
+      'Project 05-Off-Delay': '() => import("./Project 05-Off-Delay.json")',
+      'Project 05-On-Delay': '() => import("./Project 05-On-Delay.json")',
+      'Project 06': '() => import("./Project 06.json")',
+      'Project 06-Single-Timer': '() => import("./Project 06-Single-Timer.json")',
+    };
+
     const newBodyLines: string[] = [];
     
     // A. Special entries that are NOT on disk but should be in index.ts
@@ -215,9 +220,9 @@ async function main() {
       }
     }
 
-    // C. Other manual overrides
-    for (const [key, val] of Object.entries(manualOverrides)) {
-       if (!newBodyLines.some(line => line.includes(`"${key}"`))) {
+    // C. Other manual overrides & aliases
+    for (const [key, val] of Object.entries({ ...SPECIAL_ALIASES, ...manualOverrides })) {
+       if (!newBodyLines.some(line => line.includes(`"${key}":`))) {
           newBodyLines.push(`  "${key}": ${val},`);
        }
     }

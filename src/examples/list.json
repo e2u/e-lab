@@ -1,6 +1,7 @@
 {
   "metadata": {
     "hashes": {
+      "01-basic-lamp.json": "3ce8985b64cd7eed89153d1757c52bdd",
       "02-start-stop-lamp.json": "af2b700cd8f3ddcfc67280df641d22fb",
       "03-transformer-fuse.json": "b6a6b3cb45b21534dd2749e92d4d7c04",
       "04-relay-self-holding.json": "6e29ce99612b19932ab4fd8c983cc754",
@@ -41,14 +42,16 @@
       "Project 11.json": "7dacee7bc3b05ecaf8946707643dec23",
       "Project 12.json": "9a46bb53b7bd61b4c5ccbf135e14a6bb",
       "Project 13.json": "d487ba9f5b62d78f5124d9bd6fa9b61d",
-      "blank-template.json": "0ac63e0e9e9e45ebe933b5f3106bdc96",
-      "three-phase-motor.json": "68d1e3d85108fd31578d252db9e02818",
-      "transformer.json": "b5badb7a91f6e020d47e4aa84a054a7e",
       "Project 14 Third-motor-start-after-first-motor Reset-by-motor1.json": "4fa5fac51df0e67b1474febc13eef6c2",
       "Project 14 Third-motor-start-after-first-motor.json": "bbdc3166188f3e8033d04e8457692c00",
       "Project 14 Third-motor-start-after-second-motor Reset-by-motor2.json": "250cc5329c82f9059bb32856581c227a",
       "Project 14 Third-motor-start-after-second-motor.json": "7125ba26240049f20eefdd734275fcdf",
-      "01-basic-lamp.json": "3ce8985b64cd7eed89153d1757c52bdd"
+      "Project 15.json": "fc7c047376499c9d2e60baf002b33e3e",
+      "blank-template.json": "0ac63e0e9e9e45ebe933b5f3106bdc96",
+      "three-phase-motor.json": "68d1e3d85108fd31578d252db9e02818",
+      "transformer.json": "b5badb7a91f6e020d47e4aa84a054a7e",
+      "Project 16.json": "9ad73af632f4275b0262784b9d439e96",
+      "Project 17.json": "83f7128f01b7338fd378d9fa2c5aa1c0"
     }
   },
   "examples": [
@@ -278,6 +281,11 @@
       "blurb": "Draw a schematic for two stop & start P.B stations to control two motors to operate in sequence with 3rd motor to start on a T.M. & stop on a T.D."
     },
     {
+      "id": "project-15",
+      "title": "Project 15",
+      "blurb": "Draw a schematic for a jog circuit, with a stop & start, Jog P.B. station"
+    },
+    {
       "id": "blank-template",
       "title": "Blank Template",
       "blurb": ""
@@ -291,6 +299,16 @@
       "id": "transformer",
       "title": "transformer",
       "blurb": ""
+    },
+    {
+      "id": "project-16",
+      "title": "Project 16",
+      "blurb": "Draw a schematic for a jog circuit, with stop & start P.B. station and a selector switch."
+    },
+    {
+      "id": "project-17",
+      "title": "Project 17",
+      "blurb": "Draw a schematic for a jog circuit, with stop & start P.B. station and a selector switch to control motor 1, or motor 2 or both 1 and 2."
     }
   ]
 }

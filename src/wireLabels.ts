@@ -650,23 +650,6 @@ export function applyWireLabels(circuit: Circuit, options?: ApplyWireLabelsOptio
             }
           }
         }
-      } else if (dev.kind === "ground") {
-        // PE/Ground is reserved as 0
-        for (const sym of next.symbols) {
-          if (sym.deviceId === dev.id) {
-            const v = variantDef(dev.kind, sym.variant);
-            // Find ground terminal (usually "1" or "PE")
-            const gndTerm = v.terminals.find(t => t.id === "1" || t.id === "PE");
-            if (gndTerm) {
-              for (const w of wires) {
-                if ((w.a.symbolId === sym.id && w.a.term === gndTerm.id) ||
-                    (w.b.symbolId === sym.id && w.b.term === gndTerm.id)) {
-                  reservedLabels.set(w.id, "0");
-                }
-              }
-            }
-          }
-        }
       } else if (dev.kind === "transformer") {
         // Transformer output: X1 is control circuit hot (reserved 1), X2 is return/ground (reserved 2)
         // Note: H1/H2/H3/H4 are high-voltage input and should NOT be reserved

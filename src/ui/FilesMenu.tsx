@@ -9,13 +9,13 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
   const tick = useLab((s) => s.savesTick);
   const docName = useLab((s) => s.docName);
   const inputRef = useRef<HTMLInputElement>(null);
-  const menuRef = useRef<HTMLDetailsElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   void tick;
   const saves = listSaves();
 
   const updatePosition = () => {
-    if (!menuRef.current) return;
-    const rect = menuRef.current.getBoundingClientRect();
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
     setPopStyle({
       position: "fixed",
       top: `${rect.bottom + 6}px`,
@@ -30,7 +30,7 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
     updatePosition();
 
     const handlePointerDown = (e: MouseEvent | PointerEvent | TouchEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -42,7 +42,7 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
     };
 
     const handleScroll = (e: Event) => {
-      if (menuRef.current && menuRef.current.contains(e.target as Node)) {
+      if (buttonRef.current && buttonRef.current.contains(e.target as Node)) {
         return;
       }
       updatePosition();
@@ -71,17 +71,16 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
   };
 
   return (
-    <details ref={menuRef} className="menu files-menu" open={isOpen}>
-      <summary
+    <div className="menu-wrapper">
+      <button
+        ref={buttonRef}
         className="btn"
-        onMouseDown={(e) => {
-          // Use mousedown instead of click to avoid interference from global click handlers
-          e.preventDefault();
-          setIsOpen((prev) => !prev);
-        }}
+        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        aria-expanded={isOpen}
       >
         {t("files.menuLabel") || "File"}
-      </summary>
+      </button>
       <div className="menu-pop" style={popStyle}>
         <label className="menu-name">
           {t("files.docName")}
@@ -155,6 +154,6 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
           </>
         )}
       </div>
-    </details>
+    </div>
   );
 }

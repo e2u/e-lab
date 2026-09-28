@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { t, tOr } from "../i18n";
 import { listSaves } from "../persist";
 import { useLab } from "../store";
-import { ENABLE_AUTO_LAYOUT } from "../features";
 
 interface ExampleItem {
   id: string;
@@ -28,9 +27,6 @@ export function MobileMenuModal({
 }: MobileMenuModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docName = useLab((s) => s.docName);
-  const mode = useLab((s) => s.mode);
-  const editSubMode = useLab((s) => s.editSubMode);
-  const layoutMode = useLab((s) => s.layoutMode);
   const lang = useLab((s) => s.lang);
   const theme = useLab((s) => s.theme);
   const zoom = useLab((s) => s.zoom);
@@ -255,70 +251,9 @@ export function MobileMenuModal({
             </div>
           </section>
 
-          {/* Section 3: Preferences & Zoom */}
+          {/* Section 3: Preferences & View */}
           <section className="mobile-menu-section">
             <div className="mobile-menu-section-title">{t("mobileMenu.preferences") || "Preferences & View"}</div>
-
-            <div className="mobile-pref-row">
-              <span className="mobile-pref-label">{t("toolbar.layoutMode")}</span>
-              <div className="mobile-segmented-control">
-                <button
-                  type="button"
-                  className={`mobile-segment-btn ${layoutMode === "schematic" ? "active" : ""}`}
-                  onClick={() => {
-                    useLab.getState().setLayoutMode("schematic");
-                    onClose();
-                  }}
-                >
-                  📐 {t("toolbar.schematic")}
-                </button>
-                <button
-                  type="button"
-                  className={`mobile-segment-btn ${layoutMode === "ladder" ? "active" : ""}`}
-                  onClick={() => {
-                    useLab.getState().setLayoutMode("ladder");
-                    onClose();
-                  }}
-                >
-                  🪜 {t("toolbar.ladder")}
-                </button>
-              </div>
-            </div>
-
-            {/* Sub-mode Switch & Auto Layout */}
-            {mode === "edit" && layoutMode !== "ladder" && (
-              <div className="mobile-pref-row">
-                <span className="mobile-pref-label">{t("toolbar.edit")}</span>
-                <div className="mobile-segmented-control">
-                  <button
-                    type="button"
-                    className={`mobile-segment-btn ${editSubMode === "editing" ? "active" : ""}`}
-                    onClick={() => useLab.getState().setEditSubMode("editing")}
-                  >
-                    ✋ {t("toolbar.editing")}
-                  </button>
-                  <button
-                    type="button"
-                    className={`mobile-segment-btn ${editSubMode === "wiring" ? "active" : ""}`}
-                    onClick={() => useLab.getState().setEditSubMode("wiring")}
-                  >
-                    🔌 {t("toolbar.wiring")}
-                  </button>
-                  {ENABLE_AUTO_LAYOUT && (
-                    <button
-                      type="button"
-                      className="mobile-segment-btn"
-                      onClick={() => {
-                        useLab.getState().autoLayout();
-                        onClose();
-                      }}
-                    >
-                      🪄 {t("toolbar.autoLayout") || "排版"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Language Switch */}
             <div className="mobile-pref-row">

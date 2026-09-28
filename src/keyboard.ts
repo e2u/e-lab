@@ -375,14 +375,7 @@ function initCoreCommands() {
     },
   });
 
-  registry.register({
-    id: "mode.toggleLayout",
-    category: "mode",
-    shortcuts: ["KeyL", "l"],
-    run: ({ state }) => {
-      state.toggleLayoutMode();
-    },
-  });
+
 
   registry.register({
     id: "sim.toggleRun",

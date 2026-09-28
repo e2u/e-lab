@@ -72,7 +72,8 @@ export function OptionsMenu() {
     <details ref={menuRef} className="menu options-menu" open={isOpen}>
       <summary
         className="btn-icon btn-options-menu"
-        onClick={(e) => {
+        onMouseDown={(e) => {
+          // Use mousedown instead of click to avoid interference from global click handlers
           e.preventDefault();
           setIsOpen((prev) => !prev);
         }}

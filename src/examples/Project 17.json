@@ -192,6 +192,18 @@
         "kind": "junction",
         "tag": "",
         "params": {}
+      },
+      {
+        "id": "d_2jl_16260161",
+        "kind": "ground",
+        "tag": "GND2",
+        "params": {}
+      },
+      {
+        "id": "d_2jn_4e106bed",
+        "kind": "ground",
+        "tag": "GND3",
+        "params": {}
       }
     ],
     "symbols": [
@@ -380,8 +392,8 @@
         "id": "s_2a2_a6641d46",
         "deviceId": "d_29c_1cd77664",
         "variant": "body",
-        "x": 11,
-        "y": 14,
+        "x": 8,
+        "y": 16,
         "rot": 0,
         "flipX": false,
         "flipY": false
@@ -601,6 +613,28 @@
         "x": 53,
         "y": 21,
         "rot": 0
+      },
+      {
+        "id": "s_2jm_9db787ad",
+        "deviceId": "d_2jl_16260161",
+        "variant": "body",
+        "x": 49,
+        "y": 45,
+        "rot": 0,
+        "flipX": false,
+        "flipY": false,
+        "hideTag": true
+      },
+      {
+        "id": "s_2jo_c12be8b2",
+        "deviceId": "d_2jn_4e106bed",
+        "variant": "body",
+        "x": 56,
+        "y": 45,
+        "rot": 0,
+        "flipX": false,
+        "flipY": false,
+        "hideTag": true
       }
     ],
     "wires": [
@@ -1248,6 +1282,28 @@
           "axis": "x",
           "pos": 836,
           "x": 836
+        }
+      },
+      {
+        "id": "w_2jp_ca8c3542",
+        "a": {
+          "symbolId": "s_2jo_c12be8b2",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_2bq_357679c1",
+          "term": "PE"
+        }
+      },
+      {
+        "id": "w_2jq_dc689524",
+        "a": {
+          "symbolId": "s_2jm_9db787ad",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_29k_d6700959",
+          "term": "PE"
         }
       }
     ],

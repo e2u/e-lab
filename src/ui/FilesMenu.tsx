@@ -87,6 +87,7 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
       >
         {t("files.menuLabel") || "File"}
       </button>
+      {isOpen && (
       <div
         ref={menuContentRef}
         className="menu-pop"
@@ -129,24 +130,6 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
         <button className="btn ok" onClick={() => handleAction(() => void useLab.getState().copyShareLink())}>
           {t("files.copyShareLink")}
         </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="application/json,.json"
-          hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            if (!file) return;
-            void file.text().then((text) => {
-              try {
-                useLab.getState().importDoc(JSON.parse(text));
-              } catch {
-                useLab.getState().setNotice(t("files.unableToRead"));
-              }
-            });
-          }}
-        />
         {saves.length > 0 && (
           <>
             <div className="menu-label">{t("files.localLibrary")}</div>
@@ -164,6 +147,25 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
           </>
         )}
       </div>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/json,.json"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file) return;
+          void file.text().then((text) => {
+            try {
+              useLab.getState().importDoc(JSON.parse(text));
+            } catch {
+              useLab.getState().setNotice(t("files.unableToRead"));
+            }
+          });
+        }}
+      />
     </div>
   );
 }

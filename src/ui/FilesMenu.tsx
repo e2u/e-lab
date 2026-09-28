@@ -10,6 +10,7 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
   const docName = useLab((s) => s.docName);
   const inputRef = useRef<HTMLInputElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuContentRef = useRef<HTMLDivElement>(null);
   void tick;
   const saves = listSaves();
 
@@ -30,9 +31,14 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
     updatePosition();
 
     const handlePointerDown = (e: MouseEvent | PointerEvent | TouchEvent) => {
-      if (buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+      // Don't close if clicking the button or menu content
+      if (
+        buttonRef.current?.contains(e.target as Node) ||
+        (menuContentRef.current && menuContentRef.current.contains(e.target as Node))
+      ) {
+        return;
       }
+      setIsOpen(false);
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -81,7 +87,11 @@ export function FilesMenu({ onNewDiagram }: { onNewDiagram?: () => void } = {}) 
       >
         {t("files.menuLabel") || "File"}
       </button>
-      <div className="menu-pop" style={popStyle}>
+      <div
+        ref={menuContentRef}
+        className="menu-pop"
+        style={popStyle}
+      >
         <label className="menu-name">
           {t("files.docName")}
           <input

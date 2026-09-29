@@ -348,6 +348,14 @@ export function Inspector() {
             />
             {t("inspector.showWireLabels")}
           </label>
+          <label className="print-checkbox-row">
+            <input
+              type="checkbox"
+              checked={circuit.symbols.some((s) => !s.hideTerminals)}
+              onChange={(e) => useLab.getState().setAllHideTerminals(!e.target.checked)}
+            />
+            {t("inspector.showAllTerminals")}
+          </label>
         </div>
         <div className="tools-section">
           <h4 className="tools-title">{t("inspector.tools")}</h4>
@@ -718,7 +726,7 @@ export function Inspector() {
                 key={`comment-width-${dev.id}`}
                 type="number"
                 min="3"
-                max="30"
+                max="80"
                 value={dev.params.width ?? 6}
                 onChange={(e) => {
                   const wVal = parseInt(e.target.value, 10);
@@ -734,7 +742,7 @@ export function Inspector() {
                 key={`comment-height-${dev.id}`}
                 type="number"
                 min="2"
-                max="20"
+                max="60"
                 value={dev.params.height ?? 3}
                 onChange={(e) => {
                   const hVal = parseInt(e.target.value, 10);
@@ -807,8 +815,10 @@ export function Inspector() {
           </div>
           <label>
             <span>{t("inspector.description")}</span>
-            <input
+            <textarea
               key={`tb-desc-${dev.id}`}
+              rows={4}
+              style={{ width: "100%", resize: "vertical", fontFamily: "inherit" }}
               value={dev.params.description ?? ""}
               placeholder={t("inspector.tbDescription")}
               onChange={(e) => useLab.getState().updateDevice(dev.id, { params: { ...dev.params, description: e.target.value } })}

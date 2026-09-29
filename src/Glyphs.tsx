@@ -2,6 +2,8 @@ import {createContext, useContext, type SVGProps} from "react";
 import type {Device, DeviceRuntime} from "./types";
 import {GRID} from "./types";
 import {resolvedVariant} from "./catalog.ts";
+import {commentFitHeight, titleBlockDescLines, TB_PER_CHAR, TB_W, wrapCommentText} from "./commentText";
+export {wrapCommentText} from "./commentText";
 import {netLabelFill, PHASE_COLOR} from "./sim/engine";
 
 const ink = "#1b1a16";
@@ -1910,8 +1912,9 @@ function GlyphBody({
         const designedBy = (p.designedBy ?? "").toUpperCase();
         const date = (p.date ?? "").toUpperCase();
 
-        // Design space: FIXED 26-cell width; total height GROWS with the wrapped DESCRIPTION lines.
-        const W = 26 * GRID;
+        // Design space: FIXED catalog width; total height GROWS with the wrapped DESCRIPTION lines.
+        const W = TB_W * GRID;
+        const colK = TB_W / 26;   // column positions were designed for a 26-cell stamp
         const padL = 0.4 * GRID;
         const MONO = "'Red Hat Mono', monospace, sans-serif";
 
@@ -1930,22 +1933,8 @@ function GlyphBody({
         const baseDescLead = 0.72 * GRID;                      // line leading at base font
         const descBotPad = 0.24 * GRID;                        // last line -> bottom rule
 
-        const availW = W - 2 * padL;
-        const perChar = Math.max(1, Math.floor(availW / (CHAR_W * DESC_FONT_BASE)));
-        const wrapDesc = (text: string): string[] => {
-            if (!text) return [""];
-            const ws = text.split(/\s+/);
-            const out: string[] = [];
-            let cur = "";
-            for (const wd of ws) {
-                if (!cur) { cur = wd; continue; }
-                if ((cur + " " + wd).length <= perChar) cur += " " + wd;
-                else { out.push(cur); cur = wd; }
-            }
-            if (cur) out.push(cur);
-            return out.length ? out : [""];
-        };
-        const descLines = wrapDesc(description);
+        void CHAR_W;
+        const descLines = titleBlockDescLines(description, TB_PER_CHAR);
         const nLines = descLines.length;
         const r2h = descCap + descTopPad + nLines * baseDescLead + descBotPad; // GROWS with nLines
         const H = r1h + r2h + r1h;                                              // dynamic total height
@@ -1962,13 +1951,13 @@ function GlyphBody({
         const descFont = DESC_FONT_BASE;      // constant — length is absorbed by wrapping
         const descLead = baseDescLead;
 
-        const cA = 13 * GRID;     // column A/B divider (Name | No)
-        const cB = 19.5 * GRID;   // column B/C divider (No | Rev)
-        const cC = 22 * GRID;     // column C/D divider (Rev | Sheet)
-        const cD = 14 * GRID;     // Designed By / Date divider in row 3
+        const cA = 13 * colK * GRID;     // column A/B divider (Name | No)
+        const cB = 19.5 * colK * GRID;   // column B/C divider (No | Rev)
+        const cC = 22 * colK * GRID;     // column C/D divider (Rev | Sheet)
+        const cD = 14 * colK * GRID;     // Designed By / Date divider in row 3
 
         return (
-            <S w={w} h={h} baseW={26} baseH={H / GRID}>
+            <S w={w} h={h} baseW={TB_W} baseH={H / GRID}>
                 <g>
                     {/* Background & outer border */}
                     <rect x={0} y={0} width={W} height={H} fill="#ffffff" stroke={ink} strokeWidth="1.6" />
@@ -2021,23 +2010,11 @@ function GlyphBody({
         const fontSize = device.params.fontSize || 12;
         const isTrans = bgColor === "transparent";
         const customW = (device.params.width ?? w) * GRID;
-        const customH = (device.params.height ?? h) * GRID;
+        // Grow height (never width) so all wrapped text fits.
+        const customH = commentFitHeight(text, device.params.width ?? w, fontSize, device.params.height ?? h) * GRID;
         
-        // Split text into lines
-        const rawLines = text ? text.split("\n") : ["(Note)"];
-        const lines: string[] = [];
-        for (const line of rawLines) {
-            if (line.length > 28) {
-                let cur = line;
-                while (cur.length > 28) {
-                    lines.push(cur.slice(0, 28));
-                    cur = cur.slice(28);
-                }
-                if (cur) lines.push(cur);
-            } else {
-                lines.push(line);
-            }
-        }
+        // Wrap text to the box width
+        const lines = wrapCommentText(text || "(Note)", Math.max(customW - 16, fontSize), fontSize);
 
         const borderColor = isTrans
             ? "#9ca3af"

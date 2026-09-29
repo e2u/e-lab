@@ -284,6 +284,7 @@ export interface LabState {
   addCommentForSymbol: (symbolId: string) => void;
   addCommentForGroup: (groupId: string) => void;
   scaleSymbol: (symbolId: string, scale: number, x?: number, y?: number) => void;
+  resizeComment: (symbolId: string, width: number, height: number, x: number, y: number) => void;
   moveSymbol: (id: string, x: number, y: number) => void;
   moveGroup: (
     updates: { id: string; x: number; y: number }[],
@@ -351,6 +352,7 @@ export interface LabState {
   setSymbolTagOffset: (id: string, offset?: { dx: number; dy: number } | null) => void;
   setSymbolHideTag: (id: string, hide: boolean) => void;
   setSymbolHideTerminals: (id: string, hide: boolean) => void;
+  setAllHideTerminals: (hide: boolean) => void;
   resetSymbolTagOffset: (id: string) => void;
   setWireLabelOffset: (id: string, offset?: { dx: number; dy: number } | null) => void;
   resetWireLabelOffset: (id: string) => void;
@@ -1460,6 +1462,17 @@ export const useLab = create<LabState>((set, get) => ({
     set({ circuit: next, isDirty: true });
   },
 
+  resizeComment: (symbolId, width, height, x, y) => {
+    const next = clone(get().circuit);
+    const sym = next.symbols.find((s) => s.id === symbolId);
+    const dev = sym && next.devices.find((d) => d.id === sym.deviceId);
+    if (!sym || !dev || dev.kind !== "comment") return;
+    sym.x = Math.round(x);
+    sym.y = Math.round(y);
+    dev.params = { ...dev.params, width: Math.round(width), height: Math.round(height), scale: 1 };
+    set({ circuit: next, isDirty: true });
+  },
+
   moveSymbol: (id, x, y) => {
     const next = clone(get().circuit);
     const sym = next.symbols.find((s) => s.id === id);
@@ -2192,6 +2205,18 @@ export const useLab = create<LabState>((set, get) => ({
     if (!sym) return;
     if (hide) sym.hideTerminals = true;
     else delete sym.hideTerminals;
+    set({ circuit: next, isDirty: true });
+    get().persistDraft();
+  },
+  setAllHideTerminals: (hide) => {
+    const circuit = get().circuit;
+    if (circuit.symbols.every((s) => Boolean(s.hideTerminals) === hide)) return;
+    get().pushHistory();
+    const next = clone(circuit);
+    for (const sym of next.symbols) {
+      if (hide) sym.hideTerminals = true;
+      else delete sym.hideTerminals;
+    }
     set({ circuit: next, isDirty: true });
     get().persistDraft();
   },

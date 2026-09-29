@@ -1,3 +1,4 @@
+import { commentFitHeight, titleBlockFitHeight } from "./commentText";
 import { busbarDef, isNamedNetKind, netTerminalDef, termBlockDef, NET_TERMINAL_DEFAULT_PINS } from "./namedNets";
 import type {
   CatalogGroup,
@@ -1237,7 +1238,7 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
     label: "圖紙標題欄",
     variants: {
       body: {
-        w: 35,
+        w: 28,
         h: 5,
         terminals: [],
       },
@@ -1543,6 +1544,15 @@ export function resolvedVariant(
 ): VariantDef {
   if (kind === "net-terminal" || kind === "term-block") return kind === "term-block" ? termBlockDef(params?.pinCount) : netTerminalDef(params?.pinCount);
   if (kind === "busbar") return busbarDef(params?.pinCount);
+  if (kind === "title-block") {
+    const v = variantDef(kind, variant);
+    return { ...v, h: titleBlockFitHeight(params?.description ?? "", v.h) };
+  }
+  if (kind === "comment") {
+    const v = variantDef(kind, variant);
+    const w = params?.width ?? v.w;
+    return { ...v, w, h: commentFitHeight(params?.text ?? "", w, params?.fontSize || 12, params?.height ?? v.h) };
+  }
   return variantDef(kind, variant);
 }
 

@@ -28,12 +28,12 @@ function tbSvg(description: string) {
 }
 
 describe("title-block rendered markup (SSR)", () => {
-  it("is exactly 26 grid cells wide", () => {
+  it("is exactly 28 grid cells wide", () => {
     const s = tbSvg("MAIN CONTROL SCHEMATIC");
     // svg element pixel size derives from the catalog footprint (w * GRID)
-    expect(s).toMatch(/width="572"/); // 26 cells * GRID(22px)
-    // viewBox spans the full 26-cell design space horizontally
-    expect(s).toMatch(/viewBox="0 0 572 \d+(\.\d+)?"/);
+    expect(s).toMatch(/width="616"/); // 28 cells * GRID(22px)
+    // viewBox spans the full 28-cell design space horizontally
+    expect(s).toMatch(/viewBox="0 0 616 \d+(\.\d+)?"/);
   });
 
   it("lays out all fields across three rows with Sheet in row 1", () => {
@@ -57,9 +57,9 @@ describe("title-block rendered markup (SSR)", () => {
     const vbW = (m: string) => parseFloat((m.match(/viewBox="0 0 (\d+)/) || [])[1] ?? "");
     const vbH = (m: string) => parseFloat((m.match(/viewBox="0 0 \d+ (\d+(?:\.\d+)?)"/) || [])[1] ?? "");
     const tc = (m: string) => (m.match(/<text\b/g) || []).length;
-    // width stays fixed at 26 cells regardless of description length
+    // width stays fixed at 28 cells regardless of description length
     expect(vbW(long)).toBe(vbW(short));
-    expect(vbW(short)).toBe(572); // 26 cells * GRID(22px)
+    expect(vbW(short)).toBe(616); // 28 cells * GRID(22px)
     // longer description wraps to more lines -> taller viewBox
     expect(vbH(long)).toBeGreaterThan(vbH(short));
     // each wrapped line adds its own <text> node

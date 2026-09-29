@@ -4,7 +4,7 @@ import { contentRows, hitTestRailCell, layoutLogicRails, railEnds, type RailCell
 import { railTermId } from "../../rails/railBus";
 import { normalizeRect, symbolsInRect } from "../../groups";
 import { useLab } from "../../store";
-import { variantDef } from "../../catalog";
+import { resolvedVariant, variantDef } from "../../catalog";
 import { GRID, type Circuit, type Device, type Mode, type PortRef, type SymbolInst, type Wire, type WireJog } from "../../types";
 import type { MenuPos } from "../ContextMenu";
 import { interact, triggerHaptic } from "./interact";
@@ -89,6 +89,7 @@ export function useSchematicEvents({
     anchorWorldY: number;
     rot: number;
     pushedHistory?: boolean;
+    freeResize?: boolean;
   } | null>(null);
   const wireDrag = useRef<{
     id: string;
@@ -538,8 +539,9 @@ export function useSchematicEvents({
       const k = Math.max(1, Math.min(20 * g, Math.round(sRaw * g)));
       const s = k / g;
 
-      const newW = rd.baseW * s;
-      const newH = rd.baseH * s;
+      // Comment boxes resize freely (width/height independently); text re-wraps to the new width.
+      const newW = rd.freeResize ? Math.max(3, Math.min(80, Math.round(targetW))) : rd.baseW * s;
+      const newH = rd.freeResize ? Math.max(2, Math.min(60, Math.round(targetH))) : rd.baseH * s;
 
       // Recompute symbol top-left (sym.x, sym.y) so that anchorWorld remains fixed
       let newX = rd.anchorWorldX;
@@ -603,7 +605,8 @@ export function useSchematicEvents({
         }
       }
 
-      useLab.getState().scaleSymbol(rd.symbolId, s, newX, newY);
+      if (rd.freeResize) useLab.getState().resizeComment(rd.symbolId, newW, newH, newX, newY);
+      else useLab.getState().scaleSymbol(rd.symbolId, s, newX, newY);
       return;
     }
     if (marqueeRef.current) {
@@ -1268,8 +1271,9 @@ export function useSchematicEvents({
     wireDrag.current = null;
     tagDrag.current = null;
 
-    const v = variantDef(dev.kind, sym.variant);
-    const initialScale = dev.params?.scale ?? 1;
+    const freeResize = dev.kind === "comment";
+    const v = freeResize ? resolvedVariant(dev.kind, sym.variant, dev.params) : variantDef(dev.kind, sym.variant);
+    const initialScale = freeResize ? 1 : (dev.params?.scale ?? 1);
     const baseW = v.w;
     const baseH = v.h;
     const w0 = baseW * initialScale;
@@ -1355,6 +1359,7 @@ export function useSchematicEvents({
       anchorWorldY,
       rot: sym.rot,
       pushedHistory: false,
+      freeResize,
     };
 
     try {

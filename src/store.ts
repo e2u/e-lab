@@ -7,7 +7,7 @@ import { loadExampleJson } from "./examples/index";
 // templateData is no longer used after changing blank template to empty circuit (see createBlankTemplateCircuit)
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols, unionBounds } from "./groups";
 import { EXAMPLES } from "./examples";
-import { alignRailWireEnds, allWireRoutes, detachUnsplicedHotRailWires, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, hotRailSplices, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { alignRailWireEnds, allWireRoutes, avoidWireOverlap, detachUnsplicedHotRailWires, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, hotRailSplices, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   docFromHash,
@@ -1594,7 +1594,7 @@ export const useLab = create<LabState>((set, get) => ({
       };
       if (newJogX !== undefined) jogObj.x = newJogX;
       if (newJogY !== undefined) jogObj.y = newJogY;
-      w.jog = jogObj;
+      w.jog = avoidWireOverlap(next, w.id, w.a, w.b, jogObj);
     }
     set({ circuit: next, isDirty: true });
   },
@@ -1616,11 +1616,14 @@ export const useLab = create<LabState>((set, get) => ({
     }
     get().pushHistory();
     const next = clone(get().circuit);
-    next.wires.push({
+    const newWire: Wire = {
       id: uid("w"),
       a: from,
       b: port,
-    });
+    };
+    next.wires.push(newWire);
+    const avoidJog = avoidWireOverlap(next, newWire.id, from, port, undefined);
+    if (avoidJog) newWire.jog = avoidJog;
     set({ circuit: next, wiringFrom: null, isDirty: true });
   },
 

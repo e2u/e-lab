@@ -874,16 +874,13 @@ describe("connectOverlappingTerminals", () => {
     const pinned = useLab.getState().circuit.wires[0];
     expect(pinned.b).toMatchObject({ term: "y2", railPin: "y0" });
     const parked = wireRoute(useLab.getState().circuit, pinned.a, pinned.b);
-    expect(parked.at(-1)).toEqual({ x: 4 * GRID, y: 2 * GRID });
-    expect(parked.at(-2)?.y).toBe(2 * GRID);
-    expect(parked.length).toBeGreaterThan(2);
+    expect(parked).toHaveLength(2);
+    expect(parked[1].x).toBe(4 * GRID);
+    expect(parked[0].y).toBe(parked[1].y);
     useLab.getState().moveRail("rail-l", 6, 5, 19);
     const followed = useLab.getState().circuit.wires[0];
     expect(followed.b).toMatchObject({ term: "y5", railPin: "y0" });
-    expect(wireRoute(useLab.getState().circuit, followed.a, followed.b).at(-1)).toEqual({
-      x: 6 * GRID,
-      y: 5 * GRID,
-    });
+    expect(wireRoute(useLab.getState().circuit, followed.a, followed.b).at(-1)?.x).toBe(6 * GRID);
   });
 
   it("slides a rail tap so the wire stays one straight line", () => {

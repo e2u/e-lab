@@ -390,6 +390,15 @@ function stubLen(circuit: Circuit, ref: PortRef): number {
   return STUB;
 }
 
+function railSpanPx(circuit: Circuit, port: PortRef): { lo: number; hi: number } | null {
+  const sym = circuit.symbols.find((s) => s.id === port.symbolId);
+  const dev = sym && circuit.devices.find((d) => d.id === sym.deviceId);
+  const y0 = dev?.params.railY0;
+  const y1 = dev?.params.railY1;
+  if (typeof y0 !== "number" || typeof y1 !== "number") return null;
+  return { lo: Math.round(Math.min(y0, y1)) * GRID, hi: Math.round(Math.max(y0, y1)) * GRID };
+}
+
 function isRailEndPin(port: PortRef): boolean {
   return port.railPin === "y0" || port.railPin === "y1";
 }
@@ -450,13 +459,24 @@ export function wireRoute(
     const b = terminalWorld(circuit, to);
     if (!b) return pts;
     const isSelf = from.symbolId === to.symbolId;
-    if (!isSelf && !jog && (Math.abs(a.x - b.x) < 0.5 || Math.abs(a.y - b.y) < 0.5)) {
-      return [a, b];
-    }
     const fromKind = portKind(circuit, from);
     const toKind = portKind(circuit, to);
     const fromRail = fromKind !== null && isRailKind(fromKind);
     const toRail = toKind !== null && isRailKind(toKind);
+    // Wires tied to the control hot / neutral rail are always a straight run.
+    if (!isSelf && fromRail !== toRail) {
+      // Stay attached: past the rail's end, run along the rail column to the nearest end.
+      const dev = toRail ? a : b;
+      const span = railSpanPx(circuit, toRail ? to : from);
+      const tapY = span ? Math.min(span.hi, Math.max(span.lo, dev.y)) : dev.y;
+      const corner = { x: toRail ? b.x : a.x, y: dev.y };
+      const tap = { x: corner.x, y: tapY };
+      const run = Math.abs(tapY - dev.y) < 0.5 ? [dev, corner] : [dev, corner, tap];
+      return toRail ? cleanPolyline(run) : cleanPolyline(run.reverse());
+    }
+    if (!isSelf && !jog && (Math.abs(a.x - b.x) < 0.5 || Math.abs(a.y - b.y) < 0.5)) {
+      return [a, b];
+    }
     const pinned = (toRail && isRailEndPin(to)) || (fromRail && isRailEndPin(from));
     if (!isSelf && !jog && fromRail !== toRail && !pinned) {
       return toRail ? [a, { x: b.x, y: a.y }] : [{ x: a.x, y: b.y }, b];
@@ -613,8 +633,22 @@ function clusterOccs(occs: Occ[], threshold = 8): Occ[][] {
   return clusters;
 }
 
-function colorLanes(comp: Occ[]): Map<string, number> {
-  const sorted = [...comp].sort((a, b) => a.score - b.score || a.lo - b.lo || a.id.localeCompare(b.id));
+function colorLanes(comp: Occ[], netOf?: (id: string) => string): Map<string, number> {
+  // Segments of the same electrical net may share a lane: they are the same conductor.
+  const units: { members: Occ[]; lo: number; hi: number; score: number; id: string }[] = [];
+  for (const o of comp) {
+    const net = netOf ? netOf(o.id) : o.id;
+    const u = netOf ? units.find((x) => netOf(x.id) === net && overlapSpan(x.lo, x.hi, o.lo, o.hi) >= -0.5) : undefined;
+    if (u) {
+      u.members.push(o);
+      u.lo = Math.min(u.lo, o.lo);
+      u.hi = Math.max(u.hi, o.hi);
+      u.score = Math.min(u.score, o.score);
+    } else {
+      units.push({ members: [o], lo: o.lo, hi: o.hi, score: o.score, id: o.id });
+    }
+  }
+  const sorted = [...units].sort((a, b) => a.score - b.score || a.lo - b.lo || a.id.localeCompare(b.id));
   const laneEnds: number[] = [];
   const lanes = new Map<string, number>();
   for (const o of sorted) {
@@ -625,9 +659,99 @@ function colorLanes(comp: Occ[]): Map<string, number> {
     } else {
       laneEnds[lane] = Math.max(laneEnds[lane], o.hi);
     }
-    lanes.set(`${o.id}:${o.i}`, lane);
+    for (const m of o.members) lanes.set(`${m.id}:${m.i}`, lane);
   }
   return lanes;
+}
+
+function wireNetResolver(circuit: Circuit): (id: string) => string {
+  const parent = new Map<string, string>();
+  const find = (k: string): string => {
+    let r = k;
+    while (parent.has(r) && parent.get(r) !== r) r = parent.get(r)!;
+    parent.set(k, r);
+    return r;
+  };
+  const node = (p: PortRef) => (portKind(circuit, p) === "junction" ? `j:${p.symbolId}` : `p:${p.symbolId}:${p.term}`);
+  for (const w of circuit.wires) {
+    if (w.broken) continue;
+    const a = find(node(w.a));
+    const b = find(node(w.b));
+    if (a !== b) parent.set(a, b);
+  }
+  const byWire = new Map<string, string>();
+  for (const w of circuit.wires) byWire.set(w.id, w.broken ? `w:${w.id}` : find(node(w.a)));
+  return (id) => byWire.get(id) ?? id;
+}
+
+/**
+ * Apply lane shifts by sliding the corners of the shifted segment along their
+ * neighbouring perpendicular segments, so no extra bumps are introduced.
+ * Falls back to per-segment bumps when a neighbour would collapse or reverse.
+ */
+function applyLaneShifts(pts: Pt[], shiftOf: (i: number) => number): Pt[] {
+  const n = pts.length;
+  const segs = n - 1;
+  const d: number[] = [];
+  let any = false;
+  for (let i = 0; i < segs; i += 1) {
+    d.push(shiftOf(i));
+    if (Math.abs(d[i]) >= 0.5) any = true;
+  }
+  if (!any) return pts;
+  const moved = pts.map((p) => ({ x: p.x, y: p.y }));
+  for (let i = 0; i < segs; i += 1) {
+    if (Math.abs(d[i]) < 0.5) continue;
+    const axis = segmentAxis(pts[i], pts[i + 1]);
+    for (const k of [i, i + 1]) {
+      if (k === 0 || k === n - 1) continue;
+      if (axis === "x") moved[k].x = pts[k].x + d[i];
+      else moved[k].y = pts[k].y + d[i];
+    }
+  }
+  let ok = true;
+  for (let i = 0; i < segs && ok; i += 1) {
+    const ox = pts[i + 1].x - pts[i].x;
+    const oy = pts[i + 1].y - pts[i].y;
+    const shiftedEnd = (i === 0 && Math.abs(d[0]) >= 0.5) || (i === segs - 1 && Math.abs(d[segs - 1]) >= 0.5);
+    if (shiftedEnd) continue;
+    const nx = moved[i + 1].x - moved[i].x;
+    const ny = moved[i + 1].y - moved[i].y;
+    const ol = ox + oy;
+    const nl = nx + ny;
+    if (Math.abs(nx) > 0.5 && Math.abs(ny) > 0.5) ok = false;
+    else if (Math.abs(ol) >= 0.5 && (Math.sign(ol) !== Math.sign(nl) || Math.abs(nl) < 3)) ok = false;
+  }
+  if (!ok) {
+    const rebuilt: Pt[] = [{ x: pts[0].x, y: pts[0].y }];
+    for (let i = 0; i < segs; i += 1) {
+      const A = pts[i];
+      const B = pts[i + 1];
+      if (Math.abs(d[i]) < 0.5) {
+        rebuilt.push({ x: B.x, y: B.y });
+        continue;
+      }
+      const axis = segmentAxis(A, B);
+      const ox = axis === "x" ? d[i] : 0;
+      const oy = axis === "y" ? d[i] : 0;
+      rebuilt.push({ x: A.x + ox, y: A.y + oy });
+      rebuilt.push({ x: B.x + ox, y: B.y + oy });
+      rebuilt.push({ x: B.x, y: B.y });
+    }
+    return rebuilt;
+  }
+  const out: Pt[] = [moved[0]];
+  if (Math.abs(d[0]) >= 0.5) {
+    const axis = segmentAxis(pts[0], pts[1]);
+    out.push(axis === "x" ? { x: pts[0].x + d[0], y: pts[0].y } : { x: pts[0].x, y: pts[0].y + d[0] });
+  }
+  for (let k = 1; k < n - 1; k += 1) out.push(moved[k]);
+  if (segs > 0 && Math.abs(d[segs - 1]) >= 0.5) {
+    const axis = segmentAxis(pts[n - 2], pts[n - 1]);
+    out.push(axis === "x" ? { x: pts[n - 1].x + d[segs - 1], y: pts[n - 1].y } : { x: pts[n - 1].x, y: pts[n - 1].y + d[segs - 1] });
+  }
+  out.push(moved[n - 1]);
+  return out;
 }
 
 function cleanPolyline(pts: Pt[]): Pt[] {
@@ -845,18 +969,22 @@ export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
     const w = byId.get(id)!;
     occs.push(...collectOcc(circuit, id, w, pts));
   }
+  const netOf = wireNetResolver(circuit);
   const clusters = clusterOccs(occs, 8);
   const shift = new Map<string, number>();
   for (const group of clusters) {
     if (group.length < 2) continue;
     for (const comp of overlapComponents(group)) {
       if (comp.length < 2) continue;
-      const lanes = colorLanes(comp);
+      const lanes = colorLanes(comp, netOf);
       const n = 1 + Math.max(0, ...lanes.values());
       if (n < 2) continue;
+      const railOcc = comp.find((o) => isRailWire(circuit, byId.get(o.id)!));
+      const center = railOcc ? (lanes.get(`${railOcc.id}:${railOcc.i}`) ?? 0) : (n - 1) / 2;
       for (const o of comp) {
+        if (isRailWire(circuit, byId.get(o.id)!)) continue;
         const lane = lanes.get(`${o.id}:${o.i}`) ?? 0;
-        const d = (lane - (n - 1) / 2) * WIRE_LANE;
+        const d = (lane - center) * WIRE_LANE;
         if (Math.abs(d) > 0.5) shift.set(`${o.id}:${o.i}`, d);
       }
     }
@@ -867,25 +995,128 @@ export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
       out.set(id, pts);
       continue;
     }
-    const rebuilt: Pt[] = [{ x: pts[0].x, y: pts[0].y }];
-    for (let i = 0; i < pts.length - 1; i += 1) {
-      const A = pts[i];
-      const B = pts[i + 1];
-      const d = shift.get(`${id}:${i}`) ?? 0;
-      if (Math.abs(d) < 0.5) {
-        rebuilt.push({ x: B.x, y: B.y });
-        continue;
-      }
-      const axis = segmentAxis(A, B);
-      const ox = axis === "x" ? d : 0;
-      const oy = axis === "y" ? d : 0;
-      rebuilt.push({ x: A.x + ox, y: A.y + oy });
-      rebuilt.push({ x: B.x + ox, y: B.y + oy });
-      rebuilt.push({ x: B.x, y: B.y });
-    }
-    out.set(id, cleanPolyline(rebuilt));
+    out.set(id, cleanPolyline(applyLaneShifts(pts, (i) => shift.get(`${id}:${i}`) ?? 0)));
   }
   return out;
+}
+
+function isRailWire(circuit: Circuit, w: { a: PortRef; b: PortRef }): boolean {
+  const ka = portKind(circuit, w.a);
+  const kb = portKind(circuit, w.b);
+  return (ka !== null && isRailKind(ka)) || (kb !== null && isRailKind(kb));
+}
+
+interface RunSeg { axis: "x" | "y"; fixed: number; lo: number; hi: number }
+
+function runSegs(pts: Pt[]): RunSeg[] {
+  const out: RunSeg[] = [];
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    const axis = segmentAxis(a, b);
+    if (axis === "x") out.push({ axis, fixed: a.x, lo: Math.min(a.y, b.y), hi: Math.max(a.y, b.y) });
+    else if (axis === "y") out.push({ axis, fixed: a.y, lo: Math.min(a.x, b.x), hi: Math.max(a.x, b.x) });
+  }
+  return out;
+}
+
+/** Total collinear overlap length between a route and the other nets' routes. */
+function overlapWithOthers(pts: Pt[], others: RunSeg[]): number {
+  let total = 0;
+  for (const s of runSegs(pts)) {
+    for (const o of others) {
+      if (o.axis !== s.axis || Math.abs(o.fixed - s.fixed) > 0.5) continue;
+      const ov = overlapSpan(s.lo, s.hi, o.lo, o.hi);
+      if (ov >= 3) total += ov;
+    }
+  }
+  return total;
+}
+
+function otherNetSegs(circuit: Circuit, wireId: string, netOf: (id: string) => string): RunSeg[] {
+  const net = netOf(wireId);
+  const segs: RunSeg[] = [];
+  for (const w of circuit.wires) {
+    if (w.id === wireId || netOf(w.id) === net) continue;
+    segs.push(...runSegs(wireRoute(circuit, w.a, w.b, w.jog)));
+  }
+  return segs;
+}
+
+/** Free distance from `fixed` to the nearest parallel run on each side within span lo..hi. */
+function sideSpace(others: RunSeg[], axis: "x" | "y", fixed: number, lo: number, hi: number): { neg: number; pos: number } {
+  let neg = Infinity;
+  let pos = Infinity;
+  for (const o of others) {
+    if (o.axis !== axis || overlapSpan(lo, hi, o.lo, o.hi) < 3) continue;
+    const d = o.fixed - fixed;
+    if (d > 0.5) pos = Math.min(pos, d);
+    else if (d < -0.5) neg = Math.min(neg, -d);
+  }
+  return { neg, pos };
+}
+
+function jogAt(jog: WireJog, axis: "x" | "y", pos: number): WireJog {
+  const out: WireJog = { ...jog, axis, pos };
+  if (axis === "x") out.x = pos;
+  else out.y = pos;
+  return out;
+}
+
+/**
+ * Move a dragged/new wire's jog so it never runs on top of another net's wire.
+ * Jumps toward the side with more free space. Returns the jog unchanged when clear.
+ */
+export function avoidWireOverlap(
+  circuit: Circuit,
+  wireId: string,
+  from: PortRef,
+  to: PortRef,
+  jog: WireJog | undefined,
+  maxSteps = 24,
+): WireJog | undefined {
+  if (isRailWire(circuit, { a: from, b: to })) return jog;
+  const netOf = wireNetResolver(circuit);
+  const others = otherNetSegs(circuit, wireId, netOf);
+  const base = wireRoute(circuit, from, to, jog);
+  if (overlapWithOthers(base, others) < 3) return jog;
+  const tries: { axis: "x" | "y"; start: number; lo: number; hi: number }[] = [];
+  if (jog) {
+    const axis = jog.axis ?? (jog.x !== undefined ? "x" : "y");
+    const start = (axis === "x" ? (jog.x ?? jog.pos) : (jog.y ?? jog.pos)) ?? 0;
+    const seg = runSegs(base).find((s) => s.axis === axis && Math.abs(s.fixed - start) < 0.5);
+    tries.push({ axis, start, lo: seg?.lo ?? -Infinity, hi: seg?.hi ?? Infinity });
+  } else {
+    // New wire: try a jog on whichever overlapping run is longest.
+    let best: RunSeg | null = null;
+    for (const s of runSegs(base)) {
+      if (overlapWithOthers([s.axis === "x" ? { x: s.fixed, y: s.lo } : { x: s.lo, y: s.fixed }, s.axis === "x" ? { x: s.fixed, y: s.hi } : { x: s.hi, y: s.fixed }], others) < 3) continue;
+      if (!best || s.hi - s.lo > best.hi - best.lo) best = s;
+    }
+    if (best) tries.push({ axis: best.axis, start: Math.round(best.fixed / GRID) * GRID, lo: best.lo, hi: best.hi });
+    for (const axis of ["x", "y"] as const) {
+      const a = terminalWorld(circuit, from);
+      const b = terminalWorld(circuit, to);
+      if (!a || !b) continue;
+      const mid = Math.round(((axis === "x" ? a.x + b.x : a.y + b.y) / 2) / GRID) * GRID;
+      tries.push({ axis, start: mid, lo: -Infinity, hi: Infinity });
+    }
+  }
+  let fallback: { jog: WireJog; ov: number } | null = null;
+  for (const t of tries) {
+    const space = sideSpace(others, t.axis, t.start, t.lo, t.hi);
+    const first = space.pos >= space.neg ? 1 : -1;
+    for (let k = 0; k <= maxSteps; k += 1) {
+      for (const dir of k === 0 ? [0] : [first, -first]) {
+        const pos = t.start + dir * k * GRID;
+        const cand = jogAt(jog ?? { axis: t.axis, pos }, t.axis, pos);
+        const ov = overlapWithOthers(wireRoute(circuit, from, to, cand), others);
+        if (ov < 3) return cand;
+        if (!fallback || ov < fallback.ov) fallback = { jog: cand, ov };
+      }
+    }
+  }
+  return fallback?.jog ?? jog;
 }
 
 export function portsEqual(a: PortRef, b: PortRef): boolean {

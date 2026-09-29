@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit, mergeWires, removeJunction } from "./circuitBuilder";
 import { GRID, type Circuit } from "./types";
-import { allWireRoutes, alignRailWireEnds, alignStackedWireLabels, areWiresConnected, circuitRouteKey, cleanPolyline, dedupeWireLabels, ensureNetTerminalSideLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, WIRE_LANE, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
+import { allWireRoutes, avoidWireOverlap, alignRailWireEnds, alignStackedWireLabels, areWiresConnected, circuitRouteKey, cleanPolyline, dedupeWireLabels, ensureNetTerminalSideLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, WIRE_LANE, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
 import { useLab } from "./store";
 
 describe("wire routing stubs", () => {
@@ -281,6 +281,47 @@ describe("wire crossovers", () => {
       return best;
     };
     expect(Math.abs(midY(p1) - midY(p2))).toBeGreaterThanOrEqual(WIRE_LANE - 1);
+  });
+
+  it("does not lane-separate overlapping wires of the same net", () => {
+    const c = emptyCircuit();
+    const a = addJunction(c, 0, 6);
+    const b = addJunction(c, 12, 6);
+    const e = addJunction(c, 2, 6);
+    addWire(c, a.symbol, "1", b.symbol, "1");
+    addWire(c, a.symbol, "1", e.symbol, "1");
+    const routes = allWireRoutes(c);
+    for (const w of c.wires) {
+      expect(routes.get(w.id)!.every((p) => p.y === 6 * GRID)).toBe(true);
+    }
+  });
+
+  it("shifts an overlapping middle run without adding extra bends", () => {
+    const c = emptyCircuit();
+    const a = addJunction(c, 0, 0);
+    const b = addJunction(c, 0, 10);
+    const e = addJunction(c, 0, 2);
+    const f = addJunction(c, 0, 8);
+    addWire(c, a.symbol, "1", b.symbol, "1").jog = { axis: "x", pos: 6 * GRID };
+    addWire(c, e.symbol, "1", f.symbol, "1").jog = { axis: "x", pos: 6 * GRID };
+    const routes = allWireRoutes(c);
+    for (const w of c.wires) {
+      expect(routes.get(w.id)!.length).toBeLessThanOrEqual(4);
+    }
+    const xs = c.wires.map((w) => routes.get(w.id)![1].x);
+    expect(Math.abs(xs[0] - xs[1])).toBeGreaterThanOrEqual(WIRE_LANE - 1);
+  });
+
+  it("pushes a dragged jog off another net's run", () => {
+    const c = emptyCircuit();
+    const a = addJunction(c, 0, 0);
+    const b = addJunction(c, 0, 10);
+    const e = addJunction(c, 2, 0);
+    const f = addJunction(c, 2, 10);
+    addWire(c, a.symbol, "1", b.symbol, "1").jog = { axis: "x", pos: 6 * GRID, x: 6 * GRID };
+    const w2 = addWire(c, e.symbol, "1", f.symbol, "1");
+    const jog = avoidWireOverlap(c, w2.id, w2.a, w2.b, { axis: "x", pos: 6 * GRID, x: 6 * GRID });
+    expect(jog?.x).not.toBe(6 * GRID);
   });
 
   it("places a vertical label so the circle is tangent to the wire", () => {
@@ -630,7 +671,7 @@ describe("wire crossovers", () => {
     expect(pts).toEqual([row, { x: 2 * GRID, y: row.y }]);
   });
 
-  it("turns into a control-rail end square", () => {
+  it("keeps a wire pinned to a control-rail end square straight", () => {
     const c = emptyCircuit();
     const hot = addDevice(c, "rail-l", "L", "body", 2, 0, { railY0: 0, railY1: 20 });
     const pb = addDevice(c, "pb-no", "CR1", "body", 8, 4);
@@ -638,9 +679,9 @@ describe("wire crossovers", () => {
     w.b.railPin = "y0";
     alignRailWireEnds(c);
     const pts = wireRoute(c, w.a, w.b);
-    expect(pts.at(-1)).toEqual({ x: 2 * GRID, y: 0 });
-    expect(pts.at(-2)?.y).toBe(0);
-    expect(pts.length).toBeGreaterThan(2);
+    expect(pts).toHaveLength(2);
+    expect(pts[0].y).toBe(pts[1].y);
+    expect(pts[1].x).toBe(2 * GRID);
   });
 
   it("routes in the middle channel between horizontal terminals avoiding terminal overlap", () => {

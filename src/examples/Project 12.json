@@ -311,7 +311,7 @@
         "deviceId": "d_lj_36a37eea",
         "variant": "coil",
         "x": 57,
-        "y": 35,
+        "y": 36,
         "rot": 0,
         "flipX": false,
         "flipY": false,
@@ -2101,7 +2101,7 @@
         },
         "b": {
           "symbolId": "s_2c2_9c5f04c6",
-          "term": "y36"
+          "term": "y37"
         }
       },
       {
@@ -2112,7 +2112,7 @@
         },
         "b": {
           "symbolId": "s_2bl_d393e71f",
-          "term": "y36"
+          "term": "y37"
         }
       },
       {

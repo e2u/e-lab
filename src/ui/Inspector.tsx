@@ -8,6 +8,8 @@ import { componentDisplayName, t, variantDisplayName } from "../i18n";
 import { contentRows, railEnds } from "../rails/logicRails";
 import { useLab } from "../store";
 import type { Circuit, DeviceKind } from "../types";
+import { useSnapshotForKey } from "../sim/useSnapshotForKey";
+import { inspectorRuntimeKey } from "../sim/visualSnapshot";
 import { MeterHistoryChart } from "./MeterHistoryChart";
 
 function NetLabelHint({
@@ -199,7 +201,8 @@ export function Inspector() {
   const selectedIds = useLab((s) => s.selectedIds);
   const selectedWireIds = useLab((s) => s.selectedWireIds);
   const circuit = useLab((s) => s.circuit);
-  const runtime = useLab((s) => s.snapshot.runtime);
+  const runtimeKey = useLab((s) => inspectorRuntimeKey(s.snapshot.runtime));
+  const runtime = useSnapshotForKey(runtimeKey).runtime;
   const meterHistory = useLab((s) => s.meterHistory);
   const process = useLab((s) => s.process);
   const showWireLabels = useLab((s) => s.showWireLabels);

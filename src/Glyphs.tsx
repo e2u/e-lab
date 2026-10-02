@@ -116,6 +116,35 @@ function UnflipGroup({cx = 0, cy = 0, transform, children, ...rest}: SVGProps<SV
     return <g transform={t} {...rest}>{children}</g>;
 }
 
+/** Rendered symbol size. `S` reads this so it can stay a stable component type. */
+const GlyphScaleCtx = createContext({ w: 1, h: 1 });
+
+/**
+ * Glyph frame. Defined once: a component created inside GlyphBody is a new
+ * type every render, and Run would unmount every symbol svg 20 times a second.
+ */
+function S({
+    w,
+    h,
+    baseW,
+    baseH,
+    children,
+    ...rest
+}: SVGProps<SVGSVGElement> & { w?: number; h?: number; baseW?: number; baseH?: number }) {
+    const scale = useContext(GlyphScaleCtx);
+    return (
+        <SVGBase
+            w={scale.w}
+            h={scale.h}
+            baseW={baseW ?? w ?? scale.w}
+            baseH={baseH ?? h ?? scale.h}
+            {...rest}
+        >
+            {children}
+        </SVGBase>
+    );
+}
+
 function SVGBase(props: SVGProps<SVGSVGElement> & { w: number; h: number; baseW?: number; baseH?: number }) {
     const {w, h, baseW, baseH, children, ...rest} = props;
     const viewW = (baseW ?? w) * GRID;
@@ -1122,24 +1151,26 @@ export function SymbolGlyph({
     hideTerminals?: boolean;
 }) {
     return (
-        <FlipCtx.Provider value={{fx: flipX ? -1 : 1, fy: flipY ? -1 : 1, rot: rot ?? 0, hideTerminals: Boolean(hideTerminals)}}>
-            <GlyphBody
-                device={device}
-                variant={variant}
-                w={w}
-                h={h}
-                rt={rt}
-                pressed={pressed}
-            />
-        </FlipCtx.Provider>
+        <GlyphScaleCtx.Provider value={{ w, h }}>
+            <FlipCtx.Provider value={{fx: flipX ? -1 : 1, fy: flipY ? -1 : 1, rot: rot ?? 0, hideTerminals: Boolean(hideTerminals)}}>
+                <GlyphBody
+                    device={device}
+                    variant={variant}
+                    w={w}
+                    h={h}
+                    rt={rt}
+                    pressed={pressed}
+                />
+            </FlipCtx.Provider>
+        </GlyphScaleCtx.Provider>
     );
 }
 
 function GlyphBody({
                        device,
                        variant,
-                       w: scaledW,
-                       h: scaledH,
+                       w: _scaledW,
+                       h: _scaledH,
                        rt,
                        pressed,
                    }: {
@@ -1152,23 +1183,10 @@ function GlyphBody({
 }) {
     const kind = device.kind;
     const v = resolvedVariant(kind, variant, device.params);
-    const bw = kind === "comment" && device.params?.width ? device.params.width : (v ? v.w : scaledW);
-    const bh = kind === "comment" && device.params?.height ? device.params.height : (v ? v.h : scaledH);
+    const bw = kind === "comment" && device.params?.width ? device.params.width : (v ? v.w : _scaledW);
+    const bh = kind === "comment" && device.params?.height ? device.params.height : (v ? v.h : _scaledH);
     const w = bw;
     const h = bh;
-
-    const S = (p: SVGProps<SVGSVGElement> & { w?: number; h?: number; baseW?: number; baseH?: number }) => {
-        const { w: _pw, h: _ph, baseW: _pbw, baseH: _pbh, ...rest } = p;
-        return (
-            <SVGBase
-                w={scaledW}
-                h={scaledH}
-                baseW={p.baseW ?? p.w ?? bw}
-                baseH={p.baseH ?? p.h ?? bh}
-                {...rest}
-            />
-        );
-    };
 
     if (kind === "rail-break") {
         return (

@@ -2,6 +2,8 @@ import { useMemo, useRef } from "react";
 import { useLab } from "../store";
 import { GRID } from "../types";
 import { buildLadderDiagram } from "../ladder/ladderLayout";
+import { useSnapshotForKey } from "../sim/useSnapshotForKey";
+import { schematicVisualKey } from "../sim/visualSnapshot";
 import {
   LADDER_TRANSFORMER_SEC_Y,
   LadderCoilGlyph,
@@ -12,7 +14,8 @@ import {
 
 export function LadderSchematic() {
   const circuit = useLab((s) => s.circuit);
-  const snapshot = useLab((s) => s.snapshot);
+  const visualKey = useLab((s) => schematicVisualKey(s.snapshot));
+  const snapshot = useSnapshotForKey(visualKey);
   const mode = useLab((s) => s.mode);
   const held = useLab((s) => s.held);
   const process = useLab((s) => s.process);

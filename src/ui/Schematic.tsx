@@ -14,10 +14,15 @@ import { RulerLeft, RulerTop } from "./schematic/Ruler";
 import { useSchematicEvents } from "./schematic/useSchematicEvents";
 import { blurActiveInput } from "../keyboard";
 import { emptySnapshot } from "../sim/engine";
+import { useSnapshotForKey } from "../sim/useSnapshotForKey";
+import { schematicVisualKey } from "../sim/visualSnapshot";
 
 export function Schematic() {
   const circuit = useLab((s) => s.circuit);
-  const rawSnapshot = useLab((s) => s.snapshot);
+  // step() replaces the snapshot every 50ms. Subscribe to the painted fields
+  // only, then read the snapshot when that fingerprint changes.
+  const visualKey = useLab((s) => schematicVisualKey(s.snapshot));
+  const rawSnapshot = useSnapshotForKey(visualKey);
   const mode = useLab((s) => s.mode);
   const snapshot = useMemo(() => {
     if (mode !== "edit") return rawSnapshot;

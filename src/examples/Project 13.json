@@ -186,8 +186,8 @@
         "kind": "rail-n",
         "tag": "N1",
         "params": {
-          "railY0": 35,
-          "railY1": 56
+          "railY0": 38,
+          "railY1": 57
         }
       },
       {
@@ -1267,7 +1267,7 @@
         "id": "w_1vc_8195e01f",
         "a": {
           "symbolId": "s_1v8_47a55732",
-          "term": "y35",
+          "term": "y38",
           "railPin": "y0"
         },
         "b": {

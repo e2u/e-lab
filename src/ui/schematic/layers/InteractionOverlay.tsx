@@ -2,7 +2,7 @@ import { memo, type MouseEvent, type PointerEvent } from "react";
 import { catalogItem, resolvedVariant, suggestNetLabelTag } from "../../../catalog";
 import { isNamedNetKind } from "../../../namedNets";
 import { t } from "../../../i18n";
-import { findPortAtPoint, glyphTransform, nearestOnPolyline, portsEqual, snapOnSegment, terminalWorld, wireRoute } from "../../../geometry";
+import { findPortAtPoint, glyphTransform, nearestOnPolyline, portsEqual, snapOnSegment, terminalWorld, wireRoute, wiringTarget } from "../../../geometry";
 import { normalizeRect } from "../../../groups";
 import { SymbolGlyph } from "../../../Glyphs";
 import type { Selection } from "../../../store";
@@ -49,7 +49,8 @@ export const InteractionOverlay = memo(function InteractionOverlay({
       {wiringFrom && cursor && (() => {
         const a = terminalWorld(circuit, wiringFrom);
         if (!a) return null;
-        let b = { x: Math.round(cursor.x) * GRID, y: Math.round(cursor.y) * GRID };
+        const raw = { x: Math.round(cursor.x) * GRID, y: Math.round(cursor.y) * GRID };
+        let b = raw;
         let snapped = false;
         let snappedPort: PortRef | null = null;
         const targetPort = findPortAtPoint(circuit, b.x, b.y, 16);
@@ -72,6 +73,7 @@ export const InteractionOverlay = memo(function InteractionOverlay({
             }
           }
         }
+        if (!snapped) b = wiringTarget(circuit, wiringFrom, raw);
         const pts = snappedPort ? wireRoute(circuit, wiringFrom, snappedPort) : wireRoute(circuit, wiringFrom, b);
         const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
         return (

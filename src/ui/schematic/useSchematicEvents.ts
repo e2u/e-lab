@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from "react";
-import { findPortAtPoint, findWireAtPoint, getClosestTOnPolyline, hitWireSegment, portsEqual, wireRoute, wiresInRect } from "../../geometry";
+import { useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from "react";
+import { findPortAtPoint, findWireAtPoint, getClosestTOnPolyline, hitWireSegment, jogForJunctionSlide, jogForPolyline, junctionDragBases, junctionDragMoves, junctionFollowVertices, plainRailTap, portsEqual, slideOrthogonalSegment, slideSegmentWithJunctions, wireRoute, wiringTarget, wiresInRect } from "../../geometry";
 import { contentRows, hitTestRailCell, layoutLogicRails, railEnds, type RailCellBox, type RailSelection, type RailSpine } from "../../rails/logicRails";
 import { railTermId } from "../../rails/railBus";
 import { normalizeRect, symbolsInRect } from "../../groups";
@@ -40,6 +40,7 @@ interface UseSchematicEventsParams {
   placing: string | null;
   routes: Map<string, { x: number; y: number }[]>;
   containerRef?: RefObject<HTMLDivElement | null>;
+  onRoutingWire?: (id: string | null) => void;
 }
 
 export function useSchematicEvents({
@@ -48,6 +49,7 @@ export function useSchematicEvents({
   placing,
   routes,
   containerRef,
+  onRoutingWire,
 }: UseSchematicEventsParams) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [editingRail, setEditingRail] = useState<RailSelection | null>(null);
@@ -94,11 +96,21 @@ export function useSchematicEvents({
   const wireDrag = useRef<{
     id: string;
     axis: "x" | "y";
+    index: number;
+    originPts: { x: number; y: number }[];
+    /** Junction endpoints that slide with this drag. */
+    junctionFollow: boolean[];
+    /** Grid cells at pointer-down, so a continued drag does not compound the step. */
+    junctionBases: { id: string; x: number; y: number }[];
     otherAxisJog?: number;
+    lastPos?: number;
     startX?: number;
     startY?: number;
     pushedHistory?: boolean;
   } | null>(null);
+  const pinRoutingWire = useCallback((id: string | null) => {
+    onRoutingWire?.(id);
+  }, [onRoutingWire]);
   const tagDrag = useRef<{
     id: string;
     originOffset: { dx: number; dy: number };
@@ -172,6 +184,7 @@ export function useSchematicEvents({
       railEndDrag.current = null;
       railMoveDrag.current = null;
       wireDrag.current = null;
+      pinRoutingWire(null);
       tagDrag.current = null;
       commitLabelDrag();
       junctionClick.current = null;
@@ -191,7 +204,7 @@ export function useSchematicEvents({
       window.removeEventListener("pointercancel", handleGlobalPointerUp);
       window.removeEventListener("blur", handleGlobalPointerUp);
     };
-  }, []);
+  }, [pinRoutingWire]);
 
   const scheduleScroll = (dx: number, dy: number) => {
     pendingScroll.current.dx += dx;
@@ -227,6 +240,7 @@ export function useSchematicEvents({
       // Cancel active drag when menu appears
       drag.current = null;
       wireDrag.current = null;
+      pinRoutingWire(null);
       tagDrag.current = null;
       marqueeRef.current = null;
       setMarqueeView(null);
@@ -293,6 +307,7 @@ export function useSchematicEvents({
     e.stopPropagation();
     drag.current = null;
     wireDrag.current = null;
+    pinRoutingWire(null);
     junctionClick.current = null;
     marqueeRef.current = null;
     setMarqueeView(null);
@@ -330,6 +345,7 @@ export function useSchematicEvents({
       cancelLongPress();
       drag.current = null;
       wireDrag.current = null;
+      pinRoutingWire(null);
       marqueeRef.current = null;
       setMarqueeView(null);
       paperTouchPanRef.current = null;
@@ -355,8 +371,8 @@ export function useSchematicEvents({
         lab.connectToWire(wire.id, world);
         return;
       }
-      const p = toGrid(e);
-      lab.addJunctionAndConnect(Math.round(p.x), Math.round(p.y));
+      const target = wiringTarget(lab.circuit, lab.wiringFrom, toWorld(e));
+      lab.addJunctionAndConnect(Math.round(target.x / GRID), Math.round(target.y / GRID));
       return;
     }
     if (mode !== "edit") {
@@ -656,33 +672,52 @@ export function useSchematicEvents({
       return;
     }
     if (wireDrag.current && mode === "edit") {
-      const axis = wireDrag.current.axis;
+      const dragWire = wireDrag.current;
+      const axis = dragWire.axis;
+      const pos = axis === "x" ? Math.round(world.x / GRID) * GRID : Math.round(world.y / GRID) * GRID;
+      const live = useLab.getState().circuit;
+      const w = live.wires.find((item) => item.id === dragWire.id);
+      if (w && plainRailTap(live, w)) return;
+      const moves = w && dragWire.junctionFollow.some(Boolean)
+        ? junctionDragMoves(live, w, dragWire.junctionFollow, axis, pos, dragWire.originPts, dragWire.index, dragWire.junctionBases)
+        : [];
+      if (dragWire.lastPos === pos && moves.length === 0) return;
+      dragWire.lastPos = pos;
       if (
-        !wireDrag.current.pushedHistory &&
-        (wireDrag.current.startX === undefined ||
-          Math.hypot(e.clientX - wireDrag.current.startX, e.clientY - (wireDrag.current.startY ?? 0)) > 2)
+        !dragWire.pushedHistory &&
+        (moves.length > 0 ||
+          dragWire.startX === undefined ||
+          Math.hypot(e.clientX - dragWire.startX, e.clientY - (dragWire.startY ?? 0)) > 2)
       ) {
         useLab.getState().pushHistory();
-        wireDrag.current.pushedHistory = true;
+        dragWire.pushedHistory = true;
       }
-      // Snap to integer grid lines
-      const pos = axis === "x" ? Math.round(world.x / GRID) * GRID : Math.round(world.y / GRID) * GRID;
-      const jogPayload: WireJog = {
-        axis,
-        pos,
-      };
+      if (w && dragWire.junctionFollow.some(Boolean)) {
+        if (moves.length) useLab.getState().followWireJunctions(dragWire.id, moves);
+        const after = useLab.getState().circuit;
+        const moved = after.wires.find((item) => item.id === dragWire.id);
+        if (moved) {
+          const seeded = slideSegmentWithJunctions(dragWire.originPts, dragWire.index, axis, pos, dragWire.junctionFollow);
+          const matchedJunction = jogForJunctionSlide(after, moved.a, moved.b, seeded, axis, pos);
+          if (matchedJunction) useLab.getState().setWireJog(dragWire.id, matchedJunction, true);
+        }
+        return;
+      }
+      const slid = slideOrthogonalSegment(dragWire.originPts, dragWire.index, axis, pos);
+      const matched = w ? jogForPolyline(live, w.a, w.b, slid) : undefined;
+      if (matched) {
+        useLab.getState().setWireJog(dragWire.id, matched, true);
+        return;
+      }
+      const jogPayload: WireJog = { axis, pos };
       if (axis === "x") {
         jogPayload.x = pos;
-        if (wireDrag.current.otherAxisJog !== undefined) {
-          jogPayload.y = wireDrag.current.otherAxisJog;
-        }
+        if (dragWire.otherAxisJog !== undefined) jogPayload.y = dragWire.otherAxisJog;
       } else {
         jogPayload.y = pos;
-        if (wireDrag.current.otherAxisJog !== undefined) {
-          jogPayload.x = wireDrag.current.otherAxisJog;
-        }
+        if (dragWire.otherAxisJog !== undefined) jogPayload.x = dragWire.otherAxisJog;
       }
-      useLab.getState().setWireJog(wireDrag.current.id, jogPayload);
+      useLab.getState().setWireJog(dragWire.id, jogPayload);
       return;
     }
     if (drag.current && mode === "edit") {
@@ -775,6 +810,7 @@ export function useSchematicEvents({
       railEndDrag.current = null;
       railMoveDrag.current = null;
       wireDrag.current = null;
+      pinRoutingWire(null);
       tagDrag.current = null;
       labelDrag.current = null;
       junctionClick.current = null;
@@ -798,8 +834,8 @@ export function useSchematicEvents({
           lab.connectToWire(wire.id, world);
           return;
         }
-        const p = toGrid(e);
-        lab.addJunctionAndConnect(Math.round(p.x), Math.round(p.y));
+        const target = wiringTarget(lab.circuit, lab.wiringFrom, toWorld(e));
+        lab.addJunctionAndConnect(Math.round(target.x / GRID), Math.round(target.y / GRID));
         return;
       }
     }
@@ -809,6 +845,7 @@ export function useSchematicEvents({
     drag.current = null;
     resizeDrag.current = null;
     wireDrag.current = null;
+    pinRoutingWire(null);
     tagDrag.current = null;
     if (dragging?.pushedHistory && mode === "edit") {
       useLab.getState().connectOverlappingTerminals(Object.keys(dragging.origins));
@@ -824,6 +861,7 @@ export function useSchematicEvents({
   const onSvgContextMenu = (e: MouseEvent<SVGSVGElement>) => {
     drag.current = null;
     wireDrag.current = null;
+    pinRoutingWire(null);
     const lab = useLab.getState();
     if (lab.wiringFrom || lab.placing) {
       e.preventDefault();
@@ -837,6 +875,7 @@ export function useSchematicEvents({
   const onWireContextMenu = (e: MouseEvent<SVGElement>, wireId: string) => {
     drag.current = null;
     wireDrag.current = null;
+    pinRoutingWire(null);
     const world = toWorld(e);
     const nearJunction = circuit.symbols.find((sym) => {
       const dev = circuit.devices.find((d) => d.id === sym.deviceId);
@@ -907,6 +946,7 @@ export function useSchematicEvents({
       if (isDoubleTap && e.button === 0) {
         cancelLongPress();
         wireDrag.current = null;
+        pinRoutingWire(null);
         drag.current = null;
         lab.select({ type: "wire", id: wire.id });
         lab.straightenWire(wire.id);
@@ -920,19 +960,29 @@ export function useSchematicEvents({
     if (lab.mode !== "edit") return;
     const hit = hitWireSegment(pts, world, 1000);
     if (hit) {
+      const modelPts = wireRoute(lab.circuit, wire.a, wire.b, wire.jog);
+      const modelHit = hitWireSegment(modelPts, world, 1000) ?? hit;
       const existingJogX = wire.jog?.x ?? (wire.jog?.axis === "x" ? wire.jog.pos : undefined);
       const existingJogY = wire.jog?.y ?? (wire.jog?.axis === "y" ? wire.jog.pos : undefined);
-      const otherAxisJog = hit.axis === "x" ? existingJogY : existingJogX;
+      const otherAxisJog = modelHit.axis === "x" ? existingJogY : existingJogX;
+      const fixed = modelHit.axis === "x" ? modelPts[modelHit.index]?.x : modelPts[modelHit.index]?.y;
+      const junctionFollow = junctionFollowVertices(lab.circuit, wire, modelPts, modelHit.index, modelHit.axis);
 
       wireDrag.current = {
         id: wire.id,
-        axis: hit.axis,
+        axis: modelHit.axis,
+        index: modelHit.index,
+        originPts: modelPts,
+        junctionFollow,
+        junctionBases: junctionDragBases(lab.circuit, wire, modelPts),
         otherAxisJog,
+        lastPos: fixed === undefined ? undefined : Math.round(fixed / GRID) * GRID,
         startX: e.clientX,
         startY: e.clientY,
         pushedHistory: false,
       };
-      setWireCursor(hit.axis === "x" ? "ew-resize" : "ns-resize");
+      pinRoutingWire(wire.id);
+      setWireCursor(modelHit.axis === "x" ? "ew-resize" : "ns-resize");
       try {
         svgRef.current?.setPointerCapture(e.pointerId);
       } catch {}
@@ -945,6 +995,7 @@ export function useSchematicEvents({
     if (lab.mode !== "edit") return;
     cancelLongPress();
     wireDrag.current = null;
+    pinRoutingWire(null);
     drag.current = null;
     lab.select({ type: "wire", id: wire.id });
     lab.straightenWire(wire.id);
@@ -995,6 +1046,7 @@ export function useSchematicEvents({
     labelDrag.current = null;
     drag.current = null;
     wireDrag.current = null;
+    pinRoutingWire(null);
     const lab = useLab.getState();
     if (lab.mode === "edit" && !lab.placing) {
       lab.select({ type: "wire-label", id: `${wireId}@${t.toFixed(3)}` });
@@ -1005,6 +1057,7 @@ export function useSchematicEvents({
   const onSymbolContextMenu = (e: MouseEvent<SVGElement>, symId: string) => {
     drag.current = null;
     wireDrag.current = null;
+    pinRoutingWire(null);
     const lab = useLab.getState();
     if (lab.mode === "edit" && !lab.placing) {
       if (!lab.selectedIds.includes(symId)) {
@@ -1186,6 +1239,7 @@ export function useSchematicEvents({
     tagDrag.current = null;
     drag.current = null;
     wireDrag.current = null;
+    pinRoutingWire(null);
     const lab = useLab.getState();
     if (lab.mode === "edit" && !lab.placing) {
       if (!lab.selectedIds.includes(sym.id)) {
@@ -1269,6 +1323,7 @@ export function useSchematicEvents({
     cancelLongPress();
     drag.current = null;
     wireDrag.current = null;
+    pinRoutingWire(null);
     tagDrag.current = null;
 
     const freeResize = dev.kind === "comment";

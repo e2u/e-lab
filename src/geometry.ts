@@ -420,7 +420,7 @@ function approachRail(
   jog: WireJog | undefined,
   isSelf: boolean,
 ): { x: number; y: number }[] | null {
-  if (jog || isSelf) return null;
+  if (isSelf) return null;
   const fromKind = portKind(circuit, from);
   const toKind = portKind(circuit, to);
   const fromRail = fromKind !== null && isRailKind(fromKind);
@@ -431,13 +431,15 @@ function approachRail(
   const dev = toRail ? a : b;
   const stub = toRail ? a1 : b1;
   const out = toRail ? oa : ob;
-  let laneX = stub.x;
-  if (Math.abs(laneX - rail.x) < 1) {
+  const jogX = jog?.x ?? (jog?.axis === "x" ? jog.pos : undefined);
+  let laneX = jogX ?? stub.x;
+  if (jogX === undefined && Math.abs(laneX - rail.x) < 1) {
     const dir = out.x !== 0 ? out.x : Math.sign(dev.x - rail.x) || 1;
     laneX = dev.x + dir * GRID;
   }
+  const knee = { x: laneX, y: stub.y };
   const corner = { x: laneX, y: rail.y };
-  return toRail ? [a, stub, corner, b] : [a, corner, stub, b];
+  return toRail ? [a, stub, knee, corner, b] : [a, corner, knee, stub, b];
 }
 
 /** Orthogonal route that leaves each terminal in a straight stub before any 90° bend. */
@@ -463,8 +465,17 @@ export function wireRoute(
     const toKind = portKind(circuit, to);
     const fromRail = fromKind !== null && isRailKind(fromKind);
     const toRail = toKind !== null && isRailKind(toKind);
-    // Wires tied to the control hot / neutral rail are always a straight run.
+    // Ordinary control-rail taps stay one horizontal line. An end-square pin
+    // may keep a dragged corner beside the device and still enter horizontally.
     if (!isSelf && fromRail !== toRail) {
+      const pinned = (toRail && isRailEndPin(to)) || (fromRail && isRailEndPin(from));
+      if (pinned && jog) {
+        const ob = terminalOutward(circuit, to);
+        const sb = stubLen(circuit, to);
+        const b1 = { x: b.x + ob.x * sb, y: b.y + ob.y * sb };
+        const railPath = approachRail(circuit, from, to, a, a1, oa, b, b1, ob, jog, isSelf);
+        if (railPath) return cleanPolyline(railPath);
+      }
       // Stay attached: past the rail's end, run along the rail column to the nearest end.
       const dev = toRail ? a : b;
       const span = railSpanPx(circuit, toRail ? to : from);
@@ -498,6 +509,113 @@ export function wireRoute(
   append(pts, mid);
   append(pts, dest);
   return cleanPolyline(pts);
+}
+
+/**
+ * Free-cursor target for a wire being drawn.
+ * A perpendicular leg of one grid or less is dropped so the preview stays
+ * orthogonal and matches the junction that a drop will create. The outward
+ * stub is unchanged.
+ */
+export function wiringTarget(
+  circuit: Circuit,
+  from: PortRef,
+  point: { x: number; y: number },
+): { x: number; y: number } {
+  const dest = snapPointToGrid(point);
+  const a = terminalWorld(circuit, from);
+  if (!a) return dest;
+  const oa = terminalOutward(circuit, from);
+  // One grid is the smallest cursor step, so a single-cell perpendicular
+  // leg is the short corner. Two cells and beyond stay.
+  const nearY = Math.abs(dest.y - a.y) <= GRID;
+  const nearX = Math.abs(dest.x - a.x) <= GRID;
+  if (oa.x !== 0 && nearY) return snapPointToGrid({ x: dest.x, y: a.y });
+  if (oa.y !== 0 && nearX) return snapPointToGrid({ x: a.x, y: dest.y });
+  if (oa.x === 0 && oa.y === 0) {
+    if (nearY && Math.abs(dest.x - a.x) > GRID) return snapPointToGrid({ x: dest.x, y: a.y });
+    if (nearX && Math.abs(dest.y - a.y) > GRID) return snapPointToGrid({ x: a.x, y: dest.y });
+  }
+  return dest;
+}
+
+/** Move one orthogonal segment onto `pos`. Terminal endpoints stay put. */
+export function slideOrthogonalSegment(
+  pts: { x: number; y: number }[],
+  index: number,
+  axis: "x" | "y",
+  pos: number,
+): { x: number; y: number }[] {
+  if (pts.length < 2 || index < 0 || index >= pts.length - 1) return pts.map((p) => ({ ...p }));
+  // A straight run has no interior corner. Keep both terminals and park the
+  // grabbed segment on `pos`, with the bends at the terminal rows or columns.
+  if (index === 0 && index + 1 === pts.length - 1) {
+    const a = pts[0];
+    const b = pts[1];
+    const seg = segmentAxis(a, b);
+    if (seg === "x") return cleanPolyline([a, { x: pos, y: a.y }, { x: pos, y: b.y }, b]);
+    if (seg === "y") return cleanPolyline([a, { x: a.x, y: pos }, { x: b.x, y: pos }, b]);
+  }
+  const moved = pts.map((p) => ({ ...p }));
+  if (index > 0) {
+    if (axis === "x") moved[index].x = pos;
+    else moved[index].y = pos;
+  }
+  if (index + 1 < pts.length - 1) {
+    if (axis === "x") moved[index + 1].x = pos;
+    else moved[index + 1].y = pos;
+  }
+  const out = moved.slice();
+  if (out.length >= 2 && Math.abs(out[1].x - out[0].x) > 0.5 && Math.abs(out[1].y - out[0].y) > 0.5) {
+    const original = segmentAxis(pts[0], pts[1]);
+    const bend = original === "x"
+      ? { x: out[0].x, y: out[1].y }
+      : { x: out[1].x, y: out[0].y };
+    out.splice(1, 0, bend);
+  }
+  const n = out.length;
+  if (n >= 2 && Math.abs(out[n - 1].x - out[n - 2].x) > 0.5 && Math.abs(out[n - 1].y - out[n - 2].y) > 0.5) {
+    const original = segmentAxis(pts[pts.length - 2], pts[pts.length - 1]);
+    const bend = original === "x"
+      ? { x: out[n - 1].x, y: out[n - 2].y }
+      : { x: out[n - 2].x, y: out[n - 1].y };
+    out.splice(n - 1, 0, bend);
+  }
+  return cleanPolyline(out);
+}
+
+/**
+ * Slide one segment onto `pos`. Junction vertices marked in `movable` move
+ * with that segment so the path does not travel out and back.
+ */
+export function slideSegmentWithJunctions(
+  pts: { x: number; y: number }[],
+  index: number,
+  axis: "x" | "y",
+  pos: number,
+  movable: boolean[],
+): { x: number; y: number }[] {
+  if (!movable.some(Boolean)) return slideOrthogonalSegment(pts, index, axis, pos);
+  const seeded = pts.map((p, i) => {
+    if (!movable[i]) return { ...p };
+    return axis === "x" ? { x: pos, y: p.y } : { x: p.x, y: pos };
+  });
+  // The junction is the other end of an elbow. Park the grabbed run on `pos`
+  // and let that junction meet it, instead of keeping the old corner.
+  const onGrabbed = Boolean(movable[index] || movable[index + 1]);
+  if (!onGrabbed && seeded.length > 2) {
+    const a = seeded[0];
+    const b = seeded[seeded.length - 1];
+    if (axis === "x") return cleanPolyline([a, { x: pos, y: a.y }, { x: pos, y: b.y }, b]);
+    return cleanPolyline([a, { x: a.x, y: pos }, { x: b.x, y: pos }, b]);
+  }
+  if (seeded.length === 2) {
+    const a = seeded[0];
+    const b = seeded[1];
+    if (axis === "x") return cleanPolyline([a, { x: pos, y: a.y }, { x: pos, y: b.y }, b]);
+    return cleanPolyline([a, { x: a.x, y: pos }, { x: b.x, y: pos }, b]);
+  }
+  return slideOrthogonalSegment(seeded, index, axis, pos);
 }
 
 export const WIRE_LANE = 8;
@@ -929,6 +1047,258 @@ export function deriveJogToMatchPolyline(
   return bestApprox;
 }
 
+/** Jog that reproduces `targetPts`, or undefined when no jog matches exactly. */
+export function jogForPolyline(
+  circuit: Circuit,
+  from: PortRef,
+  to: PortRef,
+  targetPts: Pt[],
+): WireJog | undefined {
+  const jog = deriveJogToMatchPolyline(circuit, from, to, targetPts);
+  const route = cleanPolyline(wireRoute(circuit, from, to, jog));
+  return polylineMatches(route, cleanPolyline(targetPts)) ? jog : undefined;
+}
+
+function keepsTerminalExit(circuit: Circuit, from: PortRef, to: PortRef, pts: Pt[]): boolean {
+  if (pts.length <= 2) return true;
+  const leaves = (ref: PortRef, tip: Pt, next: Pt) => {
+    const out = terminalOutward(circuit, ref);
+    if (out.x === 0 && out.y === 0) return true;
+    const dx = next.x - tip.x;
+    const dy = next.y - tip.y;
+    if (out.x !== 0) return Math.abs(dy) < 0.8 && dx * out.x > 0.5;
+    return Math.abs(dx) < 0.8 && dy * out.y > 0.5;
+  };
+  return leaves(from, pts[0], pts[1]) && leaves(to, pts[pts.length - 1], pts[pts.length - 2]);
+}
+
+function sameWireRoute(
+  circuit: Circuit,
+  from: PortRef,
+  to: PortRef,
+  jog: WireJog | undefined,
+  targetPts: Pt[],
+): boolean {
+  return polylineMatches(cleanPolyline(wireRoute(circuit, from, to, jog)), cleanPolyline(targetPts));
+}
+
+function polyLength(pts: Pt[]): number {
+  let length = 0;
+  for (let i = 1; i < pts.length; i += 1) {
+    length += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  }
+  return length;
+}
+
+function segmentLiesOn(pts: Pt[], axis: "x" | "y", pos: number): boolean {
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    if (segmentAxis(pts[i], pts[i + 1]) !== axis) continue;
+    const fixed = axis === "x" ? pts[i].x : pts[i].y;
+    if (Math.abs(fixed - pos) < 0.8) return true;
+  }
+  return false;
+}
+
+/**
+ * Jog that keeps a junction slide on `pos`.
+ * An exact stored path wins. A straight run needs no jog. Otherwise one elbow
+ * on the cursor line is kept when it stays within a stub of the short path.
+ */
+export function jogForJunctionSlide(
+  circuit: Circuit,
+  from: PortRef,
+  to: PortRef,
+  targetPts: Pt[],
+  axis: "x" | "y",
+  pos: number,
+): WireJog | undefined {
+  const natural = cleanPolyline(wireRoute(circuit, from, to));
+  const target = cleanPolyline(targetPts);
+  if (keepsTerminalExit(circuit, from, to, natural) && polyLength(natural) + 0.5 < polyLength(target)) {
+    return undefined;
+  }
+  const exact = jogForPolyline(circuit, from, to, targetPts);
+  if (exact && keepsTerminalExit(circuit, from, to, cleanPolyline(targetPts))) return exact;
+  if (
+    sameWireRoute(circuit, from, to, undefined, targetPts) &&
+    keepsTerminalExit(circuit, from, to, cleanPolyline(wireRoute(circuit, from, to)))
+  ) {
+    return undefined;
+  }
+  const candidate: WireJog = axis === "y" ? { axis: "y", pos, y: pos } : { axis: "x", pos, x: pos };
+  const route = cleanPolyline(wireRoute(circuit, from, to, candidate));
+  if (route.length < 2 || !segmentLiesOn(route, axis, pos) || !keepsTerminalExit(circuit, from, to, route)) {
+    return undefined;
+  }
+  const shortest = polyLength(manhattan(route[0], route[route.length - 1]));
+  if (polyLength(route) > shortest + GRID + STUB + 1) return undefined;
+  const stored = jogForPolyline(circuit, from, to, route);
+  if (stored) return stored;
+  if (sameWireRoute(circuit, from, to, undefined, route)) return undefined;
+  return candidate;
+}
+
+/**
+ * Junction endpoints that move with this drag.
+ * Either end follows, whichever segment is grabbed, so the far junction
+ * is not left behind when the near one slides.
+ */
+export function junctionFollowVertices(
+  circuit: Circuit,
+  wire: { id: string; a: PortRef; b: PortRef },
+  pts: { x: number; y: number }[],
+  _index: number,
+  _axis: "x" | "y",
+): boolean[] {
+  const n = pts.length;
+  return pts.map((_, i) => {
+    if (n < 2 || (i !== 0 && i !== n - 1)) return false;
+    const id = i === 0 ? wire.a.symbolId : wire.b.symbolId;
+    return portKind(circuit, { symbolId: id, term: "1" }) === "junction";
+  });
+}
+
+function pointOnSegment(
+  p: { x: number; y: number },
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  tol = 1,
+): boolean {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 < 1) return Math.hypot(p.x - a.x, p.y - a.y) < tol;
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy)) < tol;
+}
+
+/** Original grid cell of each junction that travels with this wire. */
+export function junctionDragBases(
+  circuit: Circuit,
+  wire: { a: PortRef; b: PortRef },
+  pts: { x: number; y: number }[],
+): { id: string; x: number; y: number }[] {
+  const out: { id: string; x: number; y: number }[] = [];
+  const seen = new Set<string>();
+  const add = (id: string) => {
+    if (!id || seen.has(id)) return;
+    if (portKind(circuit, { symbolId: id, term: "1" }) !== "junction") return;
+    const sym = circuit.symbols.find((s) => s.id === id);
+    if (!sym) return;
+    seen.add(id);
+    out.push({ id, x: sym.x, y: sym.y });
+  };
+  add(wire.a.symbolId);
+  add(wire.b.symbolId);
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    for (const sym of circuit.symbols) {
+      if (seen.has(sym.id)) continue;
+      if (portKind(circuit, { symbolId: sym.id, term: "1" }) !== "junction") continue;
+      const world = terminalWorld(circuit, { symbolId: sym.id, term: "1" });
+      if (!world || !pointOnSegment(world, pts[i], pts[i + 1])) continue;
+      add(sym.id);
+    }
+  }
+  return out;
+}
+
+/**
+ * Grid cell for each followed junction.
+ * The junction takes the cursor line on the dragged axis. When that would
+ * stack both ends on one cell, they keep their spacing and shift by the
+ * same step as the grabbed segment, measured from the drag's starting cells.
+ */
+export function junctionDragMoves(
+  circuit: Circuit,
+  wire: { a: PortRef; b: PortRef },
+  follow: boolean[],
+  axis: "x" | "y",
+  pos: number,
+  pts?: { x: number; y: number }[],
+  index?: number,
+  bases?: { id: string; x: number; y: number }[],
+): { id: string; x: number; y: number }[] {
+  if (follow.length < 2) return [];
+  const gridPos = Math.round(pos / GRID);
+  let delta = 0;
+  let haveDelta = false;
+  if (pts && index !== undefined && pts[index]) {
+    const old = axis === "x" ? pts[index].x : pts[index].y;
+    delta = gridPos - Math.round(old / GRID);
+    haveDelta = true;
+  }
+  const originCell = (id: string): { x: number; y: number } | undefined => {
+    const saved = bases?.find((b) => b.id === id);
+    if (saved) return { x: saved.x, y: saved.y };
+    if (pts && pts.length >= 2) {
+      if (id === wire.a.symbolId) return { x: Math.round(pts[0].x / GRID), y: Math.round(pts[0].y / GRID) };
+      if (id === wire.b.symbolId) return { x: Math.round(pts[pts.length - 1].x / GRID), y: Math.round(pts[pts.length - 1].y / GRID) };
+    }
+    const sym = circuit.symbols.find((s) => s.id === id);
+    return sym ? { x: sym.x, y: sym.y } : undefined;
+  };
+  const endpointIds = [
+    follow[0] === true ? wire.a.symbolId : "",
+    follow[follow.length - 1] === true ? wire.b.symbolId : "",
+  ].filter((id) => id && portKind(circuit, { symbolId: id, term: "1" }) === "junction");
+  const extraIds: string[] = [];
+  const consider = (id: string, world: { x: number; y: number } | null | undefined, a: { x: number; y: number }, b: { x: number; y: number }) => {
+    if (!id || endpointIds.includes(id) || extraIds.includes(id)) return;
+    if (portKind(circuit, { symbolId: id, term: "1" }) !== "junction") return;
+    if (!world || !pointOnSegment(world, a, b)) return;
+    extraIds.push(id);
+  };
+  if (pts) {
+    for (let i = 0; i < pts.length - 1; i += 1) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      if (bases) {
+        for (const base of bases) {
+          consider(base.id, { x: base.x * GRID, y: base.y * GRID }, a, b);
+        }
+      } else {
+        for (const sym of circuit.symbols) {
+          consider(sym.id, terminalWorld(circuit, { symbolId: sym.id, term: "1" }), a, b);
+        }
+      }
+    }
+  }
+  const destinations = endpointIds.map((id) => {
+    const origin = originCell(id);
+    if (!origin) return undefined;
+    return {
+      x: axis === "x" ? gridPos : origin.x,
+      y: axis === "y" ? gridPos : origin.y,
+    };
+  });
+  const stacked = haveDelta
+    && destinations.length === 2
+    && destinations[0] !== undefined
+    && destinations[1] !== undefined
+    && destinations[0].x === destinations[1].x
+    && destinations[0].y === destinations[1].y;
+  const moves: { id: string; x: number; y: number }[] = [];
+  const seen = new Set<string>();
+  const taken = new Set<string>();
+  const push = (id: string) => {
+    if (seen.has(id)) return;
+    const sym = circuit.symbols.find((s) => s.id === id);
+    const origin = originCell(id);
+    if (!sym || !origin) return;
+    const x = axis === "x" ? (stacked ? origin.x + delta : gridPos) : origin.x;
+    const y = axis === "y" ? (stacked ? origin.y + delta : gridPos) : origin.y;
+    const cell = `${x},${y}`;
+    if (taken.has(cell)) return;
+    seen.add(id);
+    taken.add(cell);
+    if (x === sym.x && y === sym.y) return;
+    moves.push({ id, x, y });
+  };
+  for (const id of endpointIds) push(id);
+  for (const id of extraIds) push(id);
+  return moves;
+}
+
 export { cleanPolyline };
 
 /** Routes every wire, then nudges overlapping parallel runs apart. Terminals stay put. */
@@ -957,7 +1327,7 @@ export function circuitRouteKey(circuit: Circuit): string {
   return key;
 }
 
-export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
+export function allWireRoutes(circuit: Circuit, anchorId?: string): Map<string, Pt[]> {
   const base = new Map<string, Pt[]>();
   const byId = new Map<string, { a: PortRef; b: PortRef }>();
   for (const w of circuit.wires) {
@@ -979,10 +1349,16 @@ export function allWireRoutes(circuit: Circuit): Map<string, Pt[]> {
       const lanes = colorLanes(comp, netOf);
       const n = 1 + Math.max(0, ...lanes.values());
       if (n < 2) continue;
+      const anchorOcc = anchorId ? comp.find((o) => o.id === anchorId) : undefined;
       const railOcc = comp.find((o) => isRailWire(circuit, byId.get(o.id)!));
-      const center = railOcc ? (lanes.get(`${railOcc.id}:${railOcc.i}`) ?? 0) : (n - 1) / 2;
+      const center = anchorOcc
+        ? (lanes.get(`${anchorOcc.id}:${anchorOcc.i}`) ?? 0)
+        : railOcc
+          ? (lanes.get(`${railOcc.id}:${railOcc.i}`) ?? 0)
+          : (n - 1) / 2;
       for (const o of comp) {
         if (isRailWire(circuit, byId.get(o.id)!)) continue;
+        if (anchorOcc && o.id === anchorId) continue;
         const lane = lanes.get(`${o.id}:${o.i}`) ?? 0;
         const d = (lane - center) * WIRE_LANE;
         if (Math.abs(d) > 0.5) shift.set(`${o.id}:${o.i}`, d);
@@ -1004,6 +1380,28 @@ function isRailWire(circuit: Circuit, w: { a: PortRef; b: PortRef }): boolean {
   const ka = portKind(circuit, w.a);
   const kb = portKind(circuit, w.b);
   return (ka !== null && isRailKind(ka)) || (kb !== null && isRailKind(kb));
+}
+
+/** Control-rail tap that is not pinned to an end square. Its jog is ignored. */
+export function plainRailTap(circuit: Circuit, w: { a: PortRef; b: PortRef }): boolean {
+  const ka = portKind(circuit, w.a);
+  const kb = portKind(circuit, w.b);
+  const aRail = ka !== null && isRailKind(ka);
+  const bRail = kb !== null && isRailKind(kb);
+  if (aRail === bRail) return false;
+  if (aRail && isRailEndPin(w.a)) return false;
+  if (bRail && isRailEndPin(w.b)) return false;
+  return true;
+}
+
+/** End-square tap. A dragged corner stays beside the device; entry stays horizontal. */
+export function endPinnedRailTap(circuit: Circuit, w: { a: PortRef; b: PortRef }): boolean {
+  const ka = portKind(circuit, w.a);
+  const kb = portKind(circuit, w.b);
+  const aRail = ka !== null && isRailKind(ka);
+  const bRail = kb !== null && isRailKind(kb);
+  if (aRail === bRail) return false;
+  return (aRail && isRailEndPin(w.a)) || (bRail && isRailEndPin(w.b));
 }
 
 interface RunSeg { axis: "x" | "y"; fixed: number; lo: number; hi: number }

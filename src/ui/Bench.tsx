@@ -1,6 +1,8 @@
 import { LAMP_COLORS } from "../catalog";
 import { t } from "../i18n";
 import { useLab } from "../store";
+import { useSnapshotForKey } from "../sim/useSnapshotForKey";
+import { runtimeVisualKey } from "../sim/visualSnapshot";
 
 const lampHex: Record<string, string> = {
   red: "#e23d2b",
@@ -14,7 +16,8 @@ const lampHex: Record<string, string> = {
 
 export function Bench() {
   const circuit = useLab((s) => s.circuit);
-  const runtime = useLab((s) => s.snapshot.runtime);
+  const runtimeKey = useLab((s) => runtimeVisualKey(s.snapshot.runtime, { elapsed: false }));
+  const runtime = useSnapshotForKey(runtimeKey).runtime;
   const held = useLab((s) => s.held);
   const mode = useLab((s) => s.mode);
   const process = useLab((s) => s.process);

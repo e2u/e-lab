@@ -4,6 +4,7 @@ import { useLab } from "./store";
 import type { Mode } from "./types";
 import { trackCircuitStep } from "./analytics";
 import { formatFaultMessage, t, tOr } from "./i18n";
+import { faultVisualKey } from "./sim/visualSnapshot";
 import { Bench, ProcessRack } from "./ui/Bench";
 import { FilesMenu } from "./ui/FilesMenu";
 import { Inspector } from "./ui/Inspector";
@@ -27,6 +28,44 @@ type ExampleOption = Pick<Example, "id" | "title"> & { blurb?: string };
 // Internal helper - re-exported for internal use only
 function _simClockActive(running: boolean, mode: Mode, hidden: boolean): boolean {
   return running && mode === "run" && !hidden;
+}
+
+function SimClock() {
+  const timeMs = useLab((s) => s.timeMs);
+  return <span>{Math.round(timeMs)} ms</span>;
+}
+
+function FaultStatus() {
+  const key = useLab((s) => faultVisualKey(s.snapshot.faults[0]));
+  if (!key) return <span>{t("runtime.circuitNormal")}</span>;
+  const fault = useLab.getState().snapshot.faults[0];
+  return <span className="fault">{fault ? formatFaultMessage(fault) : t("runtime.circuitNormal")}</span>;
+}
+
+/** Horn tone follows lit state only. Depending on the whole snapshot recreated the context every tick. */
+function AlarmAudio() {
+  const noisy = useLab((s) => {
+    if (s.mode !== "run") return false;
+    return s.circuit.devices.some(
+      (d) => (d.kind === "alarm" || d.kind === "horn") && Boolean(s.snapshot.runtime[d.id]?.lit),
+    );
+  });
+  useEffect(() => {
+    if (!noisy) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = 880;
+    gain.gain.value = 0.03;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    return () => {
+      osc.stop();
+      void ctx.close();
+    };
+  }, [noisy]);
+  return null;
 }
 
 const SIM_TICK_MS = 50;
@@ -54,8 +93,6 @@ export function App() {
   const mode = useLab((s) => s.mode);
   const editSubMode = useLab((s) => s.editSubMode);
   const running = useLab((s) => s.running);
-  const snapshot = useLab((s) => s.snapshot);
-  const timeMs = useLab((s) => s.timeMs);
   const placing = useLab((s) => s.placing);
   const notice = useLab((s) => s.notice);
   const circuit = useLab((s) => s.circuit);
@@ -205,28 +242,6 @@ export function App() {
       useLab.getState().setZoom(0.5);
     }
   }, [zoom]);
-
-  useEffect(() => {
-    const devices = useLab.getState().circuit.devices;
-    const noisy = devices.some(
-      (d) => (d.kind === "alarm" || d.kind === "horn") && snapshot.runtime[d.id]?.lit,
-    );
-    if (!noisy || mode !== "run") return;
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.value = 880;
-    gain.gain.value = 0.03;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    return () => {
-      osc.stop();
-      void ctx.close();
-    };
-  }, [snapshot, mode]);
-
-  const faults = snapshot.faults;
 
   const topbarRef = useRef<HTMLElement>(null);
   const statusbarRef = useRef<HTMLElement>(null);
@@ -380,6 +395,7 @@ export function App() {
 
   return (
     <>
+      <AlarmAudio />
       <div className="app">
       <header
         ref={topbarRef}
@@ -697,11 +713,11 @@ export function App() {
 
       <footer ref={statusbarRef} className="statusbar">
         <span>{mode === "edit" ? t("status.edit") : running ? t("status.run") : t("status.pause")}</span>
-        <span>{Math.round(timeMs)} ms</span>
+        <SimClock />
         <span>{placing ? `${t("runtime.placing")}: ${placing}` : t("runtime.wiring")}</span>
         <span>{`${t("wireColor.l1Brown")} · ${t("wireColor.l2Orange")} · ${t("wireColor.l3Yellow")} · ${t("wireColor.nWhite")} · ${t("wireColor.peGreen")}`}</span>
         <span>NEMA/JIC</span>
-        {faults[0] ? <span className="fault">{formatFaultMessage(faults[0])}</span> : <span>{t("runtime.circuitNormal")}</span>}
+        <FaultStatus />
         {circuit.wires.some((w) => w.broken) || circuit.devices.some((d) => d.params.welded) ? (
           <span className="fault">{t("runtime.faultInjection")}</span>
         ) : null}

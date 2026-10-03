@@ -35,6 +35,24 @@ describe("coil glyph leads", () => {
     expect(htmlHidden).not.toContain("A2");
   });
 
+  it("shrinks a long coil tag so it stays inside the circle", () => {
+    const c = emptyCircuit();
+    const short = addDevice(c, "contactor", "KM1", "coil", 0, 0).device;
+    const long = addDevice(c, "contactor", "M_FWD", "coil", 4, 0).device;
+    const shortHtml = renderToStaticMarkup(
+      createElement(SymbolGlyph, { device: short, variant: "coil", w: 4, h: 2 }),
+    );
+    const longHtml = renderToStaticMarkup(
+      createElement(SymbolGlyph, { device: long, variant: "coil", w: 4, h: 2 }),
+    );
+    const size = (html: string, tag: string) => {
+      const match = html.match(new RegExp(`font-size:\\s*([\\d.]+)px[^>]*>${tag}<`));
+      return Number(match?.[1]);
+    };
+    expect(size(shortHtml, "KM1")).toBe(12);
+    expect(size(longHtml, "M_FWD")).toBeLessThan(12);
+  });
+
   it("renders 11-pin solid-state off-delay timer coil with TRIGGER label on terminals 5-6", () => {
     const c = emptyCircuit();
     const { device } = addDevice(c, "timer-ss-off", "TR1", "coil", 0, 0);

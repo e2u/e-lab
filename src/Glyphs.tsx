@@ -3,6 +3,7 @@ import type {Device, DeviceRuntime} from "./types";
 import {GRID} from "./types";
 import {resolvedVariant} from "./catalog.ts";
 import {commentFitHeight, titleBlockDescLines, TB_PER_CHAR, TB_W, wrapCommentText} from "./commentText";
+import {circleTagFontSize} from "./circleTag";
 export {wrapCommentText} from "./commentText";
 import {netLabelFill, PHASE_COLOR} from "./sim/engine";
 
@@ -476,17 +477,36 @@ function contactLines(
     );
 }
 
+const COIL_R = 16;
+
+function CircleTag({x, y, label, radius, strokeWidth = 2}: {x: number; y: number; label: string; radius: number; strokeWidth?: number}) {
+    const size = circleTagFontSize(label, radius, strokeWidth);
+    return (
+        <Txt
+            x={x}
+            y={y}
+            textAnchor="middle"
+            dominantBaseline="central"
+            className="sym-tag"
+            // `.sym-tag` is 12px in CSS, so the fitted size has to be inline.
+            style={{fontSize: size}}
+        >
+            {label}
+        </Txt>
+    );
+}
+
 function coilBox(w: number, h: number, label: string, hot: boolean, labL = "A1", labR = "A2") {
     const cx = (w * GRID) / 2;
     const cy = (h * GRID) / 2;
     return (
         <>
-            <line x1={0} y1={cy} x2={cx - 16} y2={cy} stroke={ink} strokeWidth="2"/>
-            <line x1={cx + 16} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2"/>
+            <line x1={0} y1={cy} x2={cx - COIL_R} y2={cy} stroke={ink} strokeWidth="2"/>
+            <line x1={cx + COIL_R} y1={cy} x2={w * GRID} y2={cy} stroke={ink} strokeWidth="2"/>
             <circle
                 cx={cx}
                 cy={cy}
-                r="16"
+                r={COIL_R}
                 fill={hot ? "#f0d27a" : "#efe6d0"}
                 stroke={ink}
                 strokeWidth="2"
@@ -501,9 +521,7 @@ function coilBox(w: number, h: number, label: string, hot: boolean, labL = "A1",
                     {labR}
                 </Txt>
             )}
-            <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="sym-tag">
-                {label}
-            </Txt>
+            <CircleTag x={cx} y={cy} label={label} radius={COIL_R} />
         </>
     );
 }
@@ -2428,9 +2446,7 @@ function GlyphBody({
                         <Txt x={w * GRID - 8} y={topY - 8} textAnchor="end" className="term-lab">
                             10
                         </Txt>
-                        <Txt x={cx} y={topY} textAnchor="middle" dominantBaseline="central" className="sym-tag">
-                            {device.tag}
-                        </Txt>
+                        <CircleTag x={cx} y={topY} label={device.tag} radius={15} />
 
                         {/* Mode indicator */}
                         <rect
@@ -2534,9 +2550,7 @@ function GlyphBody({
                 {/* Pulse Terminals A1, A2 */}
                 <Txt x={6} y={cy - 5} className="term-lab">A1</Txt>
                 <Txt x={w * GRID - 6} y={cy - 5} textAnchor="end" className="term-lab">A2</Txt>
-                <Txt x={cx} y={cy} textAnchor="middle" dominantBaseline="central" className="sym-tag">
-                    {device.tag}
-                </Txt>
+                <CircleTag x={cx} y={cy} label={device.tag} radius={14} />
 
                 {/* Digital / Preset Counter Status Readout */}
                 <rect

@@ -766,6 +766,77 @@ describe("connectOverlappingTerminals", () => {
     ]);
   });
 
+  it("moves a junction with the wire and keeps the connected run short", () => {
+    const c = emptyCircuit();
+    const j = addJunction(c, 4, 2);
+    const dest = addJunction(c, 14, 6);
+    const bus = addJunction(c, 0, 2);
+    const drop = addWire(c, j.symbol, "1", dest.symbol, "1");
+    const busWire = addWire(c, bus.symbol, "1", j.symbol, "1");
+    drop.jog = { axis: "y", pos: 12 * GRID, y: 12 * GRID };
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().followWireJunctions(drop.id, [{ id: j.symbol.id, x: 14 }]);
+    const next = useLab.getState().circuit;
+    expect(next.symbols.find((s) => s.id === j.symbol.id)).toMatchObject({ x: 14, y: 2 });
+    const dropW = next.wires.find((w) => w.id === drop.id)!;
+    const busW = next.wires.find((w) => w.id === busWire.id)!;
+    expect(dropW.jog).toBeUndefined();
+    expect(wireRoute(next, dropW.a, dropW.b)).toEqual([
+      { x: 14 * GRID, y: 2 * GRID },
+      { x: 14 * GRID, y: 6 * GRID },
+    ]);
+    expect(wireRoute(next, busW.a, busW.b)).toEqual([
+      { x: 0, y: 2 * GRID },
+      { x: 14 * GRID, y: 2 * GRID },
+    ]);
+  });
+
+  it("slides a junction along a vertical run without bending that run", () => {
+    const c = emptyCircuit();
+    const top = addJunction(c, 14, 0);
+    const j = addJunction(c, 14, 4);
+    const left = addJunction(c, 8, 8);
+    const far = addJunction(c, 0, 8);
+    const branch = addWire(c, j.symbol, "1", left.symbol, "1");
+    const riser = addWire(c, top.symbol, "1", j.symbol, "1");
+    const bus = addWire(c, far.symbol, "1", left.symbol, "1");
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().followWireJunctions(branch.id, [{ id: j.symbol.id, y: 8 }]);
+    const next = useLab.getState().circuit;
+    expect(next.symbols.find((s) => s.id === j.symbol.id)).toMatchObject({ x: 14, y: 8 });
+    const branchW = next.wires.find((w) => w.id === branch.id)!;
+    const riserW = next.wires.find((w) => w.id === riser.id)!;
+    const busW = next.wires.find((w) => w.id === bus.id)!;
+    expect(branchW.jog).toBeUndefined();
+    expect(wireRoute(next, branchW.a, branchW.b)).toEqual([
+      { x: 14 * GRID, y: 8 * GRID },
+      { x: 8 * GRID, y: 8 * GRID },
+    ]);
+    expect(wireRoute(next, riserW.a, riserW.b)).toEqual([
+      { x: 14 * GRID, y: 0 },
+      { x: 14 * GRID, y: 8 * GRID },
+    ]);
+    expect(wireRoute(next, busW.a, busW.b)).toEqual([
+      { x: 0, y: 8 * GRID },
+      { x: 8 * GRID, y: 8 * GRID },
+    ]);
+  });
+
+  it("keeps a dragged jog on the requested line when another net already uses it", () => {
+    const c = emptyCircuit();
+    const a = addJunction(c, 0, 0);
+    const b = addJunction(c, 0, 10);
+    const e = addJunction(c, 2, 0);
+    const f = addJunction(c, 2, 10);
+    addWire(c, a.symbol, "1", b.symbol, "1").jog = { axis: "x", pos: 6 * GRID, x: 6 * GRID };
+    const w2 = addWire(c, e.symbol, "1", f.symbol, "1");
+    useLab.setState({ circuit: c, mode: "edit" });
+    useLab.getState().setWireJog(w2.id, { axis: "x", pos: 6 * GRID, x: 6 * GRID });
+    const stored = useLab.getState().circuit.wires.find((w) => w.id === w2.id);
+    expect(stored?.jog?.x).toBe(6 * GRID);
+    expect(wireRoute(useLab.getState().circuit, stored!.a, stored!.b, stored!.jog).some((p) => p.x === 6 * GRID)).toBe(true);
+  });
+
   it("carries an attached rail break when the control rail moves and heals when the break is dragged off", () => {
     const c = emptyCircuit();
     const pws = addDevice(c, "dc-supply", "PWS1", "body", 0, 0);

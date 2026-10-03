@@ -7,7 +7,7 @@ import { loadExampleJson } from "./examples/index";
 // templateData is no longer used after changing blank template to empty circuit (see createBlankTemplateCircuit)
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols, unionBounds } from "./groups";
 import { EXAMPLES } from "./examples";
-import { alignRailWireEnds, allWireRoutes, avoidWireOverlap, detachUnsplicedHotRailWires, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, hotRailSplices, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { alignRailWireEnds, allWireRoutes, detachUnsplicedHotRailWires, endPinnedRailTap, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, hotRailSplices, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, plainRailTap, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   docFromHash,
@@ -294,7 +294,9 @@ export interface LabState {
   connectOverlappingTerminals: (symbolIds: string[]) => void;
   addJunctionAndConnect: (gx: number, gy: number) => void;
   connectToWire: (wireId: string, world: { x: number; y: number }) => void;
-  setWireJog: (id: string, jog: WireJog) => void;
+  setWireJog: (id: string, jog: WireJog, replace?: boolean) => void;
+  /** Move junctions onto a dragged segment and drop jogs so those wires stay short. */
+  followWireJunctions: (wireId: string, moves: { id: string; x?: number; y?: number }[]) => void;
   pointerDevice: (deviceId: string, down: boolean) => void;
   toggleIo: (deviceId: string, field: "on" | "tripped" | "actuated" | "prime") => void;
   cyclePosition: (deviceId: string) => void;
@@ -1577,38 +1579,82 @@ export const useLab = create<LabState>((set, get) => ({
     set({ circuit: next, isDirty: true });
   },
 
-  setWireJog: (id, jog) => {
-    const next = clone(get().circuit);
+  setWireJog: (id, jog, replace = false) => {
+    const current = get().circuit;
+    const existing = current.wires.find((x) => x.id === id);
+    if (!existing || !jog) return;
+    if (plainRailTap(current, existing)) return;
+    const rx = jog.x !== undefined ? Math.round(jog.x / GRID) * GRID : undefined;
+    const ry = jog.y !== undefined ? Math.round(jog.y / GRID) * GRID : undefined;
+    const rpos = jog.pos !== undefined ? Math.round(jog.pos / GRID) * GRID : undefined;
+
+    const oldJogX = existing.jog?.x ?? (existing.jog?.axis === "x" ? existing.jog.pos : undefined);
+    const oldJogY = existing.jog?.y ?? (existing.jog?.axis === "y" ? existing.jog.pos : undefined);
+
+    let newJogX = rx ?? (jog.axis === "x" ? rpos : undefined);
+    let newJogY = ry ?? (jog.axis === "y" ? rpos : undefined);
+
+    if (!replace) {
+      if (newJogX === undefined && jog.axis === "y") newJogX = oldJogX;
+      if (newJogY === undefined && jog.axis === "x") newJogY = oldJogY;
+    }
+    let axis = jog.axis ?? (newJogX !== undefined ? "x" : "y");
+    if (endPinnedRailTap(current, existing)) {
+      newJogY = undefined;
+      if (newJogX === undefined) return;
+      axis = "x";
+    }
+
+    const jogObj: WireJog = {
+      axis,
+      pos: axis === "y" ? (newJogY ?? rpos ?? 0) : (newJogX ?? rpos ?? 0),
+    };
+    if (newJogX !== undefined) jogObj.x = newJogX;
+    if (newJogY !== undefined) jogObj.y = newJogY;
+    const prev = existing.jog;
+    if (
+      prev &&
+      prev.axis === jogObj.axis &&
+      prev.pos === jogObj.pos &&
+      prev.x === jogObj.x &&
+      prev.y === jogObj.y
+    ) {
+      return;
+    }
+    const next = clone(current);
     const w = next.wires.find((x) => x.id === id);
     if (!w) return;
-    if (!jog) {
-      w.jog = undefined;
-    } else {
-      const rx = jog.x !== undefined ? Math.round(jog.x / GRID) * GRID : undefined;
-      const ry = jog.y !== undefined ? Math.round(jog.y / GRID) * GRID : undefined;
-      const rpos = jog.pos !== undefined ? Math.round(jog.pos / GRID) * GRID : undefined;
+    w.jog = jogObj;
+    set({ circuit: next, isDirty: true });
+  },
 
-      const oldJogX = w.jog?.x ?? (w.jog?.axis === "x" ? w.jog.pos : undefined);
-      const oldJogY = w.jog?.y ?? (w.jog?.axis === "y" ? w.jog.pos : undefined);
-
-      let newJogX = rx ?? (jog.axis === "x" ? rpos : undefined);
-      let newJogY = ry ?? (jog.axis === "y" ? rpos : undefined);
-
-      if (newJogX === undefined && jog.axis === "y") {
-        newJogX = oldJogX;
+  followWireJunctions: (wireId, moves) => {
+    if (!moves.length) return;
+    const next = clone(get().circuit);
+    const moved = new Set<string>();
+    let changed = false;
+    for (const m of moves) {
+      if (!isJunctionSymbol(next, m.id)) continue;
+      const sym = next.symbols.find((s) => s.id === m.id);
+      if (!sym) continue;
+      const nx = m.x !== undefined ? Math.round(m.x) : sym.x;
+      const ny = m.y !== undefined ? Math.round(m.y) : sym.y;
+      if (nx !== sym.x || ny !== sym.y) {
+        sym.x = nx;
+        sym.y = ny;
+        changed = true;
       }
-      if (newJogY === undefined && jog.axis === "x") {
-        newJogY = oldJogY;
-      }
-
-      const jogObj: WireJog = {
-        axis: jog.axis ?? (newJogX !== undefined ? "x" : "y"),
-        pos: jog.axis === "y" ? (newJogY ?? rpos ?? 0) : (newJogX ?? rpos ?? 0),
-      };
-      if (newJogX !== undefined) jogObj.x = newJogX;
-      if (newJogY !== undefined) jogObj.y = newJogY;
-      w.jog = avoidWireOverlap(next, w.id, w.a, w.b, jogObj);
+      moved.add(sym.id);
     }
+    if (!moved.size) return;
+    for (const w of next.wires) {
+      if (!w.jog) continue;
+      if (w.id === wireId || moved.has(w.a.symbolId) || moved.has(w.b.symbolId)) {
+        w.jog = undefined;
+        changed = true;
+      }
+    }
+    if (!changed) return;
     set({ circuit: next, isDirty: true });
   },
 
@@ -1635,8 +1681,6 @@ export const useLab = create<LabState>((set, get) => ({
       b: port,
     };
     next.wires.push(newWire);
-    const avoidJog = avoidWireOverlap(next, newWire.id, from, port, undefined);
-    if (avoidJog) newWire.jog = avoidJog;
     set({ circuit: next, wiringFrom: null, isDirty: true });
   },
 

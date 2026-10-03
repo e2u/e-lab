@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit, mergeWires, removeJunction } from "./circuitBuilder";
 import { GRID, type Circuit } from "./types";
-import { allWireRoutes, avoidWireOverlap, alignRailWireEnds, alignStackedWireLabels, areWiresConnected, circuitRouteKey, cleanPolyline, dedupeWireLabels, ensureNetTerminalSideLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, WIRE_LANE, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiresInRect } from "./geometry";
+import { allWireRoutes, avoidWireOverlap, alignRailWireEnds, alignStackedWireLabels, areWiresConnected, circuitRouteKey, cleanPolyline, dedupeWireLabels, ensureNetTerminalSideLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, jogForJunctionSlide, jogForPolyline, junctionDragBases, junctionDragMoves, junctionFollowVertices, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, segmentAxis, slideOrthogonalSegment, slideSegmentWithJunctions, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, WIRE_LANE, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiringTarget, wiresInRect } from "./geometry";
 import { useLab } from "./store";
 
 describe("wire routing stubs", () => {
@@ -54,6 +54,486 @@ describe("wire routing stubs", () => {
     const ys = new Set(pts.slice(1, -1).map((p) => Math.round(p.y)));
     expect(ys.has(Math.round(start.y + 40))).toBe(true);
     expect(pts[1].y).toBeCloseTo(start.y);
+  });
+
+  it("drops a perpendicular leg shorter than one grid while drawing", () => {
+    const c = emptyCircuit();
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 4);
+    const from = { symbolId: km.symbol.id, term: "A2" };
+    const a = terminalWorld(c, from)!;
+    const near = wiringTarget(c, from, { x: a.x + 3 * GRID, y: a.y + GRID / 2 });
+    expect(near).toEqual({ x: a.x + 3 * GRID, y: a.y });
+    const oneCell = wiringTarget(c, from, { x: a.x + 3 * GRID, y: a.y + GRID });
+    expect(oneCell).toEqual({ x: a.x + 3 * GRID, y: a.y });
+    const far = wiringTarget(c, from, { x: a.x + 3 * GRID, y: a.y + 2 * GRID });
+    expect(far).toEqual({ x: a.x + 3 * GRID, y: a.y + 2 * GRID });
+    expect(wireRoute(c, from, near)).toEqual([a, near]);
+  });
+
+  it("moves a junction with the grabbed segment and drops the long way around", () => {
+    const c = emptyCircuit();
+    const j = addJunction(c, 4, 2);
+    const dest = addJunction(c, 14, 6);
+    const bus = addJunction(c, 0, 2);
+    const drop = addWire(c, j.symbol, "1", dest.symbol, "1");
+    const busWire = addWire(c, bus.symbol, "1", j.symbol, "1");
+    const long = [
+      { x: 4 * GRID, y: 2 * GRID },
+      { x: 4 * GRID, y: 12 * GRID },
+      { x: 14 * GRID, y: 12 * GRID },
+      { x: 14 * GRID, y: 6 * GRID },
+    ];
+    const slid = slideSegmentWithJunctions(long, 0, "x", 14 * GRID, [true, false, false, false]);
+    expect(slid).toEqual([
+      { x: 14 * GRID, y: 2 * GRID },
+      { x: 14 * GRID, y: 6 * GRID },
+    ]);
+    j.symbol.x = 14;
+    expect(wireRoute(c, drop.a, drop.b)).toEqual(slid);
+    expect(wireRoute(c, busWire.a, busWire.b)).toEqual([
+      { x: 0, y: 2 * GRID },
+      { x: 14 * GRID, y: 2 * GRID },
+    ]);
+  });
+
+  it("keeps a one-elbow path when only the junction end follows the cursor", () => {
+    const vertical = [
+      { x: 4 * GRID, y: 2 * GRID },
+      { x: 4 * GRID, y: 10 * GRID },
+    ];
+    expect(slideSegmentWithJunctions(vertical, 0, "x", 8 * GRID, [true, false])).toEqual([
+      { x: 8 * GRID, y: 2 * GRID },
+      { x: 8 * GRID, y: 10 * GRID },
+      { x: 4 * GRID, y: 10 * GRID },
+    ]);
+    expect(slideSegmentWithJunctions(vertical, 0, "x", 8 * GRID, [true, true])).toEqual([
+      { x: 8 * GRID, y: 2 * GRID },
+      { x: 8 * GRID, y: 10 * GRID },
+    ]);
+    const horizontal = [
+      { x: 2 * GRID, y: 4 * GRID },
+      { x: 10 * GRID, y: 4 * GRID },
+    ];
+    const followed = slideSegmentWithJunctions(horizontal, 0, "y", 8 * GRID, [true, false]);
+    expect(followed).toEqual([
+      { x: 2 * GRID, y: 8 * GRID },
+      { x: 10 * GRID, y: 8 * GRID },
+      { x: 10 * GRID, y: 4 * GRID },
+    ]);
+    const c = emptyCircuit();
+    const j = addJunction(c, 2, 8);
+    const k = addJunction(c, 10, 4);
+    const w = addWire(c, j.symbol, "1", k.symbol, "1");
+    const jog = jogForPolyline(c, w.a, w.b, followed);
+    expect(cleanPolyline(wireRoute(c, w.a, w.b, jog))).toEqual(followed);
+  });
+
+  it("slides a junction along a vertical run and keeps that run straight", () => {
+    const c = emptyCircuit();
+    const top = addJunction(c, 14, 0);
+    const j = addJunction(c, 14, 4);
+    const left = addJunction(c, 8, 8);
+    const far = addJunction(c, 0, 8);
+    const branch = addWire(c, j.symbol, "1", left.symbol, "1");
+    const riser = addWire(c, top.symbol, "1", j.symbol, "1");
+    addWire(c, far.symbol, "1", left.symbol, "1");
+    const pts = wireRoute(c, branch.a, branch.b);
+    expect(pts).toEqual([
+      { x: 14 * GRID, y: 4 * GRID },
+      { x: 14 * GRID, y: 8 * GRID },
+      { x: 8 * GRID, y: 8 * GRID },
+    ]);
+    const across = hitWireSegment(pts, { x: 11 * GRID, y: 8 * GRID }, 1000);
+    expect(across).toMatchObject({ index: 1, axis: "y" });
+    const follow = junctionFollowVertices(c, branch, pts, across!.index, across!.axis);
+    expect(follow).toEqual([true, false, true]);
+    const aligned = slideSegmentWithJunctions(pts, across!.index, "y", 8 * GRID, follow);
+    expect(aligned).toEqual([
+      { x: 14 * GRID, y: 8 * GRID },
+      { x: 8 * GRID, y: 8 * GRID },
+    ]);
+    const dropped = slideSegmentWithJunctions(pts, across!.index, "y", 6 * GRID, follow);
+    expect(dropped).toEqual([
+      { x: 14 * GRID, y: 6 * GRID },
+      { x: 8 * GRID, y: 6 * GRID },
+    ]);
+    const dropMoves = junctionDragMoves(c, branch, follow, "y", 6 * GRID);
+    expect(dropMoves).toEqual([
+      { id: j.symbol.id, x: 14, y: 6 },
+      { id: left.symbol.id, x: 8, y: 6 },
+    ]);
+    j.symbol.y = 6;
+    left.symbol.y = 6;
+    const jog = jogForJunctionSlide(c, branch.a, branch.b, dropped, "y", 6 * GRID);
+    expect(cleanPolyline(wireRoute(c, branch.a, branch.b, jog))).toEqual(dropped);
+    expect(wireRoute(c, riser.a, riser.b)).toEqual([
+      { x: 14 * GRID, y: 0 },
+      { x: 14 * GRID, y: 6 * GRID },
+    ]);
+
+    const upright = hitWireSegment(pts, { x: 14 * GRID, y: 6 * GRID }, 1000);
+    expect(upright).toMatchObject({ index: 0, axis: "x" });
+    const uprightFollow = junctionFollowVertices(c, branch, pts, upright!.index, upright!.axis);
+    expect(uprightFollow[0]).toBe(true);
+    expect(uprightFollow[2]).toBe(true);
+    const slidAside = slideSegmentWithJunctions(pts, upright!.index, "x", 10 * GRID, uprightFollow);
+    expect(slidAside).toEqual([
+      { x: 10 * GRID, y: 4 * GRID },
+      { x: 10 * GRID, y: 8 * GRID },
+    ]);
+  });
+
+  it("keeps a coil stub when a vertical-run junction follows the horizontal leg", () => {
+    const c = emptyCircuit();
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 8);
+    const j = addJunction(c, 14, 4);
+    const top = addJunction(c, 14, 0);
+    const branch = addWire(c, km.symbol, "A2", j.symbol, "1");
+    addWire(c, top.symbol, "1", j.symbol, "1");
+    const from = { symbolId: km.symbol.id, term: "A2" };
+    const a = terminalWorld(c, from)!;
+    const pts = wireRoute(c, branch.a, branch.b);
+    let hitIndex = -1;
+    for (let i = 0; i < pts.length - 1; i += 1) {
+      if (segmentAxis(pts[i], pts[i + 1]) !== "y") continue;
+      if (Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y) <= STUB + 2) continue;
+      hitIndex = i;
+    }
+    expect(hitIndex).toBeGreaterThanOrEqual(0);
+    const follow = junctionFollowVertices(c, branch, pts, hitIndex, "y");
+    const junctionAt = pts.findIndex((p) => Math.abs(p.x - 14 * GRID) < 0.5 && Math.abs(p.y - 4 * GRID) < 0.5);
+    expect(follow[junctionAt]).toBe(true);
+    const pos = Math.round(a.y / GRID) * GRID + 2 * GRID;
+    const slid = slideSegmentWithJunctions(pts, hitIndex, "y", pos, follow);
+    j.symbol.y = pos / GRID;
+    const jog = jogForJunctionSlide(c, branch.a, branch.b, slid, "y", pos);
+    const route = cleanPolyline(wireRoute(c, branch.a, branch.b, jog));
+    expect(route[0].x).toBeCloseTo(a.x);
+    expect(route[0].y).toBeCloseTo(a.y);
+    expect(route[1].y).toBeCloseTo(a.y);
+    expect(route[1].x).toBeGreaterThan(a.x);
+    expect(route[route.length - 1]).toEqual({ x: 14 * GRID, y: pos });
+    expect(route.some((p, i) => {
+      const q = route[i + 1];
+      return Boolean(q) && Math.abs(p.y - pos) < 0.5 && Math.abs(q.y - pos) < 0.5 && Math.abs(q.x - p.x) > GRID;
+    })).toBe(true);
+    expect(wireRoute(c, { symbolId: top.symbol.id, term: "1" }, { symbolId: j.symbol.id, term: "1" })).toEqual([
+      { x: 14 * GRID, y: 0 },
+      { x: 14 * GRID, y: pos },
+    ]);
+    j.symbol.y = 4;
+    const verticalHit = hitWireSegment(pts, { x: 14 * GRID, y: (a.y + 4 * GRID) / 2 }, 1000);
+    expect(verticalHit?.axis).toBe("x");
+    const asideFollow = junctionFollowVertices(c, branch, pts, verticalHit!.index, "x");
+    expect(asideFollow[junctionAt]).toBe(true);
+    const asidePos = 10 * GRID;
+    const aside = slideSegmentWithJunctions(pts, verticalHit!.index, "x", asidePos, asideFollow);
+    j.symbol.x = asidePos / GRID;
+    const asideJog = jogForJunctionSlide(c, branch.a, branch.b, aside, "x", asidePos);
+    const asideRoute = cleanPolyline(wireRoute(c, branch.a, branch.b, asideJog));
+    const asideEnd = asideRoute[asideRoute.length - 1];
+    expect(asideEnd.x).toBeCloseTo(asidePos);
+    expect(asideRoute[1].y).toBeCloseTo(a.y);
+    expect(asideRoute[1].x).toBeGreaterThan(a.x);
+    const span = Math.abs(asideRoute[0].x - asideEnd.x) + Math.abs(asideRoute[0].y - asideEnd.y);
+    let length = 0;
+    for (let i = 1; i < asideRoute.length; i += 1) {
+      length += Math.abs(asideRoute[i].x - asideRoute[i - 1].x) + Math.abs(asideRoute[i].y - asideRoute[i - 1].y);
+    }
+    expect(length).toBeCloseTo(span);
+  });
+
+  it("straightens a one-grid hook by moving the junction onto the dragged row", () => {
+    const c = emptyCircuit();
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 8);
+    const a = terminalWorld(c, { symbolId: km.symbol.id, term: "A2" })!;
+    const row = Math.round(a.y / GRID);
+    const top = addJunction(c, 14, row - 4);
+    const j = addJunction(c, 14, row + 1);
+    const bot = addJunction(c, 14, row + 4);
+    const branch = addWire(c, km.symbol, "A2", j.symbol, "1");
+    addWire(c, top.symbol, "1", j.symbol, "1");
+    addWire(c, j.symbol, "1", bot.symbol, "1");
+    const pts = wireRoute(c, branch.a, branch.b);
+    expect(pts[pts.length - 1].y).toBeCloseTo((row + 1) * GRID);
+    const hit = hitWireSegment(pts, { x: (a.x + 14 * GRID) / 2, y: a.y }, 1000)!;
+    expect(hit.axis).toBe("y");
+    const follow = junctionFollowVertices(c, branch, pts, hit.index, hit.axis);
+    const moves = junctionDragMoves(c, branch, follow, hit.axis, a.y);
+    expect(moves).toEqual([{ id: j.symbol.id, x: 14, y: row }]);
+    j.symbol.y = row;
+    const seeded = slideSegmentWithJunctions(pts, hit.index, hit.axis, a.y, follow);
+    const jog = jogForJunctionSlide(c, branch.a, branch.b, seeded, hit.axis, a.y);
+    const route = cleanPolyline(wireRoute(c, branch.a, branch.b, jog));
+    expect(route).toEqual([
+      { x: a.x, y: a.y },
+      { x: 14 * GRID, y: a.y },
+    ]);
+    expect(wireRoute(c, { symbolId: top.symbol.id, term: "1" }, { symbolId: j.symbol.id, term: "1" })).toEqual([
+      { x: 14 * GRID, y: (row - 4) * GRID },
+      { x: 14 * GRID, y: row * GRID },
+    ]);
+  });
+
+  it("moves a junction one grid off a straight run and keeps one short elbow", () => {
+    const c = emptyCircuit();
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 8);
+    const a = terminalWorld(c, { symbolId: km.symbol.id, term: "A2" })!;
+    const row = Math.round(a.y / GRID);
+    const j = addJunction(c, 14, row);
+    const branch = addWire(c, km.symbol, "A2", j.symbol, "1");
+    const pts = wireRoute(c, branch.a, branch.b);
+    expect(pts).toEqual([
+      { x: a.x, y: a.y },
+      { x: 14 * GRID, y: a.y },
+    ]);
+    const hit = hitWireSegment(pts, { x: (a.x + 14 * GRID) / 2, y: a.y }, 1000)!;
+    expect(hit.axis).toBe("y");
+    const follow = junctionFollowVertices(c, branch, pts, hit.index, hit.axis);
+    expect(follow[follow.length - 1]).toBe(true);
+    const pos = a.y + GRID;
+    const moves = junctionDragMoves(c, branch, follow, hit.axis, pos);
+    expect(moves).toEqual([{ id: j.symbol.id, x: 14, y: row + 1 }]);
+    j.symbol.y = row + 1;
+    const seeded = slideSegmentWithJunctions(pts, hit.index, hit.axis, pos, follow);
+    const jog = jogForJunctionSlide(c, branch.a, branch.b, seeded, hit.axis, pos);
+    const route = cleanPolyline(wireRoute(c, branch.a, branch.b, jog));
+    expect(route[route.length - 1]).toEqual({ x: 14 * GRID, y: pos });
+    expect(route[1].y).toBeCloseTo(a.y);
+    expect(route[1].x).toBeGreaterThan(a.x);
+    const span = Math.abs(route[0].x - route[route.length - 1].x) + Math.abs(route[0].y - route[route.length - 1].y);
+    let length = 0;
+    for (let i = 1; i < route.length; i += 1) {
+      length += Math.abs(route[i].x - route[i - 1].x) + Math.abs(route[i].y - route[i - 1].y);
+    }
+    expect(length).toBeCloseTo(span);
+    expect(route.some((p, i) => {
+      const q = route[i + 1];
+      return Boolean(q) && Math.abs(p.y - pos) < 0.5 && Math.abs(q.y - pos) < 0.5 && Math.abs(q.x - p.x) > GRID;
+    })).toBe(true);
+
+    const hooked = cleanPolyline(wireRoute(c, branch.a, branch.b, jog));
+    const drop = hooked.findIndex((p, i) => {
+      const q = hooked[i + 1];
+      return Boolean(q) && Math.abs(p.x - q.x) < 0.5 && Math.abs(q.y - p.y) > 1;
+    });
+    expect(drop).toBeGreaterThanOrEqual(0);
+    const verticalHit = hitWireSegment(hooked, {
+      x: hooked[drop].x,
+      y: (hooked[drop].y + hooked[drop + 1].y) / 2,
+    }, 1000)!;
+    expect(verticalHit.axis).toBe("x");
+    const asideFollow = junctionFollowVertices(c, branch, hooked, verticalHit.index, "x");
+    expect(asideFollow[hooked.length - 1]).toBe(true);
+    const asidePos = 13 * GRID;
+    const asideMoves = junctionDragMoves(c, branch, asideFollow, "x", asidePos);
+    expect(asideMoves).toEqual([{ id: j.symbol.id, x: 13, y: row + 1 }]);
+  });
+
+  it("moves a horizontal-bus junction with a downward drag and drops the U", () => {
+    const c = emptyCircuit();
+    const busL = addJunction(c, 0, 4);
+    const j = addJunction(c, 6, 4);
+    const busR = addJunction(c, 16, 4);
+    const contact = addDevice(c, "relay", "CR1", "aux-nc", 10, 3);
+    addWire(c, busL.symbol, "1", j.symbol, "1");
+    addWire(c, j.symbol, "1", busR.symbol, "1");
+    const term = { symbolId: contact.symbol.id, term: "3" };
+    const end = terminalWorld(c, term)!;
+    const branch = addWire(c, j.symbol, "1", contact.symbol, "3");
+    const pts = wireRoute(c, branch.a, branch.b);
+    const hit = hitWireSegment(pts, { x: (pts[0].x + end.x) / 2, y: pts[0].y }, 1000)!;
+    expect(hit.axis).toBe("y");
+    const follow = junctionFollowVertices(c, branch, pts, hit.index, hit.axis);
+    expect(follow[0]).toBe(true);
+    expect(follow[follow.length - 1]).toBe(false);
+    const pos = pts[0].y + 3 * GRID;
+    const u = slideOrthogonalSegment(pts, hit.index, hit.axis, pos);
+    expect(u.length).toBeGreaterThan(3);
+    const moves = junctionDragMoves(c, branch, follow, hit.axis, pos);
+    expect(moves).toEqual([{ id: j.symbol.id, x: 6, y: Math.round(pos / GRID) }]);
+    j.symbol.y = Math.round(pos / GRID);
+    const seeded = slideSegmentWithJunctions(pts, hit.index, hit.axis, pos, follow);
+    const jog = jogForJunctionSlide(c, branch.a, branch.b, seeded, hit.axis, pos);
+    const route = cleanPolyline(wireRoute(c, branch.a, branch.b, jog));
+    const span = Math.abs(route[0].x - route[route.length - 1].x) + Math.abs(route[0].y - route[route.length - 1].y);
+    let length = 0;
+    for (let i = 1; i < route.length; i += 1) length += Math.abs(route[i].x - route[i - 1].x) + Math.abs(route[i].y - route[i - 1].y);
+    expect(length).toBeCloseTo(span);
+    expect(route.some((p, i) => {
+      const q = route[i + 1];
+      return Boolean(q) && Math.abs(p.y - pos) < 0.5 && Math.abs(q.y - pos) < 0.5;
+    })).toBe(true);
+    expect(route[route.length - 1]).toEqual(end);
+  });
+
+  it("moves both junctions of a U when either the side or the arm is dragged", () => {
+    const c = emptyCircuit();
+    const above = addJunction(c, 14, 0);
+    const top = addJunction(c, 14, 4);
+    const bot = addJunction(c, 14, 12);
+    const below = addJunction(c, 14, 16);
+    addWire(c, above.symbol, "1", top.symbol, "1");
+    addWire(c, bot.symbol, "1", below.symbol, "1");
+    const branch = addWire(c, top.symbol, "1", bot.symbol, "1");
+    branch.jog = { axis: "x", pos: 10 * GRID, x: 10 * GRID };
+    const pts = wireRoute(c, branch.a, branch.b, branch.jog);
+    expect(pts).toEqual([
+      { x: 14 * GRID, y: 4 * GRID },
+      { x: 10 * GRID, y: 4 * GRID },
+      { x: 10 * GRID, y: 12 * GRID },
+      { x: 14 * GRID, y: 12 * GRID },
+    ]);
+    const side = hitWireSegment(pts, { x: 10 * GRID, y: 8 * GRID }, 1000)!;
+    expect(side).toMatchObject({ index: 1, axis: "x" });
+    const sideFollow = junctionFollowVertices(c, branch, pts, side.index, side.axis);
+    expect(sideFollow).toEqual([true, false, false, true]);
+    const bases = junctionDragBases(c, branch, pts);
+    const sideMoves = junctionDragMoves(c, branch, sideFollow, "x", 8 * GRID, pts, side.index, bases);
+    expect(sideMoves).toEqual([
+      { id: top.symbol.id, x: 8, y: 4 },
+      { id: bot.symbol.id, x: 8, y: 12 },
+    ]);
+    top.symbol.x = 8;
+    bot.symbol.x = 8;
+    branch.jog = undefined;
+    const sideJog = jogForJunctionSlide(
+      c,
+      branch.a,
+      branch.b,
+      slideSegmentWithJunctions(pts, side.index, "x", 8 * GRID, sideFollow),
+      "x",
+      8 * GRID,
+    );
+    expect(cleanPolyline(wireRoute(c, branch.a, branch.b, sideJog))).toEqual([
+      { x: 8 * GRID, y: 4 * GRID },
+      { x: 8 * GRID, y: 12 * GRID },
+    ]);
+    expect(wireRoute(c, { symbolId: above.symbol.id, term: "1" }, { symbolId: top.symbol.id, term: "1" })).toEqual([
+      { x: 14 * GRID, y: 0 },
+      { x: 14 * GRID, y: 4 * GRID },
+      { x: 8 * GRID, y: 4 * GRID },
+    ]);
+
+    top.symbol.x = 14;
+    bot.symbol.x = 14;
+    branch.jog = { axis: "x", pos: 10 * GRID, x: 10 * GRID };
+    const arm = hitWireSegment(pts, { x: 12 * GRID, y: 12 * GRID }, 1000)!;
+    expect(arm).toMatchObject({ index: 2, axis: "y" });
+    const armFollow = junctionFollowVertices(c, branch, pts, arm.index, arm.axis);
+    expect(armFollow[0]).toBe(true);
+    expect(armFollow[armFollow.length - 1]).toBe(true);
+    const armMoves = junctionDragMoves(c, branch, armFollow, "y", 13 * GRID, pts, arm.index, bases);
+    expect(armMoves).toEqual([
+      { id: top.symbol.id, x: 14, y: 5 },
+      { id: bot.symbol.id, x: 14, y: 13 },
+    ]);
+    top.symbol.y = 5;
+    bot.symbol.y = 13;
+    const continued = junctionDragMoves(c, branch, armFollow, "y", 14 * GRID, pts, arm.index, bases);
+    expect(continued).toEqual([
+      { id: top.symbol.id, x: 14, y: 6 },
+      { id: bot.symbol.id, x: 14, y: 14 },
+    ]);
+    top.symbol.y = 6;
+    bot.symbol.y = 14;
+    branch.jog = undefined;
+    const armJog = jogForJunctionSlide(
+      c,
+      branch.a,
+      branch.b,
+      slideSegmentWithJunctions(pts, arm.index, "y", 14 * GRID, armFollow),
+      "y",
+      14 * GRID,
+    );
+    expect(cleanPolyline(wireRoute(c, branch.a, branch.b, armJog))).toEqual([
+      { x: 14 * GRID, y: 6 * GRID },
+      { x: 14 * GRID, y: 14 * GRID },
+    ]);
+    expect(top.symbol.y).not.toBe(bot.symbol.y);
+  });
+
+  it("slides a straight run onto the cursor line and stores that jog", () => {
+    const c = emptyCircuit();
+    const a = addJunction(c, 4, 2);
+    const b = addJunction(c, 4, 10);
+    addWire(c, a.symbol, "1", b.symbol, "1");
+    const w = c.wires[0];
+    const pts = wireRoute(c, w.a, w.b);
+    expect(pts).toEqual([
+      { x: 4 * GRID, y: 2 * GRID },
+      { x: 4 * GRID, y: 10 * GRID },
+    ]);
+    const slid = slideOrthogonalSegment(pts, 0, "x", 7 * GRID);
+    expect(slid).toEqual([
+      { x: 4 * GRID, y: 2 * GRID },
+      { x: 7 * GRID, y: 2 * GRID },
+      { x: 7 * GRID, y: 10 * GRID },
+      { x: 4 * GRID, y: 10 * GRID },
+    ]);
+    const jog = jogForPolyline(c, w.a, w.b, slid);
+    expect(jog?.x).toBe(7 * GRID);
+    expect(cleanPolyline(wireRoute(c, w.a, w.b, jog))).toEqual(slid);
+  });
+
+  it("slides only the grabbed segment and can store that path as a jog", () => {
+    const c = emptyCircuit();
+    const km = addDevice(c, "contactor", "M1", "coil", 4, 4);
+    const lamp = addDevice(c, "lamp", "LT1", "body", 16, 12);
+    addWire(c, km.symbol, "A2", lamp.symbol, "1");
+    const w = c.wires[0];
+    const pts = wireRoute(c, w.a, w.b);
+    const index = pts.findIndex((p, i) => i < pts.length - 1 && Math.abs(p.x - pts[i + 1].x) < 0.5 && Math.abs(pts[i + 1].y - p.y) > GRID);
+    expect(index).toBeGreaterThan(0);
+    const slid = slideOrthogonalSegment(pts, index, "x", 10 * GRID);
+    expect(slid[0]).toEqual(pts[0]);
+    expect(slid[slid.length - 1]).toEqual(pts[pts.length - 1]);
+    expect(slid.some((p) => p.x === 10 * GRID)).toBe(true);
+    const keptY = pts[index].y;
+    expect(slid.some((p) => p.y === keptY)).toBe(true);
+    const jog = jogForPolyline(c, w.a, w.b, slid);
+    expect(jog?.x).toBe(10 * GRID);
+    const again = wireRoute(c, w.a, w.b, jog);
+    expect(again.some((p) => p.x === 10 * GRID)).toBe(true);
+    expect(again[0]).toEqual(pts[0]);
+    expect(again[again.length - 1]).toEqual(pts[pts.length - 1]);
+  });
+
+  it("keeps an anchored wire on its jog line and shifts the neighbour", () => {
+    const c = emptyCircuit();
+    const a = addJunction(c, 0, 0);
+    const b = addJunction(c, 0, 10);
+    const e = addJunction(c, 0, 2);
+    const f = addJunction(c, 0, 8);
+    const w1 = addWire(c, a.symbol, "1", b.symbol, "1");
+    const w2 = addWire(c, e.symbol, "1", f.symbol, "1");
+    w1.jog = { axis: "x", pos: 6 * GRID, x: 6 * GRID };
+    w2.jog = { axis: "x", pos: 6 * GRID, x: 6 * GRID };
+    const routes = allWireRoutes(c, w1.id);
+    const anchored = routes.get(w1.id)!;
+    expect(anchored.some((p) => p.x === 6 * GRID)).toBe(true);
+    const other = routes.get(w2.id)!;
+    const otherX = other.find((p) => Math.abs(p.x - 6 * GRID) > 0.5)?.x ?? other[1].x;
+    expect(Math.abs(otherX - 6 * GRID)).toBeGreaterThanOrEqual(WIRE_LANE - 1);
+  });
+
+  it("turns an end-square rail tap beside the device and enters the rail horizontally", () => {
+    const c = emptyCircuit();
+    const hot = addDevice(c, "rail-l", "L", "body", 2, 0, { railY0: 0, railY1: 20 });
+    const pb = addDevice(c, "pb-no", "PB1", "body", 8, 4);
+    const w = addWire(c, pb.symbol, "2", hot.symbol, "y0");
+    w.b.railPin = "y0";
+    w.jog = { axis: "x", pos: 6 * GRID, x: 6 * GRID };
+    const pts = wireRoute(c, w.a, w.b, w.jog);
+    const rail = terminalWorld(c, w.b)!;
+    expect(pts[pts.length - 1]).toEqual(rail);
+    expect(pts[pts.length - 2].y).toBeCloseTo(rail.y);
+    expect(pts.some((p) => p.x === 6 * GRID)).toBe(true);
+    for (let i = 0; i < pts.length - 1; i += 1) {
+      const dx = Math.abs(pts[i + 1].x - pts[i].x);
+      const dy = Math.abs(pts[i + 1].y - pts[i].y);
+      expect(dx < 0.5 || dy < 0.5).toBe(true);
+    }
   });
 
   it("snaps a free wiring destination to the integer grid", () => {

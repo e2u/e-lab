@@ -122,10 +122,12 @@ export function Schematic() {
     if (d && (d.kind === "net-label" || d.kind === "net-terminal")) selectedNetTag = d.tag.trim();
   }
 
+  const [routingWireId, setRoutingWireId] = useState<string | null>(null);
   const geomKey = useMemo(() => circuitRouteKey(circuit), [circuit]);
   // geomKey already encodes the circuit fields that affect routing.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid recompute on unrelated circuit identity changes
-  const routes = useMemo(() => allWireRoutes(circuit), [geomKey]);
+  // routingWireId keeps the wire under the cursor on its own grid line.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- geomKey is the geometry fingerprint; routingWireId is the wire under the cursor
+  const routes = useMemo(() => allWireRoutes(circuit, routingWireId ?? undefined), [geomKey, routingWireId]);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- geomKey is the geometry fingerprint
   const crossovers = useMemo(() => findWireCrossovers(circuit, routes), [geomKey, routes]);
 
@@ -190,6 +192,7 @@ export function Schematic() {
     placing,
     routes,
     containerRef: wrapRef,
+    onRoutingWire: setRoutingWireId,
   });
 
   return (

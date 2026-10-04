@@ -361,7 +361,7 @@ export interface LabState {
   updateWire: (id: string, patch: Partial<Wire>) => void;
   updateConnectedWires: (wireId: string, patch: Partial<Wire>) => void;
   getConnectedWireIds: (wireId: string) => Set<string>;
-  straightenWire: (id: string) => void;
+  straightenWire: (id: string, recordHistory?: boolean) => void;
   addJunctionOnWire: (id: string, worldPos?: { x: number; y: number }) => void;
   addJunctionAt: (gx: number, gy: number) => void;
   updateGroup: (groupId: string, patch: { color?: string; name?: string; hideOnPrint?: boolean }) => void;
@@ -2338,11 +2338,11 @@ export const useLab = create<LabState>((set, get) => ({
   getConnectedWireIds: (wireId) => {
     return getConnectedWireIds(get().circuit, wireId);
   },
-  straightenWire: (id) => {
+  straightenWire: (id, recordHistory = true) => {
     const circuit = get().circuit;
     const w = circuit.wires.find((x) => x.id === id);
     if (!w || !w.jog) return;
-    get().pushHistory();
+    if (recordHistory) get().pushHistory();
     const next = clone(circuit);
     const target = next.wires.find((x) => x.id === id);
     if (target) {

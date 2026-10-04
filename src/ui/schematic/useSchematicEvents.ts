@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from "react";
-import { findPortAtPoint, findWireAtPoint, getClosestTOnPolyline, hitWireSegment, jogForJunctionSlide, jogForPolyline, junctionDragBases, junctionDragMoves, junctionFollowVertices, plainRailTap, portsEqual, slideOrthogonalSegment, slideSegmentWithJunctions, wireRoute, wiringTarget, wiresInRect } from "../../geometry";
+import { endPinnedRailTap, findPortAtPoint, findWireAtPoint, getClosestTOnPolyline, hitWireSegment, jogForFixedSegmentDrag, jogForJunctionSlide, jogForPolyline, junctionDragBases, junctionDragMoves, junctionFollowVertices, plainRailTap, portsEqual, slideOrthogonalSegment, slideSegmentWithJunctions, wireRoute, wiringTarget, wiresInRect } from "../../geometry";
 import { contentRows, hitTestRailCell, layoutLogicRails, railEnds, type RailCellBox, type RailSelection, type RailSpine } from "../../rails/logicRails";
 import { railTermId } from "../../rails/railBus";
 import { normalizeRect, symbolsInRect } from "../../groups";
@@ -683,16 +683,19 @@ export function useSchematicEvents({
         : [];
       if (dragWire.lastPos === pos && moves.length === 0) return;
       dragWire.lastPos = pos;
-      if (
-        !dragWire.pushedHistory &&
-        (moves.length > 0 ||
+      const ensureHistory = () => {
+        if (dragWire.pushedHistory) return;
+        if (
+          moves.length > 0 ||
           dragWire.startX === undefined ||
-          Math.hypot(e.clientX - dragWire.startX, e.clientY - (dragWire.startY ?? 0)) > 2)
-      ) {
-        useLab.getState().pushHistory();
-        dragWire.pushedHistory = true;
-      }
+          Math.hypot(e.clientX - dragWire.startX, e.clientY - (dragWire.startY ?? 0)) > 2
+        ) {
+          useLab.getState().pushHistory();
+          dragWire.pushedHistory = true;
+        }
+      };
       if (w && dragWire.junctionFollow.some(Boolean)) {
+        ensureHistory();
         if (moves.length) useLab.getState().followWireJunctions(dragWire.id, moves);
         const after = useLab.getState().circuit;
         const moved = after.wires.find((item) => item.id === dragWire.id);
@@ -700,24 +703,38 @@ export function useSchematicEvents({
           const seeded = slideSegmentWithJunctions(dragWire.originPts, dragWire.index, axis, pos, dragWire.junctionFollow);
           const matchedJunction = jogForJunctionSlide(after, moved.a, moved.b, seeded, axis, pos);
           if (matchedJunction) useLab.getState().setWireJog(dragWire.id, matchedJunction, true);
+          else if (moved.jog) useLab.getState().straightenWire(dragWire.id, false);
         }
         return;
       }
-      const slid = slideOrthogonalSegment(dragWire.originPts, dragWire.index, axis, pos);
-      const matched = w ? jogForPolyline(live, w.a, w.b, slid) : undefined;
-      if (matched) {
-        useLab.getState().setWireJog(dragWire.id, matched, true);
+      // An end-square rail pin may still turn beside the device.
+      if (w && endPinnedRailTap(live, w)) {
+        ensureHistory();
+        const slid = slideOrthogonalSegment(dragWire.originPts, dragWire.index, axis, pos);
+        const matched = jogForPolyline(live, w.a, w.b, slid);
+        if (matched) {
+          useLab.getState().setWireJog(dragWire.id, matched, true);
+          return;
+        }
+        const jogPayload: WireJog = { axis, pos };
+        if (axis === "x") {
+          jogPayload.x = pos;
+          if (dragWire.otherAxisJog !== undefined) jogPayload.y = dragWire.otherAxisJog;
+        } else {
+          jogPayload.y = pos;
+          if (dragWire.otherAxisJog !== undefined) jogPayload.x = dragWire.otherAxisJog;
+        }
+        useLab.getState().setWireJog(dragWire.id, jogPayload);
         return;
       }
-      const jogPayload: WireJog = { axis, pos };
-      if (axis === "x") {
-        jogPayload.x = pos;
-        if (dragWire.otherAxisJog !== undefined) jogPayload.y = dragWire.otherAxisJog;
-      } else {
-        jogPayload.y = pos;
-        if (dragWire.otherAxisJog !== undefined) jogPayload.x = dragWire.otherAxisJog;
-      }
-      useLab.getState().setWireJog(dragWire.id, jogPayload);
+      // A device terminal stays put, so a perpendicular drag must not grow a return bend.
+      const fixedJog = w
+        ? jogForFixedSegmentDrag(live, w.a, w.b, dragWire.originPts, dragWire.index, axis, pos)
+        : undefined;
+      if (!fixedJog && !w?.jog) return;
+      ensureHistory();
+      if (fixedJog) useLab.getState().setWireJog(dragWire.id, fixedJog, true);
+      else if (w?.jog) useLab.getState().straightenWire(dragWire.id, false);
       return;
     }
     if (drag.current && mode === "edit") {

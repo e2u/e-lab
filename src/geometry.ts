@@ -1139,6 +1139,24 @@ export function jogForJunctionSlide(
 }
 
 /**
+ * Jog for a drag that cannot move either endpoint.
+ * Undefined leaves the natural stub-preserving route, so a perpendicular
+ * pull does not store the out-and-back bend.
+ */
+export function jogForFixedSegmentDrag(
+  circuit: Circuit,
+  from: PortRef,
+  to: PortRef,
+  originPts: { x: number; y: number }[],
+  index: number,
+  axis: "x" | "y",
+  pos: number,
+): WireJog | undefined {
+  const slid = slideOrthogonalSegment(originPts, index, axis, pos);
+  return jogForJunctionSlide(circuit, from, to, slid, axis, pos);
+}
+
+/**
  * Junction endpoints that move with this drag.
  * Either end follows, whichever segment is grabbed, so the far junction
  * is not left behind when the near one slides.

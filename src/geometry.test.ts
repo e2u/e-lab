@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { addDevice, addJunction, addWire, emptyCircuit, mergeWires, removeJunction } from "./circuitBuilder";
 import { GRID, type Circuit } from "./types";
-import { allWireRoutes, avoidWireOverlap, alignRailWireEnds, alignStackedWireLabels, areWiresConnected, circuitRouteKey, cleanPolyline, dedupeWireLabels, ensureNetTerminalSideLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, jogForJunctionSlide, jogForPolyline, junctionDragBases, junctionDragMoves, junctionFollowVertices, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, segmentAxis, slideOrthogonalSegment, slideSegmentWithJunctions, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, WIRE_LANE, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiringTarget, wiresInRect } from "./geometry";
+import { allWireRoutes, avoidWireOverlap, alignRailWireEnds, alignStackedWireLabels, areWiresConnected, circuitRouteKey, cleanPolyline, dedupeWireLabels, ensureNetTerminalSideLabels, findOptimalJunctionForWires, findOverlappingTerminalPairs, getConnectedWireIds, HOP_R, STUB, findPortAtPoint, findWireCrossovers, hitWireSegment, hopArcD, jogForFixedSegmentDrag, jogForJunctionSlide, jogForPolyline, junctionDragBases, junctionDragMoves, junctionFollowVertices, nearestOnPolyline, pickJunctionPositionOnWire, pickVisibleWireLabels, polylinePathD, segmentAxis, slideOrthogonalSegment, slideSegmentWithJunctions, snapOnSegment, snapPointToGrid, terminalOutward, terminalWorld, textUnflipTransform, toggleWorldFlip, WIRE_LABEL_REPEAT, WIRE_LABEL_SEPARATION, WIRE_LANE, wireLabelAnchors, wireLabelOffset, wireLabelPos, wireLabelRadius, wireRoute, wiringTarget, wiresInRect } from "./geometry";
 import { useLab } from "./store";
 
 describe("wire routing stubs", () => {
@@ -474,6 +474,118 @@ describe("wire routing stubs", () => {
     const jog = jogForPolyline(c, w.a, w.b, slid);
     expect(jog?.x).toBe(7 * GRID);
     expect(cleanPolyline(wireRoute(c, w.a, w.b, jog))).toEqual(slid);
+  });
+
+  it("keeps a straight terminal run straight when that wire is dragged", () => {
+    const c = emptyCircuit();
+    const btn = addDevice(c, "pb-no", "PB1", "body", 4, 4);
+    const relay = addDevice(c, "relay", "CR1", "aux-no", 4, 8);
+    const w = addWire(c, btn.symbol, "1", relay.symbol, "1");
+    const pts = wireRoute(c, w.a, w.b);
+    expect(pts).toEqual([
+      { x: 4 * GRID, y: 5 * GRID },
+      { x: 4 * GRID, y: 9 * GRID },
+    ]);
+    const pos = 7 * GRID;
+    expect(slideOrthogonalSegment(pts, 0, "x", pos)).toHaveLength(4);
+    expect(jogForFixedSegmentDrag(c, w.a, w.b, pts, 0, "x", pos)).toBeUndefined();
+    expect(cleanPolyline(wireRoute(c, w.a, w.b))).toEqual(pts);
+
+    w.jog = { axis: "x", pos, x: pos };
+    const hooked = wireRoute(c, w.a, w.b, w.jog);
+    expect(hooked.length).toBeGreaterThan(3);
+    const side = hitWireSegment(hooked, { x: pos, y: 7 * GRID }, 1000)!;
+    expect(side.axis).toBe("x");
+    expect(jogForFixedSegmentDrag(c, w.a, w.b, hooked, side.index, "x", 8 * GRID)).toBeUndefined();
+    expect(cleanPolyline(wireRoute(c, w.a, w.b))).toEqual(pts);
+  });
+
+  it("does not fold a contact terminal back when its junction follows", () => {
+    const c = emptyCircuit();
+    const contact = addDevice(c, "timer-ss-on", "TR1", "inst-no", 8, 6);
+    const pin = { symbolId: contact.symbol.id, term: "3" };
+    const end = terminalWorld(c, pin)!;
+    expect(terminalOutward(c, pin)).toEqual({ x: 1, y: 0 });
+    const row = Math.round(end.y / GRID);
+    const col = Math.round(end.x / GRID);
+    const j = addJunction(c, col + 4, row);
+    const branch = addWire(c, contact.symbol, "3", j.symbol, "1");
+    const pts = wireRoute(c, branch.a, branch.b);
+    const hit = hitWireSegment(pts, { x: (pts[0].x + pts[pts.length - 1].x) / 2, y: end.y }, 1000)!;
+    expect(hit.axis).toBe("y");
+    const follow = junctionFollowVertices(c, branch, pts, hit.index, hit.axis);
+    expect(follow.some(Boolean)).toBe(true);
+    const pos = end.y + 3 * GRID;
+    const moves = junctionDragMoves(c, branch, follow, hit.axis, pos, pts, hit.index, junctionDragBases(c, branch, pts));
+    expect(moves).toEqual([{ id: j.symbol.id, x: col + 4, y: row + 3 }]);
+    j.symbol.y = row + 3;
+    const seeded = slideSegmentWithJunctions(pts, hit.index, hit.axis, pos, follow);
+    const jog = jogForJunctionSlide(c, branch.a, branch.b, seeded, hit.axis, pos);
+    const route = cleanPolyline(wireRoute(c, branch.a, branch.b, jog));
+    expect(route[0]).toEqual(end);
+    expect(route[route.length - 1]).toEqual({ x: (col + 4) * GRID, y: pos });
+    const minX = Math.min(route[0].x, route[route.length - 1].x) - STUB - 1;
+    const maxX = Math.max(route[0].x, route[route.length - 1].x) + STUB + 1;
+    const minY = Math.min(route[0].y, route[route.length - 1].y) - STUB - 1;
+    const maxY = Math.max(route[0].y, route[route.length - 1].y) + STUB + 1;
+    for (const p of route) {
+      expect(p.x).toBeGreaterThanOrEqual(minX);
+      expect(p.x).toBeLessThanOrEqual(maxX);
+      expect(p.y).toBeGreaterThanOrEqual(minY);
+      expect(p.y).toBeLessThanOrEqual(maxY);
+    }
+    if (route.length > 2) {
+      expect(route[1].y).toBeCloseTo(end.y);
+      expect(route[1].x).toBeGreaterThan(end.x);
+    }
+    let length = 0;
+    for (let i = 1; i < route.length; i += 1) {
+      length += Math.abs(route[i].x - route[i - 1].x) + Math.abs(route[i].y - route[i - 1].y);
+    }
+    const span = Math.abs(route[0].x - route[route.length - 1].x) + Math.abs(route[0].y - route[route.length - 1].y);
+    expect(length).toBeLessThanOrEqual(span + STUB + 1);
+  });
+
+  it("drops a return bend between a junction and a contact terminal", () => {
+    const c = emptyCircuit();
+    const contact = addDevice(c, "timer-ss-on", "TR1", "inst-no", 10, 8);
+    const pin = { symbolId: contact.symbol.id, term: "1" };
+    const end = terminalWorld(c, pin)!;
+    expect(terminalOutward(c, pin).x).toBe(-1);
+    const col = Math.round(end.x / GRID);
+    const row = Math.round(end.y / GRID);
+    const j = addJunction(c, col, row - 4);
+    const branch = addWire(c, j.symbol, "1", contact.symbol, "1");
+    branch.jog = { axis: "x", pos: (col - 3) * GRID, x: (col - 3) * GRID };
+    const pts = wireRoute(c, branch.a, branch.b, branch.jog);
+    expect(pts.length).toBeGreaterThan(3);
+    const side = hitWireSegment(pts, { x: (col - 3) * GRID, y: (row - 2) * GRID }, 1000)!;
+    expect(side.axis).toBe("x");
+    const follow = junctionFollowVertices(c, branch, pts, side.index, side.axis);
+    expect(follow[0] || follow[follow.length - 1]).toBe(true);
+    const pos = (col - 4) * GRID;
+    const moves = junctionDragMoves(c, branch, follow, "x", pos, pts, side.index, junctionDragBases(c, branch, pts));
+    expect(moves.some((m) => m.id === j.symbol.id && m.x === col - 4)).toBe(true);
+    j.symbol.x = col - 4;
+    branch.jog = undefined;
+    const seeded = slideSegmentWithJunctions(pts, side.index, "x", pos, follow);
+    const jog = jogForJunctionSlide(c, branch.a, branch.b, seeded, "x", pos);
+    const route = cleanPolyline(wireRoute(c, branch.a, branch.b, jog));
+    expect(route[route.length - 1].x).toBeCloseTo(end.x);
+    expect(route[route.length - 1].y).toBeCloseTo(end.y);
+    expect(route[0]).toEqual({ x: (col - 4) * GRID, y: (row - 4) * GRID });
+    const minX = Math.min(route[0].x, route[route.length - 1].x) - STUB - 1;
+    const maxX = Math.max(route[0].x, route[route.length - 1].x) + STUB - 1;
+    for (const p of route) {
+      expect(p.x).toBeGreaterThanOrEqual(minX);
+      expect(p.x).toBeLessThanOrEqual(maxX + 2);
+    }
+    let length = 0;
+    for (let i = 1; i < route.length; i += 1) {
+      length += Math.abs(route[i].x - route[i - 1].x) + Math.abs(route[i].y - route[i - 1].y);
+    }
+    const span = Math.abs(route[0].x - route[route.length - 1].x) + Math.abs(route[0].y - route[route.length - 1].y);
+    expect(length).toBeLessThanOrEqual(span + STUB + 1);
   });
 
   it("slides only the grabbed segment and can store that path as a jog", () => {

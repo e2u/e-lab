@@ -476,6 +476,74 @@ describe("wire routing stubs", () => {
     expect(cleanPolyline(wireRoute(c, w.a, w.b, jog))).toEqual(slid);
   });
 
+  it("draws a transformer H1–H4 link as one straight segment", () => {
+    const pairs = [
+      ["H1", "H3"],
+      ["H2", "H4"],
+      ["H3", "H2"],
+      ["H1", "H2"],
+      ["H1", "H4"],
+      ["H4", "H3"],
+    ] as const;
+    for (const [ta, tb] of pairs) {
+      const c = emptyCircuit();
+      const xf = addDevice(c, "transformer", "T1", "body", 8, 6);
+      const w = addWire(c, xf.symbol, ta, xf.symbol, tb);
+      const a = terminalWorld(c, w.a)!;
+      const b = terminalWorld(c, w.b)!;
+      const pts = wireRoute(c, w.a, w.b);
+      expect(pts).toEqual([a, b]);
+      expect(a.x).toBeCloseTo(b.x);
+      expect(pts).toHaveLength(2);
+
+      w.jog = { axis: "x", pos: a.x - GRID, x: a.x - GRID };
+      expect(wireRoute(c, w.a, w.b, w.jog)).toEqual([a, b]);
+      expect(jogForFixedSegmentDrag(c, w.a, w.b, pts, 0, "x", a.x - 2 * GRID)).toBeUndefined();
+    }
+
+    const turned = emptyCircuit();
+    const rot = addDevice(turned, "transformer", "T1", "body", 6, 6, {}, 90);
+    const rotWire = addWire(turned, rot.symbol, "H1", rot.symbol, "H3");
+    const rotPts = wireRoute(turned, rotWire.a, rotWire.b);
+    expect(rotPts).toHaveLength(2);
+    expect(rotPts[0].y).toBeCloseTo(rotPts[1].y);
+
+    const flipped = emptyCircuit();
+    const flip = addDevice(flipped, "transformer", "T1", "body", 6, 6, {}, 0, true);
+    const flipWire = addWire(flipped, flip.symbol, "H2", flip.symbol, "H4");
+    const flipPts = wireRoute(flipped, flipWire.a, flipWire.b);
+    expect(flipPts).toHaveLength(2);
+    expect(flipPts[0].x).toBeCloseTo(flipPts[1].x);
+    expect(flipPts[0].x).toBeCloseTo((6 + 6) * GRID);
+
+    const stacked = emptyCircuit();
+    const body = addDevice(stacked, "transformer", "T1", "body", 8, 6);
+    const h13 = addWire(stacked, body.symbol, "H1", body.symbol, "H3");
+    const h24 = addWire(stacked, body.symbol, "H2", body.symbol, "H4");
+    const routes = allWireRoutes(stacked);
+    const p13 = routes.get(h13.id)!;
+    const p24 = routes.get(h24.id)!;
+    expect(p13).toHaveLength(2);
+    expect(p24).toHaveLength(2);
+    expect(p13[0].x).toBeCloseTo(p13[1].x);
+    expect(p24[0].x).toBeCloseTo(p13[0].x);
+
+    const external = emptyCircuit();
+    const src = addDevice(external, "transformer", "T1", "body", 8, 6);
+    const lamp = addDevice(external, "lamp", "LT1", "body", 2, 14);
+    const feed = addWire(external, src.symbol, "H1", lamp.symbol, "2");
+    const feedPts = wireRoute(external, feed.a, feed.b);
+    const h1 = terminalWorld(external, feed.a)!;
+    expect(feedPts.length).toBeGreaterThanOrEqual(3);
+    expect(feedPts[0]).toEqual(h1);
+    expect(feedPts[1].y).toBeCloseTo(h1.y);
+    expect(feedPts[1].x).toBeLessThan(h1.x);
+
+    const cross = addWire(external, src.symbol, "H1", src.symbol, "X1");
+    const crossPts = wireRoute(external, cross.a, cross.b);
+    expect(crossPts.length).toBeGreaterThan(2);
+  });
+
   it("keeps a straight terminal run straight when that wire is dragged", () => {
     const c = emptyCircuit();
     const btn = addDevice(c, "pb-no", "PB1", "body", 4, 4);

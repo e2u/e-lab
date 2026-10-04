@@ -442,6 +442,18 @@ function approachRail(
   return toRail ? [a, stub, knee, corner, b] : [a, corner, knee, stub, b];
 }
 
+const TRANSFORMER_PRIMARY_TERMS = new Set(["H1", "H2", "H3", "H4"]);
+
+function isTransformerPrimaryTerm(circuit: Circuit, ref: PortRef): boolean {
+  if (portKind(circuit, ref) !== "transformer") return false;
+  return TRANSFORMER_PRIMARY_TERMS.has(ref.term.trim().toUpperCase());
+}
+
+/** H1–H4 share one transformer edge, so a link between them is that edge. */
+function isTransformerPrimaryLink(circuit: Circuit, from: PortRef, to: PortRef): boolean {
+  return isTransformerPrimaryTerm(circuit, from) && isTransformerPrimaryTerm(circuit, to);
+}
+
 /** Orthogonal route that leaves each terminal in a straight stub before any 90° bend. */
 export function wireRoute(
   circuit: Circuit,
@@ -460,6 +472,13 @@ export function wireRoute(
   if (isPortRef(to)) {
     const b = terminalWorld(circuit, to);
     if (!b) return pts;
+    // Same-symbol H1–H4 would otherwise leave sideways and come back as a C.
+    if (
+      isTransformerPrimaryLink(circuit, from, to) &&
+      (Math.abs(a.x - b.x) < 0.5 || Math.abs(a.y - b.y) < 0.5)
+    ) {
+      return [a, b];
+    }
     const isSelf = from.symbolId === to.symbolId;
     const fromKind = portKind(circuit, from);
     const toKind = portKind(circuit, to);
@@ -1348,9 +1367,12 @@ export function circuitRouteKey(circuit: Circuit): string {
 export function allWireRoutes(circuit: Circuit, anchorId?: string): Map<string, Pt[]> {
   const base = new Map<string, Pt[]>();
   const byId = new Map<string, { a: PortRef; b: PortRef }>();
+  const straightPrimary = new Set<string>();
   for (const w of circuit.wires) {
-    base.set(w.id, wireRoute(circuit, w.a, w.b, w.jog));
+    const pts = wireRoute(circuit, w.a, w.b, w.jog);
+    base.set(w.id, pts);
     byId.set(w.id, w);
+    if (pts.length === 2 && isTransformerPrimaryLink(circuit, w.a, w.b)) straightPrimary.add(w.id);
   }
   const occs: Occ[] = [];
   for (const [id, pts] of base) {
@@ -1368,15 +1390,19 @@ export function allWireRoutes(circuit: Circuit, anchorId?: string): Map<string, 
       const n = 1 + Math.max(0, ...lanes.values());
       if (n < 2) continue;
       const anchorOcc = anchorId ? comp.find((o) => o.id === anchorId) : undefined;
+      const primaryOcc = comp.find((o) => straightPrimary.has(o.id));
       const railOcc = comp.find((o) => isRailWire(circuit, byId.get(o.id)!));
       const center = anchorOcc
         ? (lanes.get(`${anchorOcc.id}:${anchorOcc.i}`) ?? 0)
-        : railOcc
-          ? (lanes.get(`${railOcc.id}:${railOcc.i}`) ?? 0)
-          : (n - 1) / 2;
+        : primaryOcc
+          ? (lanes.get(`${primaryOcc.id}:${primaryOcc.i}`) ?? 0)
+          : railOcc
+            ? (lanes.get(`${railOcc.id}:${railOcc.i}`) ?? 0)
+            : (n - 1) / 2;
       for (const o of comp) {
         if (isRailWire(circuit, byId.get(o.id)!)) continue;
         if (anchorOcc && o.id === anchorId) continue;
+        if (straightPrimary.has(o.id)) continue;
         const lane = lanes.get(`${o.id}:${o.i}`) ?? 0;
         const d = (lane - center) * WIRE_LANE;
         if (Math.abs(d) > 0.5) shift.set(`${o.id}:${o.i}`, d);

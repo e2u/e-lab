@@ -1284,6 +1284,16 @@ body.panel-resizing * {
   fill: rgba(217, 119, 6, 0.5);
 }
 
+/* Same-tag link between coil-less devices. */
+.device-rel-line.name {
+  stroke: rgba(220, 38, 38, 0.7);
+  stroke-dasharray: 6 4;
+}
+
+.device-rel-arrow.name {
+  fill: rgba(220, 38, 38, 0.75);
+}
+
 @media print {
   .device-rel-layer {
     display: none !important;

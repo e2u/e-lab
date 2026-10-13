@@ -37,6 +37,31 @@ export function relatedSymbols(circuit: Circuit, selectedSymbolId: string): Symb
   });
 }
 
+/** True when the device owns a coil symbol (contactor, relay, timer...). */
+export function deviceHasCoil(circuit: Circuit, deviceId: string): boolean {
+  return circuit.symbols.some((s) => s.deviceId === deviceId && s.variant === "coil");
+}
+
+/**
+ * Symbols of other coil-less devices sharing the selected device's tag.
+ * Empty when the selected device has a coil (its contacts are linked via `relatedSymbols`).
+ */
+export function sameNameSymbols(circuit: Circuit, selectedSymbolId: string): SymbolInst[] {
+  const selectedSym = circuit.symbols.find((s) => s.id === selectedSymbolId);
+  if (!selectedSym) return [];
+  const selectedDev = circuit.devices.find((d) => d.id === selectedSym.deviceId);
+  if (!selectedDev || selectedDev.kind === "comment" || SKIP_KINDS.has(selectedDev.kind)) return [];
+  const tag = selectedDev.tag.trim();
+  if (!tag || deviceHasCoil(circuit, selectedDev.id)) return [];
+  return circuit.symbols.filter((sym) => {
+    if (sym.deviceId === selectedDev.id) return false;
+    const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev || dev.kind === "comment" || SKIP_KINDS.has(dev.kind)) return false;
+    if (dev.tag.trim() !== tag) return false;
+    return !deviceHasCoil(circuit, dev.id);
+  });
+}
+
 export function symbolWorldBox(circuit: Circuit, sym: SymbolInst): Box | null {
   const b = symbolBounds(circuit, sym);
   if (!b) return null;
@@ -88,6 +113,8 @@ export interface AssociationSpoke {
   id: string;
   from: Pt;
   to: Pt;
+  /** "device": same device / comment link; "name": same-tag coil-less device link. */
+  kind: "device" | "name";
 }
 
 /**
@@ -116,13 +143,16 @@ export function associationSpokes(circuit: Circuit, selectedSymbolId: string): A
   if (!selectedSym) return [];
   const fromBox = symbolWorldBox(circuit, selectedSym);
   if (!fromBox) return [];
+  const byName = sameNameSymbols(circuit, selectedSymbolId);
+  const nameIds = new Set(byName.map((s) => s.id));
+  const targets = [...relatedSymbols(circuit, selectedSymbolId).filter((s) => !nameIds.has(s.id)), ...byName];
   const spokes: AssociationSpoke[] = [];
-  for (const rel of relatedSymbols(circuit, selectedSymbolId)) {
+  for (const rel of targets) {
     const toBox = symbolWorldBox(circuit, rel);
     if (!toBox) continue;
     const spoke = spokeFromTo(fromBox, toBox);
     if (!spoke) continue;
-    spokes.push({ id: rel.id, from: spoke.from, to: spoke.to });
+    spokes.push({ id: rel.id, from: spoke.from, to: spoke.to, kind: nameIds.has(rel.id) ? "name" : "device" });
   }
   return spokes;
 }

@@ -2016,6 +2016,58 @@ export function findOverlappingTerminalPairs(
   return pairs;
 }
 
+/**
+ * Terminals of unwired symbols that sit on a wire path, away from the wire ends.
+ * Each terminal lands on at most one wire. `t` is the distance along the wire route.
+ */
+export function findTerminalsOnWires(
+  circuit: Circuit,
+  symbolIds: string[],
+  tolerancePx = TERMINAL_OVERLAP_PX,
+): { port: PortRef; wireId: string; x: number; y: number; t: number }[] {
+  const wired = new Set<string>();
+  for (const w of circuit.wires) {
+    wired.add(w.a.symbolId);
+    wired.add(w.b.symbolId);
+  }
+  const candidates = symbolIds.filter((id) => {
+    if (wired.has(id)) return false;
+    const sym = circuit.symbols.find((s) => s.id === id);
+    const dev = sym && circuit.devices.find((d) => d.id === sym.deviceId);
+    return Boolean(dev) && dev!.kind !== "junction" && !isRailKind(dev!.kind);
+  });
+  if (!candidates.length || !circuit.wires.length) return [];
+  const routes = allWireRoutes(circuit);
+  const hits: { port: PortRef; wireId: string; x: number; y: number; t: number }[] = [];
+  for (const id of candidates) {
+    for (const p of uniqueLocatedPorts(circuit, id)) {
+      let best: { wireId: string; d: number; t: number } | null = null;
+      for (const w of circuit.wires) {
+        const pts = routes.get(w.id) ?? wireRoute(circuit, w.a, w.b, w.jog);
+        if (pts.length < 2) continue;
+        const a = pts[0];
+        const b = pts[pts.length - 1];
+        if (Math.hypot(a.x - p.x, a.y - p.y) <= tolerancePx) continue;
+        if (Math.hypot(b.x - p.x, b.y - p.y) <= tolerancePx) continue;
+        const near = nearestOnPolyline(pts, p);
+        if (!near || near.d > tolerancePx) continue;
+        let t = 0;
+        for (let i = 0; i < near.index; i += 1) t += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+        t += Math.hypot(near.x - pts[near.index].x, near.y - pts[near.index].y);
+        const startA = terminalWorld(circuit, w.a);
+        if (startA && Math.hypot(startA.x - b.x, startA.y - b.y) < Math.hypot(startA.x - a.x, startA.y - a.y)) {
+          let total = 0;
+          for (let i = 0; i < pts.length - 1; i += 1) total += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+          t = total - t;
+        }
+        if (!best || near.d < best.d) best = { wireId: w.id, d: near.d, t };
+      }
+      if (best) hits.push({ port: p.port, wireId: best.wireId, x: p.x, y: p.y, t: best.t });
+    }
+  }
+  return hits;
+}
+
 /** Pick the best grid coordinates (gx, gy) on a wire to insert a junction. */
 export function pickJunctionPositionOnWire(
   circuit: Circuit,

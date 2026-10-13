@@ -620,6 +620,83 @@ describe("device binding ghosts", () => {
   });
 });
 
+describe("connectTerminalsToWires", () => {
+  const lampTerms = (c: ReturnType<typeof emptyCircuit>, symbolId: string) => {
+    const p1 = terminalWorld(c, { symbolId, term: "1" })!;
+    const p2 = terminalWorld(c, { symbolId, term: "2" })!;
+    return { p1, p2 };
+  };
+
+  it("inserts an unwired device in series when both terminals land on a wire", () => {
+    const c = emptyCircuit();
+    const lamp = addDevice(c, "lamp", "LT1", "body", 10, 10);
+    const { p1, p2 } = lampTerms(c, lamp.symbol.id);
+    const vertical = Math.abs(p1.x - p2.x) < 1;
+    const lo = vertical ? (p1.y < p2.y ? p1 : p2) : (p1.x < p2.x ? p1 : p2);
+    const hi = lo === p1 ? p2 : p1;
+    const ja = vertical
+      ? addJunction(c, lo.x / GRID, lo.y / GRID - 4)
+      : addJunction(c, lo.x / GRID - 4, lo.y / GRID);
+    const jb = vertical
+      ? addJunction(c, hi.x / GRID, hi.y / GRID + 4)
+      : addJunction(c, hi.x / GRID + 4, hi.y / GRID);
+    const w = addWire(c, ja.symbol, "1", jb.symbol, "1");
+    w.label = "5";
+    useLab.setState({ circuit: c, mode: "edit" });
+    expect(useLab.getState().connectTerminalsToWires([lamp.symbol.id])).toBe(true);
+    const wires = useLab.getState().circuit.wires;
+    expect(wires).toHaveLength(2);
+    const loTerm = lo === p1 ? "1" : "2";
+    const hiTerm = lo === p1 ? "2" : "1";
+    expect(wires.some((x) => x.a.symbolId === ja.symbol.id && x.b.symbolId === lamp.symbol.id && x.b.term === loTerm)).toBe(true);
+    expect(wires.some((x) => x.a.symbolId === lamp.symbol.id && x.a.term === hiTerm && x.b.symbolId === jb.symbol.id)).toBe(true);
+    expect(wires.every((x) => x.label === "5")).toBe(true);
+  });
+
+  it("taps a wire when only one terminal lands on it", () => {
+    const c = emptyCircuit();
+    const lamp = addDevice(c, "lamp", "LT1", "body", 10, 10);
+    const { p1, p2 } = lampTerms(c, lamp.symbol.id);
+    const vertical = Math.abs(p1.x - p2.x) < 1;
+    // Wire perpendicular to the device axis, through terminal 1 only.
+    const ja = vertical ? addJunction(c, p1.x / GRID - 4, p1.y / GRID) : addJunction(c, p1.x / GRID, p1.y / GRID - 4);
+    const jb = vertical ? addJunction(c, p1.x / GRID + 4, p1.y / GRID) : addJunction(c, p1.x / GRID, p1.y / GRID + 4);
+    addWire(c, ja.symbol, "1", jb.symbol, "1");
+    useLab.setState({ circuit: c, mode: "edit" });
+    expect(useLab.getState().connectTerminalsToWires([lamp.symbol.id])).toBe(true);
+    const wires = useLab.getState().circuit.wires;
+    expect(wires).toHaveLength(2);
+    expect(wires.filter((x) => x.a.symbolId === lamp.symbol.id || x.b.symbolId === lamp.symbol.id)).toHaveLength(2);
+    expect(wires.every((x) => x.a.term === "1" && x.b.term === "1")).toBe(true);
+  });
+
+  it("leaves a device that already has a connection alone", () => {
+    const c = emptyCircuit();
+    const lamp = addDevice(c, "lamp", "LT1", "body", 10, 10);
+    const { p1, p2 } = lampTerms(c, lamp.symbol.id);
+    const vertical = Math.abs(p1.x - p2.x) < 1;
+    const ja = vertical ? addJunction(c, p1.x / GRID - 4, p1.y / GRID) : addJunction(c, p1.x / GRID, p1.y / GRID - 4);
+    const jb = vertical ? addJunction(c, p1.x / GRID + 4, p1.y / GRID) : addJunction(c, p1.x / GRID, p1.y / GRID + 4);
+    addWire(c, ja.symbol, "1", jb.symbol, "1");
+    const other = addJunction(c, 30, 30);
+    addWire(c, lamp.symbol, "2", other.symbol, "1");
+    useLab.setState({ circuit: c, mode: "edit" });
+    expect(useLab.getState().connectTerminalsToWires([lamp.symbol.id])).toBe(false);
+    expect(useLab.getState().circuit.wires).toHaveLength(2);
+  });
+
+  it("does nothing when no terminal is on a wire", () => {
+    const c = emptyCircuit();
+    const lamp = addDevice(c, "lamp", "LT1", "body", 10, 10);
+    const ja = addJunction(c, 30, 30);
+    const jb = addJunction(c, 40, 30);
+    addWire(c, ja.symbol, "1", jb.symbol, "1");
+    useLab.setState({ circuit: c, mode: "edit" });
+    expect(useLab.getState().connectTerminalsToWires([lamp.symbol.id])).toBe(false);
+    expect(useLab.getState().circuit.wires).toHaveLength(1);
+  });
+});
+
 describe("connectOverlappingTerminals", () => {
   it("adds a wire when a moved symbol's terminal lands on another terminal", () => {
     const c = emptyCircuit();

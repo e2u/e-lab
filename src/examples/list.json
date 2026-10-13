@@ -40,8 +40,8 @@
       "Project 10.json": "3a5f634c4f58e99b3fa7bb081fdef9fe",
       "Project 11-Single-Relay.json": "4652e57a8079030c180569746e24cf25",
       "Project 11.json": "7dacee7bc3b05ecaf8946707643dec23",
-      "Project 12.json": "290a0d06f2b7e5949e1ff1db805e01b4",
-      "Project 13.json": "d487ba9f5b62d78f5124d9bd6fa9b61d",
+      "Project 12.json": "e111ef67cc05cdcb773f643a620fb96a",
+      "Project 13.json": "52bba2f083dad0b2024e6e982418fdca",
       "Project 14 Third-motor-start-after-first-motor Reset-by-motor1.json": "4fa5fac51df0e67b1474febc13eef6c2",
       "Project 14 Third-motor-start-after-first-motor.json": "bbdc3166188f3e8033d04e8457692c00",
       "Project 14 Third-motor-start-after-second-motor Reset-by-motor2.json": "250cc5329c82f9059bb32856581c227a",
@@ -51,7 +51,8 @@
       "three-phase-motor.json": "68d1e3d85108fd31578d252db9e02818",
       "transformer.json": "b5badb7a91f6e020d47e4aa84a054a7e",
       "Project 16.json": "9ad73af632f4275b0262784b9d439e96",
-      "Project 17.json": "bb2b3f441bc2ecf5b5429d5b02c87a5f"
+      "Project 17.json": "bb2b3f441bc2ecf5b5429d5b02c87a5f",
+      "Three Motor Continuous Loop - without Relay.json": "828eed63e5f48308a3a57720cd0677b7"
     }
   },
   "examples": [
@@ -309,6 +310,11 @@
       "id": "project-17",
       "title": "Project 17",
       "blurb": "Draw a schematic for a jog circuit, with stop & start P.B. station and a selector switch to control motor 1, or motor 2 or both 1 and 2."
+    },
+    {
+      "id": "three-motor-continuous-loop---without-relay",
+      "title": "Three Motor Continuous Loop - without Relay",
+      "blurb": ""
     }
   ]
 }

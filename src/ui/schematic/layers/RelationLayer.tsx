@@ -28,16 +28,27 @@ export const RelationLayer = memo(function RelationLayer({
         >
           <path d="M1 1 L7 4 L1 7 Z" className="device-rel-arrow" />
         </marker>
+        <marker
+          id="device-rel-arrow-name"
+          markerWidth="8"
+          markerHeight="8"
+          refX="7"
+          refY="4"
+          orient="auto"
+          markerUnits="userSpaceOnUse"
+        >
+          <path d="M1 1 L7 4 L1 7 Z" className="device-rel-arrow name" />
+        </marker>
       </defs>
       {spokes.map((s) => (
         <line
           key={s.id}
-          className="device-rel-line"
+          className={s.kind === "name" ? "device-rel-line name" : "device-rel-line"}
           x1={s.from.x}
           y1={s.from.y}
           x2={s.to.x}
           y2={s.to.y}
-          markerEnd="url(#device-rel-arrow)"
+          markerEnd={s.kind === "name" ? "url(#device-rel-arrow-name)" : "url(#device-rel-arrow)"}
         />
       ))}
     </g>

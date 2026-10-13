@@ -7,7 +7,7 @@ import { loadExampleJson } from "./examples/index";
 // templateData is no longer used after changing blank template to empty circuit (see createBlankTemplateCircuit)
 import { alignEntities, expandIds, groupSymbols, pruneGroups, rotateSelection, selectionHasGroup, ungroupSymbols, unionBounds } from "./groups";
 import { EXAMPLES } from "./examples";
-import { alignRailWireEnds, allWireRoutes, detachUnsplicedHotRailWires, endPinnedRailTap, findOverlappingTerminalPairs, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, hotRailSplices, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, plainRailTap, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
+import { alignRailWireEnds, allWireRoutes, detachUnsplicedHotRailWires, endPinnedRailTap, findOverlappingTerminalPairs, findTerminalsOnWires, findWireAtPoint, getClosestTOnPolyline, getConnectedWireIds, hotRailSplices, labelMarkMatches, nearestOnPolyline, parseWireLabelKey, pickJunctionPositionOnWire, plainRailTap, portsEqual, snapOnSegment, symbolBounds, terminalWorld, toggleWorldFlip, wireHasEnds, wireRoute } from "./geometry";
 import { clone, nextTag, sanitizeCircuitIds, uid, uniqueId } from "./ids";
 import {
   docFromHash,
@@ -292,6 +292,8 @@ export interface LabState {
   ) => void;
   clickPort: (port: PortRef) => void;
   connectOverlappingTerminals: (symbolIds: string[]) => void;
+  /** Splice unwired symbols into wires their terminals were dropped onto. Returns true when wires changed. */
+  connectTerminalsToWires: (symbolIds: string[]) => boolean;
   addJunctionAndConnect: (gx: number, gy: number) => void;
   connectToWire: (wireId: string, world: { x: number; y: number }) => void;
   setWireJog: (id: string, jog: WireJog, replace?: boolean) => void;
@@ -1697,6 +1699,50 @@ export const useLab = create<LabState>((set, get) => ({
       next.wires.push({ id: uid("w"), a: p.a, b: p.b });
     }
     set({ circuit: next, isDirty: true });
+  },
+
+  connectTerminalsToWires: (symbolIds) => {
+    if (get().mode !== "edit") return false;
+    if (!symbolIds.length) return false;
+    const circuit = get().circuit;
+    const hits = findTerminalsOnWires(circuit, symbolIds);
+    if (!hits.length) return false;
+    const next = clone(circuit);
+    const byWire = new Map<string, typeof hits>();
+    for (const h of hits) {
+      const list = byWire.get(h.wireId);
+      if (list) list.push(h);
+      else byWire.set(h.wireId, [h]);
+    }
+    for (const [wireId, list] of byWire) {
+      const w = next.wires.find((item) => item.id === wireId);
+      if (!w) continue;
+      list.sort((p, q) => p.t - q.t);
+      const chain: { port: PortRef; hit: boolean }[] = [
+        { port: w.a, hit: false },
+        ...list.map((h) => ({ port: h.port, hit: true })),
+        { port: w.b, hit: false },
+      ];
+      const segments: { a: PortRef; b: PortRef }[] = [];
+      for (let i = 0; i < chain.length - 1; i += 1) {
+        const p = chain[i];
+        const q = chain[i + 1];
+        // Two terminals of the same device on one wire: the device goes in series, so drop the bridge.
+        if (p.hit && q.hit && p.port.symbolId === q.port.symbolId) continue;
+        if (portsEqual(p.port, q.port)) continue;
+        segments.push({ a: p.port, b: q.port });
+      }
+      if (!segments.length) continue;
+      const [first, ...rest] = segments;
+      w.a = first.a;
+      w.b = first.b;
+      w.jog = undefined;
+      for (const s of rest) {
+        next.wires.push({ id: uid("w"), a: s.a, b: s.b, broken: w.broken, label: w.label });
+      }
+    }
+    set({ circuit: next, isDirty: true });
+    return true;
   },
 
   addJunctionAndConnect: (gx, gy) => {

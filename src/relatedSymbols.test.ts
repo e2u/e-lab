@@ -84,6 +84,30 @@ describe("associationSpokes", () => {
     }
   });
 
+  it("links same-name coil-less devices with red name spokes", () => {
+    const c = emptyCircuit();
+    const pb = addDevice(c, "pb-no", "PB1", "body", 0, 0);
+    const twin = addDevice(c, "pb-nc", "PB1", "body", 20, 0);
+    addDevice(c, "lamp", "LT1", "body", 40, 0);
+    const spokes = associationSpokes(c, pb.symbol.id);
+    expect(spokes.map((s) => [s.id, s.kind])).toEqual([[twin.symbol.id, "name"]]);
+    const relHtml = renderToStaticMarkup(
+      createElement(RelationLayer, { circuit: c, selectedSymbolId: pb.symbol.id }),
+    );
+    expect(relHtml).toContain("device-rel-line name");
+  });
+
+  it("keeps coil devices on device spokes and excludes coil devices as name targets", () => {
+    const c = emptyCircuit();
+    const relay = addDevice(c, "relay", "CR1", "coil", 0, 0);
+    const aux = addSymbol(c, relay.device.id, "aux-no", 12, 0);
+    const lamp = addDevice(c, "lamp", "CR1", "body", 30, 0);
+    const coilSpokes = associationSpokes(c, relay.symbol.id);
+    expect(coilSpokes.map((s) => [s.id, s.kind])).toEqual([[aux.id, "device"]]);
+    expect(associationSpokes(c, aux.id).every((s) => s.kind === "device")).toBe(true);
+    expect(associationSpokes(c, lamp.symbol.id)).toEqual([]);
+  });
+
   it("renders RelationLayer spokes and SymbolLayer hover outlines in Run mode", () => {
     const c = emptyCircuit();
     const relay = addDevice(c, "relay", "CR1", "coil", 0, 0);

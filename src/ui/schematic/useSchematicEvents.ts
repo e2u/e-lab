@@ -865,7 +865,9 @@ export function useSchematicEvents({
     pinRoutingWire(null);
     tagDrag.current = null;
     if (dragging?.pushedHistory && mode === "edit") {
-      useLab.getState().connectOverlappingTerminals(Object.keys(dragging.origins));
+      const ids = Object.keys(dragging.origins);
+      useLab.getState().connectTerminalsToWires(ids);
+      useLab.getState().connectOverlappingTerminals(ids);
     }
     if (jc && Math.hypot(e.clientX - jc.x, e.clientY - jc.y) < 6) {
       const lab = useLab.getState();

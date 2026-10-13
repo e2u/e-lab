@@ -1,3 +1,7 @@
+# Git Commit 規則
+
+- 提交至 Git 時，**不要**附加任何 `Co-authored-by` / `Co-Authored-By` 相關內容（包括 commit message 尾行及 `--trailer "Co-authored-by: ..."` 參數）。
+
 # E-Lab Project - Wire Number Features Implementation
 
 ## Overview

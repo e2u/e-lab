@@ -199,6 +199,10 @@ export interface DeviceParams {
   railY1?: number;
   /** Manual cross-reference cells keyed by grid row. Present keys replace the search. */
   railCrossOverrides?: Record<string, RailCellContent[]>;
+  /** F-O-R forward contact. Omitted means NO (closed only in F). */
+  fwdContact?: "no" | "nc";
+  /** F-O-R reverse contact. Omitted means NO (closed only in R). */
+  revContact?: "no" | "nc";
 }
 
 export interface Device {

@@ -1,4 +1,5 @@
 import { resolvedVariant } from "../catalog";
+import { selector3ContactClosed } from "../selectorContacts";
 import { isNamedNetKind, namedNetKey } from "../namedNets";
 import type { Circuit, Device, DeviceKind, ProcessVars, SimSnapshot, SymbolInst } from "../types";
 import type {
@@ -111,7 +112,11 @@ export function isContactClosed(
     case "selector-2":
       return (rt?.position ?? 0) === 1;
     case "selector-3":
-      return variant === "pos2" ? (rt?.position ?? 0) === 2 : (rt?.position ?? 0) === 1;
+      return selector3ContactClosed(
+        variant === "rev" || variant === "pos2" ? "r" : "f",
+        rt?.position,
+        device.params,
+      );
     case "breaker-1p":
     case "breaker-3p":
     case "isolator":

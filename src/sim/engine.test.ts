@@ -1000,6 +1000,45 @@ describe("sim engine", () => {
     expect(snap.runtime[hlR.device.id].lit).toBe(true);
   });
 
+  it("lets F and R contacts on selector-3 be NO or NC", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const sa = addDevice(c, "selector-3", "SS1", "body", 6, 0, { fwdContact: "nc", revContact: "no" });
+    const hlF = addDevice(c, "lamp", "LT_F", "body", 16, 0);
+    const hlR = addDevice(c, "lamp", "LT_R", "body", 16, 6);
+    addWire(c, g.symbol, "L1", sa.symbol, "COM2");
+    addWire(c, sa.symbol, "FWD", hlF.symbol, "1");
+    addWire(c, hlF.symbol, "2", g.symbol, "N");
+    addWire(c, sa.symbol, "REV", hlR.symbol, "1");
+    addWire(c, hlR.symbol, "2", g.symbol, "N");
+
+    const rt = createRuntime(c);
+    const lit = (pos: number) => {
+      rt[sa.device.id].position = pos;
+      const snap = tick(c, rt, { held: new Set(), process }, 50, 50);
+      return {
+        f: snap.runtime[hlF.device.id].lit,
+        r: snap.runtime[hlR.device.id].lit,
+        short: snap.faults.some((f) => f.msgKey === "fault.shortCircuit"),
+      };
+    };
+
+    expect(lit(0)).toEqual({ f: true, r: false, short: false });
+    expect(lit(1)).toEqual({ f: false, r: false, short: false });
+    expect(lit(2)).toEqual({ f: true, r: true, short: false });
+
+    sa.device.params.revContact = "nc";
+    expect(lit(0)).toEqual({ f: true, r: true, short: false });
+    expect(lit(1)).toEqual({ f: false, r: true, short: false });
+    expect(lit(2)).toEqual({ f: true, r: false, short: false });
+
+    sa.device.params.fwdContact = "no";
+    sa.device.params.revContact = "no";
+    expect(lit(0)).toEqual({ f: false, r: false, short: false });
+    expect(lit(1)).toEqual({ f: true, r: false, short: false });
+    expect(lit(2)).toEqual({ f: false, r: true, short: false });
+  });
+
   it("HOA Hand and Auto are independent NO contacts and do not short L1 to L2", () => {
     const c = emptyCircuit();
     const g = addDevice(c, "mains-3ph", "PWR1", "wye", 0, 0);

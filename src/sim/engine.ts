@@ -2,6 +2,7 @@ import { KINDS, resolvedVariant } from "../catalog";
 import { hotRailSplices, nodeKey, portDevice, findWireAtPoint, railBreakCuts, terminalWorld } from "../geometry";
 import { isNamedNetKind, namedNetKeyOf } from "../namedNets";
 import { isRailKind, railBusTerminals } from "../rails/railBus";
+import { selector3ContactClosed } from "../selectorContacts";
 import {
   GRID,
   type Circuit,
@@ -913,13 +914,11 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
       if (rt.position === 2) out.push(["COM2", "A"]);
       break;
     case "selector-3":
-      if (rt.position === 1) {
-        out.push(["COM", "FWD"]);
-        out.push(["COM2", "FWD"]);
+      if (selector3ContactClosed("f", rt.position, device.params)) {
+        out.push(["COM", "FWD"], ["COM2", "FWD"]);
       }
-      if (rt.position === 2) {
-        out.push(["COM2", "REV"]);
-        out.push(["COM", "REV"]);
+      if (selector3ContactClosed("r", rt.position, device.params)) {
+        out.push(["COM", "REV"], ["COM2", "REV"]);
       }
       break;
     case "breaker-1p":

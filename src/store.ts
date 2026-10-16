@@ -1923,13 +1923,25 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   cyclePosition: (deviceId) => {
-    const dev = get().circuit.devices.find((d) => d.id === deviceId);
+    const circuit = get().circuit;
+    const dev = circuit.devices.find((d) => d.id === deviceId);
     if (!dev) return;
     const max = dev.kind === "selector-3" || dev.kind === "selector-hoa" || dev.kind === "selector-key" ? 3 : 2;
     const runtime = { ...get().snapshot.runtime };
-    const rt = { ...(runtime[deviceId] ?? emptySnapshot(get().circuit).runtime[deviceId]) };
-    rt.position = (rt.position + 1) % max;
+    const rt = { ...(runtime[deviceId] ?? emptySnapshot(circuit).runtime[deviceId]) };
+    const nextPos = ((rt.position ?? 0) + 1) % max;
+    rt.position = nextPos;
     runtime[deviceId] = rt;
+    // Same-tag F-O-R handles are one switch: turning one turns the others.
+    const tag = dev.tag.trim();
+    if (dev.kind === "selector-3" && tag) {
+      for (const other of circuit.devices) {
+        if (other.id === deviceId || other.kind !== "selector-3" || other.tag.trim() !== tag) continue;
+        const otherRt = { ...(runtime[other.id] ?? defaultRuntime(other.kind)) };
+        otherRt.position = nextPos;
+        runtime[other.id] = otherRt;
+      }
+    }
     set({ snapshot: { ...get().snapshot, runtime } });
   },
 

@@ -598,10 +598,25 @@ export function LadderContactGlyph({
   // 10. Toggle / Selector Switch
   const renderToggleOrSelector = () => {
     const activeColor = isClosed && isRungLive ? "#10b981" : isClosed ? "#3b82f6" : barColor;
+    const selectorRev = element.variant === "rev" || element.variant === "pos2";
+    const selectorNc =
+      device.kind === "selector-3" &&
+      (selectorRev ? device.params.revContact === "nc" : device.params.fwdContact === "nc");
 
     return (
       <g className="ladder-toggle-symbol">
         {renderLeadLinesAndCircles(activeColor)}
+        {selectorNc && (
+          <line
+            className="sel-nc"
+            x1={cx - contactXOffset - 2}
+            y1={y + 11}
+            x2={cx + contactXOffset + 2}
+            y2={y - 11}
+            stroke="var(--ladder-ink, #334155)"
+            strokeWidth="1.8"
+          />
+        )}
         {/* Switch blade */}
         <line
           x1={cx - contactXOffset}

@@ -52,7 +52,8 @@
       "transformer.json": "b5badb7a91f6e020d47e4aa84a054a7e",
       "Project 16.json": "9ad73af632f4275b0262784b9d439e96",
       "Project 17.json": "bb2b3f441bc2ecf5b5429d5b02c87a5f",
-      "Three Motor Continuous Loop - without Relay.json": "e0ffc0d818d2b7358dbd65e49e57c210"
+      "Three Motor Continuous Loop - without Relay.json": "e0ffc0d818d2b7358dbd65e49e57c210",
+      "Project 17 - Only with F-O-R.json": "981627e8660a391020c1d42739b4383b"
     }
   },
   "examples": [
@@ -315,6 +316,11 @@
       "id": "three-motor-continuous-loop---without-relay",
       "title": "Three Motor Continuous Loop - without Relay",
       "blurb": ""
+    },
+    {
+      "id": "project-17---only-with-f-o-r",
+      "title": "Project 17 - Only with F-O-R",
+      "blurb": "Draw a schematic for a jog circuit, with stop & start P.B. station and a selector switch to control motor 1, or motor 2 or both 1 and 2."
     }
   ]
 }

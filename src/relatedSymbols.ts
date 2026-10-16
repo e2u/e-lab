@@ -156,3 +156,56 @@ export function associationSpokes(circuit: Circuit, selectedSymbolId: string): A
   }
   return spokes;
 }
+
+interface NameAnchor {
+  sym: SymbolInst;
+  tag: string;
+  box: Box;
+}
+
+function compareAnchors(a: NameAnchor, b: NameAnchor): number {
+  return a.box.y - b.box.y || a.box.x - b.box.x || a.sym.id.localeCompare(b.sym.id);
+}
+
+/**
+ * Same-tag links among coil-less devices. One star per tag, from the
+ * top-left device, so the lines stay put when the selection changes.
+ * Each device contributes its top-left symbol only.
+ */
+export function nameAssociationSpokes(circuit: Circuit): AssociationSpoke[] {
+  const byDevice = new Map<string, NameAnchor>();
+  for (const sym of circuit.symbols) {
+    const dev = circuit.devices.find((d) => d.id === sym.deviceId);
+    if (!dev || dev.kind === "comment" || SKIP_KINDS.has(dev.kind)) continue;
+    const tag = dev.tag.trim();
+    if (!tag || deviceHasCoil(circuit, dev.id)) continue;
+    const box = symbolWorldBox(circuit, sym);
+    if (!box) continue;
+    const anchor: NameAnchor = { sym, tag, box };
+    const prev = byDevice.get(dev.id);
+    if (!prev || compareAnchors(anchor, prev) < 0) byDevice.set(dev.id, anchor);
+  }
+  const groups = new Map<string, NameAnchor[]>();
+  for (const anchor of byDevice.values()) {
+    const list = groups.get(anchor.tag);
+    if (list) list.push(anchor);
+    else groups.set(anchor.tag, [anchor]);
+  }
+  const spokes: AssociationSpoke[] = [];
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    group.sort(compareAnchors);
+    const hub = group[0];
+    for (const other of group.slice(1)) {
+      const spoke = spokeFromTo(hub.box, other.box);
+      if (!spoke) continue;
+      spokes.push({
+        id: `${hub.sym.id}-${other.sym.id}`,
+        from: spoke.from,
+        to: spoke.to,
+        kind: "name",
+      });
+    }
+  }
+  return spokes;
+}

@@ -6,6 +6,7 @@ import { emptySnapshot } from "./sim/engine";
 import { GRID } from "./types";
 import {
   associationSpokes,
+  nameAssociationSpokes,
   relatedSymbols,
   spokeFromTo,
 } from "./relatedSymbols";
@@ -119,6 +120,7 @@ describe("associationSpokes", () => {
     );
     expect(relHtml).toContain("device-rel-layer");
     expect(relHtml).toContain("device-rel-line");
+    expect(relHtml).not.toContain("marker-start");
 
     // SymbolLayer with hoveredSymbolId renders amber dashed outline for hovered and related symbols
     const symHtml = renderToStaticMarkup(
@@ -137,5 +139,67 @@ describe("associationSpokes", () => {
       }),
     );
     expect(symHtml).toContain('stroke="#d97706"');
+  });
+});
+
+describe("nameAssociationSpokes", () => {
+  it("draws one star from the top-left same-tag device with nothing selected", () => {
+    const c = emptyCircuit();
+    const low = addDevice(c, "pb-no", "PB1", "body", 10, 0);
+    const left = addDevice(c, "pb-nc", "PB1", "body", 0, 8);
+    const right = addDevice(c, "lamp", "PB1", "body", 20, 8);
+    addDevice(c, "lamp", "LT1", "body", 30, 0);
+    const spokes = nameAssociationSpokes(c);
+    expect(spokes).toHaveLength(2);
+    expect(spokes.every((s) => s.kind === "name" && s.id.startsWith(`${low.symbol.id}-`))).toBe(true);
+    expect(spokes.map((s) => s.id).sort()).toEqual(
+      [`${low.symbol.id}-${left.symbol.id}`, `${low.symbol.id}-${right.symbol.id}`].sort(),
+    );
+
+    const html = renderToStaticMarkup(
+      createElement(RelationLayer, { circuit: c, selectedSymbolId: null }),
+    );
+    expect(html).toContain("device-rel-name-layer");
+    expect(html).toContain("device-rel-line name");
+    expect(html).toContain('orient="auto-start-reverse"');
+    expect(html).toContain('marker-start="url(#device-rel-arrow-name)"');
+    expect(html).toContain('marker-end="url(#device-rel-arrow-name)"');
+    expect(html).not.toContain("device-rel-layer");
+  });
+
+  it("keeps the same endpoints when another member of the tag is selected", () => {
+    const c = emptyCircuit();
+    const a = addDevice(c, "pb-no", "PB1", "body", 0, 0);
+    const b = addDevice(c, "pb-nc", "PB1", "body", 20, 0);
+    const idle = nameAssociationSpokes(c);
+    const htmlA = renderToStaticMarkup(
+      createElement(RelationLayer, { circuit: c, selectedSymbolId: a.symbol.id }),
+    );
+    const htmlB = renderToStaticMarkup(
+      createElement(RelationLayer, { circuit: c, selectedSymbolId: b.symbol.id }),
+    );
+    const line = `x1="${idle[0].from.x}" y1="${idle[0].from.y}" x2="${idle[0].to.x}" y2="${idle[0].to.y}"`;
+    expect(htmlA).toContain(line);
+    expect(htmlB).toContain(line);
+    expect(htmlA).not.toContain('class="device-rel-line"');
+    expect(htmlB).not.toContain('class="device-rel-line"');
+  });
+
+  it("skips blank tags, coil devices, and extra symbols of the same device", () => {
+    const blank = emptyCircuit();
+    addDevice(blank, "pb-no", "  ", "body", 0, 0);
+    addDevice(blank, "pb-nc", " ", "body", 12, 0);
+    expect(nameAssociationSpokes(blank)).toEqual([]);
+
+    const coiled = emptyCircuit();
+    const relay = addDevice(coiled, "relay", "CR1", "coil", 0, 0);
+    addSymbol(coiled, relay.device.id, "aux-no", 12, 0);
+    addDevice(coiled, "lamp", "CR1", "body", 24, 0);
+    expect(nameAssociationSpokes(coiled)).toEqual([]);
+
+    const one = emptyCircuit();
+    const ol = addDevice(one, "overload", "OL1", "body", 0, 0);
+    addSymbol(one, ol.device.id, "aux-nc", 12, 0);
+    expect(nameAssociationSpokes(one)).toEqual([]);
   });
 });

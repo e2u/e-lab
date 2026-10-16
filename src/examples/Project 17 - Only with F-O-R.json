@@ -50,8 +50,8 @@
         "kind": "rail-l",
         "tag": "L1",
         "params": {
-          "railY0": 29,
-          "railY1": 42
+          "railY0": 37,
+          "railY1": 46
         }
       },
       {
@@ -59,8 +59,8 @@
         "kind": "rail-n",
         "tag": "N1",
         "params": {
-          "railY0": 29,
-          "railY1": 42
+          "railY0": 37,
+          "railY1": 46
         }
       },
       {
@@ -98,12 +98,12 @@
         "params": {
           "projectName": "17",
           "projectNo": "17",
-          "rev": "1.0",
+          "rev": "2.0",
           "sheetNum": "1",
           "sheetTotal": "1",
           "description": "Draw a schematic for a jog circuit, with stop & start P.B. station and a selector switch to control motor 1, or motor 2 or both 1 and 2.",
           "designedBy": "DW",
-          "date": "09/27/2026",
+          "date": "10/16/2026",
           "scale": 1
         }
       },
@@ -276,8 +276,8 @@
         "id": "s_29l_97aea7b2",
         "deviceId": "d_28z_6de4f8bb",
         "variant": "body",
-        "x": 12,
-        "y": 34,
+        "x": 11,
+        "y": 42,
         "rot": 0,
         "flipX": false,
         "flipY": false
@@ -286,8 +286,8 @@
         "id": "s_29m_49d67806",
         "deviceId": "d_290_4912c6d3",
         "variant": "body",
-        "x": 44,
-        "y": 34,
+        "x": 43,
+        "y": 42,
         "rot": 0,
         "flipX": false,
         "flipY": false
@@ -296,8 +296,8 @@
         "id": "s_29n_1a876a3b",
         "deviceId": "d_291_ced750a1",
         "variant": "body",
-        "x": 37,
-        "y": 23,
+        "x": 36,
+        "y": 31,
         "rot": 90,
         "flipX": false,
         "flipY": true,
@@ -324,8 +324,8 @@
         "id": "s_29p_b5fc0946",
         "deviceId": "d_293_89613f2d",
         "variant": "body",
-        "x": 33,
-        "y": 28,
+        "x": 32,
+        "y": 36,
         "rot": 90,
         "flipX": false,
         "flipY": false,
@@ -338,8 +338,8 @@
         "id": "s_29q_5cdd9e47",
         "deviceId": "d_294_a05d703b",
         "variant": "body",
-        "x": 16,
-        "y": 28,
+        "x": 15,
+        "y": 36,
         "rot": 0,
         "flipX": false,
         "flipY": false,
@@ -352,8 +352,8 @@
         "id": "s_29r_6f8656b0",
         "deviceId": "d_28x_c0268bce",
         "variant": "aux-nc",
-        "x": 22,
-        "y": 28,
+        "x": 21,
+        "y": 36,
         "rot": 0,
         "flipX": false,
         "flipY": false
@@ -362,8 +362,8 @@
         "id": "s_29s_17e7ecb7",
         "deviceId": "d_28w_702488d3",
         "variant": "coil",
-        "x": 34,
-        "y": 32,
+        "x": 33,
+        "y": 40,
         "rot": 0,
         "flipX": false,
         "flipY": false,
@@ -387,8 +387,8 @@
         "id": "s_2a3_2ecf58c7",
         "deviceId": "d_29d_e6c44994",
         "variant": "body",
-        "x": 41,
-        "y": 29,
+        "x": 40,
+        "y": 37,
         "rot": 0,
         "flipX": false,
         "flipY": false,
@@ -468,8 +468,8 @@
         "id": "s_2dk_f10abeda",
         "deviceId": "d_2c2_28f4afed",
         "variant": "coil",
-        "x": 34,
-        "y": 34,
+        "x": 33,
+        "y": 42,
         "rot": 0,
         "flipX": false,
         "flipY": false,
@@ -483,8 +483,8 @@
         "id": "s_2eg_26a76850",
         "deviceId": "d_2bu_672f1aad",
         "variant": "aux-nc",
-        "x": 26,
-        "y": 28,
+        "x": 25,
+        "y": 36,
         "rot": 0,
         "flipX": false,
         "flipY": false
@@ -493,8 +493,8 @@
         "id": "s_2gu_f1a1c422",
         "deviceId": "d_2gt_2e02cc7e",
         "variant": "body",
-        "x": 16,
-        "y": 32,
+        "x": 15,
+        "y": 40,
         "rot": 0,
         "flipX": false,
         "flipY": false,
@@ -507,8 +507,8 @@
         "id": "s_2h2_932fb454",
         "deviceId": "d_2h1_2343babc",
         "variant": "body",
-        "x": 23,
-        "y": 32,
+        "x": 22,
+        "y": 40,
         "rot": 0,
         "flipX": false,
         "flipY": false,
@@ -602,8 +602,8 @@
         },
         "jog": {
           "axis": "y",
-          "pos": 506,
-          "y": 506
+          "pos": 682,
+          "y": 682
         }
       },
       {
@@ -618,8 +618,8 @@
         },
         "jog": {
           "axis": "y",
-          "pos": 506,
-          "y": 506
+          "pos": 682,
+          "y": 682
         }
       },
       {
@@ -641,7 +641,7 @@
         },
         "b": {
           "symbolId": "s_29l_97aea7b2",
-          "term": "y29"
+          "term": "y37"
         }
       },
       {
@@ -652,7 +652,7 @@
         },
         "b": {
           "symbolId": "s_29m_49d67806",
-          "term": "y33"
+          "term": "y41"
         }
       },
       {
@@ -912,7 +912,7 @@
         "id": "w_2de_17f5a12b",
         "a": {
           "symbolId": "s_29m_49d67806",
-          "term": "y29",
+          "term": "y37",
           "railPin": "y0"
         },
         "b": {
@@ -932,8 +932,8 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 836,
-          "x": 836
+          "pos": 814,
+          "x": 814
         }
       },
       {
@@ -944,7 +944,7 @@
         },
         "b": {
           "symbolId": "s_29m_49d67806",
-          "term": "y35"
+          "term": "y43"
         }
       },
       {
@@ -977,7 +977,7 @@
         },
         "b": {
           "symbolId": "s_29l_97aea7b2",
-          "term": "y33"
+          "term": "y41"
         }
       },
       {
@@ -1003,8 +1003,8 @@
         },
         "jog": {
           "axis": "x",
-          "pos": 506,
-          "x": 506
+          "pos": 484,
+          "x": 484
         }
       },
       {

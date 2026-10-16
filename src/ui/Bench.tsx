@@ -55,6 +55,7 @@ export function Bench() {
       d.kind === "selector-3" ||
       d.kind === "selector-hoa" ||
       d.kind === "selector-key" ||
+      d.kind === "drum" ||
       d.kind === "toggle" ||
       d.kind.startsWith("toggle-") ||
       d.kind.startsWith("limit") ||
@@ -213,6 +214,23 @@ export function Bench() {
                   <div className={`pilot alarm-pilot ${rt.lit ? "active" : ""}`} style={{ background: rt.lit ? "#e23d2b" : "#2a241c" }} />
                   <span className="widget-label">{d.tag}</span>
                   {rt.lit && <span className="widget-alarm-badge">{t("bench.alarmSound")}</span>}
+                </div>
+              );
+            }
+
+            if (d.kind === "drum") {
+              const pos = rt.position ?? 0;
+              const label = pos === 1 ? "F" : pos === 2 ? "R" : "O";
+              return (
+                <div className="widget" key={d.id} title={`${d.tag} (${label})`}>
+                  <button
+                    className="btn btn-selector"
+                    disabled={mode !== "run"}
+                    onClick={() => useLab.getState().cyclePosition(d.id)}
+                  >
+                    {label}
+                  </button>
+                  <span className="widget-label">{d.tag}</span>
                 </div>
               );
             }

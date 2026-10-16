@@ -210,6 +210,40 @@ describe("sim engine", () => {
     expect(rev.runtime[m2.device.id].direction).toBe(-1);
   });
 
+  it("opens a drum switch in off and reverses a motor by swapping two phases", () => {
+    const c = emptyCircuit();
+    const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);
+    const ds = addDevice(c, "drum", "DR1", "body", 6, 0);
+    const m = addDevice(c, "motor-3ph", "MTR1", "body", 14, 0);
+    addWire(c, g.symbol, "L1", ds.symbol, "L1");
+    addWire(c, g.symbol, "L2", ds.symbol, "L2");
+    addWire(c, g.symbol, "L3", ds.symbol, "L3");
+    addWire(c, ds.symbol, "T1", m.symbol, "U");
+    addWire(c, ds.symbol, "T2", m.symbol, "V");
+    addWire(c, ds.symbol, "T3", m.symbol, "W");
+
+    const rt = createRuntime(c);
+    const at = (pos: number) => {
+      rt[ds.device.id].position = pos;
+      return tick(c, rt, { held: new Set(), process }, 50, 50);
+    };
+
+    const off = at(0);
+    expect(off.runtime[m.device.id].energized).toBe(false);
+    expect(off.runtime[m.device.id].direction).toBe(0);
+    expect(off.faults.some((f) => f.msgKey === "fault.shortCircuit")).toBe(false);
+
+    const fwd = at(1);
+    expect(fwd.runtime[m.device.id].energized).toBe(true);
+    expect(fwd.runtime[m.device.id].direction).toBe(1);
+    expect(fwd.faults.some((f) => f.msgKey === "fault.shortCircuit")).toBe(false);
+
+    const rev = at(2);
+    expect(rev.runtime[m.device.id].energized).toBe(true);
+    expect(rev.runtime[m.device.id].direction).toBe(-1);
+    expect(rev.faults.some((f) => f.msgKey === "fault.shortCircuit")).toBe(false);
+  });
+
   it("isolates transformer secondary until primary is live", () => {
     const c = emptyCircuit();
     const g = addDevice(c, "mains-3ph", "PWR1", "body", 0, 0);

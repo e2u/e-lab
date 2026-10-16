@@ -796,6 +796,28 @@ describe("touch & mobile adaptation", () => {
     expect(pos(b.id)).toBe(0);
   });
 
+  it("turns every same-tag drum switch together", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "run" });
+
+    s.setPlacing("drum");
+    s.placeAt(4, 4);
+    s.setPlacing("drum");
+    s.placeAt(12, 4);
+    const [a, b] = useLab.getState().circuit.devices;
+    s.updateDevice(a.id, { tag: "DR1" });
+    s.updateDevice(b.id, { tag: "DR1" });
+
+    const pos = (id: string) => useLab.getState().snapshot.runtime[id]?.position;
+    s.cyclePosition(a.id);
+    expect(pos(a.id)).toBe(1);
+    expect(pos(b.id)).toBe(1);
+    s.cyclePosition(b.id);
+    expect(pos(a.id)).toBe(2);
+    expect(pos(b.id)).toBe(2);
+  });
+
   it("allows selecting, jogging, and deleting wire connected between different terminals of the same component", () => {
     const s = useLab.getState();
     s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });

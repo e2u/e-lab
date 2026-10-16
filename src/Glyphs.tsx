@@ -1705,6 +1705,71 @@ function GlyphBody({
             </S>
         );
     }
+    if (kind === "drum") {
+        const pos = rt?.position ?? 0;
+        const rev = pos === 2;
+        const r = 4;
+        const x1 = 1 * GRID;
+        const x2 = 3 * GRID;
+        const cx = (x1 + x2) / 2;
+        const poles = [
+            { y: 1 * GRID, left: "L1", right: "T1" },
+            { y: 3 * GRID, left: "L2", right: "T2" },
+            { y: 5 * GRID, left: "L3", right: "T3" },
+        ];
+        const mark = pos === 1 ? "F" : pos === 2 ? "R" : "O";
+        // Off blade stays clear of both terminal dots. A shorter span plus a higher lift reads as open.
+        const openGap = 12;
+        const openRise = 18;
+        const bladeX1 = x1 + openGap;
+        const bladeX2 = x2 - openGap;
+        const markR = 7;
+        const markCy = poles[2].y + 13;
+        return (
+            <S w={w} h={h}>
+                <line x1={cx} y1={poles[0].y} x2={cx} y2={markCy} stroke={ink} strokeWidth="1.5" strokeDasharray="4 3" />
+                <circle cx={cx} cy={markCy} r={markR} fill="#efe6d0" stroke={ink} strokeWidth="1.6" />
+                <Txt x={cx} y={markCy} textAnchor="middle" dominantBaseline="central" className="drum-pos">
+                    {mark}
+                </Txt>
+                {poles.map((p, i) => {
+                    const swap = rev && i < 2;
+                    const yTo = swap ? poles[1 - i].y : p.y;
+                    return (
+                        <g key={p.left}>
+                            <line x1={0} y1={p.y} x2={x1} y2={p.y} stroke={ink} strokeWidth="2" />
+                            <line x1={x2} y1={p.y} x2={w * GRID} y2={p.y} stroke={ink} strokeWidth="2" />
+                            <TermDot cx={x1} cy={p.y} r={r} />
+                            <TermDot cx={x2} cy={p.y} r={r} />
+                            {pos === 0 ? (
+                                <line
+                                    x1={bladeX1}
+                                    y1={p.y - openRise}
+                                    x2={bladeX2}
+                                    y2={p.y}
+                                    stroke={ink}
+                                    strokeWidth="2.2"
+                                    strokeLinecap="round"
+                                />
+                            ) : (
+                                <line
+                                    x1={x1}
+                                    y1={p.y}
+                                    x2={x2}
+                                    y2={yTo}
+                                    stroke={ink}
+                                    strokeWidth="2.2"
+                                    strokeLinecap="round"
+                                />
+                            )}
+                            <Txt x={10} y={p.y - 14} className="term-lab">{p.left}</Txt>
+                            <Txt x={w * GRID - 10} y={p.y - 14} textAnchor="end" className="term-lab">{p.right}</Txt>
+                        </g>
+                    );
+                })}
+            </S>
+        );
+    }
     if (kind === "isolator") {
         const closed = Boolean(rt?.on && !rt?.tripped);
         const stroke = closed ? (hot ? "#c45a12" : ink) : "#c4391d";

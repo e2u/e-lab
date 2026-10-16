@@ -374,6 +374,24 @@ export const KINDS: Record<DeviceKind, KindMeta> = {
       body3: fuse3pBody,     // Three poles
     },
   },
+  drum: {
+    prefix: "DR",
+    label: "鼓形開關",
+    variants: {
+      body: {
+        w: 4,
+        h: 6,
+        terminals: [
+          t("L1", 0, 1, "L1"),
+          t("L2", 0, 3, "L2"),
+          t("L3", 0, 5, "L3"),
+          t("T1", 4, 1, "T1"),
+          t("T2", 4, 3, "T2"),
+          t("T3", 4, 5, "T3"),
+        ],
+      },
+    },
+  },
   isolator: {
     prefix: "DISC",
     label: "隔離開關",
@@ -1347,6 +1365,7 @@ export const CATALOG: CatalogItem[] = [
   { id: "door-nc", kind: "door-nc", variant: "body", group: "開關", subgroupId: "Pushbuttons", label: "門限常閉", labelEn: "Door Interlock NC", prefix: "DS", creates: "device" },
   { id: "selector-2", kind: "selector-2", variant: "body", group: "開關", subgroupId: "Selectors", label: "選擇開關 2 檔", labelEn: "Selector 2", prefix: "SS", creates: "device" },
   { id: "selector-3", kind: "selector-3", variant: "body", group: "開關", subgroupId: "Selectors", label: "正停反開關", labelEn: "F-O-R", prefix: "SS", creates: "device" },
+  { id: "drum", kind: "drum", variant: "body", group: "開關", subgroupId: "Selectors", label: "鼓形開關", labelEn: "Drum Switch", prefix: "DR", creates: "device" },
   { id: "selector-hoa", kind: "selector-hoa", variant: "body", group: "開關", subgroupId: "Selectors", label: "手／停／自動", labelEn: "HOA", prefix: "SS", creates: "device" },
   { id: "selector-key", kind: "selector-key", variant: "body", group: "開關", subgroupId: "Selectors", label: "鑰匙選擇", labelEn: "Key Selector", prefix: "SS", creates: "device" },
   { id: "toggle-spst", kind: "toggle-spst", variant: "body", group: "開關", subgroupId: "Toggles", label: "SPST 撥動", labelEn: "SPST Toggle", prefix: "TGS", creates: "device" },

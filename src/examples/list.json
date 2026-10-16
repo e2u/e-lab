@@ -53,7 +53,10 @@
       "Project 16.json": "9ad73af632f4275b0262784b9d439e96",
       "Project 17.json": "bb2b3f441bc2ecf5b5429d5b02c87a5f",
       "Three Motor Continuous Loop - without Relay.json": "e0ffc0d818d2b7358dbd65e49e57c210",
-      "Project 17 - Only with F-O-R.json": "981627e8660a391020c1d42739b4383b"
+      "Project 17 - Only with F-O-R.json": "45e4516aa1f16ddefdd79705dd70a10c",
+      "Project 18.json": "2c2149ea856a927bf91c229aa1b223b6",
+      "Project 19.json": "dc5f5bb12fd4604032edc9e5bc8e5577",
+      "Project 20.json": "91fa205b8f8319adea220001172bcef9"
     }
   },
   "examples": [
@@ -321,6 +324,21 @@
       "id": "project-17---only-with-f-o-r",
       "title": "Project 17 - Only with F-O-R",
       "blurb": "Draw a schematic for a jog circuit, with stop & start P.B. station and a selector switch to control motor 1, or motor 2 or both 1 and 2."
+    },
+    {
+      "id": "project-18",
+      "title": "Project 18",
+      "blurb": "Draw a schematic for one stop & start P.B. station to control three motors and two T.D. timers to keep one motor to run for a 5 seconds and one motor to run for 10 seconds after you de-energize the circuit."
+    },
+    {
+      "id": "project-19",
+      "title": "Project 19",
+      "blurb": "Draw a schematic for a single start & stop P.B. station controlling a motor or fan with power circuit connection."
+    },
+    {
+      "id": "project-20",
+      "title": "Project 20",
+      "blurb": "Draw a scheatic for a drum switch to control a motor forward and reverse."
     }
   ]
 }

@@ -27,6 +27,7 @@ function hvBridgeTerminals(kind: string, variant: string, termIds: string[]): st
     case "transformer":
       return termIds.filter((id) => id === "H1" || id === "H2" || id === "H3" || id === "H4");
     case "isolator":
+    case "drum":
     case "breaker-1p":
     case "breaker-2p":
     case "breaker-3p":
@@ -175,6 +176,7 @@ function isSeriesPowerDevice(kind: string, variant: string): boolean {
   if (isControlOnlyVariant(variant)) return false;
   switch (kind) {
     case "isolator":
+    case "drum":
     case "breaker-1p":
     case "breaker-3p":
     case "rcd":

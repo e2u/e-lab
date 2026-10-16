@@ -921,6 +921,12 @@ function bridges(device: Device, rt: DeviceRuntime, variant?: string): [string, 
         out.push(["COM", "REV"], ["COM2", "REV"]);
       }
       break;
+    case "drum": {
+      const pos = rt.position ?? 0;
+      if (pos === 1) out.push(["L1", "T1"], ["L2", "T2"], ["L3", "T3"]);
+      if (pos === 2) out.push(["L1", "T2"], ["L2", "T1"], ["L3", "T3"]);
+      break;
+    }
     case "breaker-1p":
       if (on) out.push(["1", "2"]);
       break;

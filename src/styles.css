@@ -1424,6 +1424,17 @@ body.panel-resizing * {
   fill: #5a5648;
 }
 
+/* O/F/R must share one box. Inherited condensed type and letter-spacing shift the glyph. */
+.drum-pos {
+  font-family: "Red Hat Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  fill: #1b1a16;
+  pointer-events: none;
+  user-select: none;
+}
+
 .sym-g.hide-terminals .term-lab {
   display: none;
 }

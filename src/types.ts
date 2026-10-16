@@ -54,6 +54,7 @@ export type DeviceKind =
   | "pb-illum-nc"
   | "selector-2"
   | "selector-3"
+  | "drum"
   | "selector-hoa"
   | "selector-key"
   | "door-nc"

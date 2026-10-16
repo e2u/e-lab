@@ -74,6 +74,7 @@ export function getSymbolTagPlacement(
     kind === "transformer" ||
     kind === "breaker-3p" ||
     kind === "isolator" ||
+    kind === "drum" ||
     kind === "rcd" ||
     kind === "overload"
   ) {

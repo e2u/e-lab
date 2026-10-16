@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { addDevice, emptyCircuit } from "./circuitBuilder";
 import { SymbolGlyph } from "./Glyphs";
-import { GRID } from "./types";
+import { GRID, type DeviceRuntime } from "./types";
 
 describe("coil glyph leads", () => {
   it("reaches both terminal edges so print does not show a gap", () => {
@@ -165,5 +165,40 @@ describe("coil glyph leads", () => {
     expect(htmlNo).not.toContain("sel-nc");
     expect(htmlBoth.match(/sel-nc/g)).toHaveLength(2);
     expect(htmlF.match(/sel-nc/g)).toHaveLength(1);
+  });
+
+  it("draws a drum switch open, straight, or crossed", () => {
+    const c = emptyCircuit();
+    const { device } = addDevice(c, "drum", "DR1", "body", 0, 0);
+    const render = (position: number) =>
+      renderToStaticMarkup(
+        createElement(SymbolGlyph, {
+          device,
+          variant: "body",
+          w: 4,
+          h: 6,
+          rt: { position } as DeviceRuntime,
+        }),
+      );
+    const off = render(0);
+    const fwd = render(1);
+    const rev = render(2);
+    expect(off).toContain("drum-pos");
+    expect(off).toContain('dominant-baseline="central"');
+    expect(off).toContain('y="123"');
+    expect(fwd).toContain('y="123"');
+    expect(rev).toContain('y="123"');
+    expect(off).toContain(">O<");
+    expect(off).not.toContain("contact-broken");
+    expect(off).toContain('x1="34" y1="4" x2="54" y2="22"');
+    expect(off).toContain('x1="34" y1="48" x2="54" y2="66"');
+    expect(off).toContain('x1="34" y1="92" x2="54" y2="110"');
+    expect(off).not.toContain('x2="66" y2="22"');
+    expect(fwd).toContain(">F<");
+    expect(fwd).not.toContain("contact-broken");
+    expect(fwd).not.toContain('y1="22" x2="66" y2="66"');
+    expect(rev).toContain(">R<");
+    expect(rev).toContain('x1="22" y1="22" x2="66" y2="66"');
+    expect(rev).toContain('x1="22" y1="66" x2="66" y2="22"');
   });
 });

@@ -36,7 +36,7 @@ export function interact(kind: string, id: string, down: boolean) {
     lab.toggleIo(id, "on");
   }
   if (kind === "overload" || kind === "fuse" || kind === "ptc" || kind === "relay-ov") lab.toggleIo(id, "tripped");
-  if (kind === "selector-2" || kind === "selector-3" || kind === "selector-hoa" || kind === "selector-key") lab.cyclePosition(id);
+  if (kind === "selector-2" || kind === "selector-3" || kind === "selector-hoa" || kind === "selector-key" || kind === "drum") lab.cyclePosition(id);
   if (kind === "limit-no" || kind === "limit-nc") {
     const dev = lab.circuit.devices.find((d) => d.id === id);
     if (dev) {

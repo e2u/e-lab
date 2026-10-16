@@ -1,0 +1,315 @@
+{
+  "version": 1,
+  "name": "Project 20",
+  "circuit": {
+    "devices": [
+      {
+        "id": "d_sr_7841f7f3",
+        "kind": "mains-3ph",
+        "tag": "PWR1",
+        "params": {
+          "supplyType": "delta",
+          "voltage": 480,
+          "maxCurrent": 400
+        }
+      },
+      {
+        "id": "d_ta_a72a2c78",
+        "kind": "motor-3ph",
+        "tag": "M",
+        "params": {
+          "power": 5.5
+        }
+      },
+      {
+        "id": "d_uo_ec2c69e2",
+        "kind": "title-block",
+        "tag": "TB1",
+        "params": {
+          "projectName": "20",
+          "projectNo": "20",
+          "rev": "1.0",
+          "sheetNum": "1",
+          "sheetTotal": "1",
+          "description": "Draw a scheatic for a drum switch to control a motor forward and reverse.",
+          "designedBy": "DW",
+          "date": "10/16/2026",
+          "scale": 1
+        }
+      },
+      {
+        "id": "d_uz_6168b867",
+        "kind": "isolator",
+        "tag": "DISC1",
+        "params": {}
+      },
+      {
+        "id": "d_2ri_d6f97f69",
+        "kind": "drum",
+        "tag": "DR1",
+        "params": {}
+      },
+      {
+        "id": "d_2s3_4762ca72",
+        "kind": "ground",
+        "tag": "GND1",
+        "params": {}
+      },
+      {
+        "id": "d_2sa_1a818177",
+        "kind": "fuse",
+        "tag": "FU1",
+        "params": {}
+      }
+    ],
+    "symbols": [
+      {
+        "id": "s_ss_408f7c85",
+        "deviceId": "d_sr_7841f7f3",
+        "variant": "delta",
+        "x": 4,
+        "y": 14,
+        "rot": 180,
+        "flipX": true,
+        "flipY": true
+      },
+      {
+        "id": "s_tb_367ea0e4",
+        "deviceId": "d_ta_a72a2c78",
+        "variant": "body",
+        "x": 38,
+        "y": 14,
+        "rot": 90,
+        "flipX": true,
+        "flipY": true,
+        "tagOffset": {
+          "dx": 0.711,
+          "dy": -6.392
+        }
+      },
+      {
+        "id": "s_up_28e9727f",
+        "deviceId": "d_uo_ec2c69e2",
+        "variant": "body",
+        "x": 11,
+        "y": 25,
+        "rot": 0,
+        "flipX": false,
+        "flipY": false
+      },
+      {
+        "id": "s_v0_610a133a",
+        "deviceId": "d_uz_6168b867",
+        "variant": "body",
+        "x": 11,
+        "y": 14,
+        "rot": 180,
+        "flipX": true,
+        "flipY": true
+      },
+      {
+        "id": "s_2rj_26003208",
+        "deviceId": "d_2ri_d6f97f69",
+        "variant": "body",
+        "x": 28,
+        "y": 14,
+        "rot": 180,
+        "flipX": true,
+        "flipY": true,
+        "tagOffset": {
+          "dx": -0.099,
+          "dy": -0.113
+        }
+      },
+      {
+        "id": "s_2s4_5be77d6e",
+        "deviceId": "d_2s3_4762ca72",
+        "variant": "body",
+        "x": 42,
+        "y": 20,
+        "rot": 0,
+        "flipX": false,
+        "flipY": false,
+        "hideTag": true
+      },
+      {
+        "id": "s_2sb_89fb0faa",
+        "deviceId": "d_2sa_1a818177",
+        "variant": "body3",
+        "x": 19,
+        "y": 14,
+        "rot": 90,
+        "flipX": false,
+        "flipY": false,
+        "tagOffset": {
+          "dx": -3.413,
+          "dy": -0.876
+        }
+      }
+    ],
+    "wires": [
+      {
+        "id": "w_2rw_f5645982",
+        "a": {
+          "symbolId": "s_v0_610a133a",
+          "term": "L1"
+        },
+        "b": {
+          "symbolId": "s_ss_408f7c85",
+          "term": "L1"
+        }
+      },
+      {
+        "id": "w_2rx_114f153e",
+        "a": {
+          "symbolId": "s_v0_610a133a",
+          "term": "L2"
+        },
+        "b": {
+          "symbolId": "s_ss_408f7c85",
+          "term": "L2"
+        }
+      },
+      {
+        "id": "w_2ry_011c229e",
+        "a": {
+          "symbolId": "s_v0_610a133a",
+          "term": "L3"
+        },
+        "b": {
+          "symbolId": "s_ss_408f7c85",
+          "term": "L3"
+        }
+      },
+      {
+        "id": "w_2s8_a5f631e7",
+        "a": {
+          "symbolId": "s_2s4_5be77d6e",
+          "term": "1"
+        },
+        "b": {
+          "symbolId": "s_tb_367ea0e4",
+          "term": "PE"
+        }
+      },
+      {
+        "id": "w_2sc_7dc29f39",
+        "a": {
+          "symbolId": "s_2sb_89fb0faa",
+          "term": "2"
+        },
+        "b": {
+          "symbolId": "s_v0_610a133a",
+          "term": "T1"
+        }
+      },
+      {
+        "id": "w_2sd_1943e6dc",
+        "a": {
+          "symbolId": "s_2sb_89fb0faa",
+          "term": "4"
+        },
+        "b": {
+          "symbolId": "s_v0_610a133a",
+          "term": "T2"
+        }
+      },
+      {
+        "id": "w_2se_fe9fa308",
+        "a": {
+          "symbolId": "s_2sb_89fb0faa",
+          "term": "6"
+        },
+        "b": {
+          "symbolId": "s_v0_610a133a",
+          "term": "T3"
+        }
+      },
+      {
+        "id": "w_2sf_00921b61",
+        "a": {
+          "symbolId": "s_2rj_26003208",
+          "term": "L1"
+        },
+        "b": {
+          "symbolId": "s_2sb_89fb0faa",
+          "term": "1"
+        }
+      },
+      {
+        "id": "w_2sg_087dbdde",
+        "a": {
+          "symbolId": "s_2rj_26003208",
+          "term": "L2"
+        },
+        "b": {
+          "symbolId": "s_2sb_89fb0faa",
+          "term": "3"
+        }
+      },
+      {
+        "id": "w_2sh_e459ac44",
+        "a": {
+          "symbolId": "s_2rj_26003208",
+          "term": "L3"
+        },
+        "b": {
+          "symbolId": "s_2sb_89fb0faa",
+          "term": "5"
+        }
+      },
+      {
+        "id": "w_2si_10ea85d7",
+        "a": {
+          "symbolId": "s_tb_367ea0e4",
+          "term": "U"
+        },
+        "b": {
+          "symbolId": "s_2rj_26003208",
+          "term": "T3"
+        }
+      },
+      {
+        "id": "w_2sj_5e52139a",
+        "a": {
+          "symbolId": "s_tb_367ea0e4",
+          "term": "V"
+        },
+        "b": {
+          "symbolId": "s_2rj_26003208",
+          "term": "T2"
+        }
+      },
+      {
+        "id": "w_2sk_13e97abb",
+        "a": {
+          "symbolId": "s_tb_367ea0e4",
+          "term": "W"
+        },
+        "b": {
+          "symbolId": "s_2rj_26003208",
+          "term": "T1"
+        }
+      }
+    ],
+    "groups": [
+      {
+        "id": "g_2rz_044f1d05",
+        "memberIds": [
+          "s_ss_408f7c85",
+          "s_v0_610a133a"
+        ],
+        "hideOnPrint": true
+      }
+    ]
+  },
+  "process": {
+    "temperature": 34,
+    "pressure": 0,
+    "level": 0,
+    "flow": 0,
+    "limitHit": false,
+    "proxHit": false,
+    "photoHit": false
+  }
+}

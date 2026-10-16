@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { addDevice, addWire, emptyCircuit } from "./circuitBuilder";
+import { addDevice, addSymbol, addWire, emptyCircuit } from "./circuitBuilder";
 import { groupSymbols } from "./groups";
 import {
   DEFAULT_PRINT_OPTIONS,
@@ -229,5 +229,29 @@ describe("print store actions and defaults", () => {
 
     const html = renderToStaticMarkup(createElement(PrintModal, { isOpen: true, onClose: () => {}, circuit: c }));
     expect(html).toContain("multi-wire-term-dot");
+  });
+
+  it("prints same-tag association lines and leaves selection spokes off the page", () => {
+    const linked = emptyCircuit();
+    addDevice(linked, "pb-no", "PB1", "body", 0, 0);
+    addDevice(linked, "pb-nc", "PB1", "body", 16, 0);
+    useLab.setState({ circuit: linked, printOpen: true });
+    const linkedHtml = renderToStaticMarkup(
+      createElement(PrintModal, { isOpen: true, onClose: () => {}, circuit: linked }),
+    );
+    expect(linkedHtml).toContain("device-rel-name-layer");
+    expect(linkedHtml).toContain("device-rel-line name");
+    expect(linkedHtml).toContain("device-rel-arrow-name-print");
+    expect(linkedHtml).not.toContain('class="device-rel-layer"');
+    expect(linkedHtml).not.toContain('class="device-rel-line"');
+
+    const coil = emptyCircuit();
+    const relay = addDevice(coil, "relay", "CR1", "coil", 0, 0);
+    addSymbol(coil, relay.device.id, "aux-no", 12, 0);
+    useLab.setState({ circuit: coil, printOpen: true });
+    const coilHtml = renderToStaticMarkup(
+      createElement(PrintModal, { isOpen: true, onClose: () => {}, circuit: coil }),
+    );
+    expect(coilHtml).not.toContain("device-rel-line");
   });
 });

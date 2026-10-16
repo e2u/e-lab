@@ -1269,7 +1269,8 @@ body.panel-resizing * {
   pointer-events: none;
 }
 
-.device-rel-layer {
+.device-rel-layer,
+.device-rel-name-layer {
   pointer-events: none;
 }
 
@@ -3903,6 +3904,15 @@ html, body {
   stroke: #000000 !important;
   color: #000000 !important;
   opacity: 1 !important;
+}
+
+/* Same-tag association stays dashed, inked black in monochrome. */
+.print-svg.print-monochrome .device-rel-line.name {
+  stroke: #000000 !important;
+}
+
+.print-svg.print-monochrome path.device-rel-arrow.name {
+  fill: #000000 !important;
 }
 
 /* Terminal dots: hollow white circle with solid black stroke in monochrome print */

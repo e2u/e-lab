@@ -14,6 +14,7 @@ import { trackExportImage } from "../analytics";
 import { type Circuit, COLS, GRID, ROWS } from "../types";
 import { emptySnapshot } from "../sim/engine";
 import { RailLayer } from "./schematic/layers/RailLayer";
+import { RelationLayer } from "./schematic/layers/RelationLayer";
 import { SymbolLayer } from "./schematic/layers/SymbolLayer";
 import { WireLayer } from "./schematic/layers/WireLayer";
 
@@ -239,6 +240,12 @@ export function PrintModal({ isOpen, onClose, circuit: propCircuit }: PrintModal
           onCancelRailEdit={() => {}}
           onRailEndPointerDown={() => {}}
           onRailSpinePointerDown={() => {}}
+        />
+
+        <RelationLayer
+          circuit={circuit}
+          selectedSymbolId={null}
+          markerSuffix={forPrint ? "-print" : "-preview"}
         />
 
         {edges && <PrintEdgeUrlMarks contentX={edges.contentX} contentY={edges.contentY} contentW={edges.contentW} contentH={edges.contentH} gutter={edges.gutter} />}

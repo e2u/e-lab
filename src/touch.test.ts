@@ -752,6 +752,50 @@ describe("touch & mobile adaptation", () => {
     expect(useLab.getState().snapshot.runtime[dNo2.id]?.actuated).toBe(true);
   });
 
+  it("turns every same-tag F-O-R selector together", () => {
+    const s = useLab.getState();
+    s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });
+    useLab.setState({ history: [], future: [], mode: "run" });
+
+    s.setPlacing("selector-3");
+    s.placeAt(4, 4);
+    s.setPlacing("selector-3");
+    s.placeAt(12, 4);
+    s.setPlacing("selector-3");
+    s.placeAt(20, 4);
+    s.setPlacing("selector-2");
+    s.placeAt(28, 4);
+
+    const [a, b, other, twoPos] = useLab.getState().circuit.devices;
+    s.updateDevice(a.id, { tag: "SS1" });
+    s.updateDevice(b.id, { tag: " SS1 " });
+    s.updateDevice(other.id, { tag: "SS2" });
+    s.updateDevice(twoPos.id, { tag: "SS1" });
+
+    const pos = (id: string) => useLab.getState().snapshot.runtime[id]?.position;
+
+    s.cyclePosition(a.id);
+    expect(pos(a.id)).toBe(1);
+    expect(pos(b.id)).toBe(1);
+    expect(pos(other.id)).toBe(0);
+    expect(pos(twoPos.id)).toBe(0);
+
+    s.cyclePosition(b.id);
+    expect(pos(a.id)).toBe(2);
+    expect(pos(b.id)).toBe(2);
+    expect(pos(other.id)).toBe(0);
+
+    s.cyclePosition(a.id);
+    expect(pos(a.id)).toBe(0);
+    expect(pos(b.id)).toBe(0);
+
+    s.updateDevice(a.id, { tag: "" });
+    s.updateDevice(b.id, { tag: "" });
+    s.cyclePosition(a.id);
+    expect(pos(a.id)).toBe(1);
+    expect(pos(b.id)).toBe(0);
+  });
+
   it("allows selecting, jogging, and deleting wire connected between different terminals of the same component", () => {
     const s = useLab.getState();
     s.loadCircuit({ devices: [], symbols: [], wires: [], groups: [] });

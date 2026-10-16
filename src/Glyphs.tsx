@@ -6,6 +6,7 @@ import {commentFitHeight, titleBlockDescLines, TB_PER_CHAR, TB_W, wrapCommentTex
 import {circleTagFontSize} from "./circleTag";
 export {wrapCommentText} from "./commentText";
 import {netLabelFill, PHASE_COLOR} from "./sim/engine";
+import {selector3ContactClosed} from "./selectorContacts";
 
 const ink = "#1b1a16";
 
@@ -3496,7 +3497,7 @@ function GlyphBody({
         const cx = (w * GRID) / 2;
         const cr = 5.5;
         const shaftTop = y1 - 10;
-        const row = (y: number, closed: boolean, circles: boolean, labL?: string, labR?: string) => (
+        const row = (y: number, closed: boolean, circles: boolean, nc = false) => (
             <>
                 {circles ? (
                     <>
@@ -3504,15 +3505,16 @@ function GlyphBody({
                         <line x1={xR + cr} y1={y} x2={w * GRID} y2={y} stroke={ink} strokeWidth="2"/>
                         <TermDot cx={xL} cy={y} r={cr} strokeWidth={2} />
                         <TermDot cx={xR} cy={y} r={cr} strokeWidth={2} />
-                        {labL && (
-                            <Txt x={6} y={y - 15} className="term-lab">
-                                {labL}
-                            </Txt>
-                        )}
-                        {labR && (
-                            <Txt x={w * GRID - 6} y={y - 15} textAnchor="end" className="term-lab">
-                                {labR}
-                            </Txt>
+                        {nc && (
+                            <line
+                                className="sel-nc"
+                                x1={xL + cr - 2}
+                                y1={y + 8}
+                                x2={xR - cr + 2}
+                                y2={y - 8}
+                                stroke={ink}
+                                strokeWidth="2"
+                            />
                         )}
                     </>
                 ) : null}
@@ -3550,9 +3552,9 @@ function GlyphBody({
                         <path d="M0,0 L6,3 L0,6 Z" fill={ink}/>
                     </marker>
                 </defs>
-                {row(y1, pos === 1, true, )}
+                {row(y1, selector3ContactClosed("f", pos, device.params), true, device.params.fwdContact === "nc")}
                 {row(yM, false, false)}
-                {row(y2, pos === 2, true, )}
+                {row(y2, selector3ContactClosed("r", pos, device.params), true, device.params.revContact === "nc")}
                 <line x1={cx} y1={shaftTop} x2={cx} y2={y2} stroke={ink} strokeWidth="2"/>
                 {arm(-14, -10, pos === 1)}
                 {arm(0, -16, pos === 0)}

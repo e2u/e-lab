@@ -148,4 +148,22 @@ describe("coil glyph leads", () => {
     // NC blade is closed resting on top of the contact dots in unactuated state (y - r - 2 = 22 - 5 - 2 = 15)
     expect(htmlNc).toContain('y2="15"');
   });
+
+  it("draws an NC slash only on F-O-R contacts set to NC", () => {
+    const c = emptyCircuit();
+    const { device: noDev } = addDevice(c, "selector-3", "SS1", "body", 0, 0);
+    const { device: bothNc } = addDevice(c, "selector-3", "SS2", "body", 0, 0, {
+      fwdContact: "nc",
+      revContact: "nc",
+    });
+    const { device: fNc } = addDevice(c, "selector-3", "SS3", "body", 0, 0, { fwdContact: "nc" });
+
+    const htmlNo = renderToStaticMarkup(createElement(SymbolGlyph, { device: noDev, variant: "body", w: 4, h: 4 }));
+    const htmlBoth = renderToStaticMarkup(createElement(SymbolGlyph, { device: bothNc, variant: "body", w: 4, h: 4 }));
+    const htmlF = renderToStaticMarkup(createElement(SymbolGlyph, { device: fNc, variant: "body", w: 4, h: 4 }));
+
+    expect(htmlNo).not.toContain("sel-nc");
+    expect(htmlBoth.match(/sel-nc/g)).toHaveLength(2);
+    expect(htmlF.match(/sel-nc/g)).toHaveLength(1);
+  });
 });

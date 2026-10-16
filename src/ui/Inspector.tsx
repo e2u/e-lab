@@ -955,6 +955,41 @@ export function Inspector() {
               {sym.variant === "coil" && (dev.kind === "timer-ss-off" ? t("inspector.hintSsTofCoil") : t((dev.kind === "timer-on" || dev.kind === "timer-ss-on") ? "inspector.hintTonCoil" : "inspector.hintTofCoil"))}
             </div>
           )}
+          {dev.kind === "selector-3" && (
+            <div className="inspector-field-group">
+              <label>
+                {t("inspector.fwdContact")}
+                <select
+                  aria-label={t("inspector.fwdContact")}
+                  value={dev.params.fwdContact === "nc" ? "nc" : "no"}
+                  onChange={(e) =>
+                    useLab.getState().updateDevice(dev.id, {
+                      params: { ...dev.params, fwdContact: e.target.value === "nc" ? "nc" : "no" },
+                    })
+                  }
+                >
+                  <option value="no">{t("inspector.contactNo")}</option>
+                  <option value="nc">{t("inspector.contactNc")}</option>
+                </select>
+              </label>
+              <label>
+                {t("inspector.revContact")}
+                <select
+                  aria-label={t("inspector.revContact")}
+                  value={dev.params.revContact === "nc" ? "nc" : "no"}
+                  onChange={(e) =>
+                    useLab.getState().updateDevice(dev.id, {
+                      params: { ...dev.params, revContact: e.target.value === "nc" ? "nc" : "no" },
+                    })
+                  }
+                >
+                  <option value="no">{t("inspector.contactNo")}</option>
+                  <option value="nc">{t("inspector.contactNc")}</option>
+                </select>
+              </label>
+              <p className="hint">{t("inspector.selectorContactHint")}</p>
+            </div>
+          )}
           {dev.kind !== "net-label" && sameKind.length > 1 && (
             <label>
               {t("inspector.deviceBinding")}

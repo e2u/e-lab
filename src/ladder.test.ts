@@ -269,6 +269,36 @@ describe("Ladder Diagram System", () => {
       expect(isContactClosed(devContactor, "aux-nc", snap, [], proc)).toBe(false);
     });
 
+    it("closes selector-3 F and R contacts from their NO or NC setting", () => {
+      const dev = { id: "ss", kind: "selector-3" as const, tag: "SS1", params: {} };
+      const circuit: Circuit = { devices: [dev], symbols: [], wires: [] };
+      const snap = emptySnapshot(circuit);
+      const proc = { temperature: 25, pressure: 0, level: 0, flow: 0, limitHit: false, proxHit: false, photoHit: false };
+
+      snap.runtime.ss.position = 0;
+      expect(isContactClosed(dev, "fwd", snap, [], proc)).toBe(false);
+      expect(isContactClosed(dev, "rev", snap, [], proc)).toBe(false);
+
+      snap.runtime.ss.position = 1;
+      expect(isContactClosed(dev, "fwd", snap, [], proc)).toBe(true);
+      expect(isContactClosed(dev, "rev", snap, [], proc)).toBe(false);
+
+      snap.runtime.ss.position = 2;
+      expect(isContactClosed(dev, "fwd", snap, [], proc)).toBe(false);
+      expect(isContactClosed(dev, "rev", snap, [], proc)).toBe(true);
+
+      dev.params = { fwdContact: "nc", revContact: "nc" };
+      snap.runtime.ss.position = 0;
+      expect(isContactClosed(dev, "fwd", snap, [], proc)).toBe(true);
+      expect(isContactClosed(dev, "rev", snap, [], proc)).toBe(true);
+      snap.runtime.ss.position = 1;
+      expect(isContactClosed(dev, "fwd", snap, [], proc)).toBe(false);
+      expect(isContactClosed(dev, "rev", snap, [], proc)).toBe(true);
+      snap.runtime.ss.position = 2;
+      expect(isContactClosed(dev, "fwd", snap, [], proc)).toBe(true);
+      expect(isContactClosed(dev, "rev", snap, [], proc)).toBe(false);
+    });
+
     it("should correctly assign contact types for push buttons vs relay auxiliary contacts", () => {
       const circuit: Circuit = {
         devices: [

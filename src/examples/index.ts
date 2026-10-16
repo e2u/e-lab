@@ -62,6 +62,7 @@ const exampleImports: Record<string, ExampleImporter> = {
   "project-15": () => import("./Project 15.json"),
   "project-16": () => import("./Project 16.json"),
   "project-17": () => import("./Project 17.json"),
+  "project-17---only-with-f-o-r": () => import("./Project 17 - Only with F-O-R.json"),
   "three-motor-continuous-loop---without-relay": () => import("./Three Motor Continuous Loop - without Relay.json"),
   "three-phase-motor": () => import("./three-phase-motor.json"),
   "transformer": () => import("./transformer.json"),
